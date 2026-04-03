@@ -153,7 +153,8 @@ let missionRun = { seconds: 0, score: 0, colorChanges: 0, powerupsThisRun: 0, ne
 
 // One-shot bonus awarded at the start of the next game after completing a mission
 let pendingMissionBonus = 0;
-let skinCarouselIdx = 0;   // index of the currently shown skin in the carousel
+let skinCarouselIdx = 0;       // index of the currently shown skin in the carousel
+let skinCarouselAnimating = false; // true while a slide animation is in progress
 
 function loadMissions() {
   try {
@@ -862,43 +863,66 @@ function updateSkinsUI(direction) {
     '<span class="skin-name sc-name">' + skin.name + '</span>' +
     progressHTML + barHTML + actionHTML;
 
-  // Slide animation — only when a direction is given
+  // Directional slide animation
+  // Right arrow (next): current card exits LEFT, new card enters from RIGHT
+  // Left  arrow (prev): current card exits RIGHT, new card enters from LEFT
   const oldCard = stage.firstElementChild;
-  if (direction && oldCard) {
+  if (direction && oldCard && !skinCarouselAnimating) {
+    skinCarouselAnimating = true;
     const prevBtn = document.getElementById('skin-prev');
     const nextBtn = document.getElementById('skin-next');
     if (prevBtn) prevBtn.disabled = true;
     if (nextBtn) nextBtn.disabled = true;
-    // Lock stage height so frame doesn't jump while track is inside
-    stage.style.height = oldCard.offsetHeight + 'px';
-    // Build a 200%-wide track; place both cards side by side
-    const track = document.createElement('div');
-    track.className = 'sc-track';
-    if (direction === 'next') {
-      // old on left, new on right → start at 0, slide to -50%
-      track.appendChild(oldCard);
-      track.appendChild(newCard);
-      track.style.transform = 'translateX(0)';
-    } else {
-      // new on left, old on right → start at -50%, slide to 0
-      track.appendChild(newCard);
-      track.appendChild(oldCard);
-      track.style.transform = 'translateX(-50%)';
-    }
-    // oldCard is now inside track, stage should be empty
-    while (stage.firstChild) stage.removeChild(stage.firstChild);
-    stage.appendChild(track);
-    // Force reflow then animate
-    track.getBoundingClientRect();
-    track.style.transition = 'transform .42s ease-in-out';
-    track.style.transform  = direction === 'next' ? 'translateX(-50%)' : 'translateX(0)';
-    setTimeout(() => {
-      while (stage.firstChild) stage.removeChild(stage.firstChild);
-      stage.appendChild(newCard);
-      stage.style.height = '';
-      if (prevBtn) prevBtn.disabled = false;
-      if (nextBtn) nextBtn.disabled = false;
-    }, 450);
+
+    const enterFrom = direction === 'next' ? '100%'  : '-100%';
+    const exitTo    = direction === 'next' ? '-100%' : '100%';
+    const DURATION  = 420; // ms — matches setTimeout below
+    const EASING    = 'transform ' + DURATION + 'ms cubic-bezier(0.4,0,0.2,1)';
+
+    // Lock stage height so it doesn't collapse while both cards are absolute
+    const lockedH = oldCard.offsetHeight;
+    if (lockedH > 0) stage.style.height = lockedH + 'px';
+
+    // Both cards: absolutely stacked inside the relative stage
+    [oldCard, newCard].forEach(c => {
+      c.style.position   = 'absolute';
+      c.style.top        = '0';
+      c.style.left       = '0';
+      c.style.width      = '100%';
+      c.style.willChange = 'transform';
+      c.style.transition = 'none';
+    });
+    newCard.style.transform = 'translateX(' + enterFrom + ')';
+    oldCard.style.transform = 'translateX(0)';
+    stage.appendChild(newCard);
+
+    // Double rAF: first frame lets browser paint initial positions,
+    // second frame starts the transition so it is always animated
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        newCard.style.transition = EASING;
+        oldCard.style.transition = EASING;
+        newCard.style.transform  = 'translateX(0)';
+        oldCard.style.transform  = 'translateX(' + exitTo + ')';
+
+        setTimeout(() => {
+          stage.innerHTML = '';
+          // Strip all the inline animation styles from newCard
+          newCard.style.position   = '';
+          newCard.style.top        = '';
+          newCard.style.left       = '';
+          newCard.style.width      = '';
+          newCard.style.willChange = '';
+          newCard.style.transition = '';
+          newCard.style.transform  = '';
+          stage.style.height = '';
+          stage.appendChild(newCard);
+          if (prevBtn) prevBtn.disabled = false;
+          if (nextBtn) nextBtn.disabled = false;
+          skinCarouselAnimating = false;
+        }, DURATION + 20);
+      });
+    });
   } else {
     stage.innerHTML = '';
     stage.appendChild(newCard);

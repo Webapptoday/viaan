@@ -689,14 +689,6 @@ kbd {
   overflow: hidden;
 }
 
-/* Slideshow track — both cards ride one strip */
-.sc-track {
-  display: flex;
-  width: 200%;
-  will-change: transform;
-}
-.sc-track > .sc-card { width: 50%; flex-shrink: 0; }
-
 .sc-card {
   width: 100%;
   padding: 22px 18px 18px;
