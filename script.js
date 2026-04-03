@@ -1,0 +1,3231 @@
+﻿// ============================================================
+// FORBIDDEN COLOR — Game Logic v2
+// ============================================================
+'use strict';
+
+// ============================================================
+// SECTION 1: CONSTANTS & CONFIG
+// ============================================================
+
+const GAME_COLORS = [
+  { name: 'Red',    hex: '#ef4444', symbol: 'X'  },
+  { name: 'Blue',   hex: '#3b82f6', symbol: 'O'  },
+  { name: 'Green',  hex: '#22c55e', symbol: '+'  },
+  { name: 'Yellow', hex: '#eab308', symbol: '*'  },
+  { name: 'Purple', hex: '#a855f7', symbol: 'V'  },
+  { name: 'Orange', hex: '#f97316', symbol: 'S'  },
+  { name: 'Cyan',   hex: '#06b6d4', symbol: '#'  },
+];
+
+const POWERUP_DEFS = {
+  SHIELD: { label: 'Shield',    icon: '\uD83D\uDEE1', color: '#facc15', duration: 10 },
+  SLOW:   { label: 'Slow Time', icon: '\u23F1',        color: '#38bdf8', duration: 6  },
+  CLEAR:  { label: 'Clear!',    icon: '\u2728',         color: '#e879f9', duration: 0  },
+  BOOST:  { label: 'Score x2',  icon: '\u26A1',         color: '#fb923c', duration: 8  },
+};
+const POWERUP_KEYS = Object.keys(POWERUP_DEFS);
+
+// Single built-in difficulty — ramps automatically via tickDifficulty()
+const GAME_CONFIG = { playerSpeed: 255, spawnRate: 0.36, forbiddenInterval: 3.2, baseSpeed: 178 };
+
+// Player skins — unlock thresholds are bestScore requirements (bestScore never decreases)
+const SKIN_DEFS = [
+  // ── Common ──
+  { id: 'classic', name: 'Classic', unlock:    0, rarity: 'common', effect: 'none',    color1: '#ffffff', color2: '#c084fc', glow: '#a855f7', shape: 'circle', trail: false },
+  { id: 'neon',    name: 'Neon',    unlock:  100, rarity: 'common', effect: 'pulse',   color1: '#ccfdf2', color2: '#06b6d4', glow: '#06b6d4', shape: 'circle', trail: true  },
+  // ── Rare ──
+  { id: 'ice',     name: 'Ice',     unlock:  300, rarity: 'rare',   effect: 'shimmer', color1: '#e0f2fe', color2: '#38bdf8', glow: '#7dd3fc', shape: 'circle', trail: true  },
+  { id: 'lava',    name: 'Lava',    unlock:  600, rarity: 'rare',   effect: 'flicker', color1: '#fef08a', color2: '#ef4444', glow: '#f97316', shape: 'circle', trail: true  },
+  { id: 'crimson',  name: 'Crimson',  unlock: 0, coinCost: 200, rarity: 'rare',      effect: 'flicker',  color1: '#ffe4e1', color2: '#dc2626', glow: '#ef4444', shape: 'circle', trail: true  },
+  // ── Epic ──
+  { id: 'gold',    name: 'Gold',    unlock: 1000, rarity: 'epic',   effect: 'shimmer', color1: '#fefce8', color2: '#eab308', glow: '#fbbf24', shape: 'star',   trail: false },
+  { id: 'void',     name: 'Void',     unlock: 2000, rarity: 'epic',      effect: 'void',     color1: '#ddd6fe', color2: '#3b0764', glow: '#c084fc', shape: 'star',   trail: true  },
+  { id: 'electric', name: 'Electric', unlock: 0, coinCost: 350, rarity: 'epic',      effect: 'electric', color1: '#e0f2fe', color2: '#0284c7', glow: '#38bdf8', shape: 'circle', trail: true  },
+  { id: 'inferno',  name: 'Inferno',  unlock: 0, coinCost: 350, rarity: 'epic',      effect: 'inferno',  color1: '#fffbeb', color2: '#dc2626', glow: '#f97316', shape: 'circle', trail: true  },
+  { id: 'prism',    name: 'Prism',    unlock: 0, coinCost: 350, rarity: 'epic',      effect: 'prism',    color1: '#ffffff', color2: '#a855f7', glow: '#e879f9', shape: 'circle', trail: true  },
+  // ── Legendary ──
+  { id: 'galaxy',   name: 'Galaxy',   unlock: 0, coinCost: 550, rarity: 'legendary', effect: 'galaxy',   color1: '#c4b5fd', color2: '#1e1b4b', glow: '#818cf8', shape: 'star',   trail: true  },
+];
+
+const STATE = { HOME: 'home', PLAYING: 'playing', PAUSED: 'paused', GAMEOVER: 'gameover' };
+
+const WARNING_DURATION    = 0.8;  // short flash warning — just enough to react
+const NEAR_MISS_DIST      = 65;   // px (from player center to nearest rect edge)
+const NEAR_MISS_BONUS     = 40;
+const COMBO_BONUS_PER         = 25;   // pts per combo level on each color change (combo×25: 25, 50, 75…)
+const POWERUP_COLLECT_BONUS   = 50;   // flat pts for picking up any power-up
+const POWERUP_INTERVAL    = 15;   // s between powerup spawns (more frequent to compensate)
+const DIFF_SCALE_EVERY    = 12;   // s between difficulty bumps — bumps every 12 s for steeper mid-game curve
+const MAX_OBSTACLES       = 42;   // hard cap — dense, dangerous screen
+const GRACE_PERIOD        = 1.0;  // s at start with no forbidden obstacles
+const FORBIDDEN_MIN_RATIO = 0.45; // keep at least 45% of active obstacles forbidden
+const CLUSTER_CHANCE      = 0.10; // probability any spawn tick fires a cluster instead of a single obstacle
+const NARROW_CHANCE       = 0.05; // probability any spawn tick fires a narrow-lane wall pattern
+const MAX_WALL_OBSTACLES  = 2;    // max simultaneous wide wall-segment obstacles (prevents stacking)
+
+// ============================================================
+// SECTION 2: MUTABLE STATE
+// ============================================================
+
+// ============================================================
+// MISSIONS SYSTEM
+// Each mission has: id, label, description, goal (numeric),
+//   stat (which per-run counter to check), reward (skin id or null),
+//   rewardLabel, repeatable (can be re-earned after reset).
+// ============================================================
+const MISSION_DEFS = [
+  // ── Easy ──────────────────────────────────────────────────────
+  {
+    id: 'survive45',    difficulty: 'easy',
+    label: '⏱ Survivor I',
+    description: 'Survive for 45 seconds in a single run.',
+    stat: 'seconds',    goal: 45,   coinReward: 30,
+  },
+  {
+    id: 'score500',     difficulty: 'easy',
+    label: '🎯 Score Seeker',
+    description: 'Reach a score of 500 in a single run.',
+    stat: 'score',      goal: 500,  coinReward: 30,
+  },
+  {
+    id: 'nearmiss3',    difficulty: 'easy',
+    label: '😅 Close Shave',
+    description: 'Get 3 near misses in a single run.',
+    stat: 'nearMissesThisRun', goal: 3, coinReward: 30,
+  },
+  // ── Medium ────────────────────────────────────────────────────
+  {
+    id: 'survive90',    difficulty: 'medium',
+    label: '⏱ Survivor II',
+    description: 'Survive for 90 seconds in a single run.',
+    stat: 'seconds',    goal: 90,   coinReward: 60,
+  },
+  {
+    id: 'score1500',    difficulty: 'medium',
+    label: '🎯 High Scorer',
+    description: 'Reach a score of 1500 in a single run.',
+    stat: 'score',      goal: 1500, coinReward: 60,
+  },
+  {
+    id: 'colorchange8', difficulty: 'medium',
+    label: '🎨 Color Veteran',
+    description: 'Survive 8 forbidden color changes in one run.',
+    stat: 'colorChanges', goal: 8,  coinReward: 60,
+  },
+  {
+    id: 'powerups10',   difficulty: 'medium',
+    label: '⚡ Power Hoarder',
+    description: 'Collect 10 power-ups across any number of runs.',
+    stat: 'powerupsThisRun', goal: 10, coinReward: 60, cumulative: true,
+  },
+  // ── Hard ──────────────────────────────────────────────────────
+  {
+    id: 'survive150',   difficulty: 'hard',
+    label: '⏱ Ironclad',
+    description: 'Survive for 2 minutes 30 seconds in a single run.',
+    stat: 'seconds',    goal: 150,  coinReward: 120,
+  },
+  {
+    id: 'score3000',    difficulty: 'hard',
+    label: '🎯 Score Master',
+    description: 'Reach a score of 3000 in a single run.',
+    stat: 'score',      goal: 3000, coinReward: 120,
+  },
+  {
+    id: 'panic3run',    difficulty: 'hard',
+    label: '🌊 Panic Proof',
+    description: 'Survive 3 panic waves in a single run.',
+    stat: 'panicWavesSurvived', goal: 3, coinReward: 120,
+  },
+  {
+    id: 'combo15',      difficulty: 'hard',
+    label: '🔥 Combo King',
+    description: 'Reach a 15× combo in a single run.',
+    stat: 'maxCombo',   goal: 15,   coinReward: 120,
+  },
+];
+
+// Persisted per-mission state: { [id]: { done: bool, progress: number } }
+let missionState = {};
+
+// Per-run in-memory counters (reset on startGame)
+let missionRun = { seconds: 0, score: 0, colorChanges: 0, powerupsThisRun: 0, nearMissesThisRun: 0, panicWavesSurvived: 0, maxCombo: 0 };
+
+// One-shot bonus awarded at the start of the next game after completing a mission
+let pendingMissionBonus = 0;
+let skinCarouselIdx = 0;   // index of the currently shown skin in the carousel
+
+function loadMissions() {
+  try {
+    const raw = localStorage.getItem('forbiddenColor_missions');
+    if (!raw) return;
+    const saved = JSON.parse(raw);
+    if (saved && typeof saved === 'object') {
+      MISSION_DEFS.forEach(m => {
+        if (saved[m.id]) {
+          missionState[m.id] = {
+            done:     !!saved[m.id].done,
+            claimed:  !!saved[m.id].claimed,
+            progress: typeof saved[m.id].progress === 'number' ? saved[m.id].progress : 0,
+          };
+        }
+      });
+      if (typeof saved._pendingBonus === 'number') pendingMissionBonus = saved._pendingBonus;
+    }
+  } catch (_) {}
+}
+
+function saveMissions() {
+  try {
+    const out = { _pendingBonus: pendingMissionBonus };
+    MISSION_DEFS.forEach(m => { out[m.id] = missionState[m.id] || { done: false, progress: 0 }; });
+    localStorage.setItem('forbiddenColor_missions', JSON.stringify(out));
+  } catch (_) {}
+}
+
+function getMissionProgress(m) {
+  const s = missionState[m.id];
+  return s ? s.progress : 0;
+}
+
+function isMissionDone(m) {
+  return !!(missionState[m.id] && missionState[m.id].done);
+}
+
+function isMissionClaimed(m) {
+  return !!(missionState[m.id] && missionState[m.id].claimed);
+}
+
+// Called every completed game to evaluate all missions against current run stats
+function evaluateMissions() {
+  let anyNewlyDone = false;
+  MISSION_DEFS.forEach(m => {
+    if (isMissionDone(m)) return;
+    if (!missionState[m.id]) missionState[m.id] = { done: false, claimed: false, progress: 0 };
+    const ms = missionState[m.id];
+
+    if (m.cumulative) {
+      ms.progress += (missionRun[m.stat] || 0);
+    } else {
+      ms.progress = Math.max(ms.progress, missionRun[m.stat] || 0);
+    }
+
+    if (ms.progress >= m.goal) {
+      ms.done = true;
+      pendingMissionBonus += 50;
+      anyNewlyDone = true;
+      showMissionCompleteToast(m);
+    }
+  });
+  saveMissions();
+  updateMissionUI();
+  return anyNewlyDone;
+}
+
+// Brief on-screen toast shown on the home screen after game-over
+function showMissionCompleteToast(m) {
+  // Insert a temporary DOM element into the home screen
+  const existing = document.getElementById('mission-toast');
+  if (existing) existing.remove();
+  const toast = document.createElement('div');
+  toast.id = 'mission-toast';
+  toast.setAttribute('role', 'status');
+  toast.setAttribute('aria-live', 'polite');
+  toast.className = 'mission-toast';
+  toast.innerHTML = '🎉 <strong>' + m.label + '</strong> complete!<br><small>Open Shop to claim <strong>+' + (m.coinReward || 20) + ' coins</strong></small>';
+  document.body.appendChild(toast);
+  setTimeout(() => { toast.classList.add('mission-toast-show'); }, 20);
+  setTimeout(() => { toast.classList.remove('mission-toast-show'); setTimeout(() => toast.remove(), 400); }, 4500);
+}
+
+function claimMission(id) {
+  const m = MISSION_DEFS.find(d => d.id === id);
+  if (!m) return;
+  const ms = missionState[m.id];
+  if (!ms || !ms.done || ms.claimed) return;
+  ms.claimed = true;
+  saveMissions();
+  awardCoins(m.coinReward || 20);
+  updateMissionUI();
+  // Flash animation on the card
+  const card = document.querySelector('.mission-item[data-mission-id="' + id + '"]');
+  if (card) {
+    card.classList.add('mission-claim-flash');
+    setTimeout(() => card.classList.remove('mission-claim-flash'), 700);
+  }
+}
+
+function updateMissionUI() {
+  const list = document.getElementById('missions-list');
+  if (!list) return;
+  list.innerHTML = '';
+  MISSION_DEFS.forEach(m => {
+    const done    = isMissionDone(m);
+    const claimed = isMissionClaimed(m);
+    const prog    = getMissionProgress(m);
+    const pct     = Math.min(100, Math.round((prog / m.goal) * 100));
+
+    const item = document.createElement('div');
+    item.className = 'mission-item' +
+      (done && claimed ? ' mission-done' : done ? ' mission-completed' : '');
+    item.dataset.missionId = m.id;
+
+    const diffLabel = { easy: 'Easy', medium: 'Medium', hard: 'Hard' }[m.difficulty] || '';
+    const diffBadge = '<span class="mission-diff mission-diff-' + (m.difficulty || 'easy') + '">' + diffLabel + '</span>';
+    const coinAmt   = m.coinReward || 20;
+    const rewardBadge = (done && claimed) ? '' :
+      '<span class="mission-reward"><span class="coin-icon coin-sm" aria-hidden="true"></span>' + coinAmt + '</span>';
+
+    let footer;
+    if (done && claimed) {
+      footer = '<p class="mission-claimed-label">✓ Claimed</p>';
+    } else if (done) {
+      footer = '<button class="mission-claim-btn" data-claim-id="' + m.id + '" ' +
+        'aria-label="Claim ' + coinAmt + ' coins for ' + m.label + '">' +
+        '<span class="coin-icon coin-sm" aria-hidden="true"></span> Claim +' + coinAmt + '</button>';
+    } else {
+      footer = '<div class="mission-footer">' +
+        '<span class="mission-progress">' + Math.min(prog, m.goal) + ' / ' + m.goal + '</span>' +
+        '<div class="mission-bar-track" aria-hidden="true"><div class="mission-bar-fill" style="width:' + pct + '%"></div></div>' +
+        '</div>';
+    }
+
+    item.innerHTML =
+      '<div class="mission-row">' +
+        '<span class="mission-label">' + m.label + (done && claimed ? ' ✓' : '') + '</span>' +
+        '<span class="mission-meta">' + rewardBadge + diffBadge + '</span>' +
+      '</div>' +
+      '<p class="mission-desc">' + m.description + '</p>' +
+      footer;
+
+    list.appendChild(item);
+  });
+
+  // Wire claim buttons after DOM insertion
+  list.querySelectorAll('.mission-claim-btn').forEach(btn => {
+    btn.addEventListener('click', () => claimMission(btn.dataset.claimId));
+  });
+}
+
+let currentState = STATE.HOME;
+let newBestThisGame = false; // tracks if a new best was set during the last game session
+
+let settings = {
+  sound:          true,
+  reducedMotion:  false,
+  highContrast:   false,
+  colorblind:     false,
+  bestScore:      0,
+  selectedSkin:   'classic',
+  coins:          0,
+  purchasedSkins: [],
+};
+
+let score         = 0;
+let combo         = 0;
+let maxCombo      = 0;
+let gameStartTime = 0;
+let graceTimer    = 0;
+let lastFrameTime = 0;
+
+let obstacles     = [];
+let particles     = [];
+let powerups      = [];
+let floatingTexts = [];
+let ringBursts    = []; // expanding ring effects for powerup pickups
+
+// Milestone banner — one large centre-screen announcement at a time
+let milestoneBanner = null; // { text, color, timer, totalTime, scale }
+let _scoreMilestonesHit = new Set();
+let _timeMilestonesHit  = new Set();
+let _comboMilestonesHit = new Set();
+
+const player = { x: 0, y: 0, radius: 24, speed: 255, hasShield: false };
+let playerTrail = []; // recent positions for trail-producing skins
+
+let spawnTimer        = 0;
+let spawnRate         = 1.6;
+let forbiddenTimer    = 0;
+let forbiddenInterval = 3.2;
+let warningActive     = false;
+let nextForbiddenIdx  = -1;
+let powerupTimer      = 0;
+let difficultyBumps   = 0;
+let difficultyTimer   = 0;
+let speedMultiplier   = 1.0;
+let forbiddenIndex    = 0;
+
+let activePowerupKey   = null;
+let activePowerupTimer = 0;
+let activePowerupTotal = 0;
+
+let colorChangeGrace   = 0; // s remaining — brief invincibility on forbidden color change
+
+let shakeX = 0, shakeY = 0, shakeTimer = 0;
+
+// Panic wave state
+let panicCooldown  = 18;   // s until first wave (starts after grace)
+let panicTimer     = 0;   // counts up during cooldown / down during wave / down during announce
+let panicPhase     = 'cooldown'; // 'cooldown' | 'announce' | 'wave'
+let panicDuration  = 0;   // chosen length of current wave (2–4 s)
+
+// Double Danger state
+let ddPhase        = 'idle';  // 'idle' | 'announce' | 'active'
+let ddTimer        = 0;
+let ddCooldown     = 35;      // first event ~35–53 s in
+let ddDuration     = 0;
+let dd2ndIndex     = -1;      // second forbidden color (-1 = none)
+let ddBlockTimer   = 0;       // s remaining before DD can fire (post-panic buffer)
+let panicBlockFromDD = 0;     // s remaining before panic wave can fire (post-DD buffer)
+const PANIC_ANNOUNCE = 0.9; // s of banner before wave starts
+const PANIC_COOLDOWN_BASE = 12; // s between waves
+const PANIC_COOLDOWN_VAR  =  8; // randomised extra: 12–20 s gap
+
+const DD_MIN_PLAYTIME   = 25;   // earliest Double Danger can fire (s into run)
+const DD_COOLDOWN_BASE  = 30;   // s between DD events
+const DD_COOLDOWN_VAR   = 18;   // randomised range: 30–48 s
+const DD_ANNOUNCE       = 0.75; // warning banner duration (s)
+const EVENT_POST_BUFFER = 5.0;  // buffer between any two special events (s)
+
+const keys      = { left: false, right: false, up: false, down: false };
+const touchDirs = { left: false, right: false, up: false, down: false };
+let touchTarget = null; // canvas drag: {x,y} in canvas coords, or null
+
+let canvas, ctx, rafHandle = null;
+
+// ============================================================
+// SECTION 3: SETTINGS & LOCAL STORAGE
+// ============================================================
+
+// ── Lifetime stats ───────────────────────────────────────
+let gameStats = {
+  totalRuns:         0,
+  bestScore:         0,  // mirror of settings.bestScore for convenience
+  longestSurvival:   0,  // seconds
+  totalPowerups:     0,
+  totalNearMisses:   0,
+  totalPanicWaves:   0,
+};
+
+function loadStats() {
+  try {
+    const raw = localStorage.getItem('forbiddenColor_stats');
+    if (!raw) return;
+    const s = JSON.parse(raw);
+    if (typeof s.totalRuns       === 'number') gameStats.totalRuns       = s.totalRuns;
+    if (typeof s.longestSurvival === 'number') gameStats.longestSurvival = s.longestSurvival;
+    if (typeof s.totalPowerups   === 'number') gameStats.totalPowerups   = s.totalPowerups;
+    if (typeof s.totalNearMisses === 'number') gameStats.totalNearMisses = s.totalNearMisses;
+    if (typeof s.totalPanicWaves === 'number') gameStats.totalPanicWaves = s.totalPanicWaves;
+  } catch (_) {}
+}
+
+function saveStats() {
+  try { localStorage.setItem('forbiddenColor_stats', JSON.stringify(gameStats)); } catch (_) {}
+}
+
+function updateStats(runSeconds) {
+  gameStats.totalRuns++;
+  gameStats.bestScore       = settings.bestScore; // already updated by triggerGameOver
+  gameStats.longestSurvival = Math.max(gameStats.longestSurvival, runSeconds);
+  gameStats.totalPowerups  += missionRun.powerupsThisRun;
+  gameStats.totalNearMisses+= missionRun.nearMissesThisRun;
+  gameStats.totalPanicWaves+= missionRun.panicWavesSurvived;
+  saveStats();
+}
+
+function fmtTime(s) {
+  if (s < 60) return s + 's';
+  return Math.floor(s / 60) + 'm ' + (s % 60) + 's';
+}
+
+function renderStatsUI() {
+  const el = document.getElementById('stats-grid');
+  if (!el) return;
+  gameStats.bestScore = settings.bestScore; // keep in sync
+  const rows = [
+    { label: 'Best Score',       value: gameStats.bestScore,                  icon: '🏆' },
+    { label: 'Total Runs',       value: gameStats.totalRuns,                  icon: '🎮' },
+    { label: 'Longest Survival', value: fmtTime(gameStats.longestSurvival),   icon: '⏱' },
+    { label: 'Power-ups Grabbed',value: gameStats.totalPowerups,             icon: '⚡' },
+    { label: 'Near Misses',      value: gameStats.totalNearMisses,           icon: '😅' },
+    { label: 'Panic Waves Survived', value: gameStats.totalPanicWaves,       icon: '🌊' },
+  ];
+  el.innerHTML = rows.map(r =>
+    `<div class="stat-item">
+       <span class="stat-icon" aria-hidden="true">${r.icon}</span>
+       <span class="stat-label">${r.label}</span>
+       <span class="stat-value">${r.value}</span>
+     </div>`
+  ).join('');
+}
+
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem('forbiddenColor_settings');
+    if (!raw) return;
+    const s = JSON.parse(raw);
+    if (typeof s.sound         === 'boolean') settings.sound         = s.sound;
+    if (typeof s.reducedMotion === 'boolean') settings.reducedMotion = s.reducedMotion;
+    if (typeof s.highContrast  === 'boolean') settings.highContrast  = s.highContrast;
+    if (typeof s.colorblind    === 'boolean') settings.colorblind    = s.colorblind;
+    // Migrate old colorMode string format
+    if (s.colorMode === 'high-contrast') settings.highContrast = true;
+    if (s.colorMode === 'colorblind')    settings.colorblind   = true;
+    if (typeof s.selectedSkin === 'string' && SKIN_DEFS.some(sk => sk.id === s.selectedSkin)) {
+      settings.selectedSkin = s.selectedSkin;
+    }
+    if (typeof s.bestScore === 'number' && s.bestScore >= 0) settings.bestScore = s.bestScore;
+    if (typeof s.coins === 'number' && s.coins >= 0) settings.coins = s.coins;
+    if (Array.isArray(s.purchasedSkins)) {
+      settings.purchasedSkins = s.purchasedSkins.filter(id => SKIN_DEFS.some(sk => sk.id === id));
+    }
+  } catch (_) {}
+}
+
+function saveSettings() {
+  try { localStorage.setItem('forbiddenColor_settings', JSON.stringify(settings)); } catch (_) {}
+}
+
+function applyColorMode() {
+  document.body.classList.toggle('mode-high-contrast', !!settings.highContrast);
+  document.body.classList.toggle('mode-colorblind',    !!settings.colorblind);
+  document.body.classList.toggle('reduced-motion',     !!settings.reducedMotion);
+}
+
+function applySettingsToUI() {
+  const soundEl = document.getElementById('sound-toggle');
+  const rmEl    = document.getElementById('reduced-motion-toggle');
+  const hcEl    = document.getElementById('high-contrast-toggle');
+  const cbEl    = document.getElementById('colorblind-toggle');
+  const hsEl    = document.getElementById('home-highscore');
+  if (soundEl) soundEl.checked = settings.sound;
+  if (rmEl)    rmEl.checked    = settings.reducedMotion;
+  if (hcEl)    hcEl.checked    = settings.highContrast;
+  if (cbEl)    cbEl.checked    = settings.colorblind;
+  if (hsEl)    hsEl.textContent = settings.bestScore;
+  updateSkinsUI();
+  updateCoinUI();
+  applyColorMode();
+}
+
+// ============================================================
+// SECTION 4: AUDIO SYSTEM (Web Audio API)
+// ============================================================
+
+const Audio = (() => {
+  let actx = null;
+  function ctx_() {
+    if (!actx) {
+      try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (_) { return null; }
+    }
+    if (actx.state === 'suspended') actx.resume().catch(() => {});
+    return actx;
+  }
+  function tone(freq, dur, type, vol) {
+    if (!settings.sound) return;
+    const c = ctx_(); if (!c) return;
+    try {
+      const osc = c.createOscillator();
+      const g   = c.createGain();
+      osc.connect(g); g.connect(c.destination);
+      osc.type = type || 'sine';
+      osc.frequency.value = freq;
+      g.gain.setValueAtTime(vol || 0.22, c.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + dur);
+      osc.start(); osc.stop(c.currentTime + dur);
+    } catch (_) {}
+  }
+  return {
+    init()       { ctx_(); },
+    collect()    { tone(523,.08,'sine',.28); setTimeout(()=>tone(659,.08,'sine',.28),90); setTimeout(()=>tone(784,.12,'sine',.28),180); },
+    warning()    { tone(880,.1,'square',.16); },
+    colorChange(){ tone(440,.18,'square',.2); },
+    gameOver()   { tone(220,.25,'sawtooth',.38); setTimeout(()=>tone(165,.3,'sawtooth',.38),280); setTimeout(()=>tone(110,.4,'sawtooth',.38),600); },
+    nearMiss()   { tone(740,.18,'triangle',.17); },
+    comboUp(n)   { tone(440 + n * 50, .14, 'sine', .2); },
+    uiClick()    { tone(660,.06,'sine',.12); },
+  };
+})();
+
+// ============================================================
+// SECTION 5: ARIA ANNOUNCER
+// ============================================================
+
+const Announce = (() => {
+  let el = null;
+  return {
+    init() { el = document.getElementById('aria-live'); },
+    say(msg) {
+      if (!el) return;
+      el.textContent = '';
+      requestAnimationFrame(() => { el.textContent = msg; });
+    },
+  };
+})();
+
+// ============================================================
+// SECTION 6: FOCUS TRAP
+// ============================================================
+
+function makeFocusTrap(container) {
+  container.addEventListener('keydown', e => {
+    if (e.key !== 'Tab') return;
+    const focusable = Array.from(container.querySelectorAll(
+      'button:not([disabled]),[href],input:not([disabled]),select,[tabindex]:not([tabindex="-1"])'
+    )).filter(el => !el.closest('[hidden]') && el.offsetParent !== null);
+    if (focusable.length < 2) return;
+    const first = focusable[0];
+    const last  = focusable[focusable.length - 1];
+    if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  });
+}
+
+// ============================================================
+// HOME BACKGROUND DECORATIVE BLOCKS
+// ============================================================
+const HomeBg = (() => {
+  // Bright colours that contrast against the dark purple background
+  const PALETTE = ['#c084fc','#f472b6','#67e8f9','#6ee7b7','#fde047','#fb923c','#a78bfa','#f9a8d4','#ffffff','#38bdf8'];
+  const COUNT   = 30;
+  let canvas = null, ctx = null, blocks = [], raf = null, running = false, lastTs = 0;
+
+  function makeBlock(scatter) {
+    const sz = 14 + Math.random() * 32;
+    return {
+      x:       Math.random() * (canvas.width - sz),
+      y:       scatter ? Math.random() * canvas.height : -sz - Math.random() * canvas.height,
+      sz,
+      speed:   18 + Math.random() * 26,
+      opacity: 0.18 + Math.random() * 0.17,
+      color:   PALETTE[Math.floor(Math.random() * PALETTE.length)],
+      r:       3 + Math.random() * 5,
+    };
+  }
+
+  function tick(ts) {
+    if (!running) return;
+    const dt = Math.min((ts - lastTs) / 1000, 0.05);
+    lastTs = ts;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (const b of blocks) {
+      b.y += b.speed * dt;
+      if (b.y > canvas.height + b.sz) Object.assign(b, makeBlock(false));
+      ctx.globalAlpha  = b.opacity;
+      ctx.fillStyle    = b.color;
+      ctx.shadowColor  = b.color;
+      ctx.shadowBlur   = 10;
+      ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(b.x, b.y, b.sz, b.sz, b.r);
+      else               ctx.rect(b.x, b.y, b.sz, b.sz);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur  = 0;
+    raf = requestAnimationFrame(tick);
+  }
+
+  function resize() {
+    if (!canvas) return;
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+
+  return {
+    start() {
+      if (settings.reducedMotion) return;
+      if (!canvas) {
+        canvas = document.getElementById('home-bg-canvas');
+        ctx    = canvas.getContext('2d');
+        window.addEventListener('resize', resize, { passive: true });
+      }
+      resize();
+      if (!blocks.length) {
+        for (let i = 0; i < COUNT; i++) blocks.push(makeBlock(true));
+      }
+      if (running) return;
+      running = true;
+      lastTs  = performance.now();
+      raf     = requestAnimationFrame(tick);
+    },
+    stop() {
+      running = false;
+      if (raf) { cancelAnimationFrame(raf); raf = null; }
+      if (canvas && ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+    },
+  };
+})();
+
+// ============================================================
+// SECTION 7: SCREEN / UI MANAGEMENT
+// ============================================================
+
+function showScreen(id) {
+  document.getElementById('home-screen').hidden = (id !== 'home-screen');
+  document.getElementById('game-screen').hidden = (id !== 'game-screen');
+
+  if (id === 'home-screen') {
+    const hs = document.getElementById('home-screen');
+    hs.classList.remove('home-animate');
+    requestAnimationFrame(() => hs.classList.add('home-animate'));
+    HomeBg.start();
+    // Coin count-up visual effect
+    const coinEl = document.getElementById('home-coins');
+    if (coinEl && !settings.reducedMotion) {
+      setTimeout(() => animateCounter(0, settings.coins, 700, coinEl), 380);
+    }
+  } else {
+    HomeBg.stop();
+  }
+}
+
+function updateHUD() {
+  const sc = document.getElementById('score-display');
+  const bs = document.getElementById('best-display');
+  if (sc) sc.textContent = Math.floor(score);
+  if (bs) bs.textContent = settings.bestScore;
+}
+
+function updateForbiddenDisplay() {
+  const c      = GAME_COLORS[forbiddenIndex];
+  const swatch = document.getElementById('forbidden-swatch');
+  const nameEl = document.getElementById('forbidden-name');
+  if (swatch) swatch.style.background = c.hex;
+
+  const ddActive = ddPhase === 'active' || ddPhase === 'announce';
+  const ddPlus   = document.getElementById('dd-plus');
+  const ddSwatch = document.getElementById('dd-swatch');
+  if (ddPlus)   ddPlus.hidden  = !ddActive;
+  if (ddSwatch) ddSwatch.hidden = !ddActive;
+
+  if (ddActive && dd2ndIndex >= 0) {
+    if (ddSwatch) ddSwatch.style.background = GAME_COLORS[dd2ndIndex].hex;
+    if (nameEl)   nameEl.textContent = c.name + ' + ' + GAME_COLORS[dd2ndIndex].name;
+  } else {
+    if (nameEl) nameEl.textContent = c.name;
+  }
+}
+
+function showNextColorPreview(idx) {
+  const c      = GAME_COLORS[idx];
+  const swatch = document.getElementById('next-swatch');
+  const arrow  = document.getElementById('forbidden-arrow');
+  if (swatch) { swatch.style.background = c.hex; swatch.hidden = false; }
+  if (arrow)  arrow.hidden = false;
+}
+
+function hideNextColorPreview() {
+  const swatch = document.getElementById('next-swatch');
+  const arrow  = document.getElementById('forbidden-arrow');
+  if (swatch) swatch.hidden = true;
+  if (arrow)  arrow.hidden  = true;
+}
+
+function setHudWarning(level) {
+  // level: 0=none, 1=yellow (warn-2), 2=red (warn-1)
+  const center = document.getElementById('hud-center');
+  if (!center) return;
+  center.classList.remove('warn-2', 'warn-1');
+  if (level === 1) center.classList.add('warn-2');
+  if (level === 2) center.classList.add('warn-1');
+}
+
+function updateTimerBar(elapsed, total) {
+  const bar = document.getElementById('timer-bar-fill');
+  if (!bar) return;
+  const pct = Math.max(0, Math.min(100, (1 - elapsed / total) * 100));
+  bar.style.width = pct.toFixed(1) + '%';
+}
+
+function updateComboDisplay() {
+  const el  = document.getElementById('combo-display');
+  const val = document.getElementById('combo-val');
+  if (!el) return;
+  el.hidden = (combo < 1);
+  if (val) val.textContent = combo;
+  // Visual tier based on combo level
+  el.classList.remove('combo-t2', 'combo-t3', 'combo-t4');
+  if      (combo >= 7) el.classList.add('combo-t4');
+  else if (combo >= 4) el.classList.add('combo-t3');
+  else if (combo >= 2) el.classList.add('combo-t2');
+  // Pop animation on every increment
+  el.classList.remove('combo-pop');
+  void el.offsetWidth; // force reflow to restart animation
+  el.classList.add('combo-pop');
+}
+
+function updatePowerupDisplay() {
+  const el       = document.getElementById('powerup-status');
+  const iconEl   = document.getElementById('powerup-icon');
+  const nameEl   = document.getElementById('powerup-name');
+  const barWrap  = document.getElementById('powerup-duration-bar-wrap');
+  const bar      = document.getElementById('powerup-duration-bar');
+  if (!el) return;
+  if (!activePowerupKey) { el.hidden = true; return; }
+  el.hidden = false;
+  const def = POWERUP_DEFS[activePowerupKey];
+  if (iconEl) iconEl.textContent = def.icon;
+  if (nameEl) nameEl.textContent = ' ' + def.label;
+  if (def.duration > 0 && activePowerupTotal > 0) {
+    if (barWrap) barWrap.hidden = false;
+    if (bar) bar.style.width = ((activePowerupTimer / activePowerupTotal) * 100).toFixed(1) + '%';
+  } else {
+    if (barWrap) barWrap.hidden = true;
+  }
+}
+
+function showModal(id) {
+  const m = document.getElementById(id);
+  if (!m) return;
+  m.hidden = false;
+  requestAnimationFrame(() => {
+    const first = m.querySelector('button,[href],input,select,[tabindex]:not([tabindex="-1"])');
+    if (first) first.focus();
+  });
+}
+
+function hideModal(id) {
+  const m = document.getElementById(id);
+  if (m) m.hidden = true;
+}
+
+// ============================================================
+// SKINS SYSTEM
+// ============================================================
+
+function isSkinAvailable(skin) {
+  if (skin.coinCost) return settings.purchasedSkins.includes(skin.id);
+  return settings.bestScore >= skin.unlock;
+}
+
+function getSkin() {
+  const skin = SKIN_DEFS.find(s => s.id === settings.selectedSkin);
+  if (!skin || !isSkinAvailable(skin)) return SKIN_DEFS[0];
+  return skin;
+}
+
+function updateSkinsUI(direction) {
+  const stage  = document.getElementById('skin-stage');
+  const dotsEl = document.getElementById('skin-dots');
+  if (!stage) return;
+
+  skinCarouselIdx = ((skinCarouselIdx % SKIN_DEFS.length) + SKIN_DEFS.length) % SKIN_DEFS.length;
+  const skin = SKIN_DEFS[skinCarouselIdx];
+
+  const isCoinSkin = !!skin.coinCost;
+  const available  = isSkinAvailable(skin);
+  const locked     = !available;
+  const selected   = settings.selectedSkin === skin.id && available;
+  const canAfford  = isCoinSkin && settings.coins >= skin.coinCost;
+  const coinSpan   = '<span class="coin-icon coin-sm" aria-hidden="true"></span>';
+
+  // ── Action button ──────────────────────────────────────────
+  let actionHTML = '';
+  if (selected) {
+    actionHTML = '<button class="btn btn-secondary sc-action" disabled type="button">✓ Equipped</button>';
+  } else if (available) {
+    actionHTML = '<button class="btn btn-primary sc-action" data-action="equip" data-skin="' + skin.id + '" type="button">Equip</button>';
+  } else if (isCoinSkin) {
+    if (canAfford) {
+      actionHTML = '<button class="btn btn-primary sc-action" data-action="buy" data-skin="' + skin.id + '" type="button">Buy &nbsp;' + coinSpan + ' ' + skin.coinCost + '</button>';
+    } else {
+      actionHTML = '<button class="btn btn-secondary sc-action" disabled type="button">' + coinSpan + ' ' + settings.coins + ' / ' + skin.coinCost + '</button>';
+    }
+  }
+
+  // ── Progress bar for score-locked skins ───────────────────
+  let progressHTML = '';
+  let barHTML = '';
+  if (!isCoinSkin && locked) {
+    const pct = Math.min(100, Math.round((settings.bestScore / skin.unlock) * 100));
+    progressHTML = '<span class="sc-progress-label">' + settings.bestScore + ' / ' + skin.unlock + ' score needed</span>';
+    barHTML = '<div class="skin-bar-track sc-bar"><div class="skin-bar-fill" style="width:' + pct + '%"></div></div>';
+  }
+
+  const cardClasses = [
+    'sc-card skin-btn',
+    locked     ? 'skin-locked'    : '',
+    selected   ? 'skin-selected'  : '',
+    isCoinSkin ? 'skin-coin-card' : '',
+    (isCoinSkin && !available && !canAfford) ? 'skin-unaffordable' : '',
+  ].filter(Boolean).join(' ');
+
+  // Build new card element
+  const newCard = document.createElement('div');
+  newCard.className = cardClasses;
+  newCard.dataset.skin   = skin.id;
+  newCard.dataset.rarity = skin.rarity;
+  newCard.innerHTML =
+    '<span class="skin-preview" style="--skin-c1:' + skin.color1 + ';--skin-c2:' + skin.color2 + '" aria-hidden="true"></span>' +
+    '<span class="skin-rarity" data-rarity="' + skin.rarity + '">' + skin.rarity + '</span>' +
+    '<span class="skin-name sc-name">' + skin.name + '</span>' +
+    progressHTML + barHTML + actionHTML;
+
+  // Slide animation — only when a direction is given
+  const oldCard = stage.firstElementChild;
+  if (direction && oldCard) {
+    const prevBtn = document.getElementById('skin-prev');
+    const nextBtn = document.getElementById('skin-next');
+    if (prevBtn) prevBtn.disabled = true;
+    if (nextBtn) nextBtn.disabled = true;
+    // Lock stage height so frame doesn't jump while track is inside
+    stage.style.height = oldCard.offsetHeight + 'px';
+    // Build a 200%-wide track; place both cards side by side
+    const track = document.createElement('div');
+    track.className = 'sc-track';
+    if (direction === 'next') {
+      // old on left, new on right → start at 0, slide to -50%
+      track.appendChild(oldCard);
+      track.appendChild(newCard);
+      track.style.transform = 'translateX(0)';
+    } else {
+      // new on left, old on right → start at -50%, slide to 0
+      track.appendChild(newCard);
+      track.appendChild(oldCard);
+      track.style.transform = 'translateX(-50%)';
+    }
+    // oldCard is now inside track, stage should be empty
+    while (stage.firstChild) stage.removeChild(stage.firstChild);
+    stage.appendChild(track);
+    // Force reflow then animate
+    track.getBoundingClientRect();
+    track.style.transition = 'transform .42s ease-in-out';
+    track.style.transform  = direction === 'next' ? 'translateX(-50%)' : 'translateX(0)';
+    setTimeout(() => {
+      while (stage.firstChild) stage.removeChild(stage.firstChild);
+      stage.appendChild(newCard);
+      stage.style.height = '';
+      if (prevBtn) prevBtn.disabled = false;
+      if (nextBtn) nextBtn.disabled = false;
+    }, 450);
+  } else {
+    stage.innerHTML = '';
+    stage.appendChild(newCard);
+  }
+
+  // Wire action button
+  const actionBtn = newCard.querySelector('[data-action]');
+  if (actionBtn) {
+    actionBtn.addEventListener('click', () => {
+      const action = actionBtn.dataset.action;
+      const skinId = actionBtn.dataset.skin;
+      const sk = SKIN_DEFS.find(s => s.id === skinId);
+      if (!sk) return;
+      if (action === 'equip') {
+        settings.selectedSkin = skinId;
+        saveSettings();
+        updateSkinsUI();
+        Audio.uiClick();
+      } else if (action === 'buy') {
+        showBuyConfirm(skinId);
+      }
+    });
+  }
+
+  // ── Dot indicators ─────────────────────────────────────────
+  if (dotsEl) {
+    const RARITY_DOT = {
+      common:    'rgba(255,255,255,.65)',
+      rare:      'rgba(56,189,248,.85)',
+      epic:      'rgba(251,191,36,.85)',
+      legendary: 'rgba(168,85,247,.95)',
+    };
+    dotsEl.innerHTML = SKIN_DEFS.map((s, i) => {
+      const active = i === skinCarouselIdx;
+      const color  = RARITY_DOT[s.rarity] || 'rgba(255,255,255,.25)';
+      return '<span class="sc-dot' + (active ? ' sc-dot-active' : '') +
+             '" data-dot="' + i + '" tabindex="0" role="button" aria-label="' + s.name + '"' +
+             (active ? ' style="--dot-c:' + color + '"' : '') + '></span>';
+    }).join('');
+    dotsEl.querySelectorAll('.sc-dot').forEach(dot => {
+      dot.addEventListener('click', () => {
+        const newIdx = +dot.dataset.dot;
+        const dir = newIdx > skinCarouselIdx ? 'next' : newIdx < skinCarouselIdx ? 'prev' : null;
+        skinCarouselIdx = newIdx;
+        updateSkinsUI(dir);
+        Audio.uiClick();
+      });
+      dot.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          const newIdx = +dot.dataset.dot;
+          const dir = newIdx > skinCarouselIdx ? 'next' : newIdx < skinCarouselIdx ? 'prev' : null;
+          skinCarouselIdx = newIdx;
+          updateSkinsUI(dir);
+        }
+      });
+    });
+  }
+}
+
+function updateCoinUI(animate) {
+  const homeCoinEl     = document.getElementById('home-coins');
+  const progressCoinEl = document.getElementById('progress-coins');
+  if (homeCoinEl)     homeCoinEl.textContent     = settings.coins;
+  if (progressCoinEl) progressCoinEl.textContent = settings.coins;
+  if (animate && homeCoinEl) {
+    const pill = homeCoinEl.closest('.home-coins');
+    if (pill) {
+      pill.classList.remove('coin-earn');
+      void pill.offsetWidth;
+      pill.classList.add('coin-earn');
+      setTimeout(() => pill.classList.remove('coin-earn'), 400);
+    }
+  }
+}
+
+function awardCoins(amount) {
+  if (amount <= 0) return;
+  settings.coins += amount;
+  saveSettings();
+  updateCoinUI(true);
+}
+
+function awardRunCoins(finalScore, elapsedSecs) {
+  const fromScore    = Math.floor(finalScore / 50);
+  const fromSurvival = Math.floor(elapsedSecs / 30);
+  const fromMisses   = Math.min(missionRun.nearMissesThisRun, 5);
+  const fromPanic    = missionRun.panicWavesSurvived * 2;
+  const fromPowerups = missionRun.powerupsThisRun;
+  const total = fromScore + fromSurvival + fromMisses + fromPanic + fromPowerups;
+  if (total > 0) awardCoins(total);
+  return total;
+}
+
+let _pendingBuySkinId = null;
+
+function showBuyConfirm(skinId) {
+  const skin = SKIN_DEFS.find(s => s.id === skinId);
+  if (!skin) return;
+  _pendingBuySkinId = skinId;
+
+  const overlay  = document.getElementById('skin-buy-overlay');
+  const dialog   = document.getElementById('skin-buy-dialog');
+  const title    = dialog.querySelector('.sbd-title');
+  const balance  = dialog.querySelector('.sbd-balance');
+  const noCoins  = dialog.querySelector('.sbd-nocoins');
+  const shortage = dialog.querySelector('.sbd-shortage');
+  const confirm  = document.getElementById('sbd-confirm');
+
+  const canAfford = settings.coins >= skin.coinCost;
+  const need      = skin.coinCost - settings.coins;
+
+  const coinSpan = '<span class="coin-icon coin-sm" aria-hidden="true"></span>';
+  title.innerHTML   = 'Buy ' + skin.name + ' skin for ' + coinSpan + ' ' + skin.coinCost + '?';
+  balance.textContent = settings.coins;
+
+  confirm.disabled = !canAfford;
+  noCoins.hidden   = canAfford;
+  if (!canAfford) {
+    shortage.innerHTML = 'You need ' + coinSpan + ' ' + need + ' more coin' + (need === 1 ? '' : 's') + ' to unlock this skin.';
+  }
+
+  dialog.dataset.state = canAfford ? 'afford' : 'broke';
+
+  overlay.hidden = false; overlay.setAttribute('aria-hidden', 'false');
+  dialog.hidden  = false;
+  (canAfford ? confirm : document.getElementById('sbd-cancel')).focus();
+  Audio.uiClick();
+}
+
+function confirmBuySkin() {
+  const skinId = _pendingBuySkinId;
+  _pendingBuySkinId = null;
+  _closeBuyDialog();
+  if (!skinId) return;
+  const skin = SKIN_DEFS.find(s => s.id === skinId);
+  if (!skin || !skin.coinCost) return;
+  if (settings.purchasedSkins.includes(skinId)) {
+    settings.selectedSkin = skinId;
+    saveSettings(); updateSkinsUI(); Audio.uiClick(); return;
+  }
+  if (settings.coins < skin.coinCost) return;
+  settings.coins -= skin.coinCost;
+  settings.purchasedSkins = settings.purchasedSkins.concat([skinId]);
+  settings.selectedSkin   = skinId;
+  saveSettings();
+  updateCoinUI();
+  updateSkinsUI();
+  showSkinUnlockToast(skin);
+  Audio.uiClick();
+}
+
+function cancelBuyConfirm() {
+  _pendingBuySkinId = null;
+  _closeBuyDialog();
+  Audio.uiClick();
+}
+
+function _closeBuyDialog() {
+  const overlay = document.getElementById('skin-buy-overlay');
+  const dialog  = document.getElementById('skin-buy-dialog');
+  if (overlay) { overlay.hidden = true; overlay.setAttribute('aria-hidden', 'true'); }
+  if (dialog)  { dialog.hidden  = true; }
+}
+
+function checkSkinUnlocks(prevBest, newBest) {
+  SKIN_DEFS.forEach(skin => {
+    if (skin.unlock > 0 && prevBest < skin.unlock && newBest >= skin.unlock) {
+      setTimeout(() => showSkinUnlockToast(skin), 1400);
+    }
+  });
+}
+
+function showSkinUnlockToast(skin) {
+  const toast = document.getElementById('skin-unlock-toast');
+  if (!toast) return;
+  toast.innerHTML = '<span class="sut-icon" aria-hidden="true">🎨</span>' +
+    '<span class="sut-text"><strong>' + skin.name + '</strong> skin unlocked!</span>' +
+    '<span class="sut-rarity" data-rarity="' + skin.rarity + '">' + skin.rarity + '</span>';
+  toast.hidden = false;
+  toast.classList.remove('sut-show');
+  void toast.offsetWidth;
+  toast.classList.add('sut-show');
+  clearTimeout(toast._hideTimer);
+  toast._hideTimer = setTimeout(() => {
+    toast.classList.remove('sut-show');
+    setTimeout(() => { toast.hidden = true; }, 400);
+  }, 2800);
+}
+
+function drawTrail() {
+  const skin = getSkin();
+  if (!skin.trail || playerTrail.length < 2) return;
+  const n   = playerTrail.length;
+  const now = performance.now();
+  playerTrail.forEach((pt, i) => {
+    const t = (i + 1) / n;
+    ctx.save();
+    let alpha = t * 0.30;
+    let radius = Math.max(2, player.radius * t * 0.58);
+
+    if (skin.effect === 'aura') {
+      // Legacy fallback halo trail
+      radius = Math.max(2, player.radius * t * 0.75);
+      alpha  = t * 0.22;
+    } else if (skin.effect === 'galaxy') {
+      // Ultra-wide misty space-dust trail
+      radius = Math.max(2, player.radius * t * 0.90);
+      alpha  = t * 0.16;
+    } else if (skin.effect === 'void') {
+      // Deep dark halo trail
+      radius = Math.max(2, player.radius * t * 0.80);
+      alpha  = t * 0.25;
+    } else if (skin.effect === 'electric') {
+      // Bright short spark segments
+      alpha  = t * (0.45 + 0.30 * Math.sin(now / 60 + i * 1.5));
+      radius = Math.max(1, player.radius * t * 0.35);
+    } else if (skin.effect === 'inferno') {
+      // Wide hot embers
+      alpha  = t * (0.30 + 0.20 * Math.sin(now / 55 + i * 0.7));
+      radius = Math.max(2, player.radius * t * 0.55);
+    } else if (skin.effect === 'prism') {
+      // Hue-shifted glow per segment
+      alpha  = t * 0.32;
+      radius = Math.max(2, player.radius * t * 0.50);
+    } else if (skin.effect === 'flicker') {
+      // Lava/Crimson: hot embers — small, bright, random flicker
+      alpha  = t * (0.28 + 0.14 * Math.sin(now / 80 + i * 0.9));
+      radius = Math.max(1.5, player.radius * t * 0.45);
+    } else if (skin.effect === 'shimmer') {
+      // Ice/Gold: icy sparkle — tapered and bright
+      alpha  = t * 0.35;
+      radius = Math.max(1.5, player.radius * t * 0.48);
+    } else if (skin.effect === 'pulse') {
+      // Neon: steady bright trail
+      alpha  = t * 0.38;
+    }
+
+    const tc = skin.effect === 'prism'
+      ? `hsl(${((i / n) * 180 + now / 20) % 360}, 100%, 70%)`
+      : skin.glow;
+    ctx.globalAlpha = alpha;
+    ctx.beginPath();
+    ctx.arc(pt.x, pt.y, radius, 0, Math.PI * 2);
+    ctx.fillStyle   = tc;
+    ctx.shadowColor = tc;
+    ctx.shadowBlur  = skin.rarity === 'legendary' ? 20 : skin.rarity === 'epic' ? 14 : skin.rarity === 'rare' ? 8 : 4;
+    ctx.fill();
+    ctx.restore();
+  });
+}
+
+// ============================================================
+// SECTION 8: PLAYER
+// ============================================================
+
+function initPlayer() {
+  player.x         = canvas.width  / 2;
+  player.y         = canvas.height - 90;
+  player.hasShield = false;
+  player.speed     = GAME_CONFIG.playerSpeed;
+}
+
+function clampPlayer() {
+  player.x = Math.max(player.radius, Math.min(canvas.width  - player.radius, player.x));
+  player.y = Math.max(player.radius, Math.min(canvas.height - player.radius, player.y));
+}
+
+function updatePlayer(dt) {
+  // Record position BEFORE moving so the trail lags behind the player
+  if (getSkin().trail) {
+    playerTrail.push({ x: player.x, y: player.y });
+    if (playerTrail.length > 14) playerTrail.shift();
+  }
+
+  const l = keys.left  || touchDirs.left;
+  const r = keys.right || touchDirs.right;
+  const u = keys.up    || touchDirs.up;
+  const d = keys.down  || touchDirs.down;
+
+  let dx = (r ? 1 : 0) - (l ? 1 : 0);
+  let dy = (d ? 1 : 0) - (u ? 1 : 0);
+  if (dx !== 0 && dy !== 0) { dx *= 0.7071; dy *= 0.7071; }
+
+  // Canvas touch-drag: steer directly toward finger (overrides D-pad when active)
+  if (touchTarget) {
+    const tdx  = touchTarget.x - player.x;
+    const tdy  = touchTarget.y - player.y;
+    const dist = Math.hypot(tdx, tdy);
+    if (dist > 6) {
+      dx = tdx / dist;
+      dy = tdy / dist;
+    } else {
+      dx = 0; dy = 0; // inside dead zone — stop
+    }
+  }
+
+  player.x += dx * player.speed * dt;
+  player.y += dy * player.speed * dt;
+  clampPlayer();
+}
+
+function drawPlayer() {
+  const skin = getSkin();
+  const now  = performance.now();
+  ctx.save();
+
+  // ── Per-skin outer effect (drawn behind the player) ────────────────────
+  if (skin.effect === 'aura') {
+    // Void / Galaxy: pulsing coloured halo
+    const pulse = 0.45 + 0.55 * Math.sin(now / 420);
+    const r     = player.radius + 10 + pulse * 6;
+    const ag    = ctx.createRadialGradient(player.x, player.y, player.radius, player.x, player.y, r);
+    ag.addColorStop(0,   hexAlpha(skin.glow, 0.45 * pulse));
+    ag.addColorStop(1,   hexAlpha(skin.glow, 0));
+    ctx.beginPath();
+    ctx.arc(player.x, player.y, r, 0, Math.PI * 2);
+    ctx.fillStyle = ag;
+    ctx.fill();
+  } else if (skin.effect === 'flicker') {
+    // Lava / Crimson: jittery ember ring
+    const flick = 0.5 + 0.5 * Math.sin(now / 90 + 1.3);
+    ctx.beginPath();
+    ctx.arc(player.x, player.y, player.radius + 5 + flick * 4, 0, Math.PI * 2);
+    ctx.strokeStyle = skin.glow;
+    ctx.lineWidth   = 2.5;
+    ctx.globalAlpha = 0.35 + flick * 0.35;
+    ctx.shadowColor = skin.glow;
+    ctx.shadowBlur  = 12;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur  = 0;
+  } else if (skin.effect === 'shimmer') {
+    // Ice / Gold: soft steady halo
+    ctx.beginPath();
+    ctx.arc(player.x, player.y, player.radius + 6, 0, Math.PI * 2);
+    ctx.strokeStyle = skin.glow;
+    ctx.lineWidth   = 1.5;
+    ctx.globalAlpha = 0.30;
+    ctx.shadowColor = skin.glow;
+    ctx.shadowBlur  = 16;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur  = 0;
+  } else if (skin.effect === 'pulse') {
+    // Neon: rhythmic outer ring
+    const pulse = 0.4 + 0.6 * Math.sin(now / 340);
+    ctx.beginPath();
+    ctx.arc(player.x, player.y, player.radius + 7 + pulse * 4, 0, Math.PI * 2);
+    ctx.strokeStyle = skin.glow;
+    ctx.lineWidth   = 2;
+    ctx.globalAlpha = 0.25 + pulse * 0.35;
+    ctx.shadowColor = skin.glow;
+    ctx.shadowBlur  = 10;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur  = 0;
+  } else if (skin.effect === 'electric') {
+    // Double-ring flicker + occasional bright flash
+    const fast  = 0.5 + 0.5 * Math.sin(now / 120);
+    const flash = Math.sin(now / 400) > 0.85 ? 1 : 0;
+    ctx.beginPath();
+    ctx.arc(player.x, player.y, player.radius + 4 + fast * 3, 0, Math.PI * 2);
+    ctx.strokeStyle = skin.glow;
+    ctx.lineWidth   = 1.5;
+    ctx.globalAlpha = 0.40 + fast * 0.30 + flash * 0.25;
+    ctx.shadowColor = skin.glow;
+    ctx.shadowBlur  = 14 + flash * 20;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(player.x, player.y, player.radius + 9 + fast * 2, 0, Math.PI * 2);
+    ctx.globalAlpha = 0.15 + fast * 0.15;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur  = 0;
+  } else if (skin.effect === 'inferno') {
+    // Multi-layer fire flicker alternating red/orange
+    const f1 = 0.5 + 0.5 * Math.sin(now / 70 + 0.5);
+    const f2 = 0.5 + 0.5 * Math.sin(now / 45 + 1.8);
+    ctx.beginPath();
+    ctx.arc(player.x, player.y, player.radius + 5 + f1 * 5, 0, Math.PI * 2);
+    ctx.strokeStyle = f1 > 0.6 ? '#fbbf24' : '#f97316';
+    ctx.lineWidth   = 3;
+    ctx.globalAlpha = 0.30 + f2 * 0.40;
+    ctx.shadowColor = '#f97316';
+    ctx.shadowBlur  = 18;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur  = 0;
+  } else if (skin.effect === 'prism') {
+    // Continuously hue-rotating outer ring
+    const hue   = (now / 20) % 360;
+    const pulse = 0.4 + 0.6 * Math.sin(now / 500);
+    ctx.beginPath();
+    ctx.arc(player.x, player.y, player.radius + 6 + pulse * 3, 0, Math.PI * 2);
+    ctx.strokeStyle = `hsl(${hue}, 100%, 65%)`;
+    ctx.lineWidth   = 2;
+    ctx.globalAlpha = 0.50 + pulse * 0.30;
+    ctx.shadowColor = `hsl(${hue}, 100%, 65%)`;
+    ctx.shadowBlur  = 14;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur  = 0;
+  } else if (skin.effect === 'galaxy') {
+    // Slow-pulse halo + 5 orbiting star particles
+    const pulse = 0.45 + 0.55 * Math.sin(now / 700);
+    const r     = player.radius + 12 + pulse * 7;
+    const ag    = ctx.createRadialGradient(player.x, player.y, player.radius * 0.6, player.x, player.y, r);
+    ag.addColorStop(0, hexAlpha(skin.glow, 0.50 * pulse));
+    ag.addColorStop(1, hexAlpha(skin.glow, 0));
+    ctx.beginPath();
+    ctx.arc(player.x, player.y, r, 0, Math.PI * 2);
+    ctx.fillStyle = ag;
+    ctx.fill();
+    for (let j = 0; j < 5; j++) {
+      const angle = now / 900 + j * (Math.PI * 2 / 5);
+      const orb   = player.radius + 15;
+      const ox    = player.x + Math.cos(angle) * orb;
+      const oy    = player.y + Math.sin(angle) * orb;
+      ctx.beginPath();
+      ctx.arc(ox, oy, 1.8, 0, Math.PI * 2);
+      ctx.fillStyle   = skin.color1;
+      ctx.globalAlpha = 0.55 + 0.45 * Math.sin(now / 300 + j);
+      ctx.shadowColor = skin.glow;
+      ctx.shadowBlur  = 6;
+      ctx.fill();
+      ctx.shadowBlur  = 0;
+      ctx.globalAlpha = 1;
+    }
+  } else if (skin.effect === 'void') {
+    // Dark inner center + strong breathing outer aura
+    const pulse = 0.45 + 0.55 * Math.sin(now / 380);
+    const r     = player.radius + 14 + pulse * 8;
+    const ag    = ctx.createRadialGradient(player.x, player.y, 0, player.x, player.y, r);
+    ag.addColorStop(0,   'rgba(0,0,0,0.40)');
+    ag.addColorStop(0.4, hexAlpha(skin.glow, 0.25 * pulse));
+    ag.addColorStop(1,   hexAlpha(skin.glow, 0));
+    ctx.beginPath();
+    ctx.arc(player.x, player.y, r, 0, Math.PI * 2);
+    ctx.fillStyle = ag;
+    ctx.fill();
+  }
+
+  // ── Color-change grace ring ─────────────────────────────────────
+  if (colorChangeGrace > 0) {
+    const t = colorChangeGrace / 0.25;
+    ctx.beginPath();
+    ctx.arc(player.x, player.y, player.radius + 8 + (1 - t) * 6, 0, Math.PI * 2);
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth   = 2;
+    ctx.globalAlpha = t * 0.55;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  // ── Shield ring ───────────────────────────────────────────────
+  if (player.hasShield) {
+    const pulse = 0.5 + 0.5 * Math.sin(now / 200);
+    ctx.beginPath();
+    ctx.arc(player.x, player.y, player.radius + 10 + pulse * 4, 0, Math.PI * 2);
+    ctx.strokeStyle = '#facc15';
+    ctx.lineWidth   = 2.5;
+    ctx.globalAlpha = 0.6 + pulse * 0.3;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  // ── Body ────────────────────────────────────────────────────
+  // Glow intensity by rarity / effect
+  let shadowBlur = 20;
+  let c1 = skin.color1, c2 = skin.color2;
+  if (skin.effect === 'flicker') {
+    const flick = 0.6 + 0.4 * Math.sin(now / 70 + 2.1);
+    shadowBlur  = 16 + flick * 18;
+    // Interpolate color toward orange at peak flicker
+    c2 = flick > 0.75 ? '#f97316' : skin.color2;
+  } else if (skin.effect === 'aura') {
+    shadowBlur = 28 + 10 * Math.sin(now / 420);
+  } else if (skin.effect === 'shimmer') {
+    shadowBlur = 18 + 8 * Math.sin(now / 600);
+  } else if (skin.effect === 'pulse') {
+    shadowBlur = 18 + 14 * Math.sin(now / 340);
+  } else if (skin.effect === 'electric') {
+    shadowBlur = 20 + 20 * (0.5 + 0.5 * Math.sin(now / 180));
+  } else if (skin.effect === 'inferno') {
+    const fi = 0.5 + 0.5 * Math.sin(now / 65);
+    shadowBlur = 22 + 16 * fi;
+    c2 = fi > 0.70 ? '#fbbf24' : fi > 0.40 ? '#f97316' : skin.color2;
+  } else if (skin.effect === 'prism') {
+    const hue = (now / 20) % 360;
+    shadowBlur = 18 + 8 * Math.sin(now / 500);
+    c1 = `hsl(${hue}, 80%, 90%)`;
+    c2 = `hsl(${(hue + 120) % 360}, 100%, 60%)`;
+  } else if (skin.effect === 'galaxy') {
+    shadowBlur = 24 + 14 * Math.sin(now / 700);
+  } else if (skin.effect === 'void') {
+    shadowBlur = 30 + 12 * Math.sin(now / 380);
+  }
+
+  if (skin.shape === 'star') {
+    const g = ctx.createRadialGradient(player.x - 5, player.y - 5, 2, player.x, player.y, player.radius);
+    g.addColorStop(0, c1);
+    g.addColorStop(1, c2);
+    ctx.shadowColor = skin.glow;
+    ctx.shadowBlur  = shadowBlur;
+    ctx.beginPath();
+    drawStar(ctx, player.x, player.y, player.radius, player.radius * 0.44, 5);
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.shadowBlur  = 0;
+    drawPlayerInner(skin, now);
+    ctx.strokeStyle = c1;
+    ctx.lineWidth   = 1.5;
+    ctx.stroke();
+  } else {
+    const g = ctx.createRadialGradient(player.x - 7, player.y - 7, 2, player.x, player.y, player.radius);
+    g.addColorStop(0, c1);
+    g.addColorStop(1, c2);
+    ctx.beginPath();
+    ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+    ctx.fillStyle   = g;
+    ctx.shadowColor = skin.glow;
+    ctx.shadowBlur  = shadowBlur;
+    ctx.fill();
+    ctx.shadowBlur  = 0;
+    drawPlayerInner(skin, now);
+    ctx.strokeStyle = c1;
+    ctx.lineWidth   = 2;
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+// hex color -> rgba string helper used by skin effects
+function hexAlpha(hex, alpha) {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha.toFixed(3) + ')';
+}
+
+// ── Inner skin effects: rendered INSIDE the player shape via canvas clip ──
+function drawPlayerInner(skin, now) {
+  const pr = player.radius;
+  const px = player.x, py = player.y;
+  ctx.save();
+  // Clip to the player shape boundary
+  ctx.beginPath();
+  if (skin.shape === 'star') {
+    drawStar(ctx, px, py, pr - 1.5, (pr - 1.5) * 0.44, 5);
+  } else {
+    ctx.arc(px, py, pr - 1.0, 0, Math.PI * 2);
+  }
+  ctx.clip();
+
+  if (skin.effect === 'shimmer') {
+    // Sweeping highlight streak (Ice, Gold)
+    const t  = (now / 2000) % 1;
+    const sx = px - pr * 1.6 + t * pr * 3.2;
+    const sg = ctx.createLinearGradient(sx - 10, 0, sx + 10, 0);
+    sg.addColorStop(0,   'rgba(255,255,255,0)');
+    sg.addColorStop(0.5, 'rgba(255,255,255,0.24)');
+    sg.addColorStop(1,   'rgba(255,255,255,0)');
+    ctx.fillStyle = sg;
+    ctx.fillRect(px - pr, py - pr, pr * 2, pr * 2);
+
+  } else if (skin.effect === 'pulse') {
+    // Expanding concentric rings from center (Neon)
+    for (let i = 0; i < 2; i++) {
+      const phase = ((now / 900) + i * 0.5) % 1;
+      const r     = phase * pr * 0.88;
+      const alpha = (1 - phase) * 0.42;
+      ctx.beginPath();
+      ctx.arc(px, py, r, 0, Math.PI * 2);
+      ctx.strokeStyle = hexAlpha(skin.glow, alpha);
+      ctx.lineWidth   = 1.8;
+      ctx.stroke();
+    }
+
+  } else if (skin.effect === 'flicker') {
+    // Drifting magma hotspot (Lava, Crimson)
+    const bx = px + Math.sin(now / 300) * pr * 0.30;
+    const by = py + Math.cos(now / 250) * pr * 0.24;
+    const lg = ctx.createRadialGradient(bx, by, 0, bx, by, pr * 0.90);
+    lg.addColorStop(0,    'rgba(253,224,71,0.48)');
+    lg.addColorStop(0.38, 'rgba(249,115,22,0.28)');
+    lg.addColorStop(0.72, 'rgba(220,38,38,0.10)');
+    lg.addColorStop(1,    'rgba(220,38,38,0)');
+    ctx.fillStyle = lg;
+    ctx.fillRect(px - pr, py - pr, pr * 2, pr * 2);
+
+  } else if (skin.effect === 'electric') {
+    // Radial flash + rotating spokes (Electric)
+    const flash = Math.max(0, Math.sin(now / 130) - 0.45) / 0.55;
+    const eg = ctx.createRadialGradient(px, py, 0, px, py, pr);
+    eg.addColorStop(0,   hexAlpha('#e0f2fe', 0.14 + flash * 0.38));
+    eg.addColorStop(0.5, hexAlpha('#38bdf8', 0.05 + flash * 0.12));
+    eg.addColorStop(1,   'rgba(56,189,248,0)');
+    ctx.fillStyle = eg;
+    ctx.fillRect(px - pr, py - pr, pr * 2, pr * 2);
+    if (flash > 0.25) {
+      for (let s = 0; s < 4; s++) {
+        const a = now / 260 + s * (Math.PI * 0.5);
+        ctx.beginPath();
+        ctx.moveTo(px, py);
+        ctx.lineTo(px + Math.cos(a) * pr * 0.82, py + Math.sin(a) * pr * 0.82);
+        ctx.strokeStyle = hexAlpha('#e0f2fe', flash * 0.58);
+        ctx.lineWidth   = 1.0;
+        ctx.stroke();
+      }
+    }
+
+  } else if (skin.effect === 'inferno') {
+    // Orbiting hot-spot blob (Inferno)
+    const fx = px + Math.sin(now / 280 + 0.5) * pr * 0.28;
+    const fy = py + Math.cos(now / 210)        * pr * 0.22;
+    const ig = ctx.createRadialGradient(fx, fy, 0, fx, fy, pr * 0.84);
+    ig.addColorStop(0,    'rgba(254,240,138,0.52)');
+    ig.addColorStop(0.33, 'rgba(249,115,22,0.32)');
+    ig.addColorStop(0.68, 'rgba(220,38,38,0.12)');
+    ig.addColorStop(1,    'rgba(220,38,38,0)');
+    ctx.fillStyle = ig;
+    ctx.fillRect(px - pr, py - pr, pr * 2, pr * 2);
+
+  } else if (skin.effect === 'prism') {
+    // Rotating rainbow linear gradient (Prism)
+    const a   = now / 1100;
+    const hue = (now / 15) % 360;
+    const gx1 = px + Math.cos(a) * pr, gy1 = py + Math.sin(a) * pr;
+    const gx2 = px - Math.cos(a) * pr, gy2 = py - Math.sin(a) * pr;
+    const pg  = ctx.createLinearGradient(gx1, gy1, gx2, gy2);
+    pg.addColorStop(0,   `hsla(${hue}, 100%, 72%, 0.30)`);
+    pg.addColorStop(0.5, `hsla(${(hue + 90) % 360}, 100%, 72%, 0.06)`);
+    pg.addColorStop(1,   `hsla(${(hue + 180) % 360}, 100%, 72%, 0.30)`);
+    ctx.fillStyle = pg;
+    ctx.fillRect(px - pr, py - pr, pr * 2, pr * 2);
+
+  } else if (skin.effect === 'void') {
+    // Swirling dark vortex (Void)
+    const va = now / 1400;
+    const vx = px + Math.cos(va) * pr * 0.28;
+    const vy = py + Math.sin(va) * pr * 0.28;
+    const vg = ctx.createRadialGradient(vx, vy, 0, px, py, pr * 0.80);
+    vg.addColorStop(0,    'rgba(0,0,0,0.72)');
+    vg.addColorStop(0.38, 'rgba(59,7,100,0.40)');
+    vg.addColorStop(0.72, 'rgba(107,33,168,0.14)');
+    vg.addColorStop(1,    'rgba(107,33,168,0)');
+    ctx.fillStyle = vg;
+    ctx.fillRect(px - pr, py - pr, pr * 2, pr * 2);
+
+  } else if (skin.effect === 'galaxy') {
+    // Nebula glow + twinkling inner star dots (Galaxy)
+    const ng = ctx.createRadialGradient(px, py, 0, px, py, pr * 0.75);
+    ng.addColorStop(0,   'rgba(129,140,248,0.18)');
+    ng.addColorStop(0.6, 'rgba(99,102,241,0.06)');
+    ng.addColorStop(1,   'rgba(99,102,241,0)');
+    ctx.fillStyle = ng;
+    ctx.fillRect(px - pr, py - pr, pr * 2, pr * 2);
+    for (let i = 0; i < 8; i++) {
+      const angle = (i / 8) * Math.PI * 2 + now / 5000;
+      const dist  = (0.18 + (i % 4) * 0.16) * pr;
+      const gx    = px + Math.cos(angle) * dist;
+      const gy    = py + Math.sin(angle) * dist;
+      const alpha = 0.38 + 0.42 * Math.sin(now / (160 + i * 65) + i * 1.3);
+      ctx.beginPath();
+      ctx.arc(gx, gy, 1.0, 0, Math.PI * 2);
+      ctx.fillStyle = hexAlpha('#c4b5fd', alpha);
+      ctx.fill();
+    }
+  }
+
+  ctx.restore();
+}
+
+// ============================================================
+// SECTION 9: OBSTACLE SYSTEM
+// ============================================================
+// Types: 0=NORMAL (straight), 1=DRIFTER (sinusoidal), 2=BIG (large+slow)
+
+function spawnObstacle() {
+  if (obstacles.length >= MAX_OBSTACLES) return;
+
+  // ── Forbidden-ratio enforcement ──────────────────────────────────
+  // After the grace period, always keep at least one forbidden obstacle on
+  // screen, and push up to FORBIDDEN_MIN_RATIO when density is sufficient.
+  const pastGrace  = graceTimer >= GRACE_PERIOD;
+  const nForbidden = obstacles.filter(o => o.colorIndex === forbiddenIndex).length;
+  const ratio      = obstacles.length > 0 ? nForbidden / obstacles.length : 1;
+  const forceF     = pastGrace &&
+                     (nForbidden === 0 ||
+                      (obstacles.length >= 2 && ratio < activeForbiddenRatio()));
+
+  let colorIndex;
+  if (forceF) {
+    colorIndex = forbiddenIndex;
+  } else {
+    colorIndex = Math.floor(Math.random() * GAME_COLORS.length);
+    // During grace period never spawn the forbidden color
+    if (!pastGrace && colorIndex === forbiddenIndex) {
+      colorIndex = (colorIndex + 1) % GAME_COLORS.length;
+    }
+  }
+
+  // ── Type selection ────────────────────────────────────────────────
+  // 0=straight square  1=drifter  2=big slow hazard
+  // 3=bullet (tall thin, fast)  4=dart (tiny, superfast)
+  // Weights: 0→28% | 1→35% | 2→6% | 3→14% | 4→17%
+  // Type 2 is also hard-capped at 2 on-screen; surplus becomes type 0.
+  const rnd  = Math.random();
+  let   type = rnd < 0.28 ? 0 : (rnd < 0.63 ? 1 : (rnd < 0.69 ? 2 : (rnd < 0.83 ? 3 : 4)));
+  // Cap big obstacles — if 2 already on screen, demote to type 0
+  if (type === 2 && obstacles.filter(o => o.type === 2).length >= 2) type = 0;
+  const base = GAME_CONFIG.baseSpeed * speedMultiplier * panicSpeedMult();
+
+  let w, h, vy;
+  switch (type) {
+    case 0: w = 28 + Math.random()*16;  h = w;                         vy = base + Math.random()*80;       break;
+    case 1: w = 26 + Math.random()*14;  h = w;                         vy = base*0.85 + Math.random()*50;  break;
+    case 2: w = 52 + Math.random()*20;  h = 38 + Math.random()*14;     vy = base*0.60 + Math.random()*28;  break; // medium-large, not room-filling
+    case 3: w = 14 + Math.random()*10;  h = 52 + Math.random()*28;     vy = base*1.55 + Math.random()*85;  break;
+    case 4: w = 12 + Math.random()*8;   h = 12 + Math.random()*8;      vy = base*1.85 + Math.random()*100; break;
+  }
+
+  if (activePowerupKey === 'SLOW') vy *= 0.4;
+
+  const amp  = (type === 1) ? 60 + Math.random() * 90 : 0;
+  // Each drifter gets its own frequency in [1.3, 2.8] rad/s for varied rhythm
+  const freq = (type === 1) ? 1.3 + Math.random() * 1.5 : 0;
+  const ox  = amp + w / 2 + Math.random() * Math.max(10, canvas.width - amp * 2 - w);
+
+  obstacles.push({
+    x: ox - w / 2, y: -h - 12, w, h, vy, baseVy: vy, type,
+    colorIndex,
+    driftAmp: amp, driftFreq: freq, driftPhase: Math.random() * Math.PI * 2, driftTime: 0,
+    originX: ox, nearMissIdx: -1,  // index of forbiddenColor when near-miss was first observed; -1 = none
+  });
+}
+
+// ── Cluster spawning ────────────────────────────────────────────────────────
+// 22 % of spawn ticks fire 2–3 obstacles in a named pattern instead of one.
+// Four patterns: GATE (wall + gap), STAGGER (diagonal pair),
+//                SPREAD (3 blocks, 2 gaps), CHASE (back-to-back pair).
+// All patterns guarantee a navigable corridor ≥ 50 px wide.
+function spawnCluster() {
+  const cw   = canvas.width;
+  const base = GAME_CONFIG.baseSpeed * speedMultiplier * panicSpeedMult();
+  const slow = activePowerupKey === 'SLOW';
+
+  // Push one cluster member directly (always type-0 straight for readability).
+  function pushMember(x, yOff, w, h, vy, colorIndex) {
+    if (obstacles.length >= MAX_OBSTACLES) return;
+    const fvy = slow ? vy * 0.4 : vy;
+    obstacles.push({
+      x, y: -h - 12 + yOff, w, h,
+      vy: fvy, baseVy: fvy, type: 0,
+      colorIndex,
+      driftAmp: 0, driftFreq: 0, driftPhase: 0, driftTime: 0,
+      originX: x + w / 2, nearMissIdx: -1,
+    });
+  }
+
+  // Picks a colorIndex respecting grace period; forces forbidden when needed.
+  function pickCI(force) {
+    if (force) return forbiddenIndex;
+    const past = graceTimer >= GRACE_PERIOD;
+    let ci = Math.floor(Math.random() * GAME_COLORS.length);
+    if (!past && ci === forbiddenIndex) ci = (ci + 1) % GAME_COLORS.length;
+    return ci;
+  }
+
+  const past          = graceTimer >= GRACE_PERIOD;
+  const needForbidden = past && obstacles.filter(o => o.colorIndex === forbiddenIndex).length === 0;
+  const vy            = base + Math.random() * 55;
+
+  switch (Math.floor(Math.random() * 4)) {
+
+    // GATE — wall on each side, one navigable gap
+    case 0: {
+      if (countWallObstacles() >= MAX_WALL_OBSTACLES) { spawnObstacle(); break; } // fallback if cap hit
+      const gap  = 72 + Math.random() * 24;                       // 72–96 px — roomy gate
+      const gCtr = cw * 0.25 + Math.random() * cw * 0.5;         // 25–75% across
+      const gx   = Math.max(4, gCtr - gap / 2);
+      const gEnd = Math.min(cw - 4, gx + gap);
+      const lw   = Math.max(20, gx - 4);
+      const rw   = Math.max(20, cw - gEnd - 4);
+      const h    = 26 + Math.random() * 18;
+      const lCI  = pickCI(needForbidden && Math.random() < 0.5);
+      const rCI  = pickCI(needForbidden && lCI !== forbiddenIndex);
+      pushMember(2,       0, lw, h, vy, lCI);
+      pushMember(gEnd + 2, 0, rw, h, vy, rCI);
+      break;
+    }
+
+    // STAGGER — two blocks offset diagonally; player weaves between them
+    case 1: {
+      const w    = 32 + Math.random() * 18;
+      const h    = w;
+      const xA   = 8 + Math.random() * (cw - w - 16);
+      const side = xA < cw / 2 ? 1 : -1;
+      const xB   = Math.min(Math.max(xA + side * (w * 1.4 + 20 + Math.random() * 30), 8), cw - w - 8);
+      const yOff = -(h * 0.8 + 10 + Math.random() * 20);
+      pushMember(xA, 0,    w, h, vy,        pickCI(needForbidden));
+      pushMember(xB, yOff, w, h, vy * 1.05, pickCI(false));
+      break;
+    }
+
+    // SPREAD — three blocks across width, two gaps to choose from
+    case 2: {
+      const gap    = 52 + Math.random() * 14;
+      const blockW = Math.max(20, (cw - gap * 2 - 10) / 3);
+      const h      = 22 + Math.random() * 18;
+      const xs     = [5, 5 + blockW + gap, 5 + (blockW + gap) * 2];
+      const fSlot  = needForbidden ? Math.floor(Math.random() * 3) : -1;
+      xs.forEach((x, k) => pushMember(x, 0, blockW, h, vy, pickCI(fSlot === k)));
+      break;
+    }
+
+    // CHASE — two blocks at similar X, directly back-to-back
+    case 3: {
+      const w    = 28 + Math.random() * 22;
+      const h    = 24 + Math.random() * 14;
+      const x    = 8 + Math.random() * (cw - w - 16);
+      const xOff = (Math.random() - 0.5) * 28;     // slight horizontal wobble
+      const yOff = -(h + 12 + Math.random() * 20); // second block directly above
+      pushMember(x,        0,    w, h, vy,       pickCI(needForbidden));
+      pushMember(x + xOff, yOff, w, h, vy * 1.1, pickCI(false));
+      break;
+    }
+  }
+}
+
+// ── Narrow-lane spawning ─────────────────────────────────────────────────────
+// 5 % of spawn ticks place a near-full-width wall with a single gap.
+// Only SQUEEZE (single row) fires — one clear pressure moment, not a labyrinth.
+// Skips entirely when MAX_WALL_OBSTACLES wide segments are already on screen.
+function countWallObstacles() {
+  // A wall segment is a type-0 obstacle wider than 40 % of the canvas.
+  return obstacles.filter(o => o.type === 0 && o.w > canvas.width * 0.40).length;
+}
+
+function spawnNarrowLane() {
+  if (obstacles.length >= MAX_OBSTACLES) return;
+  if (countWallObstacles() >= MAX_WALL_OBSTACLES) return; // cap: no stacking
+  const cw   = canvas.width;
+  const base = GAME_CONFIG.baseSpeed * speedMultiplier * panicSpeedMult();
+  const slow = activePowerupKey === 'SLOW';
+
+  function pushWall(x, yOff, w, h, vy, colorIndex) {
+    if (obstacles.length >= MAX_OBSTACLES) return;
+    const fvy = slow ? vy * 0.4 : vy;
+    obstacles.push({
+      x, y: -h - 12 + yOff, w, h,
+      vy: fvy, baseVy: fvy, type: 0,
+      colorIndex,
+      driftAmp: 0, driftFreq: 0, driftPhase: 0, driftTime: 0,
+      originX: x + w / 2, nearMissIdx: -1,
+    });
+  }
+
+  function pickCI(force) {
+    if (force) return forbiddenIndex;
+    const past = graceTimer >= GRACE_PERIOD;
+    let ci = Math.floor(Math.random() * GAME_COLORS.length);
+    if (!past && ci === forbiddenIndex) ci = (ci + 1) % GAME_COLORS.length;
+    return ci;
+  }
+
+  // Single row, wider gap (68–88 px) — readable, achievable, still tight.
+  function pushRow(gCtr, gapW, h, yOff, vy, needF) {
+    const gx   = Math.max(4, gCtr - gapW / 2);
+    const gEnd = Math.min(cw - 4, gx + gapW);
+    const lw   = gx - 4;
+    const rw   = cw - gEnd - 4;
+    if (lw > 8) pushWall(2,        yOff, lw, h, vy, pickCI(needF && rw <= 8));
+    if (rw > 8) pushWall(gEnd + 2, yOff, rw, h, vy, pickCI(needF && lw > 8));
+  }
+
+  const past          = graceTimer >= GRACE_PERIOD;
+  const needForbidden = past && obstacles.filter(o => o.colorIndex === forbiddenIndex).length === 0;
+  const vy            = base + Math.random() * 40;
+  const h             = 26 + Math.random() * 14;   // 26–40 px tall — less imposing
+  const gap           = 68 + Math.random() * 20;   // 68–88 px wide — fairer gap
+  const gCtr          = cw * 0.25 + Math.random() * cw * 0.5;
+  pushRow(gCtr, gap, h, 0, vy, needForbidden);
+}
+
+function updateObstacles(dt) {
+  for (let i = obstacles.length - 1; i >= 0; i--) {
+    const ob = obstacles[i];
+    ob.y += ob.vy * dt;
+
+    if (ob.type === 1) {
+      ob.driftTime += dt;
+      ob.x = ob.originX - ob.w / 2 + Math.sin(ob.driftTime * ob.driftFreq + ob.driftPhase) * ob.driftAmp;
+      ob.x = Math.max(0, Math.min(canvas.width - ob.w, ob.x));
+    }
+
+    // Near-miss: record the forbiddenIndex active at the moment of the close pass.
+    // Storing the index (not a boolean) means the award at exit is independent of
+    // whatever forbiddenIndex happens to be current then — prevents both false-positives
+    // from color cycling and false-negatives from color changing before the obstacle exits.
+    if (ob.nearMissIdx < 0 && isDangerous(ob) && ob.y > -ob.h &&
+        distCircleRect(player.x, player.y, player.radius, ob.x, ob.y, ob.w, ob.h) < NEAR_MISS_DIST) {
+      ob.nearMissIdx = forbiddenIndex;
+    }
+
+    if (ob.y > canvas.height + 20) {
+      if (ob.nearMissIdx >= 0) awardNearMiss(ob);
+      obstacles.splice(i, 1);
+    }
+  }
+}
+
+function drawHatchPattern(x, y, w, h, r) {
+  ctx.save();
+  pathRoundRect(ctx, x, y, w, h, r);
+  ctx.clip();
+  ctx.strokeStyle = 'rgba(0,0,0,0.38)';
+  ctx.lineWidth   = 2.5;
+  ctx.lineCap     = 'round';
+  const step = 10;
+  for (let i = -(h + w); i <= h + w; i += step) {
+    ctx.beginPath();
+    ctx.moveTo(x + i,     y);
+    ctx.lineTo(x + i + h, y + h);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawObstacle(ob) {
+  const isForbidden = isDangerous(ob); // re-evaluated every frame — no stale state
+  // Derive color from colorIndex every frame — single source of truth, never stale
+  const colorDef = GAME_COLORS[ob.colorIndex];
+  const hex      = colorDef.hex;
+  const symbol   = colorDef.symbol;
+  ctx.save();
+
+  // Safe obstacles are visually quieter — clearly distinct from dangerous ones
+  if (!isForbidden) ctx.globalAlpha = 0.60;
+
+  // Fill
+  pathRoundRect(ctx, ob.x, ob.y, ob.w, ob.h, 8);
+  ctx.fillStyle = hex;
+
+  if (isForbidden) {
+    // Pulsing glow: oscillates between blur 18 and 32 — draws the eye, signals danger
+    const pulse = 18 + 14 * (0.5 + 0.5 * Math.sin(Date.now() / 200));
+    ctx.shadowColor = hex;
+    ctx.shadowBlur  = pulse;
+  }
+  ctx.fill();
+  ctx.shadowBlur = 0;
+
+  if (isForbidden) {
+    // Strong white border — danger outline is always readable regardless of block color
+    pathRoundRect(ctx, ob.x, ob.y, ob.w, ob.h, 8);
+    ctx.strokeStyle = 'rgba(255,255,255,0.90)';
+    ctx.lineWidth   = 3;
+    ctx.shadowColor = '#fff';
+    ctx.shadowBlur  = 6;
+    ctx.stroke();
+    ctx.shadowBlur  = 0;
+
+    // Symbol inside the block — only shown in colorblind mode
+    const minDim = Math.min(ob.w, ob.h);
+    if (settings.colorblind && minDim >= 20) {
+      const fontSize = Math.max(10, Math.min(14, minDim * 0.38));
+      ctx.font         = `bold ${fontSize}px monospace`;
+      ctx.textAlign    = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle    = 'rgba(255,255,255,0.82)';
+      ctx.shadowColor  = 'rgba(0,0,0,0.6)';
+      ctx.shadowBlur   = 3;
+      ctx.fillText(symbol, ob.x + ob.w / 2, ob.y + ob.h / 2);
+      ctx.shadowBlur   = 0;
+    }
+  }
+
+  // Colorblind mode: hatch pattern on forbidden blocks (additive — keeps hatch + symbol)
+  if (settings.colorblind && isForbidden) {
+    drawHatchPattern(ob.x, ob.y, ob.w, ob.h, 8);
+  }
+
+  ctx.restore();
+}
+
+// ============================================================
+// SECTION 10: POWER-UP SYSTEM
+// ============================================================
+
+function spawnPowerup() {
+  const key = POWERUP_KEYS[Math.floor(Math.random() * POWERUP_KEYS.length)];
+  const def = POWERUP_DEFS[key];
+  const sz  = 42;
+  powerups.push({
+    x: sz / 2 + Math.random() * (canvas.width - sz), y: -sz - 12,
+    size: sz, vy: 80, angle: 0,
+    key, icon: def.icon, color: def.color, label: def.label,
+  });
+}
+
+function updatePowerups(dt) {
+  for (let i = powerups.length - 1; i >= 0; i--) {
+    const p = powerups[i];
+    p.y    += p.vy * dt;
+    p.angle += dt * 1.9;
+    const dx = player.x - p.x;
+    const dy = player.y - p.y;
+    if (Math.sqrt(dx * dx + dy * dy) < player.radius + p.size / 2 + 4) {
+      collectPowerup(p);
+      powerups.splice(i, 1);
+      continue;
+    }
+    if (p.y > canvas.height + 20) powerups.splice(i, 1);
+  }
+}
+
+function collectPowerup(p) {
+  missionRun.powerupsThisRun++;  // mission tracking
+  Audio.collect();
+  Announce.say('Power-up: ' + p.label);
+  spawnParticles(p.x, p.y, p.color, 14);
+  // Expanding ring burst — two rings at slightly different speeds
+  if (!settings.reducedMotion) {
+    ringBursts.push({ x: p.x, y: p.y, r: p.size * 0.5, maxR: p.size * 2.8, color: p.color, alpha: 0.9, speed: 160 });
+    ringBursts.push({ x: p.x, y: p.y, r: p.size * 0.3, maxR: p.size * 2.2, color: '#fff',   alpha: 0.5, speed: 220 });
+  }
+  if (navigator.vibrate) navigator.vibrate([30, 20, 30]);
+
+  addScore(POWERUP_COLLECT_BONUS);
+  addFloating(p.x, p.y - 38, p.icon + ' +' + POWERUP_COLLECT_BONUS, p.color, 18);
+
+  switch (p.key) {
+    case 'SHIELD':
+      player.hasShield   = true;
+      activePowerupKey   = 'SHIELD';
+      activePowerupTimer = POWERUP_DEFS.SHIELD.duration;
+      activePowerupTotal = POWERUP_DEFS.SHIELD.duration;
+      break;
+    case 'SLOW':
+      activePowerupKey   = 'SLOW';
+      activePowerupTimer = POWERUP_DEFS.SLOW.duration;
+      activePowerupTotal = POWERUP_DEFS.SLOW.duration;
+      obstacles.forEach(o => { o.vy = o.baseVy * 0.4; });
+      break;
+    case 'CLEAR':
+      obstacles = obstacles.filter(o => o.colorIndex !== forbiddenIndex);
+      addFloating(player.x, player.y - 52, '\u2728 Clear!', '#e879f9');
+      break;
+    case 'BOOST':
+      activePowerupKey   = 'BOOST';
+      activePowerupTimer = POWERUP_DEFS.BOOST.duration;
+      activePowerupTotal = POWERUP_DEFS.BOOST.duration;
+      break;
+  }
+  updatePowerupDisplay();
+}
+
+function tickActivePowerup(dt) {
+  if (!activePowerupKey) return;
+  const def = POWERUP_DEFS[activePowerupKey];
+  if (def.duration === 0) return;
+  activePowerupTimer -= dt;
+  if (activePowerupTimer <= 0) {
+    if (activePowerupKey === 'SLOW')   obstacles.forEach(o => { o.vy = o.baseVy; });
+    if (activePowerupKey === 'SHIELD') { player.hasShield = false; Announce.say('Shield expired.'); }
+    else                               { Announce.say('Power-up expired.'); }
+    activePowerupKey = null;
+    updatePowerupDisplay();
+  } else {
+    updatePowerupDisplay();
+  }
+}
+
+function drawPowerup(p) {
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  ctx.rotate(p.angle);
+  ctx.shadowColor = p.color;
+  ctx.shadowBlur  = 24;
+  ctx.beginPath();
+  drawStar(ctx, 0, 0, p.size / 2, p.size / 3.4, 5);
+  ctx.fillStyle   = p.color;
+  ctx.fill();
+  ctx.shadowBlur  = 0;
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth   = 2;
+  ctx.stroke();
+  ctx.rotate(-p.angle);
+  ctx.font         = (p.size * 0.42) + 'px serif';
+  ctx.textAlign    = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle    = '#fff';
+  ctx.fillText(p.icon, 0, 1);
+  ctx.restore();
+}
+
+// ============================================================
+// SECTION 11: PARTICLE SYSTEM
+// ============================================================
+
+function spawnParticles(x, y, color, count) {
+  const n = settings.reducedMotion ? Math.max(2, Math.ceil((count || 8) * 0.35)) : (count || 8);
+  for (let i = 0; i < n; i++) {
+    const ang = (Math.PI * 2 * i) / n + Math.random() * 0.9;
+    const spd = 60 + Math.random() * 110;
+    particles.push({
+      x, y, color,
+      vx: Math.cos(ang) * spd,
+      vy: Math.sin(ang) * spd,
+      size: 3 + Math.random() * 4.5,
+      life: 1, decay: 1.2 + Math.random() * 0.7,
+    });
+  }
+}
+
+function tickParticles(dt) {
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.x    += p.vx * dt;
+    p.y    += p.vy * dt;
+    p.vy   += 100 * dt;
+    p.life -= p.decay * dt;
+    if (p.life <= 0) particles.splice(i, 1);
+  }
+}
+
+function drawParticles() {
+  particles.forEach(p => {
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, p.life);
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+    ctx.fillStyle = p.color;
+    ctx.fill();
+    ctx.restore();
+  });
+}
+
+// ============================================================
+// SECTION 12: FLOATING TEXT
+// ============================================================
+
+// ── Centre-screen milestone banner ────────────────────────────
+const SCORE_MILESTONES = [500, 1000, 2000, 3500, 5000, 7500, 10000];
+const TIME_MILESTONES  = [30, 60, 120, 180];   // seconds into run
+const COMBO_MILESTONES = [5, 10, 20, 30];      // combo count
+
+function triggerMilestone(text, color) {
+  milestoneBanner = {
+    text,
+    color: color || '#facc15',
+    timer: 0,
+    totalTime: 1.9,
+    scale: 1,
+  };
+  // Gentle shake for tactile emphasis
+  triggerShake(4, 0.22);
+  if (navigator.vibrate) navigator.vibrate(40);
+}
+
+function tickMilestoneBanner(dt) {
+  if (!milestoneBanner) return;
+  milestoneBanner.timer += dt;
+  const t = milestoneBanner.timer;
+  const T = milestoneBanner.totalTime;
+  if (t >= T) { milestoneBanner = null; return; }
+
+  // Scale: pop to 1.35 in first 0.12 s, settle to 1.0 by 0.35 s, hold, then no change
+  if (t < 0.12)       milestoneBanner.scale = 1 + (t / 0.12) * 0.35;
+  else if (t < 0.35)  milestoneBanner.scale = 1.35 - ((t - 0.12) / 0.23) * 0.35;
+  else                milestoneBanner.scale = 1.0;
+}
+
+function drawMilestoneBanner() {
+  if (!milestoneBanner) return;
+  const m  = milestoneBanner;
+  const t  = m.timer;
+  const T  = m.totalTime;
+  // fade-in over 0.12 s, hold, fade-out in last 0.45 s
+  let alpha;
+  if (t < 0.12)          alpha = t / 0.12;
+  else if (t > T - 0.45) alpha = (T - t) / 0.45;
+  else                   alpha = 1;
+
+  const cx = canvas.width  / 2;
+  const cy = canvas.height * 0.36;
+
+  ctx.save();
+  ctx.globalAlpha = Math.max(0, alpha);
+  ctx.translate(cx, cy);
+  ctx.scale(m.scale, m.scale);
+
+  // Glow halo
+  ctx.shadowColor = m.color;
+  ctx.shadowBlur  = 28;
+
+  // Bold text
+  ctx.font         = 'bold 38px sans-serif';
+  ctx.textAlign    = 'center';
+  ctx.textBaseline = 'middle';
+
+  // Subtle dark backing stroke for readability
+  ctx.lineWidth    = 5;
+  ctx.strokeStyle  = 'rgba(0,0,0,0.65)';
+  ctx.strokeText(m.text, 0, 0);
+
+  ctx.fillStyle = m.color;
+  ctx.fillText(m.text, 0, 0);
+
+  ctx.restore();
+}
+
+function addFloating(x, y, text, color, size) {
+  floatingTexts.push({ x, y, text, color: color || '#facc15', alpha: 1, vy: -50, timer: 1.5, size: size || 15, scale: 1.4 });
+}
+
+function tickFloating(dt) {
+  for (let i = floatingTexts.length - 1; i >= 0; i--) {
+    const t = floatingTexts[i];
+    t.y    += t.vy * dt;
+    t.timer -= dt;
+    t.alpha  = Math.max(0, t.timer / 1.5);
+    // scale pops in on spawn then settles to 1
+    t.scale  = 1 + Math.max(0, (t.timer - 1.3) / 0.2) * 0.4;
+    if (t.timer <= 0) floatingTexts.splice(i, 1);
+  }
+}
+
+function drawFloating() {
+  floatingTexts.forEach(t => {
+    ctx.save();
+    ctx.globalAlpha  = t.alpha;
+    ctx.font         = `bold ${t.size}px sans-serif`;
+    ctx.textAlign    = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle    = t.color;
+    ctx.shadowColor  = 'rgba(0,0,0,0.9)';
+    ctx.shadowBlur   = 6;
+    ctx.translate(t.x, t.y);
+    ctx.scale(t.scale, t.scale);
+    ctx.fillText(t.text, 0, 0);
+    ctx.restore();
+  });
+}
+
+// ============================================================
+// SECTION 13: FORBIDDEN COLOR SYSTEM
+// ============================================================
+
+function pickNextForbidden() {
+  let next = forbiddenIndex;
+  while (next === forbiddenIndex) next = Math.floor(Math.random() * GAME_COLORS.length);
+  return next;
+}
+
+// After a color change the new forbidden color may be underrepresented.
+// Recolor a few upper-screen safe obstacles to restore the ratio.
+function rebalanceAfterColorChange() {
+  if (graceTimer < GRACE_PERIOD) return;
+  const total = obstacles.length;
+  if (total < 4) return;
+  const nForbidden = obstacles.filter(o => o.colorIndex === forbiddenIndex).length;
+  if (nForbidden / total >= FORBIDDEN_MIN_RATIO) return;
+
+  const target  = Math.ceil(total * FORBIDDEN_MIN_RATIO);
+  const deficit = Math.min(target - nForbidden, 4); // cap at 4 per change — stay fair
+
+  // Only recolor obstacles in the upper 45 % of the canvas (far from the player).
+  // Sort topmost-first so the most distant ones change first.
+  const candidates = obstacles
+    .filter(o => o.colorIndex !== forbiddenIndex && o.y < canvas.height * 0.45)
+    .sort((a, b) => a.y - b.y);
+
+  const count = Math.min(deficit, candidates.length);
+  const newColor = GAME_COLORS[forbiddenIndex];
+  for (let i = 0; i < count; i++) {
+    candidates[i].colorIndex  = forbiddenIndex;
+    candidates[i].nearMissIdx = -1; // reset stale near-miss tracking
+  }
+}
+
+function changeForbiddenColor() {
+  missionRun.colorChanges++;  // mission tracking
+  // Use pre-computed next index, or pick one if not set
+  forbiddenIndex = nextForbiddenIdx >= 0 ? nextForbiddenIdx : pickNextForbidden();
+  nextForbiddenIdx = -1;
+  // If Double Danger is active and second color now matches the new primary, re-pick
+  if (ddPhase === 'active' && dd2ndIndex === forbiddenIndex) dd2ndIndex = pickDD2ndIndex();
+
+  combo++;
+  if (combo > maxCombo) maxCombo = combo;
+  const bonus = combo * COMBO_BONUS_PER;
+  addScore(bonus, false);
+  if (combo > 1) {
+    addFloating(player.x, player.y - 65, '\uD83D\uDD25 x' + combo + '! +' + bonus, '#f59e0b');
+    Audio.comboUp(combo);
+  } else {
+    addFloating(player.x, player.y - 65, '+' + bonus + ' Survived!', '#f59e0b');
+  }
+
+  // Combo milestones
+  for (const threshold of COMBO_MILESTONES) {
+    if (combo >= threshold && !_comboMilestonesHit.has(threshold)) {
+      _comboMilestonesHit.add(threshold);
+      triggerMilestone('\uD83D\uDD25 x' + threshold + ' COMBO!', '#f97316');
+    }
+  }
+  updateComboDisplay();
+
+  forbiddenTimer = 0;
+  warningActive  = false;
+  hideNextColorPreview();
+  setHudWarning(0);
+  updateTimerBar(0, forbiddenInterval);
+  updateForbiddenDisplay();
+  colorChangeGrace = 0.25; // 0.25 s invincibility window on color change
+  // rebalanceAfterColorChange() disabled — blocks keep their spawn color
+  Audio.colorChange();
+  Announce.say('Forbidden color is now ' + GAME_COLORS[forbiddenIndex].name + '!');
+}
+
+function tickForbiddenTimer(dt) {
+  forbiddenTimer += dt;
+  const remaining = Math.max(0, forbiddenInterval - forbiddenTimer);
+
+  // Update countdown bar
+  updateTimerBar(forbiddenTimer, forbiddenInterval);
+
+  // Start warning phase
+  if (!warningActive && remaining <= WARNING_DURATION) {
+    warningActive    = true;
+    nextForbiddenIdx = pickNextForbidden();
+    showNextColorPreview(nextForbiddenIdx);
+    Audio.warning();
+    Announce.say('Warning: forbidden color changing to ' + GAME_COLORS[nextForbiddenIdx].name + ' — get ready!');
+  }
+
+  // Update HUD warning level (compressed 0.8 s window)
+  if (warningActive) {
+    if (remaining <= 0.3) setHudWarning(2);
+    else                  setHudWarning(1);
+  }
+
+  if (forbiddenTimer >= forbiddenInterval) changeForbiddenColor();
+}
+
+// ============================================================
+// SECTION 14: COLLISION DETECTION
+// ============================================================
+
+// Single source of truth: an obstacle is dangerous iff its colorIndex matches
+// the current forbiddenIndex. Used by rendering, collision, and near-miss.
+function isDangerous(ob) {
+  if (ob.colorIndex === forbiddenIndex) return true;
+  if (ddPhase === 'active' && ob.colorIndex === dd2ndIndex) return true;
+  return false;
+}
+
+function distCircleRect(cx, cy, cr, rx, ry, rw, rh) {
+  const nx = Math.max(rx, Math.min(cx, rx + rw));
+  const ny = Math.max(ry, Math.min(cy, ry + rh));
+  return Math.sqrt((cx - nx) ** 2 + (cy - ny) ** 2);
+}
+
+function checkCollisions() {
+  if (colorChangeGrace > 0) return; // brief invincibility after a color change
+  for (let i = obstacles.length - 1; i >= 0; i--) {
+    const ob = obstacles[i];
+    if (distCircleRect(player.x, player.y, player.radius, ob.x, ob.y, ob.w, ob.h) >= player.radius) continue;
+    if (!isDangerous(ob)) continue; // safe color — re-checked against current forbiddenIndex
+
+    if (player.hasShield) {
+      player.hasShield = false;
+      if (activePowerupKey === 'SHIELD') { activePowerupKey = null; updatePowerupDisplay(); }
+      obstacles.splice(i, 1);
+      spawnParticles(ob.x + ob.w / 2, ob.y + ob.h / 2, GAME_COLORS[ob.colorIndex].hex, 16);
+      addFloating(player.x, player.y - 55, '\uD83D\uDEE1 Shield!', '#facc15');
+      triggerShake(6, 0.22);
+      if (navigator.vibrate) navigator.vibrate(50);
+      Announce.say('Shield blocked a hit!');
+    } else {
+      triggerGameOver();
+      return;
+    }
+  }
+}
+
+// ============================================================
+// SECTION 15: SCORING
+// ============================================================
+
+function addScore(pts, useBoost) {
+  const mult = (useBoost !== false && activePowerupKey === 'BOOST') ? 2 : 1;
+  score += pts * mult;
+  // Throttle DOM update — only every ~100ms to avoid layout thrash
+}
+
+let _lastHudUpdate = 0;
+function maybeUpdateHud(ts) {
+  if (ts - _lastHudUpdate > 100) { updateHUD(); _lastHudUpdate = ts; }
+}
+
+function tickScoreOverTime(dt) {
+  // ~5 pts/s base; combo gently scales it up (combo 10 → ~7.5 pts/s)
+  const rate = 5 * (1 + combo * 0.05);
+  addScore(rate * dt);
+
+  // Score milestones
+  const s = Math.floor(score);
+  for (const threshold of SCORE_MILESTONES) {
+    if (s >= threshold && !_scoreMilestonesHit.has(threshold)) {
+      _scoreMilestonesHit.add(threshold);
+      const label = threshold >= 1000 ? (threshold / 1000) + 'K!' : threshold + '!';
+      triggerMilestone('🌟 ' + label, '#fbbf24');
+    }
+  }
+  // Beyond fixed list: every 5000 above 10000
+  if (s >= 10000) {
+    const extraStep = Math.floor(s / 5000) * 5000;
+    if (!_scoreMilestonesHit.has(extraStep)) {
+      _scoreMilestonesHit.add(extraStep);
+      triggerMilestone('🌟 ' + (extraStep / 1000) + 'K!', '#fbbf24');
+    }
+  }
+}
+
+function awardNearMiss(ob) {
+  Audio.nearMiss();
+  missionRun.nearMissesThisRun++;
+  // Larger, distinct text — snaps attention without cluttering
+  addFloating(ob.x + ob.w / 2, ob.y - 18, 'CLOSE CALL  +' + NEAR_MISS_BONUS, '#34d399', 19);
+  // Small particle burst at the miss point
+  spawnParticles(ob.x + ob.w / 2, ob.y + ob.h / 2, '#34d399', settings.reducedMotion ? 4 : 10);
+  // Gentle shake — confirms the danger without being disorienting
+  triggerShake(3.5, 0.18);
+  addScore(NEAR_MISS_BONUS);
+  if (navigator.vibrate) navigator.vibrate(25);
+}
+
+// ============================================================
+// SECTION 16: DIFFICULTY SCALING
+// ============================================================
+
+// ── Panic wave ──────────────────────────────────────────────
+// Lifecycle: cooldown → announce (banner shown) → wave (doubled spawn rate)
+// The active spawn rate is read via panicSpawnRate() below.
+// No state is permanently altered; everything resets after each wave.
+function panicSpawnRate() {
+  return panicPhase === 'wave' ? spawnRate * 0.42 : spawnRate; // ~2.4× faster during wave
+}
+function panicSpeedMult() {
+  return panicPhase === 'wave' ? 1.25 : 1.0; // 25 % faster obstacle velocity during wave
+}
+function activeForbiddenRatio() {
+  return panicPhase === 'wave' ? 0.62 : FORBIDDEN_MIN_RATIO; // more dangerous blocks during wave
+}
+
+function tickPanicWave(dt) {
+  if (graceTimer < GRACE_PERIOD + 2) return; // never fire in first 3 s
+  if (panicBlockFromDD > 0) { panicBlockFromDD -= dt; } // count down post-DD buffer
+
+  if (panicPhase === 'cooldown') {
+    // Block while Double Danger is active, announcing, or in its post-event buffer
+    if (ddPhase !== 'idle' || panicBlockFromDD > 0) return;
+    panicTimer += dt;
+    if (panicTimer >= panicCooldown) {
+      panicTimer    = 0;
+      panicPhase    = 'announce';
+      panicDuration = 2.0 + Math.random() * 2.0; // 2–4 s
+      triggerShake(6, 0.3);
+    }
+
+  } else if (panicPhase === 'announce') {
+    panicTimer += dt;
+    if (panicTimer >= PANIC_ANNOUNCE) {
+      panicTimer = 0;
+      panicPhase = 'wave';
+      Announce.say('Panic Wave! Obstacles are faster and more dangerous.');
+    }
+
+  } else if (panicPhase === 'wave') {
+    panicTimer += dt;
+    if (panicTimer >= panicDuration) {
+      panicTimer    = 0;
+      panicPhase    = 'cooldown';
+      panicCooldown = PANIC_COOLDOWN_BASE + Math.random() * PANIC_COOLDOWN_VAR;
+      ddBlockTimer  = EVENT_POST_BUFFER; // prevent DD for 5 s after a panic wave
+      missionRun.panicWavesSurvived++; // stats tracking
+    }
+  }
+}
+
+function drawPanicBanner() {
+  if (panicPhase !== 'announce' && panicPhase !== 'wave') return;
+
+  const isWave      = panicPhase === 'wave';
+  const progress    = isWave ? 1 - panicTimer / panicDuration : panicTimer / PANIC_ANNOUNCE;
+  // Fade in during announce, fade out in last 0.3 s of wave
+  let alpha;
+  if (!isWave) {
+    alpha = Math.min(1, progress * 3);                        // quick fade-in
+  } else {
+    const fadeStart = Math.max(0, panicDuration - 0.3);
+    alpha = panicTimer >= fadeStart
+      ? 1 - (panicTimer - fadeStart) / 0.3
+      : 1;
+  }
+
+  const cx  = canvas.width / 2;
+  const cy  = canvas.height * 0.28;
+  const pul = 1 + Math.sin(Date.now() / 80) * (isWave ? 0.04 : 0.01); // subtle pulse during wave
+
+  // Subtle red screen tint — wave only, soft fade-in/out matching banner alpha
+  if (isWave) {
+    ctx.save();
+    ctx.globalAlpha = alpha * 0.10;
+    ctx.fillStyle = '#ff1111';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.restore();
+  }
+
+  ctx.save();
+  ctx.globalAlpha = alpha * 0.92;
+
+  // Dark backing pill
+  const tw  = 200;
+  const th  = 38;
+  ctx.fillStyle = 'rgba(20,0,0,0.68)';
+  ctx.beginPath();
+  ctx.roundRect(cx - tw / 2, cy - th / 2, tw, th, 8);
+  ctx.fill();
+
+  // Bold label
+  ctx.font         = `bold ${Math.round(20 * pul)}px sans-serif`;
+  ctx.textAlign    = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle    = isWave ? '#ff3333' : '#ff8800';
+  ctx.shadowColor  = isWave ? '#ff0000' : '#ff6600';
+  ctx.shadowBlur   = isWave ? 18 : 8;
+  ctx.fillText(isWave ? '⚡ PANIC WAVE ⚡' : '⚠ PANIC WAVE INCOMING', cx, cy);
+
+  ctx.restore();
+}
+
+// ── Double Danger ───────────────────────────────────────────────────────────
+// Rare event: two colors become lethal simultaneously for 2–4 s.
+// Cannot overlap with a Panic Wave; both directions get a 5 s post-event buffer.
+function pickDD2ndIndex() {
+  let idx, attempts = 0;
+  do {
+    idx = Math.floor(Math.random() * GAME_COLORS.length);
+    attempts++;
+  } while (idx === forbiddenIndex && attempts < 20);
+  return idx;
+}
+
+function tickDoubleDanger(dt) {
+  if (ddBlockTimer > 0) { ddBlockTimer -= dt; } // count down post-panic buffer
+  // Not enough play time yet
+  if (graceTimer < GRACE_PERIOD + DD_MIN_PLAYTIME) return;
+  // Never overlap with a Panic Wave
+  if (panicPhase !== 'cooldown') return;
+
+  if (ddPhase === 'idle') {
+    ddTimer += dt;
+    if (ddTimer >= ddCooldown && ddBlockTimer <= 0) {
+      ddTimer    = 0;
+      ddPhase    = 'announce';
+      dd2ndIndex = pickDD2ndIndex();
+      updateForbiddenDisplay();
+      triggerShake(5, 0.25);
+    }
+
+  } else if (ddPhase === 'announce') {
+    ddTimer += dt;
+    if (ddTimer >= DD_ANNOUNCE) {
+      ddTimer    = 0;
+      ddPhase    = 'active';
+      ddDuration = 2.0 + Math.random() * 2.0; // 2–4 s
+      Announce.say('Double Danger! Avoid both ' + GAME_COLORS[forbiddenIndex].name + ' and ' + GAME_COLORS[dd2ndIndex].name + '!');
+    }
+
+  } else if (ddPhase === 'active') {
+    ddTimer += dt;
+    if (ddTimer >= ddDuration) {
+      ddTimer          = 0;
+      ddPhase          = 'idle';
+      ddCooldown       = DD_COOLDOWN_BASE + Math.random() * DD_COOLDOWN_VAR;
+      dd2ndIndex       = -1;
+      panicBlockFromDD = EVENT_POST_BUFFER; // prevent panic wave for 5 s
+      updateForbiddenDisplay();
+      Announce.say('Double Danger over. Only ' + GAME_COLORS[forbiddenIndex].name + ' is now forbidden.');
+    }
+  }
+}
+
+function drawDoubleDangerBanner() {
+  if (ddPhase !== 'announce' && ddPhase !== 'active') return;
+
+  const isActive = ddPhase === 'active';
+  const progress = isActive ? 1 - ddTimer / ddDuration : ddTimer / DD_ANNOUNCE;
+  let alpha;
+  if (!isActive) {
+    alpha = Math.min(1, progress * 3);          // quick fade-in
+  } else {
+    const fadeStart = Math.max(0, ddDuration - 0.3);
+    alpha = ddTimer >= fadeStart ? 1 - (ddTimer - fadeStart) / 0.3 : 1;
+  }
+
+  const cx  = canvas.width / 2;
+  const cy  = canvas.height * 0.28;             // same position — events never overlap
+  const pul = 1 + Math.sin(Date.now() / 100) * (isActive ? 0.03 : 0.01);
+
+  // Subtle amber tint during active phase
+  if (isActive) {
+    ctx.save();
+    ctx.globalAlpha = alpha * 0.09;
+    ctx.fillStyle   = '#ff8800';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.restore();
+  }
+
+  ctx.save();
+  ctx.globalAlpha = alpha * 0.92;
+
+  // Dark backing pill
+  const tw = 242;
+  const th = 38;
+  ctx.fillStyle = 'rgba(30,15,0,0.72)';
+  ctx.beginPath();
+  ctx.roundRect(cx - tw / 2, cy - th / 2, tw, th, 8);
+  ctx.fill();
+
+  // Label
+  ctx.font         = `bold ${Math.round(18 * pul)}px sans-serif`;
+  ctx.textAlign    = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle    = isActive ? '#ffcc00' : '#ffa040';
+  ctx.shadowColor  = isActive ? '#ff8800' : '#ff6600';
+  ctx.shadowBlur   = isActive ? 16 : 8;
+  ctx.fillText(isActive ? '⚠ DOUBLE DANGER ⚠' : '⚠ DOUBLE DANGER INCOMING', cx, cy);
+
+  ctx.restore();
+}
+
+function tickDifficulty(dt) {
+  difficultyTimer += dt;
+  if (difficultyTimer < DIFF_SCALE_EVERY) return;
+  difficultyTimer = 0;
+  difficultyBumps++;
+  const prevMultiplier = speedMultiplier;
+  // Steeper linear speed ramp; hard cap at 2.8×
+  speedMultiplier   = Math.min(1.0 + difficultyBumps * 0.14, 2.8);
+  // Steeper spawn ramp (0.82 decay vs 0.85); floor 0.14 s — very dense late game
+  spawnRate         = Math.max(GAME_CONFIG.spawnRate * Math.pow(0.82, difficultyBumps), 0.14);
+  // forbiddenInterval floors at 2.0 s for relentless pressure
+  forbiddenInterval = Math.max(GAME_CONFIG.forbiddenInterval - difficultyBumps * 0.24, 2.0);
+  // Rescale existing on-screen obstacles so the speed-up is felt immediately,
+  // not only on newly spawned ones. Preserves per-type relative speeds.
+  if (speedMultiplier > prevMultiplier) {
+    const ratio  = speedMultiplier / prevMultiplier;
+    const isSlow = activePowerupKey === 'SLOW';
+    obstacles.forEach(o => {
+      o.baseVy *= ratio;
+      o.vy      = isSlow ? o.baseVy * 0.4 : o.baseVy;
+    });
+  }
+}
+
+// ============================================================
+// SECTION 17: SCREEN SHAKE
+// ============================================================
+
+function triggerShake(intensity, dur) {
+  if (settings.reducedMotion) return;
+  shakeTimer = dur || 0.25;
+  shakeX = (Math.random() - 0.5) * intensity;
+  shakeY = (Math.random() - 0.5) * intensity;
+}
+
+function tickShake(dt) {
+  if (shakeTimer <= 0) { shakeX = shakeY = 0; return; }
+  shakeTimer -= dt;
+  const t = Math.max(0, shakeTimer);
+  shakeX = (Math.random() - 0.5) * 9 * t;
+  shakeY = (Math.random() - 0.5) * 9 * t;
+}
+
+// ── Ring bursts (powerup pickup feedback) ───────────────────
+function tickRings(dt) {
+  for (let i = ringBursts.length - 1; i >= 0; i--) {
+    const r = ringBursts[i];
+    r.r     += r.speed * dt;
+    r.alpha -= dt * 2.2;
+    if (r.alpha <= 0 || r.r >= r.maxR) ringBursts.splice(i, 1);
+  }
+}
+
+function drawRings() {
+  ringBursts.forEach(r => {
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, r.alpha);
+    ctx.beginPath();
+    ctx.arc(r.x, r.y, r.r, 0, Math.PI * 2);
+    ctx.strokeStyle = r.color;
+    ctx.lineWidth   = 2.5;
+    ctx.shadowColor = r.color;
+    ctx.shadowBlur  = 8;
+    ctx.stroke();
+    ctx.restore();
+  });
+}
+
+// ============================================================
+// SECTION 18: RENDERING
+// ============================================================
+
+function drawBackground() {
+  if (settings.highContrast) {
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = 'rgba(255,255,255,0.055)';
+    ctx.lineWidth   = 1;
+    for (let x2 = 0; x2 < canvas.width;  x2 += 44) { ctx.beginPath(); ctx.moveTo(x2, 0); ctx.lineTo(x2, canvas.height); ctx.stroke(); }
+    for (let y2 = 0; y2 < canvas.height; y2 += 44) { ctx.beginPath(); ctx.moveTo(0, y2); ctx.lineTo(canvas.width, y2); ctx.stroke(); }
+  } else {
+    const g = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    g.addColorStop(0, '#0d0d1a');
+    g.addColorStop(1, '#130d2e');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
+}
+
+function render(ts) {
+  ctx.save();
+  ctx.translate(shakeX, shakeY);
+  drawBackground();
+  obstacles.forEach(drawObstacle);
+  powerups.forEach(drawPowerup);
+  drawTrail();
+  drawPlayer();
+  drawParticles();
+  drawRings();
+  drawFloating();
+  drawMilestoneBanner();
+  drawPanicBanner();
+  drawDoubleDangerBanner();
+  ctx.restore();
+}
+
+// ============================================================
+// SECTION 19: GAME LOOP
+// ============================================================
+
+function gameLoop(ts) {
+  if (currentState !== STATE.PLAYING) return;
+  const dt = Math.min((ts - lastFrameTime) / 1000, 0.05);
+  lastFrameTime = ts;
+  graceTimer   += dt;
+
+  updatePlayer(dt);
+  tickShake(dt);
+  if (colorChangeGrace > 0) colorChangeGrace -= dt;
+  tickForbiddenTimer(dt);
+  tickDifficulty(dt);
+  tickActivePowerup(dt);
+  tickScoreOverTime(dt);
+  tickParticles(dt);
+  tickFloating(dt);
+  tickMilestoneBanner(dt);
+  tickRings(dt);
+  tickPanicWave(dt);
+  tickDoubleDanger(dt);
+  maybeUpdateHud(ts);
+
+  // Survival time milestones
+  const elapsed = (performance.now() - gameStartTime) / 1000;
+  for (const t of TIME_MILESTONES) {
+    if (elapsed >= t && !_timeMilestonesHit.has(t)) {
+      _timeMilestonesHit.add(t);
+      const label = t >= 60 ? (t / 60) + ' Minute' + (t > 60 ? 's' : '') + '!' : t + 's Survived!';
+      triggerMilestone('\u23F1 ' + label, '#a78bfa');
+    }
+  }
+
+  spawnTimer += dt;
+  if (spawnTimer >= panicSpawnRate()) {
+    spawnTimer = 0;
+    const r = Math.random();
+    if      (r < NARROW_CHANCE)                    spawnNarrowLane();
+    else if (r < NARROW_CHANCE + CLUSTER_CHANCE)   spawnCluster();
+    else                                            spawnObstacle();
+  }
+
+  powerupTimer += dt;
+  if (powerupTimer >= POWERUP_INTERVAL) { powerupTimer = 0; spawnPowerup(); }
+
+  updateObstacles(dt);
+  updatePowerups(dt);
+  checkCollisions();
+  render(ts);
+
+  rafHandle = requestAnimationFrame(gameLoop);
+}
+
+// ============================================================
+// SECTION 20: GAME STATE TRANSITIONS
+// ============================================================
+
+function startGame() {
+  Audio.init();
+  score = 0; combo = 0; maxCombo = 0; graceTimer = 0;
+  obstacles = []; particles = []; powerups = []; floatingTexts = []; ringBursts = [];
+  milestoneBanner = null;
+  _scoreMilestonesHit = new Set();
+  _timeMilestonesHit  = new Set();
+  _comboMilestonesHit = new Set();
+  playerTrail = [];
+  spawnTimer = 0; powerupTimer = 0; difficultyTimer = 0; difficultyBumps = 0;
+  // Reset per-run mission counters (cumulative stat handled separately in evaluateMissions)
+  missionRun = { seconds: 0, score: 0, colorChanges: 0, powerupsThisRun: 0, nearMissesThisRun: 0, panicWavesSurvived: 0, maxCombo: 0 };
+  // Apply any pending mission bonus
+  if (pendingMissionBonus > 0) {
+    const bonus = pendingMissionBonus;
+    pendingMissionBonus = 0;
+    saveMissions();
+    // Award after game starts so addScore works normally
+    setTimeout(() => { addScore(bonus); addFloating(canvas.width / 2, 80, '+' + bonus + ' Mission Bonus!', '#a78bfa'); }, 800);
+  }
+  warningActive = false; nextForbiddenIdx = -1;
+  activePowerupKey = null; activePowerupTimer = 0; activePowerupTotal = 0;
+  shakeX = shakeY = shakeTimer = 0;
+  panicTimer    = 0;
+  panicPhase    = 'cooldown';
+  panicCooldown = PANIC_COOLDOWN_BASE + Math.random() * PANIC_COOLDOWN_VAR;
+  colorChangeGrace = 0;
+  ddPhase       = 'idle';
+  ddTimer       = 0;
+  ddCooldown    = DD_COOLDOWN_BASE + Math.random() * DD_COOLDOWN_VAR;
+  ddDuration    = 0;
+  dd2ndIndex    = -1;
+  ddBlockTimer  = 0;
+  panicBlockFromDD = 0;
+
+  spawnRate         = GAME_CONFIG.spawnRate;
+  forbiddenInterval = GAME_CONFIG.forbiddenInterval;
+  speedMultiplier   = 1.0;
+  forbiddenTimer    = 0;
+  forbiddenIndex    = Math.floor(Math.random() * GAME_COLORS.length);
+  nextForbiddenIdx  = -1;
+
+  currentState = STATE.PLAYING;
+  showScreen('game-screen');
+  updateHUD();
+  updateForbiddenDisplay();
+  hideNextColorPreview();
+  updateTimerBar(0, forbiddenInterval);
+  setHudWarning(0);
+  updateComboDisplay();
+  updatePowerupDisplay();
+
+  setTimeout(() => {
+    resizeCanvas();
+    initPlayer();
+    // Pre-fill obstacles so there's immediate on-screen danger
+    const preCount = 14;
+    for (let _i = 0; _i < preCount; _i++) {
+      spawnObstacle();
+      if (obstacles.length > 0) {
+        const ob = obstacles[obstacles.length - 1];
+        // Tighter stagger — all pre-fills arrive within the first ~1.5 s
+        ob.y = -(ob.h + 10) - _i * (canvas.height * 0.14 + 8);
+        // Guarantee a drifter every 3rd pre-fill for immediate lateral movement
+        // Also demote any type-2 (big) pre-fills to type 0 — opening screen stays clean
+        if (ob.type === 2) { ob.type = 0; ob.w = 28 + Math.random()*16; ob.h = ob.w; }
+        if (_i % 3 === 1 && ob.type !== 1) {
+          ob.type       = 1;
+          ob.driftAmp   = 55 + Math.random() * 70;
+          ob.driftFreq  = 1.3 + Math.random() * 1.5;
+          ob.driftPhase = Math.random() * Math.PI * 2;
+          ob.originX    = Math.min(
+            Math.max(ob.x + ob.w / 2, ob.driftAmp),
+            canvas.width - ob.driftAmp
+          );
+        }
+      }
+    }
+    spawnTimer = 0;
+    gameStartTime = performance.now();
+    lastFrameTime = performance.now();
+    const c = GAME_COLORS[forbiddenIndex];
+    Announce.say('Game started. Forbidden color: ' + c.name + '.');
+    rafHandle = requestAnimationFrame(gameLoop);
+  }, 50);
+}
+
+function pauseGame() {
+  if (currentState !== STATE.PLAYING) return;
+  currentState = STATE.PAUSED;
+  cancelAnimationFrame(rafHandle); rafHandle = null;
+  clearAllInputs();
+  document.getElementById('pause-overlay').hidden = false;
+  requestAnimationFrame(() => document.getElementById('btn-resume').focus());
+  Announce.say('Paused.');
+}
+
+function resumeGame() {
+  if (currentState !== STATE.PAUSED) return;
+  document.getElementById('pause-overlay').hidden = true;
+  currentState  = STATE.PLAYING;
+  lastFrameTime = performance.now();
+  rafHandle = requestAnimationFrame(gameLoop);
+  Announce.say('Resumed.');
+}
+
+function pickDeathMessage(score, combo, colorChanges) {
+  // Milestone hints
+  const milestones = [50, 100, 200, 300, 500, 750, 1000, 1500, 2000];
+  const next = milestones.find(m => m > score && m - score <= score * 0.25);
+  if (next) return '🔥 So close to ' + next + '!';
+  if (colorChanges === 1) return 'One more color change next time!';
+  if (combo >= 8) return '🔥 Incredible combo run!';
+  if (combo >= 4) return 'Great combo! Keep it up!';
+  // Generic arcade messages
+  const msgs = [
+    'So close!', 'Try again!', 'Keep going!', 'You got this!',
+    'Almost!', 'One more run!', 'Don’t give up!', 'Next time!',
+  ];
+  return msgs[Math.floor(Math.random() * msgs.length)];
+}
+
+function triggerGameOver() {
+  currentState = STATE.GAMEOVER;
+  cancelAnimationFrame(rafHandle); rafHandle = null;
+  clearAllInputs();
+  Audio.gameOver();
+  if (navigator.vibrate) navigator.vibrate([100, 50, 200]);
+
+  // Big particle burst at player position
+  spawnParticles(player.x, player.y, '#ff4444', settings.reducedMotion ? 8 : 28);
+  spawnParticles(player.x, player.y, '#ffffff', settings.reducedMotion ? 4 : 12);
+
+  // Strong shake
+  triggerShake(18, 0.5);
+  render(performance.now()); // shake frame
+
+  // Brief hit-pause: render one more frame, then show overlay after a short delay
+  const DEATH_DELAY = settings.reducedMotion ? 0 : 120; // ms
+  setTimeout(() => {
+    const final      = Math.floor(score);
+    missionRun.score    = final;
+    missionRun.seconds  = Math.floor((performance.now() - gameStartTime) / 1000);
+    missionRun.maxCombo = maxCombo;
+    evaluateMissions();
+    const wasNewBest = final > settings.bestScore;
+    const prevBest = settings.bestScore;
+    if (wasNewBest) { settings.bestScore = final; saveSettings(); newBestThisGame = true; }
+    if (wasNewBest) checkSkinUnlocks(prevBest, settings.bestScore);
+
+    const elapsed = Math.floor((performance.now() - gameStartTime) / 1000);
+    const coinsEarned = awardRunCoins(final, elapsed);
+    updateSkinsUI();
+    updateStats(elapsed); // persist lifetime stats before showing overlay
+    const timeStr  = elapsed >= 60 ? Math.floor(elapsed / 60) + 'm ' + (elapsed % 60) + 's' : elapsed + 's';
+
+    document.getElementById('gameover-best').textContent  = settings.bestScore;
+    document.getElementById('gameover-combo').textContent = maxCombo;
+    document.getElementById('gameover-time').textContent   = timeStr;
+    document.getElementById('gameover-coins').textContent  = '+' + coinsEarned;
+    document.getElementById('gameover-icon').textContent  = wasNewBest ? '\uD83C\uDFC6' : '\uD83D\uDC80';
+    document.getElementById('new-best-badge').hidden      = !wasNewBest;
+
+    const deathMsg = document.getElementById('death-message');
+    if (deathMsg) {
+      deathMsg.textContent = wasNewBest ? '\uD83C\uDF89 New Record!' : pickDeathMessage(final, maxCombo, missionRun.colorChanges);
+      deathMsg.classList.remove('death-msg-in');
+      void deathMsg.offsetWidth; // reflow to restart animation
+      deathMsg.classList.add('death-msg-in');
+    }
+
+    const hsEl = document.getElementById('home-highscore');
+    if (hsEl) hsEl.textContent = settings.bestScore;
+
+    document.getElementById('gameover-overlay').hidden = false;
+
+    animateCounter(0, final, settings.reducedMotion ? 0 : 850, document.getElementById('final-score'));
+
+    requestAnimationFrame(() => document.getElementById('btn-restart').focus());
+    Announce.say('Game Over! Score: ' + final + '. Best: ' + settings.bestScore + '.');
+  }, DEATH_DELAY);
+}
+
+function restartGame() {
+  document.getElementById('gameover-overlay').hidden = true;
+  document.getElementById('pause-overlay').hidden    = true;
+  startGame();
+}
+
+function returnHome() {
+  currentState = STATE.HOME;
+  cancelAnimationFrame(rafHandle); rafHandle = null;
+  clearAllInputs();
+  document.getElementById('gameover-overlay').hidden = true;
+  document.getElementById('pause-overlay').hidden    = true;
+  showScreen('home-screen');
+  applySettingsToUI();
+
+  // Flash the highscore badge if a new best was just set
+  if (newBestThisGame) {
+    newBestThisGame = false;
+    setTimeout(() => {
+      const hsWrap = document.querySelector('.home-highscore');
+      if (hsWrap) {
+        hsWrap.classList.remove('hs-flash');
+        void hsWrap.offsetWidth; // force reflow to restart animation
+        hsWrap.classList.add('hs-flash');
+      }
+    }, 520); // after entrance animations settle
+  }
+  requestAnimationFrame(() => document.getElementById('btn-start').focus());
+  Announce.say('Home screen.');
+}
+
+// ============================================================
+// SECTION 21: ANIMATED SCORE COUNTER
+// ============================================================
+
+function animateCounter(from, to, duration, el) {
+  if (!el) return;
+  if (duration <= 0) { el.textContent = to; return; }
+  const start = performance.now();
+  function tick(now) {
+    const t    = Math.min((now - start) / duration, 1);
+    const ease = 1 - Math.pow(1 - t, 3); // easeOutCubic
+    el.textContent = Math.floor(from + (to - from) * ease);
+    if (t < 1) requestAnimationFrame(tick);
+    else el.textContent = to;
+  }
+  requestAnimationFrame(tick);
+}
+
+// ============================================================
+// SECTION 22: INPUT HANDLING
+// ============================================================
+
+const KEY_MAP = {
+  ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down',
+  a: 'left', d: 'right', w: 'up', s: 'down',
+  A: 'left', D: 'right', W: 'up', S: 'down',
+};
+
+function clearAllInputs() {
+  ['left','right','up','down'].forEach(d => { keys[d] = false; touchDirs[d] = false; });
+  touchTarget = null;
+}
+
+function onKeyDown(e) {
+  const dir = KEY_MAP[e.key];
+  if (dir) {
+    if (currentState === STATE.PLAYING) { e.preventDefault(); keys[dir] = true; }
+    return;
+  }
+
+  // Pause / resume
+  if (e.key === 'p' || e.key === 'P' || e.key === ' ' || e.key === 'Spacebar') {
+    if      (currentState === STATE.PLAYING) { e.preventDefault(); pauseGame();  }
+    else if (currentState === STATE.PAUSED)  { e.preventDefault(); resumeGame(); }
+    return;
+  }
+
+  if ((e.key === 'r' || e.key === 'R') && currentState === STATE.GAMEOVER) { restartGame(); return; }
+  if ((e.key === 'h' || e.key === 'H') && currentState === STATE.GAMEOVER) { returnHome();  return; }
+
+  if (e.key === 'Escape') {
+    if      (currentState === STATE.PAUSED)   { resumeGame(); }
+    else if (currentState === STATE.PLAYING)  { pauseGame(); }
+    else if (currentState === STATE.GAMEOVER) { returnHome(); }
+    else if (!document.getElementById('modal-settings').hidden) { hideModal('modal-settings'); document.getElementById('btn-settings').focus(); }
+    else if (!document.getElementById('modal-progress').hidden)  { hideModal('modal-progress');  document.getElementById('btn-progress').focus(); }
+  }
+}
+
+function onKeyUp(e) {
+  const dir = KEY_MAP[e.key];
+  if (dir) {
+    if (currentState === STATE.PLAYING) e.preventDefault();
+    keys[dir] = false;
+  }
+}
+
+// Unified pointer-event touch handler — works for both mouse and touch
+function bindTouchBtn(btn, dir) {
+  function press(e) {
+    e.preventDefault();
+    btn.setPointerCapture(e.pointerId);
+    touchDirs[dir] = true;
+    btn.classList.add('pressed');
+    if (navigator.vibrate) navigator.vibrate(18);
+  }
+  function release(e) {
+    e.preventDefault();
+    touchDirs[dir] = false;
+    btn.classList.remove('pressed');
+  }
+  btn.addEventListener('pointerdown',  press,   { passive: false });
+  btn.addEventListener('pointerup',    release, { passive: false });
+  btn.addEventListener('pointercancel',release, { passive: false });
+  btn.addEventListener('pointerleave', release, { passive: false });
+}
+
+// ============================================================
+// SECTION 23: CANVAS RESIZE
+// ============================================================
+
+let _lastCanvasW = 0, _lastCanvasH = 0;
+
+function resizeCanvas() {
+  const w = canvas.offsetWidth  || window.innerWidth;
+  const h = canvas.offsetHeight || Math.max(200, window.innerHeight - 68);
+  if (w === _lastCanvasW && h === _lastCanvasH) return; // no-op if unchanged
+  _lastCanvasW = w; _lastCanvasH = h;
+  canvas.width  = w;
+  canvas.height = h;
+}
+
+function setupResize() {
+  if (typeof ResizeObserver !== 'undefined') {
+    const ro = new ResizeObserver(() => {
+      if (currentState === STATE.PLAYING || currentState === STATE.PAUSED) {
+        resizeCanvas();
+        clampPlayer();
+      }
+    });
+    ro.observe(canvas);
+  } else {
+    window.addEventListener('resize', () => {
+      if (currentState === STATE.PLAYING || currentState === STATE.PAUSED) {
+        resizeCanvas(); clampPlayer();
+      }
+    });
+  }
+}
+
+// ============================================================
+// SECTION 24: DRAWING HELPERS
+// ============================================================
+
+function pathRoundRect(ctx2, x, y, w, h, r) {
+  r = Math.min(r, w / 2, h / 2);
+  ctx2.beginPath();
+  ctx2.moveTo(x + r, y);
+  ctx2.lineTo(x + w - r, y);   ctx2.quadraticCurveTo(x + w, y,     x + w, y + r);
+  ctx2.lineTo(x + w, y + h - r); ctx2.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx2.lineTo(x + r, y + h);   ctx2.quadraticCurveTo(x,     y + h, x,     y + h - r);
+  ctx2.lineTo(x, y + r);       ctx2.quadraticCurveTo(x,     y,     x + r, y);
+  ctx2.closePath();
+}
+
+function drawStar(ctx2, cx, cy, outer, inner, pts) {
+  ctx2.beginPath();
+  for (let i = 0; i < pts * 2; i++) {
+    const r = i % 2 === 0 ? outer : inner;
+    const a = (i * Math.PI) / pts - Math.PI / 2;
+    if (i === 0) ctx2.moveTo(cx + r * Math.cos(a), cy + r * Math.sin(a));
+    else         ctx2.lineTo(cx + r * Math.cos(a), cy + r * Math.sin(a));
+  }
+  ctx2.closePath();
+}
+
+// ============================================================
+// SECTION 25: VISIBILITY / FOCUS AUTO-PAUSE
+// ============================================================
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && currentState === STATE.PLAYING) pauseGame();
+});
+
+window.addEventListener('blur', () => {
+  if (currentState === STATE.PLAYING) pauseGame();
+  clearAllInputs();
+});
+
+// ============================================================
+// SECTION 25b: CANVAS TOUCH-DRAG (direct finger follow)
+// ============================================================
+
+function _canvasTouchToGamePos(touch) {
+  const rect = canvas.getBoundingClientRect();
+  return {
+    x: (touch.clientX - rect.left) * (canvas.width  / rect.width),
+    y: (touch.clientY - rect.top)  * (canvas.height / rect.height),
+  };
+}
+
+function onCanvasTouchStart(e) {
+  e.preventDefault();
+  if (currentState !== STATE.PLAYING) return;
+  touchTarget = _canvasTouchToGamePos(e.touches[0]);
+}
+
+function onCanvasTouchMove(e) {
+  e.preventDefault();
+  if (currentState !== STATE.PLAYING) return;
+  if (e.touches.length > 0) touchTarget = _canvasTouchToGamePos(e.touches[0]);
+}
+
+function onCanvasTouchEnd(e) {
+  e.preventDefault();
+  if (e.touches.length === 0) touchTarget = null;
+}
+
+// ============================================================
+// SECTION 26: INITIALISATION
+// ============================================================
+
+function init() {
+  canvas = document.getElementById('game-canvas');
+  ctx    = canvas.getContext('2d');
+
+  Announce.init();
+  loadSettings();
+  loadStats();
+  loadMissions();
+  applySettingsToUI();
+  updateMissionUI();
+
+  // Kick off home screen background and coin count-up on first load
+  HomeBg.start();
+  const _coinEl = document.getElementById('home-coins');
+  if (_coinEl && !settings.reducedMotion) {
+    setTimeout(() => animateCounter(0, settings.coins, 700, _coinEl), 500);
+  }
+
+  // Focus traps for modals and overlays
+  ['modal-settings','modal-progress','pause-overlay','gameover-overlay'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) makeFocusTrap(el);
+  });
+
+  // Home screen
+  document.getElementById('btn-start').addEventListener('click', () => { Audio.uiClick(); startGame(); });
+  document.getElementById('btn-settings').addEventListener('click', () => { Audio.uiClick(); showModal('modal-settings'); });
+  document.getElementById('btn-progress').addEventListener('click', () => {
+    Audio.uiClick();
+    renderStatsUI();
+    const selIdx = SKIN_DEFS.findIndex(s => s.id === settings.selectedSkin);
+    if (selIdx >= 0) skinCarouselIdx = selIdx;
+    updateSkinsUI();
+    showModal('modal-progress');
+  });
+
+  document.getElementById('btn-settings-close').addEventListener('click', () => {
+    hideModal('modal-settings'); document.getElementById('btn-settings').focus();
+  });
+  document.getElementById('btn-settings-close-bottom').addEventListener('click', () => {
+    hideModal('modal-settings'); document.getElementById('btn-settings').focus();
+  });
+
+  document.getElementById('btn-progress-close').addEventListener('click', () => {
+    hideModal('modal-progress'); document.getElementById('btn-progress').focus();
+  });
+  document.getElementById('btn-progress-close-bottom').addEventListener('click', () => {
+    hideModal('modal-progress'); document.getElementById('btn-progress').focus();
+  });
+
+  // Game overlays
+  document.getElementById('btn-resume').addEventListener('click', resumeGame);
+  document.getElementById('btn-home-from-pause').addEventListener('click', returnHome);
+  document.getElementById('btn-restart').addEventListener('click', restartGame);
+  document.getElementById('btn-home-from-gameover').addEventListener('click', returnHome);
+
+  // Touch pause button
+  document.getElementById('touch-pause').addEventListener('pointerdown', e => {
+    e.preventDefault();
+    if      (currentState === STATE.PLAYING) pauseGame();
+    else if (currentState === STATE.PAUSED)  resumeGame();
+  }, { passive: false });
+
+  // Settings
+  document.getElementById('sound-toggle').addEventListener('change', e => {
+    settings.sound = e.target.checked; saveSettings(); Audio.init();
+  });
+  document.getElementById('reduced-motion-toggle').addEventListener('change', e => {
+    settings.reducedMotion = e.target.checked; applyColorMode(); saveSettings();
+  });
+  document.getElementById('high-contrast-toggle').addEventListener('change', e => {
+    settings.highContrast = e.target.checked; applyColorMode(); saveSettings();
+  });
+  document.getElementById('colorblind-toggle').addEventListener('change', e => {
+    settings.colorblind = e.target.checked; applyColorMode(); saveSettings();
+  });
+
+  // Skin carousel — prev / next arrows
+  document.getElementById('skin-prev').addEventListener('click', () => {
+    skinCarouselIdx = (skinCarouselIdx - 1 + SKIN_DEFS.length) % SKIN_DEFS.length;
+    updateSkinsUI('prev');
+    Audio.uiClick();
+  });
+  document.getElementById('skin-next').addEventListener('click', () => {
+    skinCarouselIdx = (skinCarouselIdx + 1) % SKIN_DEFS.length;
+    updateSkinsUI('next');
+    Audio.uiClick();
+  });
+
+  // Keyboard
+  window.addEventListener('keydown', onKeyDown, { passive: false });
+  window.addEventListener('keyup',   onKeyUp,   { passive: false });
+
+  // Skin buy confirmation dialog
+  document.getElementById('sbd-confirm').addEventListener('click', confirmBuySkin);
+  document.getElementById('sbd-cancel').addEventListener('click',  cancelBuyConfirm);
+  document.getElementById('skin-buy-overlay').addEventListener('click', cancelBuyConfirm);
+  document.getElementById('skin-buy-dialog').addEventListener('keydown', e => {
+    if (e.key === 'Escape') { e.preventDefault(); cancelBuyConfirm(); }
+  });
+
+  // Canvas touch-drag: direct finger-follow control (replaces simple preventDefault)
+  canvas.addEventListener('touchstart',  onCanvasTouchStart, { passive: false });
+  canvas.addEventListener('touchmove',   onCanvasTouchMove,  { passive: false });
+  canvas.addEventListener('touchend',    onCanvasTouchEnd,   { passive: false });
+  canvas.addEventListener('touchcancel', onCanvasTouchEnd,   { passive: false });
+
+  setupResize();
+}
+
+document.addEventListener('DOMContentLoaded', init);

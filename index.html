@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Forbidden Color</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- Screen-reader live announcements -->
+  <div id="aria-live" role="status" aria-live="assertive" aria-atomic="true" class="sr-only"></div>
+
+  <!-- Background decorative falling blocks - outside #home-screen to avoid overflow clipping -->
+  <canvas id="home-bg-canvas" aria-hidden="true"></canvas>
+
+  <!-- ============================================================
+       HOME SCREEN
+  ============================================================ -->
+  <div id="home-screen" class="screen home-animate">
+
+    <!-- Decorative animated blobs -->
+    <div class="home-blobs" aria-hidden="true">
+      <div class="blob blob-1"></div>
+      <div class="blob blob-2"></div>
+      <div class="blob blob-3"></div>
+    </div>
+
+    <div class="home-inner">
+
+      <header class="home-header">
+        <div class="title-mark" aria-hidden="true">🎨</div>
+        <h1 class="game-title">Forbidden Color</h1>
+        <p class="game-subtitle">Avoid the <strong>forbidden color</strong>. How long can you survive?</p>
+        <div class="home-highscore" aria-label="High score display">
+          <span class="hs-label">🏆 Best</span>
+          <span class="hs-value" id="home-highscore">0</span>
+        </div>
+        <div class="home-coins" aria-label="Coin balance">
+          <span class="coin-icon" aria-hidden="true"></span>
+          <span class="coins-value" id="home-coins">0</span>
+        </div>
+      </header>
+
+      <!-- Two-button home: Start + Settings/Help -->
+      <div class="home-actions">
+        <button id="btn-start" class="btn btn-primary btn-large">
+          <span aria-hidden="true">▶</span> Start Game
+        </button>
+        <button id="btn-progress" class="btn btn-secondary"
+                aria-haspopup="dialog" aria-controls="modal-progress">
+          <span aria-hidden="true">🛒</span> Shop
+        </button>
+        <button id="btn-settings" class="btn btn-secondary btn-settings-open"
+                aria-haspopup="dialog" aria-controls="modal-settings">
+          <span aria-hidden="true">⚙</span> Settings &amp; Help
+        </button>
+      </div>
+
+    </div><!-- /.home-inner -->
+  </div><!-- /#home-screen -->
+
+
+  <!-- ============================================================
+       SETTINGS & HELP PANEL
+       Unified modal: preferences + how-to + controls
+  ============================================================ -->
+  <div id="modal-settings" class="modal" role="dialog" aria-modal="true"
+       aria-labelledby="settings-panel-title" hidden>
+    <div class="modal-box settings-panel">
+
+      <!-- Header -->
+      <div class="spanel-header">
+        <h2 id="settings-panel-title">Settings &amp; Help</h2>
+        <button class="btn-close" id="btn-settings-close" aria-label="Close settings">✕</button>
+      </div>
+
+      <!-- ── PREFERENCES ── -->
+      <section aria-labelledby="spanel-prefs-id">
+        <h3 class="spanel-section-title" id="spanel-prefs-id">⚙ Preferences</h3>
+        <div class="settings-grid">
+
+          <label class="toggle-label">
+            <span class="toggle-text"><span class="toggle-icon" aria-hidden="true">🔊</span>Sound</span>
+            <span class="toggle-wrap">
+              <input type="checkbox" id="sound-toggle" role="switch" aria-label="Toggle sound" />
+              <span class="toggle-track" aria-hidden="true"></span>
+            </span>
+          </label>
+
+          <label class="toggle-label">
+            <span class="toggle-text"><span class="toggle-icon" aria-hidden="true">🌀</span>Reduced Motion</span>
+            <span class="toggle-wrap">
+              <input type="checkbox" id="reduced-motion-toggle" role="switch" aria-label="Toggle reduced motion" />
+              <span class="toggle-track" aria-hidden="true"></span>
+            </span>
+          </label>
+
+          <label class="toggle-label">
+            <span class="toggle-text"><span class="toggle-icon" aria-hidden="true">🔆</span>High Contrast</span>
+            <span class="toggle-wrap">
+              <input type="checkbox" id="high-contrast-toggle" role="switch" aria-label="Toggle high contrast mode" />
+              <span class="toggle-track" aria-hidden="true"></span>
+            </span>
+          </label>
+
+          <label class="toggle-label">
+            <span class="toggle-text"><span class="toggle-icon" aria-hidden="true">👁</span>Colorblind Mode</span>
+            <span class="toggle-wrap">
+              <input type="checkbox" id="colorblind-toggle" role="switch" aria-label="Toggle colorblind mode — adds patterns and symbols to dangerous blocks" />
+              <span class="toggle-track" aria-hidden="true"></span>
+            </span>
+          </label>
+
+        </div>
+      </section>
+
+      <!-- ── HOW TO PLAY ── -->
+      <section aria-labelledby="spanel-howto-id">
+        <h3 class="spanel-section-title" id="spanel-howto-id">📖 How to Play</h3>
+        <ul class="howto-list">
+          <li><span class="howto-icon" aria-hidden="true">🕹️</span><span>Move with <strong>Arrow Keys</strong> or <strong>WASD</strong> — on mobile, <strong>drag anywhere</strong> on the screen.</span></li>
+          <li><span class="howto-icon" aria-hidden="true">🚫</span><span>The <strong>Forbidden Color</strong> is shown in the top bar — <em>never touch those blocks!</em></span></li>
+          <li><span class="howto-icon" aria-hidden="true">✅</span><span>All <em>other</em> colored blocks are safe to pass through freely.</span></li>
+          <li><span class="howto-icon" aria-hidden="true">⏱</span><span>Watch the <strong>countdown bar</strong> — it drains fast! A brief flash previews the next color. React quickly!</span></li>
+          <li><span class="howto-icon" aria-hidden="true">🔥</span><span>Surviving each color change builds your <strong>combo</strong> for big bonus points.</span></li>
+          <li><span class="howto-icon" aria-hidden="true">⚡</span><span>Collect glowing spinning stars for <strong>power-ups</strong>: Shield, Slow Time, Clear blocks, or Score ×2.</span></li>
+          <li><span class="howto-icon" aria-hidden="true">💫</span><span>Dodge very close to a dangerous block for a <strong>Near Miss</strong> bonus!</span></li>
+          <li><span class="howto-icon" aria-hidden="true">♿</span><span>Colorblind mode adds hatch patterns &amp; symbols to dangerous blocks. High Contrast boosts visual separation.</span></li>
+        </ul>
+      </section>
+
+      <!-- ── CONTROLS ── -->
+      <section aria-labelledby="spanel-controls-id">
+        <h3 class="spanel-section-title" id="spanel-controls-id">⌨ Controls</h3>
+        <table class="controls-table" aria-label="Keyboard controls reference">
+          <thead>
+            <tr><th scope="col">Keys</th><th scope="col">Action</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><kbd>↑ ↓ ← →</kbd> / <kbd>W A S D</kbd></td><td>Move player</td></tr>
+            <tr><td><kbd>P</kbd> / <kbd>Space</kbd></td><td>Pause / Resume</td></tr>
+            <tr><td><kbd>R</kbd></td><td>Restart (Game Over)</td></tr>
+            <tr><td><kbd>H</kbd></td><td>Return Home (Game Over)</td></tr>
+            <tr><td><kbd>Escape</kbd></td><td>Close panel / Pause / Home</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Bottom close for easy mobile tap -->
+      <button class="btn btn-primary" id="btn-settings-close-bottom">Done</button>
+
+    </div><!-- /.settings-panel -->
+  </div><!-- /#modal-settings -->
+
+
+  <!-- ============================================================
+       SHOP MODAL — Skins + Stats + Challenges
+  ============================================================ -->
+  <div id="modal-progress" class="modal" role="dialog" aria-modal="true"
+       aria-labelledby="progress-panel-title" hidden>
+    <div class="modal-box settings-panel">
+
+      <!-- Header -->
+      <div class="spanel-header">
+        <h2 id="progress-panel-title">Shop</h2>
+        <button class="btn-close" id="btn-progress-close" aria-label="Close shop">✕</button>
+      </div>
+
+      <!-- ── SKINS ── -->
+      <section aria-labelledby="prog-skins-id">
+        <div class="shop-coin-header">
+          <div class="shop-coin-pill">
+            <span class="coin-icon" aria-hidden="true"></span>
+            <span class="coins-value" id="progress-coins">0</span>
+          </div>
+          <p class="shop-coin-hint">Earn coins each run. Spend them on premium skins.</p>
+        </div>
+        <h3 class="spanel-section-title" id="prog-skins-id">🎨 Skins</h3>
+        <div class="skin-carousel" id="skin-carousel">
+          <button class="skin-nav-btn" id="skin-prev" type="button" aria-label="Previous skin">&#8249;</button>
+          <div class="skin-stage" id="skin-stage" role="region" aria-live="polite" aria-label="Current skin"></div>
+          <button class="skin-nav-btn" id="skin-next" type="button" aria-label="Next skin">&#8250;</button>
+        </div>
+        <div class="skin-dots" id="skin-dots" aria-hidden="true"></div>
+      </section>
+
+      <!-- ── STATS ── -->
+      <section aria-labelledby="prog-stats-id">
+        <h3 class="spanel-section-title" id="prog-stats-id">📊 Stats</h3>
+        <div id="stats-grid" class="stats-grid" aria-label="Lifetime game statistics"></div>
+      </section>
+
+      <!-- ── CHALLENGES ── -->
+      <section aria-labelledby="prog-challenges-id">
+        <h3 class="spanel-section-title" id="prog-challenges-id">🎯 Challenges</h3>
+        <p class="skins-hint">Complete challenges to earn rewards. Progress saves automatically.</p>
+        <div id="missions-list" class="missions-list" aria-label="Active challenges"></div>
+      </section>
+
+      <!-- Bottom close -->
+      <button class="btn btn-primary" id="btn-progress-close-bottom">Done</button>
+
+    </div><!-- /.settings-panel -->
+  </div><!-- /#modal-progress -->
+
+
+  <!-- ============================================================
+       GAME SCREEN
+  ============================================================ -->
+  <div id="game-screen" class="screen" hidden>
+
+    <!-- HUD -->
+    <div id="hud" role="region" aria-label="Game information">
+
+      <!-- Score (left) -->
+      <div class="hud-block hud-score">
+        <span class="hud-label">Score</span>
+        <span class="hud-value" id="score-display" aria-live="off">0</span>
+      </div>
+
+      <!-- Forbidden color + timer bar (centre) -->
+      <div class="hud-block hud-center" id="hud-center">
+        <span class="hud-tiny-label" id="hud-center-label">AVOID</span>
+        <div class="forbidden-display">
+          <div class="forbidden-swatches" aria-label="Forbidden color display">
+            <span class="forbidden-swatch"              id="forbidden-swatch" aria-hidden="true"></span>
+            <span class="forbidden-arrow"               id="forbidden-arrow"  aria-hidden="true" hidden>→</span>
+            <span class="forbidden-swatch swatch-next"  id="next-swatch"      aria-hidden="true" hidden></span>
+            <span class="dd-plus"                       id="dd-plus"          aria-hidden="true" hidden>+</span>
+            <span class="forbidden-swatch dd-swatch"    id="dd-swatch"        aria-hidden="true" hidden></span>
+          </div>
+          <span class="forbidden-name" id="forbidden-name">–</span>
+        </div>
+        <!-- Countdown bar — drains as time runs out -->
+        <div class="timer-bar-track" aria-hidden="true">
+          <div class="timer-bar-fill" id="timer-bar-fill"></div>
+        </div>
+      </div>
+
+      <!-- Best + combo (right) -->
+      <div class="hud-block hud-right">
+        <span class="hud-label">Best</span>
+        <span class="hud-value" id="best-display">0</span>
+        <span class="hud-combo" id="combo-display" aria-live="polite" hidden>×<span id="combo-val">1</span></span>
+      </div>
+
+    </div><!-- /#hud -->
+
+    <!-- Active power-up status pill (top-right, absolute) -->
+    <div id="powerup-status" aria-live="polite" hidden>
+      <div class="pu-top">
+        <span id="powerup-icon"></span>
+        <span id="powerup-name"></span>
+      </div>
+      <div id="powerup-duration-bar-wrap" hidden>
+        <div id="powerup-duration-bar"></div>
+      </div>
+    </div>
+
+    <!-- Main game canvas -->
+    <canvas id="game-canvas"
+            aria-label="Game play area — use arrow keys or WASD to move your character"
+            role="img"
+            tabindex="-1"></canvas>
+
+    <!-- Floating touch pause button (mobile only) -->
+    <div id="touch-controls" aria-label="Game touch controls" role="group">
+      <button id="touch-pause" aria-label="Pause game">⏸</button>
+    </div>
+
+    <!-- Pause overlay -->
+    <div id="pause-overlay" class="game-overlay" role="dialog"
+         aria-modal="true" aria-labelledby="pause-title" hidden>
+      <div class="overlay-box">
+        <div class="overlay-icon" aria-hidden="true">⏸</div>
+        <h2 id="pause-title">Paused</h2>
+        <p class="overlay-hint">Take a breath…</p>
+        <div class="overlay-btns">
+          <button class="btn btn-primary btn-large" id="btn-resume">▶ Resume <kbd>P</kbd></button>
+          <button class="btn btn-secondary"         id="btn-home-from-pause">🏠 Home</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Game Over overlay -->
+    <div id="gameover-overlay" class="game-overlay" role="dialog"
+         aria-modal="true" aria-labelledby="gameover-title" hidden>
+      <div class="overlay-box gameover-box">
+        <div class="overlay-icon gameover-icon" id="gameover-icon" aria-hidden="true">💀</div>
+        <h2 id="gameover-title">Game Over</h2>
+        <div class="death-message" id="death-message" aria-live="polite"></div>
+        <div class="score-summary">
+          <div class="score-row score-final-row">
+            <span class="score-label">Your Score</span>
+            <span class="score-big" id="final-score" aria-live="polite">0</span>
+          </div>
+          <div class="score-divider"></div>
+          <div class="score-row">
+            <span>🏆 Best</span>
+            <span id="gameover-best">0</span>
+          </div>
+          <div class="score-row">
+            <span>🔥 Max Combo</span>
+            <span id="gameover-combo">0</span>
+          </div>
+          <div class="score-row">
+            <span>⏱ Survived</span>
+            <span id="gameover-time">0s</span>
+          </div>
+          <div class="score-row">
+            <span><span class="coin-icon coin-sm" aria-hidden="true"></span> Coins Earned</span>
+            <span id="gameover-coins" class="gameover-coins-val">0</span>
+          </div>
+        </div>
+        <div class="new-best-badge" id="new-best-badge" hidden>🎉 New Record!</div>
+        <div class="overlay-btns">
+          <button class="btn btn-primary btn-large" id="btn-restart">↺ Play Again <kbd>R</kbd></button>
+          <button class="btn btn-secondary"         id="btn-home-from-gameover">🏠 Home <kbd>H</kbd></button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /#game-screen -->
+
+  <div id="skin-unlock-toast" class="skin-unlock-toast" role="status" aria-live="polite" hidden></div>
+
+  <!-- Skin purchase confirmation dialog -->
+  <div id="skin-buy-overlay" class="skin-buy-overlay" hidden aria-hidden="true"></div>
+  <div id="skin-buy-dialog" class="skin-buy-dialog" role="dialog" aria-modal="true"
+       aria-labelledby="sbd-title" hidden>
+    <p class="sbd-title" id="sbd-title"></p>
+    <div class="sbd-balance-row">
+      <span class="sbd-balance-label">Your balance</span>
+      <span class="sbd-balance-amount">
+        <span class="coin-icon" aria-hidden="true"></span>
+        <span class="sbd-balance"></span>
+      </span>
+    </div>
+    <!-- shown when player can't afford -->
+    <div class="sbd-nocoins" hidden>
+      <p class="sbd-shortage"></p>
+      <p class="sbd-encourage">Play more runs or complete challenges to earn coins.</p>
+    </div>
+    <div class="sbd-actions">
+      <button id="sbd-cancel" class="btn btn-secondary">Cancel</button>
+      <button id="sbd-confirm" class="btn btn-primary">Buy</button>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
