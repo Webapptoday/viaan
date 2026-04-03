@@ -851,13 +851,28 @@ const Music = (() => {
     },
 
     // Called every frame from gameLoop — lerps intensity gain
+    // threshold levels: combo>=3 → 0.3, combo>=5 → 0.6, panic → 1.0
     tick(dt) {
       if (!_isPlaying || !_actx || !_intGain) return;
-      _intTarget  = (combo >= 5 || panicPhase === 'wave' || speedMultiplier >= 1.5) ? 1 : 0;
-      const rate  = dt / 0.30; // reach target in ~300 ms
+      if (panicPhase === 'wave') {
+        _intTarget = 1.0;
+      } else if (combo >= 5) {
+        _intTarget = 0.6;
+      } else if (combo >= 3) {
+        _intTarget = 0.3;
+      } else {
+        _intTarget = 0.0;
+      }
+      const rate  = dt / 0.30;
       const delta = _intTarget - _intCurrent;
       _intCurrent = Math.max(0, Math.min(1, _intCurrent + (delta > 0 ? rate : -rate)));
       _intGain.gain.setValueAtTime(_intCurrent * 0.42, _actx.currentTime);
+    },
+
+    // Directly set intensity level (0–1) — used by AudioManager
+    setIntensity(level) {
+      if (!_actx || !_intGain) return;
+      _intTarget  = Math.max(0, Math.min(1, level));
     },
 
     // Called from tickDifficulty — speeds up BPM with speedMultiplier
@@ -866,6 +881,43 @@ const Music = (() => {
       _bpm = Math.round(130 + ((multiplier - 1.0) / 1.8) * 20);
       _bpm = Math.min(Math.max(_bpm, 130), 150);
     },
+  };
+})();
+
+// ============================================================
+// SECTION 4c: AUDIO MANAGER (central facade)
+// ============================================================
+
+const AudioManager = (() => {
+  // Per-sound cooldowns (ms) to prevent spam
+  const COOLDOWNS = { coin: 80, nearMiss: 200, colorChange: 150, death: 0, combo: 120 };
+  const _lastPlayed = {};
+
+  const _dispatch = {
+    coin:        () => Audio.collect(),
+    nearMiss:    () => Audio.nearMiss(),
+    colorChange: () => Audio.colorChange(),
+    death:       () => Audio.gameOver(),
+    combo:       (n) => Audio.comboUp(n),
+  };
+
+  return {
+    // Play a named sound with cooldown guard
+    playSound(name, ...args) {
+      if (!settings.sound) return;
+      const fn = _dispatch[name]; if (!fn) return;
+      const now   = performance.now();
+      const cd    = COOLDOWNS[name] ?? 100;
+      if (now - (_lastPlayed[name] || 0) < cd) return;
+      _lastPlayed[name] = now;
+      fn(...args);
+    },
+
+    // Set music intensity level (0–1). Called externally; Music.tick also drives it each frame.
+    setMusicIntensity(level) { Music.setIntensity(level); },
+
+    // Stop music immediately (called on death)
+    stopMusic() { Music.stop(); },
   };
 })();
 
@@ -2617,7 +2669,7 @@ function updatePowerups(dt) {
 
 function collectPowerup(p) {
   missionRun.powerupsThisRun++;  // mission tracking
-  Audio.collect();
+  AudioManager.playSound('coin');
   Announce.say('Power-up: ' + p.label);
   spawnParticles(p.x, p.y, p.color, 14);
   // Expanding ring burst — two rings at slightly different speeds
@@ -2894,7 +2946,7 @@ function changeForbiddenColor() {
   addScore(bonus, false);
   if (combo > 1) {
     addFloating(player.x, player.y - 65, '\uD83D\uDD25 x' + combo + '! +' + bonus, '#f59e0b');
-    Audio.comboUp(combo);
+    AudioManager.playSound('combo', combo);
   } else {
     addFloating(player.x, player.y - 65, '+' + bonus + ' Survived!', '#f59e0b');
   }
@@ -2916,7 +2968,7 @@ function changeForbiddenColor() {
   updateForbiddenDisplay();
   colorChangeGrace = 0.25; // 0.25 s invincibility window on color change
   // rebalanceAfterColorChange() disabled — blocks keep their spawn color
-  Audio.colorChange();
+  AudioManager.playSound('colorChange');
   flashForbiddenBorder(GAME_COLORS[forbiddenIndex].hex);
   Announce.say('Forbidden color is now ' + GAME_COLORS[forbiddenIndex].name + '!');
 }
@@ -3027,7 +3079,7 @@ function tickScoreOverTime(dt) {
 }
 
 function awardNearMiss(ob) {
-  Audio.nearMiss();
+  AudioManager.playSound('nearMiss');
   missionRun.nearMissesThisRun++;
   // Larger, distinct text — snaps attention without cluttering
   addFloating(ob.x + ob.w / 2, ob.y - 18, 'CLOSE CALL  +' + NEAR_MISS_BONUS, '#34d399', 19);
@@ -3586,8 +3638,8 @@ function triggerGameOver() {
   currentState = STATE.GAMEOVER;
   cancelAnimationFrame(rafHandle); rafHandle = null;
   clearAllInputs();
-  Music.stop();
-  Audio.gameOver();
+  AudioManager.stopMusic();
+  AudioManager.playSound('death');
   if (navigator.vibrate) navigator.vibrate([100, 50, 200]);
 
   // Big particle burst at player position
