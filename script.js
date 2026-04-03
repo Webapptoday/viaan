@@ -843,6 +843,170 @@ const HomePreview = (() => {
 })();
 
 // ============================================================
+// DAILY CHALLENGE SYSTEM
+// One seeded challenge per calendar day. Persisted in localStorage.
+// ============================================================
+const DailyChallenge = (() => {
+  // All possible challenge templates. Stat matches missionRun keys or 'elapsed'.
+  const POOL = [
+    { id: 'survive30',  label: 'Survive 30 seconds',           stat: 'elapsed',          goal: 30,  coins: 50 },
+    { id: 'survive60',  label: 'Survive 60 seconds',           stat: 'elapsed',          goal: 60,  coins: 75 },
+    { id: 'score300',   label: 'Reach a score of 300',         stat: 'score',            goal: 300, coins: 50 },
+    { id: 'score600',   label: 'Reach a score of 600',         stat: 'score',            goal: 600, coins: 75 },
+    { id: 'nearmiss2',  label: 'Get 2 near misses in one run', stat: 'nearMissesThisRun', goal: 2,  coins: 50 },
+    { id: 'colorchange5', label: 'Survive 5 color changes',   stat: 'colorChanges',     goal: 5,  coins: 60 },
+    { id: 'combo8',     label: 'Reach an 8× combo',           stat: 'maxCombo',         goal: 8,  coins: 65 },
+    { id: 'powerups3',  label: 'Collect 3 power-ups',         stat: 'powerupsThisRun',  goal: 3,  coins: 55 },
+  ];
+
+  const STORAGE_KEY = 'forbiddenColor_dailyChallenge';
+
+  // Deterministic seeded pick: date string → numeric seed → index
+  function todayKey() {
+    const d = new Date();
+    return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+  }
+
+  function seedFromKey(key) {
+    let h = 0;
+    for (let i = 0; i < key.length; i++) {
+      h = Math.imul(31, h) + key.charCodeAt(i) | 0;
+    }
+    return Math.abs(h);
+  }
+
+  function getChallengeForDay(key) {
+    return POOL[seedFromKey(key) % POOL.length];
+  }
+
+  // Seconds until next midnight (local time)
+  function secsUntilMidnight() {
+    const now = new Date();
+    const midnight = new Date(now);
+    midnight.setHours(24, 0, 0, 0);
+    return Math.max(0, Math.floor((midnight - now) / 1000));
+  }
+
+  function fmtCountdown(secs) {
+    const h = Math.floor(secs / 3600);
+    const m = Math.floor((secs % 3600) / 60);
+    const s = secs % 60;
+    return pad(h) + ':' + pad(m) + ':' + pad(s);
+  }
+  function pad(n) { return String(n).padStart(2, '0'); }
+
+  let _state = null;     // { dateKey, completed, claimed, progress }
+  let _ticker = null;    // setInterval handle
+
+  function load() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) _state = JSON.parse(raw);
+    } catch (_) {}
+    const key = todayKey();
+    // Reset if it's a new day
+    if (!_state || _state.dateKey !== key) {
+      _state = { dateKey: key, completed: false, claimed: false, progress: 0 };
+      save();
+    }
+  }
+
+  function save() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(_state)); } catch (_) {}
+  }
+
+  function getChallenge() { return getChallengeForDay(_state ? _state.dateKey : todayKey()); }
+
+  // Called from triggerGameOver with run stats
+  function evaluateRun(runStats) {
+    if (!_state || _state.completed) return;
+    const ch   = getChallenge();
+    const val  = runStats[ch.stat] || 0;
+    // Track best progress across runs; single-run stats
+    _state.progress = Math.max(_state.progress, val);
+    if (_state.progress >= ch.goal) {
+      _state.completed = true;
+    }
+    save();
+    renderUI();
+  }
+
+  // Claim the reward — called from claim button click
+  function claim() {
+    if (!_state || !_state.completed || _state.claimed) return;
+    _state.claimed = true;
+    save();
+    const ch = getChallenge();
+    awardCoins(ch.coins);
+    renderUI();
+  }
+
+  function renderUI() {
+    const card        = document.getElementById('daily-challenge');
+    const descEl      = document.getElementById('dc-desc');
+    const rewardAmt   = document.getElementById('dc-reward-amt');
+    const claimBtn    = document.getElementById('dc-claim-btn');
+    const doneLabel   = document.getElementById('dc-done-label');
+    const progressEl  = document.getElementById('dc-progress-label');
+    if (!card || !descEl) return;
+
+    const ch  = getChallenge();
+    descEl.textContent    = ch.label;
+    rewardAmt.textContent = ch.coins;
+
+    if (_state.claimed) {
+      card.classList.add('dc-completed');
+      claimBtn.hidden    = true;
+      doneLabel.hidden   = false;
+      progressEl.textContent = '';
+    } else if (_state.completed) {
+      card.classList.remove('dc-completed');
+      claimBtn.hidden  = false;
+      doneLabel.hidden = true;
+      progressEl.textContent = '';
+    } else {
+      card.classList.remove('dc-completed');
+      claimBtn.hidden  = true;
+      doneLabel.hidden = true;
+      // Show progress if any
+      progressEl.textContent = _state.progress > 0
+        ? _state.progress + ' / ' + ch.goal
+        : '';
+    }
+  }
+
+  function startCountdown() {
+    const timerEl = document.getElementById('dc-timer');
+    if (!timerEl) return;
+    if (_ticker) clearInterval(_ticker);
+    function tick() {
+      const secs = secsUntilMidnight();
+      timerEl.textContent = fmtCountdown(secs) + ' left';
+      timerEl.classList.toggle('dc-timer-urgent', secs < 3600);
+    }
+    tick();
+    _ticker = setInterval(tick, 1000);
+  }
+
+  function stopCountdown() {
+    if (_ticker) { clearInterval(_ticker); _ticker = null; }
+  }
+
+  return {
+    init() {
+      load();
+      renderUI();
+      const claimBtn = document.getElementById('dc-claim-btn');
+      if (claimBtn) claimBtn.addEventListener('click', () => { claim(); Audio.uiClick(); });
+    },
+    onRunEnd(runStats) { evaluateRun(runStats); },
+    startCountdown,
+    stopCountdown,
+    renderUI,
+  };
+})();
+
+// ============================================================
 // SECTION 7: SCREEN / UI MANAGEMENT
 // ============================================================
 
@@ -856,6 +1020,8 @@ function showScreen(id) {
     requestAnimationFrame(() => hs.classList.add('home-animate'));
     HomeBg.start();
     HomePreview.start();
+    DailyChallenge.startCountdown();
+    DailyChallenge.renderUI();
     // Coin count-up visual effect
     const coinEl = document.getElementById('home-coins');
     if (coinEl && !settings.reducedMotion) {
@@ -864,6 +1030,7 @@ function showScreen(id) {
   } else {
     HomeBg.stop();
     HomePreview.stop();
+    DailyChallenge.stopCountdown();
   }
 }
 
@@ -3102,6 +3269,15 @@ function triggerGameOver() {
 
     requestAnimationFrame(() => document.getElementById('btn-restart').focus());
     Announce.say('Game Over! Score: ' + final + '. Best: ' + settings.bestScore + '.');
+    // Evaluate daily challenge against this run's stats
+    DailyChallenge.onRunEnd({
+      elapsed:           elapsed,
+      score:             final,
+      nearMissesThisRun: missionRun.nearMissesThisRun,
+      colorChanges:      missionRun.colorChanges,
+      maxCombo:          maxCombo,
+      powerupsThisRun:   missionRun.powerupsThisRun,
+    });
   }, DEATH_DELAY);
 }
 
@@ -3342,6 +3518,8 @@ function init() {
   // Kick off home screen background and coin count-up on first load
   HomeBg.start();
   HomePreview.start();
+  DailyChallenge.init();
+  DailyChallenge.startCountdown();
   const _coinEl = document.getElementById('home-coins');
   if (_coinEl && !settings.reducedMotion) {
     setTimeout(() => animateCounter(0, settings.coins, 700, _coinEl), 500);

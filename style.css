@@ -354,6 +354,85 @@ body::before {
 }
 .home-coins.coin-earn .coin-icon { animation: coinEarn .35s ease, coinGlow 2.8s ease-in-out infinite .35s; }
 
+/* ── Daily Challenge card ─────────────────────────────────── */
+.daily-challenge-card {
+  background: linear-gradient(135deg, rgba(124,58,237,.18) 0%, rgba(236,72,153,.10) 100%);
+  border: 1px solid rgba(168,85,247,.38);
+  border-radius: var(--radius);
+  padding: 14px 16px 12px;
+  display: flex; flex-direction: column; gap: 8px;
+  box-shadow: 0 0 18px rgba(124,58,237,.14), 0 2px 10px rgba(0,0,0,.32);
+  position: relative; overflow: hidden;
+}
+/* Subtle shimmer strip on left edge */
+.daily-challenge-card::before {
+  content: '';
+  position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+  background: linear-gradient(180deg, var(--accent-light), var(--accent2));
+  border-radius: 3px 0 0 3px;
+}
+.dc-header {
+  display: flex; align-items: center; gap: 7px;
+}
+.dc-badge { font-size: 1.1rem; line-height: 1; flex-shrink: 0; }
+.dc-title {
+  font-size: .78rem; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 1.4px;
+  color: var(--accent-light);
+  flex: 1;
+}
+.dc-timer {
+  font-size: .72rem; font-weight: 700;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .3px;
+}
+.dc-timer.dc-timer-urgent { color: #fb923c; animation: dcTimerUrgent 1s ease-in-out infinite; }
+@keyframes dcTimerUrgent {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: .55; }
+}
+.dc-desc {
+  font-size: .92rem; font-weight: 600; color: var(--text);
+  line-height: 1.4;
+  padding-left: 2px;
+}
+.dc-footer {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin-top: 2px;
+}
+.dc-reward {
+  display: flex; align-items: center; gap: 5px;
+  font-size: .8rem; font-weight: 700; color: var(--gold);
+}
+.dc-claim {
+  padding: 7px 18px;
+  font-size: .85rem;
+  min-height: 36px;
+  animation: dcClaimPulse 2.4s ease-in-out infinite;
+}
+@keyframes dcClaimPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(168,85,247,.50); }
+  50%       { box-shadow: 0 0 0 7px rgba(168,85,247,0); }
+}
+.dc-done-label {
+  font-size: .82rem; font-weight: 700;
+  color: var(--success); letter-spacing: .3px;
+}
+.dc-progress-label {
+  font-size: .78rem; color: var(--text-muted);
+  margin-left: auto;
+}
+/* Completed state dulls the card */
+.daily-challenge-card.dc-completed {
+  opacity: .72;
+  border-color: rgba(34,197,94,.30);
+  background: linear-gradient(135deg, rgba(34,197,94,.08) 0%, rgba(34,197,94,.04) 100%);
+}
+.daily-challenge-card.dc-completed::before {
+  background: var(--success);
+}
+
 /* Cards */
 .card {
   background: var(--card);

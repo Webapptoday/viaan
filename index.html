@@ -45,6 +45,27 @@
         </div>
       </header>
 
+      <!-- Daily Challenge -->
+      <div id="daily-challenge" class="daily-challenge-card" aria-label="Daily Challenge" role="region">
+        <div class="dc-header">
+          <span class="dc-badge" aria-hidden="true">📅</span>
+          <span class="dc-title">Daily Challenge</span>
+          <span class="dc-timer" id="dc-timer" aria-live="polite"></span>
+        </div>
+        <p class="dc-desc" id="dc-desc">Loading…</p>
+        <div class="dc-footer">
+          <span class="dc-reward">
+            <span class="coin-icon coin-sm" aria-hidden="true"></span>
+            <span id="dc-reward-amt">50</span> coins
+          </span>
+          <button id="dc-claim-btn" class="btn btn-primary dc-claim" hidden type="button">
+            Claim Reward
+          </button>
+          <span id="dc-done-label" class="dc-done-label" hidden>✓ Claimed</span>
+          <span id="dc-progress-label" class="dc-progress-label"></span>
+        </div>
+      </div>
+
       <!-- Two-button home: Start + Settings/Help -->
       <div class="home-actions">
         <button id="btn-start" class="btn btn-primary btn-large">
