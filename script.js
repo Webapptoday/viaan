@@ -523,8 +523,6 @@ const Audio = (() => {
     if (_actx.state === 'suspended') _actx.resume().catch(() => {});
     return _actx;
   }
-
-  // Pre-generated noise buffer (shared, lazy-created)
   let _noiseBuf = null;
   function _noise() {
     const c = _actx; if (!c) return null;
@@ -554,6 +552,11 @@ const Audio = (() => {
   return {
     init()    { ctx_(); },
     getCtx()  { return _actx; }, // shared by Music engine
+    // Called on first user gesture — creates and resumes AudioContext on iOS/Android
+    unlock() {
+      if (_actx && _actx.state !== 'suspended') return; // already running
+      ctx_(); // create if needed + call resume
+    },
 
     // Soft pop: punchy sine blip with quick attack
     collect() {
@@ -806,6 +809,11 @@ const Music = (() => {
     start() {
       if (!settings.sound) return;
       const c = _ctx_(); if (!c) return;
+      // iOS: ensure context is running before scheduling
+      if (c.state === 'suspended') {
+        c.resume().then(() => this.start()).catch(() => {});
+        return;
+      }
       if (!_ensureGraph()) return;
       _noise(); // pre-generate noise buffer
       _isPlaying  = true;
@@ -842,12 +850,20 @@ const Music = (() => {
     resume() {
       if (!settings.sound || _isPlaying) return;
       const c = _ctx_(); if (!c || !_masterGain) return;
-      _isPlaying = true;
-      _nextBeat  = c.currentTime + 0.06;
-      _masterGain.gain.cancelScheduledValues(c.currentTime);
-      _masterGain.gain.setValueAtTime(0, c.currentTime);
-      _masterGain.gain.linearRampToValueAtTime(0.50, c.currentTime + 0.20);
-      _scheduler();
+      // iOS: must resume AudioContext before scheduling
+      const doResume = () => {
+        _isPlaying = true;
+        _nextBeat  = c.currentTime + 0.06;
+        _masterGain.gain.cancelScheduledValues(c.currentTime);
+        _masterGain.gain.setValueAtTime(0, c.currentTime);
+        _masterGain.gain.linearRampToValueAtTime(0.50, c.currentTime + 0.20);
+        _scheduler();
+      };
+      if (c.state === 'suspended') {
+        c.resume().then(doResume).catch(() => {});
+      } else {
+        doResume();
+      }
     },
 
     // Called every frame from gameLoop — lerps intensity gain
@@ -3958,6 +3974,16 @@ function init() {
     const el = document.getElementById(id);
     if (el) makeFocusTrap(el);
   });
+
+  // One-shot unlock for iOS/Android — AudioContext must be created inside a user gesture.
+  // We listen on both touchstart and pointerdown so it fires on the very first tap/click.
+  const _unlockAudio = () => {
+    Audio.unlock();
+    document.removeEventListener('touchstart', _unlockAudio, true);
+    document.removeEventListener('pointerdown', _unlockAudio, true);
+  };
+  document.addEventListener('touchstart',  _unlockAudio, { capture: true, passive: true, once: true });
+  document.addEventListener('pointerdown', _unlockAudio, { capture: true, passive: true, once: true });
 
   // Home screen
   document.getElementById('btn-start').addEventListener('click', () => { Audio.uiClick(); startGame(); });
