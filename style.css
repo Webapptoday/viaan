@@ -136,6 +136,16 @@ body::before {
   z-index: 2; /* above blobs (1), below home-screen UI (3) */
 }
 
+/* Gameplay preview canvas — ghost player + blocks, blurred behind UI */
+#home-preview-canvas {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  z-index: 1;       /* below .home-inner (z-index:2) inside #home-screen stacking context */
+  opacity: 0.40;
+  filter: blur(5px);
+}
+
 /* Decorative animated blobs */
 .home-blobs {
   position: fixed; inset: 0;

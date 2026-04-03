@@ -659,6 +659,190 @@ const HomeBg = (() => {
 })();
 
 // ============================================================
+// HOME SCREEN GAMEPLAY PREVIEW
+// Ghost player steers between waypoints, avoids forbidden blocks.
+// Rendered on #home-preview-canvas (blurred + faded via CSS).
+// ============================================================
+const HomePreview = (() => {
+  const COLORS = ['#ef4444','#3b82f6','#22c55e','#eab308','#a855f7','#f97316','#06b6d4'];
+  let pCanvas = null, pCtx = null, pRaf = null, pRunning = false, pLastTs = 0;
+
+  // Ghost player state
+  const ghost = { x: 200, y: 300, r: 22 };
+  let gVx = 0, gVy = 0;
+  let wpX = 0, wpY = 0, wpTimer = 0;
+
+  // Block (obstacle) state
+  let blocks     = [];   // { x, y, w, h, vy, color }
+  let spawnT     = 0;
+
+  // Forbidden color cycling
+  let forbidden  = COLORS[0];
+  let forbiddenT = 0;
+
+  function rrect(x, y, w, h, r) {
+    r = Math.min(r, w / 2, h / 2);
+    pCtx.beginPath();
+    pCtx.moveTo(x + r, y);
+    pCtx.lineTo(x + w - r, y);   pCtx.quadraticCurveTo(x + w, y,     x + w, y + r);
+    pCtx.lineTo(x + w, y + h - r); pCtx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    pCtx.lineTo(x + r, y + h);   pCtx.quadraticCurveTo(x,     y + h, x,     y + h - r);
+    pCtx.lineTo(x, y + r);       pCtx.quadraticCurveTo(x,     y,     x + r, y);
+    pCtx.closePath();
+  }
+
+  function pickWaypoint(W, H) {
+    wpX     = 60 + Math.random() * (W - 120);
+    wpY     = 80 + Math.random() * (H - 160);
+    wpTimer = 1.4 + Math.random() * 1.8;
+  }
+
+  function resize() {
+    if (!pCanvas) return;
+    pCanvas.width  = pCanvas.offsetWidth  || window.innerWidth;
+    pCanvas.height = pCanvas.offsetHeight || window.innerHeight;
+  }
+
+  function tick(ts) {
+    if (!pRunning) return;
+    const dt = Math.min((ts - pLastTs) / 1000, 0.05);
+    pLastTs = ts;
+    const W = pCanvas.width, H = pCanvas.height;
+    pCtx.clearRect(0, 0, W, H);
+
+    // ── Cycle forbidden color ──────────────────────────────────
+    forbiddenT -= dt;
+    if (forbiddenT <= 0) {
+      const cur  = COLORS.indexOf(forbidden);
+      let   next = Math.floor(Math.random() * COLORS.length);
+      if (next === cur) next = (next + 1) % COLORS.length;
+      forbidden  = COLORS[next];
+      forbiddenT = 4 + Math.random() * 3;
+    }
+
+    // ── Spawn blocks ───────────────────────────────────────────
+    spawnT -= dt;
+    if (spawnT <= 0) {
+      const w = 24 + Math.random() * 28;
+      const h = 22 + Math.random() * 26;
+      blocks.push({
+        x: Math.random() * (W - w),
+        y: -h - 4,
+        w, h,
+        vy:    110 + Math.random() * 80,
+        color: COLORS[Math.floor(Math.random() * COLORS.length)],
+      });
+      spawnT = 0.25 + Math.random() * 0.25;
+    }
+
+    // ── Update blocks ──────────────────────────────────────────
+    for (let i = blocks.length - 1; i >= 0; i--) {
+      blocks[i].y += blocks[i].vy * dt;
+      if (blocks[i].y > H + 20) blocks.splice(i, 1);
+    }
+
+    // ── Move ghost: steer toward waypoint, dodge forbidden ─────
+    wpTimer -= dt;
+    if (wpTimer <= 0) pickWaypoint(W, H);
+
+    let avX = 0, avY = 0;
+    for (const b of blocks) {
+      if (b.color !== forbidden) continue;
+      const bCx = b.x + b.w / 2, bCy = b.y + b.h / 2;
+      const dx = ghost.x - bCx, dy = ghost.y - bCy;
+      const d  = Math.hypot(dx, dy);
+      if (d < 140 && d > 0) {
+        const w = (140 - d) / 140;
+        avX += (dx / d) * w * 2.2;
+        avY += (dy / d) * w * 2.2;
+      }
+    }
+    const toX = wpX - ghost.x, toY = wpY - ghost.y;
+    const toD = Math.hypot(toX, toY) || 1;
+    let dX = toX / toD + avX, dY = toY / toD + avY;
+    const dLen = Math.hypot(dX, dY) || 1;
+    dX /= dLen; dY /= dLen;
+    gVx += (dX * 180 - gVx) * Math.min(1, dt * 5);
+    gVy += (dY * 180 - gVy) * Math.min(1, dt * 5);
+    ghost.x = Math.max(ghost.r, Math.min(W - ghost.r, ghost.x + gVx * dt));
+    ghost.y = Math.max(ghost.r, Math.min(H - ghost.r, ghost.y + gVy * dt));
+
+    // ── Draw blocks ────────────────────────────────────────────
+    for (const b of blocks) {
+      const isF = b.color === forbidden;
+      pCtx.save();
+      if (!isF) pCtx.globalAlpha = 0.65;
+      rrect(b.x, b.y, b.w, b.h, 8);
+      pCtx.fillStyle = b.color;
+      if (isF) {
+        const pulse = 18 + 14 * (0.5 + 0.5 * Math.sin(ts / 200));
+        pCtx.shadowColor = b.color;
+        pCtx.shadowBlur  = pulse;
+      }
+      pCtx.fill();
+      pCtx.shadowBlur = 0;
+      if (isF) {
+        rrect(b.x, b.y, b.w, b.h, 8);
+        pCtx.strokeStyle = 'rgba(255,255,255,0.90)';
+        pCtx.lineWidth   = 3;
+        pCtx.stroke();
+      }
+      pCtx.restore();
+    }
+
+    // ── Draw ghost player ──────────────────────────────────────
+    const grd = pCtx.createRadialGradient(ghost.x - 5, ghost.y - 5, 2, ghost.x, ghost.y, ghost.r);
+    grd.addColorStop(0, '#ffffff');
+    grd.addColorStop(1, '#a855f7');
+    pCtx.save();
+    pCtx.beginPath();
+    pCtx.arc(ghost.x, ghost.y, ghost.r, 0, Math.PI * 2);
+    pCtx.fillStyle   = grd;
+    pCtx.shadowColor = '#c084fc';
+    pCtx.shadowBlur  = 20 + 7 * Math.sin(ts / 380);
+    pCtx.fill();
+    pCtx.shadowBlur  = 0;
+    pCtx.strokeStyle = 'rgba(255,255,255,0.90)';
+    pCtx.lineWidth   = 2;
+    pCtx.stroke();
+    pCtx.restore();
+
+    pRaf = requestAnimationFrame(tick);
+  }
+
+  return {
+    start() {
+      if (pRunning) return;
+      if (settings && settings.reducedMotion) return;
+      if (!pCanvas) {
+        pCanvas = document.getElementById('home-preview-canvas');
+        if (!pCanvas) return;
+        pCtx = pCanvas.getContext('2d');
+        window.addEventListener('resize', resize, { passive: true });
+      }
+      resize();
+      ghost.x    = pCanvas.width / 2;
+      ghost.y    = pCanvas.height * 0.55;
+      gVx        = 0;
+      gVy        = 0;
+      blocks     = [];
+      spawnT     = 0;
+      forbidden  = COLORS[Math.floor(Math.random() * COLORS.length)];
+      forbiddenT = 3;
+      pickWaypoint(pCanvas.width, pCanvas.height);
+      pRunning = true;
+      pLastTs  = performance.now();
+      pRaf     = requestAnimationFrame(tick);
+    },
+    stop() {
+      pRunning = false;
+      if (pRaf) { cancelAnimationFrame(pRaf); pRaf = null; }
+      if (pCanvas && pCtx) pCtx.clearRect(0, 0, pCanvas.width, pCanvas.height);
+    },
+  };
+})();
+
+// ============================================================
 // SECTION 7: SCREEN / UI MANAGEMENT
 // ============================================================
 
@@ -671,6 +855,7 @@ function showScreen(id) {
     hs.classList.remove('home-animate');
     requestAnimationFrame(() => hs.classList.add('home-animate'));
     HomeBg.start();
+    HomePreview.start();
     // Coin count-up visual effect
     const coinEl = document.getElementById('home-coins');
     if (coinEl && !settings.reducedMotion) {
@@ -678,6 +863,7 @@ function showScreen(id) {
     }
   } else {
     HomeBg.stop();
+    HomePreview.stop();
   }
 }
 
@@ -3155,6 +3341,7 @@ function init() {
 
   // Kick off home screen background and coin count-up on first load
   HomeBg.start();
+  HomePreview.start();
   const _coinEl = document.getElementById('home-coins');
   if (_coinEl && !settings.reducedMotion) {
     setTimeout(() => animateCounter(0, settings.coins, 700, _coinEl), 500);
