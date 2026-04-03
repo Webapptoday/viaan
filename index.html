@@ -11,6 +11,13 @@
   <!-- Screen-reader live announcements -->
   <div id="aria-live" role="status" aria-live="assertive" aria-atomic="true" class="sr-only"></div>
 
+  <!-- Decorative background blobs — outside #home-screen so they don't cover the canvas -->
+  <div class="home-blobs" aria-hidden="true">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+  </div>
+
   <!-- Background decorative falling blocks - outside #home-screen to avoid overflow clipping -->
   <canvas id="home-bg-canvas" aria-hidden="true"></canvas>
 
@@ -18,13 +25,6 @@
        HOME SCREEN
   ============================================================ -->
   <div id="home-screen" class="screen home-animate">
-
-    <!-- Decorative animated blobs -->
-    <div class="home-blobs" aria-hidden="true">
-      <div class="blob blob-1"></div>
-      <div class="blob blob-2"></div>
-      <div class="blob blob-3"></div>
-    </div>
 
     <div class="home-inner">
 

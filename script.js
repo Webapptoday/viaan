@@ -599,7 +599,7 @@ const HomeBg = (() => {
       y:       scatter ? Math.random() * canvas.height : -sz - Math.random() * canvas.height,
       sz,
       speed:   18 + Math.random() * 26,
-      opacity: 0.18 + Math.random() * 0.17,
+      opacity: 0.22 + Math.random() * 0.18,
       color:   PALETTE[Math.floor(Math.random() * PALETTE.length)],
       r:       3 + Math.random() * 5,
     };

@@ -115,7 +115,7 @@ body::before {
   position: fixed; inset: 0;
   display: flex; flex-direction: column;
   overflow-y: auto; overflow-x: hidden;
-  z-index: 2; /* above canvas (z-index:1) and body::before (z-index:0) */
+  z-index: 3; /* above canvas (2) and blobs (1) — home-screen is transparent so both show through */
 }
 
 #game-screen:not([hidden]) {
@@ -133,14 +133,14 @@ body::before {
   position: fixed; inset: 0;
   width: 100%; height: 100%;
   pointer-events: none;
-  z-index: 1; /* above .home-blobs (z-index:0) so blocks aren't hidden */
+  z-index: 2; /* above blobs (1), below home-screen UI (3) */
 }
 
 /* Decorative animated blobs */
 .home-blobs {
   position: fixed; inset: 0;
   pointer-events: none; overflow: hidden;
-  z-index: 0;
+  z-index: 1; /* above body::before (0), below canvas blocks (2) */
 }
 
 /* Faint star-particles layer — two pseudo-elements, different speeds & densities */
@@ -223,7 +223,7 @@ body::before {
 }
 
 .home-inner {
-  position: relative; z-index: 2; /* above canvas (z-index:1) so UI stays on top */
+  position: relative; z-index: 2; /* top of home-screen stacking context, above everything */
   max-width: 520px; width: 100%;
   margin: 0 auto;
   padding: 36px 18px 52px;
