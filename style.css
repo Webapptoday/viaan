@@ -1504,6 +1504,32 @@ kbd {
 }
 .new-best-badge[hidden] { display: none; }
 
+/* Share row */
+.share-row {
+  display: flex; align-items: center; justify-content: center;
+  gap: 10px; margin-top: 10px;
+}
+.btn-share {
+  background: rgba(99,102,241,.18);
+  border: 1px solid rgba(99,102,241,.45);
+  color: #c7d2fe;
+  font-size: .88rem; font-weight: 700;
+  padding: 8px 18px; border-radius: var(--radius-sm);
+  cursor: pointer; transition: background .18s, transform .12s;
+}
+.btn-share:hover  { background: rgba(99,102,241,.32); }
+.btn-share:active { transform: scale(.96); }
+.share-copied {
+  font-size: .82rem; font-weight: 700;
+  color: #86efac; /* green-300 */
+  animation: shareCopiedIn .25s ease both;
+}
+.share-copied[hidden] { display: none; }
+@keyframes shareCopiedIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 @keyframes badgePop {
   from { transform: scale(.5); opacity: 0; }
   to   { transform: scale(1);  opacity: 1; }

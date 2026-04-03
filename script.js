@@ -3691,6 +3691,10 @@ function triggerGameOver() {
 
     animateCounter(0, final, settings.reducedMotion ? 0 : 850, document.getElementById('final-score'));
 
+    // Prime the share button with this run's score
+    const shareBtn = document.getElementById('btn-share-score');
+    if (shareBtn) shareBtn.dataset.score = final;
+
     requestAnimationFrame(() => document.getElementById('btn-restart').focus());
     Announce.say('Game Over! Score: ' + final + '. Best: ' + settings.bestScore + '.');
     // Evaluate daily challenge against this run's stats
@@ -3986,6 +3990,41 @@ function init() {
   document.getElementById('btn-home-from-pause').addEventListener('click', returnHome);
   document.getElementById('btn-restart').addEventListener('click', restartGame);
   document.getElementById('btn-home-from-gameover').addEventListener('click', returnHome);
+
+  // Share / copy challenge button
+  document.getElementById('btn-share-score').addEventListener('click', () => {
+    Audio.uiClick();
+    const scoreVal = document.getElementById('btn-share-score').dataset.score || '0';
+    const url = location.href.split('?')[0]; // clean URL, no query params
+    const text = 'I scored ' + scoreVal + ' in Forbidden Color — can you beat me? ' + url;
+    const copiedEl = document.getElementById('share-copied');
+    let hideTimer = null;
+    const showCopied = () => {
+      if (copiedEl) {
+        copiedEl.hidden = false;
+        copiedEl.classList.remove('shareCopiedIn');
+        void copiedEl.offsetWidth;
+        clearTimeout(hideTimer);
+        hideTimer = setTimeout(() => { copiedEl.hidden = true; }, 2200);
+      }
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(showCopied).catch(() => {
+        // Fallback: execCommand
+        const ta = document.createElement('textarea');
+        ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); showCopied(); } catch (_e) {}
+        document.body.removeChild(ta);
+      });
+    } else {
+      const ta = document.createElement('textarea');
+      ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); showCopied(); } catch (_e) {}
+      document.body.removeChild(ta);
+    }
+  });
 
   // Touch pause button
   document.getElementById('touch-pause').addEventListener('pointerdown', e => {
