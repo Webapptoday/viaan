@@ -2597,6 +2597,7 @@ function changeForbiddenColor() {
   colorChangeGrace = 0.25; // 0.25 s invincibility window on color change
   // rebalanceAfterColorChange() disabled — blocks keep their spawn color
   Audio.colorChange();
+  flashForbiddenBorder(GAME_COLORS[forbiddenIndex].hex);
   Announce.say('Forbidden color is now ' + GAME_COLORS[forbiddenIndex].name + '!');
 }
 
@@ -2959,6 +2960,18 @@ function triggerShake(intensity, dur) {
   shakeY = (Math.random() - 0.5) * intensity;
 }
 
+// Flash a colored border around the game canvas on forbidden-color change
+function flashForbiddenBorder(hex) {
+  if (settings.reducedMotion) return;
+  const el = document.getElementById('color-flash-overlay');
+  if (!el) return;
+  el.style.setProperty('--flash-color', hex);
+  el.classList.remove('flash-active');
+  // Force reflow so the animation restarts cleanly every call
+  void el.offsetWidth;
+  el.classList.add('flash-active');
+}
+
 function tickShake(dt) {
   if (shakeTimer <= 0) { shakeX = shakeY = 0; return; }
   shakeTimer -= dt;
@@ -2997,6 +3010,7 @@ function drawRings() {
 // ============================================================
 
 function drawBackground() {
+  const isPanic = panicPhase === 'wave';
   if (settings.highContrast) {
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -3005,11 +3019,28 @@ function drawBackground() {
     for (let x2 = 0; x2 < canvas.width;  x2 += 44) { ctx.beginPath(); ctx.moveTo(x2, 0); ctx.lineTo(x2, canvas.height); ctx.stroke(); }
     for (let y2 = 0; y2 < canvas.height; y2 += 44) { ctx.beginPath(); ctx.moveTo(0, y2); ctx.lineTo(canvas.width, y2); ctx.stroke(); }
   } else {
+    // During panic wave: shift gradient darker/redder
+    const topColor    = isPanic ? '#120006' : '#0d0d1a';
+    const bottomColor = isPanic ? '#1a0010' : '#130d2e';
     const g = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    g.addColorStop(0, '#0d0d1a');
-    g.addColorStop(1, '#130d2e');
+    g.addColorStop(0, topColor);
+    g.addColorStop(1, bottomColor);
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // During panic: pulsing red center glow
+    if (isPanic) {
+      const pulse = 0.10 + 0.06 * Math.sin(Date.now() / 130);
+      const rg = ctx.createRadialGradient(
+        canvas.width / 2, canvas.height / 2, 0,
+        canvas.width / 2, canvas.height / 2, Math.max(canvas.width, canvas.height) * 0.65
+      );
+      rg.addColorStop(0,   'rgba(180,0,30,' + pulse.toFixed(3) + ')');
+      rg.addColorStop(0.5, 'rgba(120,0,20,' + (pulse * 0.4).toFixed(3) + ')');
+      rg.addColorStop(1,   'rgba(0,0,0,0)');
+      ctx.fillStyle = rg;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
   }
 }
 
@@ -3027,6 +3058,21 @@ function render(ts) {
   drawMilestoneBanner();
   drawPanicBanner();
   drawDoubleDangerBanner();
+  // Combo vignette: red pulsing edge when combo >= 5
+  if (combo >= 5 && !settings.reducedMotion) {
+    const intensity = Math.min(1, (combo - 4) / 8); // ramps from 0 at combo 5 → full at combo 13
+    const pulse     = 0.5 + 0.5 * Math.sin(ts / (220 - combo * 8)); // faster pulse at higher combo
+    const alpha     = intensity * (0.22 + pulse * 0.16);
+    const vg = ctx.createRadialGradient(
+      canvas.width / 2, canvas.height / 2, canvas.height * 0.28,
+      canvas.width / 2, canvas.height / 2, canvas.height * 0.82
+    );
+    vg.addColorStop(0,   'rgba(0,0,0,0)');
+    vg.addColorStop(0.6, 'rgba(180,0,0,' + (alpha * 0.5).toFixed(3) + ')');
+    vg.addColorStop(1,   'rgba(220,0,0,' + alpha.toFixed(3) + ')');
+    ctx.fillStyle = vg;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
   ctx.restore();
 }
 
