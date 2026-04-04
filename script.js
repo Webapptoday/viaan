@@ -1754,9 +1754,9 @@ function awardCoins(amount) {
   settings.coins += amount;
   saveSettings();
   updateCoinUI(true);
-  // Show floating coin text during gameplay
+  // Clear floating coin text at pickup position (not player position for coin items)
   if (currentState === STATE.PLAYING && player) {
-    addFloating(player.x, player.y - 80, '+' + amount + ' \uD83E\uDE99', '#fbbf24', 16);
+    addFloating(player.x, player.y - 72, '+' + amount + ' \uD83E\uDE99', '#fde047', 18);
   }
 }
 
@@ -2394,9 +2394,10 @@ function spawnObstacle() {
 
   if (activePowerupKey === 'SLOW') vy *= 0.4;
 
-  const amp  = (type === 1) ? 60 + Math.random() * 90 : 0;
-  // Each drifter gets its own frequency in [1.3, 2.8] rad/s for varied rhythm
-  const freq = (type === 1) ? 1.3 + Math.random() * 1.5 : 0;
+  // Drifters: tighter, predictable amplitude so motion reads cleanly
+  const amp  = (type === 1) ? 40 + Math.random() * 40 : 0;
+  // Slow, uniform frequency — steady rhythm the player can read
+  const freq = (type === 1) ? 0.9 + Math.random() * 0.6 : 0;
   const ox  = amp + w / 2 + Math.random() * Math.max(10, canvas.width - amp * 2 - w);
 
   const isForbiddenSpawn = graceTimer >= GRACE_PERIOD;
@@ -2407,7 +2408,7 @@ function spawnObstacle() {
     originX: ox, nearMissIdx: -1,
     // Mutation fields
     burstTimer: 0, burstMul: 1, burstCooldown: false, burstTrail: [],
-    gravityPull: isForbiddenSpawn && Math.random() < PULL_CHANCE,
+    gravityPull: false,
   });
 }
 
@@ -2433,7 +2434,7 @@ function spawnCluster() {
       driftAmp: 0, driftFreq: 0, driftPhase: 0, driftTime: 0,
       originX: x + w / 2, nearMissIdx: -1,
       burstTimer: 0, burstMul: 1, burstCooldown: false, burstTrail: [],
-      gravityPull: isForbiddenSpawn && Math.random() < PULL_CHANCE,
+      gravityPull: false,
     });
   }
 
@@ -2534,7 +2535,7 @@ function spawnNarrowLane() {
       driftAmp: 0, driftFreq: 0, driftPhase: 0, driftTime: 0,
       originX: x + w / 2, nearMissIdx: -1,
       burstTimer: 0, burstMul: 1, burstCooldown: false, burstTrail: [],
-      gravityPull: isForbiddenSpawn && Math.random() < PULL_CHANCE,
+      gravityPull: false,
     });
   }
 
@@ -2618,13 +2619,10 @@ function spawnWallPattern() {
 
 // ── Mutation constants ────────────────────────────────────────────────────────
 // SPEED_BURST: forbidden blocks randomly surge 2–3× speed for a short window.
-// GRAVITY_PULL: forbidden blocks pull the player if they are nearby.
 const BURST_CHANCE     = 0.008; // probability per frame to trigger a burst on a forbidden block
 const BURST_SPEED_MUL  = 2.0;   // minimum speed multiplier during burst (random up to 3×)
 const BURST_DURATION   = 0.55;  // s a burst lasts
-const PULL_RADIUS      = 110;   // px — distance inside which gravity pull activates
-const PULL_FORCE       = 52;    // px/s² pull toward block center (applied to player position)
-const PULL_CHANCE      = 0.35;  // fraction of new forbidden obstacles that get a gravity-pull mutation
+// Gravity Pull removed — it hurt gameplay clarity.
 
 function updateObstacles(dt) {
   for (let i = obstacles.length - 1; i >= 0; i--) {
@@ -2663,24 +2661,6 @@ function updateObstacles(dt) {
       ob.driftTime += dt;
       ob.x = ob.originX - ob.w / 2 + Math.sin(ob.driftTime * ob.driftFreq + ob.driftPhase) * ob.driftAmp;
       ob.x = Math.max(0, Math.min(canvas.width - ob.w, ob.x));
-    }
-
-    // ── Gravity Pull mutation ─────────────────────────────────────────────────
-    if (ob.gravityPull && isDangerous(ob) && ob.y > -ob.h) {
-      const bx  = ob.x + ob.w / 2;
-      const by  = ob.y + ob.h / 2;
-      const pdx = bx - player.x;
-      const pdy = by - player.y;
-      const dist = Math.sqrt(pdx * pdx + pdy * pdy);
-      if (dist < PULL_RADIUS && dist > 1) {
-        // Dampen pull so it doesn't snap — strength falls off linearly with distance
-        const strength = PULL_FORCE * dt * (1 - dist / PULL_RADIUS);
-        player.x += (pdx / dist) * strength;
-        player.y += (pdy / dist) * strength;
-        // Clamp to canvas
-        player.x = Math.max(player.radius, Math.min(canvas.width  - player.radius, player.x));
-        player.y = Math.max(player.radius, Math.min(canvas.height - player.radius, player.y));
-      }
     }
 
     // Near-miss: record the forbiddenIndex active at the moment of the close pass.
@@ -2760,36 +2740,6 @@ function drawObstacle(ob) {
   ctx.fill();
   ctx.shadowBlur = 0;
 
-  // ── Gravity Pull aura ─────────────────────────────────────────────────────
-  if (ob.gravityPull && isForbidden && !settings.reducedMotion) {
-    const cx  = ob.x + ob.w / 2;
-    const cy  = ob.y + ob.h / 2;
-    const now = Date.now();
-    const pulseA = 0.12 + 0.08 * Math.sin(now / 320);
-    const rInner = Math.max(ob.w, ob.h) * 0.6;
-    const rOuter = rInner + PULL_RADIUS * 0.55;
-    const grad   = ctx.createRadialGradient(cx, cy, rInner, cx, cy, rOuter);
-    grad.addColorStop(0,   `rgba(180,80,255,${pulseA.toFixed(3)})`);
-    grad.addColorStop(0.6, `rgba(120,40,200,${(pulseA * 0.4).toFixed(3)})`);
-    grad.addColorStop(1,   'rgba(80,0,160,0)');
-    ctx.save();
-    ctx.globalAlpha = 1;
-    ctx.fillStyle   = grad;
-    ctx.beginPath();
-    ctx.arc(cx, cy, rOuter, 0, Math.PI * 2);
-    ctx.fill();
-    // Swirling dashes around the block edge
-    ctx.strokeStyle = `rgba(210,120,255,${(pulseA * 1.5).toFixed(3)})`;
-    ctx.lineWidth   = 1.5;
-    ctx.setLineDash([6, 8]);
-    ctx.lineDashOffset = -(now / 80) % 14;
-    ctx.beginPath();
-    ctx.arc(cx, cy, rInner + 8, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.restore();
-  }
-
   if (isForbidden) {
     // Strong white border — danger outline is always readable regardless of block color
     pathRoundRect(ctx, ob.x, ob.y, ob.w, ob.h, 8);
@@ -2828,12 +2778,12 @@ function drawObstacle(ob) {
 // ============================================================
 
 function spawnCoinItem() {
-  const sz = 20;
+  const sz = 26; // larger — clearly visible on screen
   coinItems.push({
     x: sz + Math.random() * (canvas.width - sz * 2),
     y: -sz - 12,
     size: sz,
-    vy: 110 + Math.random() * 40,
+    vy: 95 + Math.random() * 30, // slightly slower so player has time to react
     value: 1 + Math.floor(Math.random() * 3), // 1–3 coins
   });
 }
@@ -2845,10 +2795,13 @@ function updateCoinItems(dt) {
     const dx   = player.x - c.x;
     const dy   = player.y - c.y;
     const dist = Math.sqrt(dx * dx + dy * dy);
-    if (dist < player.radius + c.size / 2 + 6) {
+    if (dist < player.radius + c.size / 2 + 8) {
       AudioManager.playSound('coin');
       awardCoins(c.value);
-      spawnParticles(c.x, c.y, '#fbbf24', 8);
+      // Ring burst for satisfying pickup feel
+      ringBursts.push({ x: c.x, y: c.y, r: c.size * 0.4, maxR: c.size * 3.5, color: '#fbbf24', alpha: 0.9, speed: 200 });
+      ringBursts.push({ x: c.x, y: c.y, r: 0,            maxR: c.size * 2.2, color: '#fff',    alpha: 0.5, speed: 280 });
+      spawnParticles(c.x, c.y, '#fde047', 12);
       coinItems.splice(i, 1);
       continue;
     }
@@ -2858,30 +2811,59 @@ function updateCoinItems(dt) {
 
 function drawCoinItem(c) {
   const r     = c.size / 2;
-  const pulse = 0.85 + 0.15 * Math.sin(performance.now() / 400 + c.x);
+  const t     = performance.now();
+  // Two-phase pulse: gentle breathing (slow) + shimmer spike (fast)
+  const pulse = 0.88 + 0.12 * Math.sin(t / 500 + c.x)
+              + 0.06 * Math.sin(t / 90  + c.x * 0.7);
+
   ctx.save();
-  ctx.shadowColor = 'rgba(251,191,36,0.7)';
-  ctx.shadowBlur  = 8 + 6 * pulse;
+
+  // Outer halo — large, bright, unmissable
+  const haloR = r * 2.2;
+  const halo  = ctx.createRadialGradient(c.x, c.y, r * 0.8, c.x, c.y, haloR);
+  halo.addColorStop(0,   'rgba(253,224,71,0.40)');
+  halo.addColorStop(0.5, 'rgba(251,191,36,0.18)');
+  halo.addColorStop(1,   'rgba(251,191,36,0)');
+  ctx.fillStyle = halo;
+  ctx.beginPath();
+  ctx.arc(c.x, c.y, haloR, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Glow shadow
+  ctx.shadowColor = '#fde047';
+  ctx.shadowBlur  = 22 + 10 * Math.sin(t / 500 + c.x); // breathes
+
+  // Coin disc — brighter, high-saturation gold
   const g = ctx.createRadialGradient(
-    c.x - r * 0.35, c.y - r * 0.28, 0,
-    c.x,             c.y,            r
+    c.x - r * 0.38, c.y - r * 0.32, 0,
+    c.x,             c.y,            r * pulse
   );
-  g.addColorStop(0,    '#fef9c3');
-  g.addColorStop(0.22, '#fde047');
-  g.addColorStop(0.55, '#eab308');
-  g.addColorStop(0.88, '#a16207');
-  g.addColorStop(1,    '#78350f');
+  g.addColorStop(0,    '#fffde7');
+  g.addColorStop(0.18, '#fef08a');
+  g.addColorStop(0.45, '#facc15');
+  g.addColorStop(0.78, '#d97706');
+  g.addColorStop(1,    '#92400e');
   ctx.beginPath();
   ctx.arc(c.x, c.y, r * pulse, 0, Math.PI * 2);
   ctx.fillStyle = g;
   ctx.fill();
-  // Inner ring
+
+  ctx.shadowBlur = 0;
+
+  // Bright inner highlight ring
   ctx.beginPath();
-  ctx.arc(c.x, c.y, r * 0.65, 0, Math.PI * 2);
-  ctx.strokeStyle = 'rgba(255,255,255,0.30)';
-  ctx.lineWidth   = 1.5;
-  ctx.shadowBlur  = 0;
+  ctx.arc(c.x, c.y, r * 0.60, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(255,255,255,0.50)';
+  ctx.lineWidth   = 2;
   ctx.stroke();
+
+  // Shine flare — small bright arc top-left
+  ctx.beginPath();
+  ctx.arc(c.x - r * 0.22, c.y - r * 0.26, r * 0.28, 0.8, 2.1);
+  ctx.strokeStyle = 'rgba(255,255,255,0.70)';
+  ctx.lineWidth   = 2;
+  ctx.stroke();
+
   ctx.restore();
 }
 
