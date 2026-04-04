@@ -62,7 +62,7 @@ const GRACE_PERIOD        = 1.0;  // s at start with no forbidden obstacles
 const FORBIDDEN_MIN_RATIO = 0.65; // keep at least 65% of active obstacles forbidden — keeps screen readable
 const CLUSTER_CHANCE      = 0.10; // probability any spawn tick fires a cluster instead of a single obstacle
 const NARROW_CHANCE       = 0.05; // probability any spawn tick fires a narrow-lane wall pattern
-const WALL_PATTERN_CHANCE = 0.06; // probability any spawn tick fires a wall-pattern mutation
+const WALL_PATTERN_CHANCE = 0;    // disabled — wall pattern removed from spawning
 const WALL_PATTERN_CD     = 12;   // minimum seconds between wall patterns
 const MAX_WALL_OBSTACLES  = 2;    // max simultaneous wide wall-segment obstacles (prevents stacking)
 
@@ -2560,7 +2560,7 @@ function spawnNarrowLane() {
 
   const vy   = base + Math.random() * 40;
   const h    = 26 + Math.random() * 14;
-  const gap  = 68 + Math.random() * 20;
+  const gap  = 88 + Math.random() * 20;   // 88–108 px — always wide enough to pass through
   const gCtr = cw * 0.25 + Math.random() * cw * 0.5;
   pushRow(gCtr, gap, h, 0, vy, false);
 }
@@ -2628,8 +2628,8 @@ function updateObstacles(dt) {
   for (let i = obstacles.length - 1; i >= 0; i--) {
     const ob = obstacles[i];
 
-    // ── Speed Burst mutation ──────────────────────────────────────────────────
-    if (isDangerous(ob)) {
+    // ── Speed Burst mutation (type 0 and 2 only — not fast/long blocks) ───────
+    if (isDangerous(ob) && ob.type !== 3 && ob.type !== 4) {
       if (ob.burstTimer > 0) {
         ob.burstTimer -= dt;
         if (ob.burstTimer <= 0) {
@@ -2703,23 +2703,7 @@ function drawObstacle(ob) {
   const hex      = colorDef.hex;
   const symbol   = colorDef.symbol;
 
-  // ── Speed Burst glow trail ────────────────────────────────────────────────
-  if (ob.burstTrail && ob.burstTrail.length > 0 && !settings.reducedMotion) {
-    for (let t = ob.burstTrail.length - 1; t >= 0; t--) {
-      const pt    = ob.burstTrail[t];
-      const alpha = pt.t * 0.55 * (1 - t / ob.burstTrail.length);
-      const r     = (ob.w * 0.5) * (0.5 + 0.5 * (1 - t / ob.burstTrail.length));
-      ctx.save();
-      ctx.globalAlpha  = Math.max(0, alpha);
-      ctx.shadowColor  = hex;
-      ctx.shadowBlur   = 20;
-      ctx.fillStyle    = hex;
-      ctx.beginPath();
-      ctx.arc(pt.x, pt.y, r, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-    }
-  }
+  // ── Speed Burst glow trail — disabled (visual clutter removed) ──────────────
 
   ctx.save();
 
