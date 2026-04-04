@@ -329,6 +329,8 @@ let score         = 0;
 let combo         = 0;
 let maxCombo      = 0;
 let gameStartTime = 0;
+let pausedDuration  = 0; // total ms spent paused — excluded from all elapsed calculations
+let pauseStartTime  = 0; // performance.now() at the moment pause began
 let graceTimer    = 0;
 let lastFrameTime = 0;
 
@@ -3718,7 +3720,7 @@ function gameLoop(ts) {
   maybeUpdateHud(ts);
 
   // Survival time milestones
-  const elapsed = (performance.now() - gameStartTime) / 1000;
+  const elapsed = (performance.now() - gameStartTime - pausedDuration) / 1000;
   for (const t of TIME_MILESTONES) {
     if (elapsed >= t && !_timeMilestonesHit.has(t)) {
       _timeMilestonesHit.add(t);
@@ -3839,8 +3841,10 @@ function startGame() {
       }
     }
     spawnTimer = 0;
-    gameStartTime = performance.now();
-    lastFrameTime = performance.now();
+    gameStartTime    = performance.now();
+    pausedDuration   = 0;
+    pauseStartTime   = 0;
+    lastFrameTime    = performance.now();
     const c = GAME_COLORS[forbiddenIndex];
     Announce.say('Game started. Forbidden color: ' + c.name + '.');
     Music.start();
@@ -3850,6 +3854,7 @@ function startGame() {
 
 function pauseGame() {
   if (currentState !== STATE.PLAYING) return;
+  pauseStartTime = performance.now();
   currentState = STATE.PAUSED;
   cancelAnimationFrame(rafHandle); rafHandle = null;
   clearAllInputs();
@@ -3861,6 +3866,7 @@ function pauseGame() {
 
 function resumeGame() {
   if (currentState !== STATE.PAUSED) return;
+  pausedDuration += performance.now() - pauseStartTime;
   document.getElementById('pause-overlay').hidden = true;
   currentState  = STATE.PLAYING;
   lastFrameTime = performance.now();
@@ -3906,7 +3912,7 @@ function triggerGameOver() {
   setTimeout(() => {
     const final      = Math.floor(score);
     missionRun.score    = final;
-    missionRun.seconds  = Math.floor((performance.now() - gameStartTime) / 1000);
+    missionRun.seconds  = Math.floor((performance.now() - gameStartTime - pausedDuration) / 1000);
     missionRun.maxCombo = maxCombo;
     evaluateMissions();
     const wasNewBest = final > settings.bestScore;
@@ -3914,7 +3920,7 @@ function triggerGameOver() {
     if (wasNewBest) { settings.bestScore = final; saveSettings(); newBestThisGame = true; }
     if (wasNewBest) checkSkinUnlocks(prevBest, settings.bestScore);
 
-    const elapsed = Math.floor((performance.now() - gameStartTime) / 1000);
+    const elapsed = Math.floor((performance.now() - gameStartTime - pausedDuration) / 1000);
     const coinsEarned = awardRunCoins(final, elapsed);
     updateSkinsUI();
     updateStats(elapsed); // persist lifetime stats before showing overlay
