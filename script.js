@@ -371,6 +371,8 @@ let activePowerupTotal = 0;
 let colorChangeGrace   = 0; // s remaining — brief invincibility on forbidden color change
 
 let nearMissCooldownTimer = 0; // global cooldown (s) to prevent near-miss spam from multiple simultaneous blocks
+let nearMissGlowTimer    = 0; // 0→1 — boosts player glow briefly on near miss
+let coinPickupFlashTimer = 0; // 0→1 — brief gold screen pulse on coin collect
 
 let shakeX = 0, shakeY = 0, shakeTimer = 0;
 
@@ -1751,13 +1753,13 @@ function updateCoinUI(animate) {
   }
 }
 
-function awardCoins(amount) {
+function awardCoins(amount, showFloat = false) {
   if (amount <= 0) return;
   settings.coins += amount;
   saveSettings();
   updateCoinUI(true);
-  // Clear floating coin text at pickup position (not player position for coin items)
-  if (currentState === STATE.PLAYING && player) {
+  // Floating text only when explicitly requested (e.g. mission rewards shown at center)
+  if (showFloat && currentState === STATE.PLAYING && player) {
     addFloating(player.x, player.y - 72, '+' + amount + ' \uD83E\uDE99', '#fde047', 18);
   }
 }
@@ -2149,7 +2151,8 @@ function drawPlayer() {
   // ── Body ────────────────────────────────────────────────────
   // Glow intensity by rarity / effect — boosted by combo
   const comboGlowBoost = Math.min(combo * 3, 30); // up to +30px glow at combo 10
-  let shadowBlur = 20 + comboGlowBoost;
+  const nearMissBoost  = nearMissGlowTimer > 0 ? 28 * nearMissGlowTimer : 0; // flare on near miss
+  let shadowBlur = 20 + comboGlowBoost + nearMissBoost;
   let c1 = skin.color1, c2 = skin.color2;
   if (skin.effect === 'flicker') {
     const flick = 0.6 + 0.4 * Math.sin(now / 70 + 2.1);
@@ -2709,8 +2712,8 @@ function drawObstacle(ob) {
 
   ctx.save();
 
-  // Safe obstacles are visually quieter — clearly distinct from dangerous ones
-  if (!isForbidden) ctx.globalAlpha = 0.28;
+  // Safe obstacles are invisible — only forbidden blocks are rendered
+  if (!isForbidden) { ctx.restore(); return; }
 
   // Fill
   pathRoundRect(ctx, ob.x, ob.y, ob.w, ob.h, 8);
@@ -2784,10 +2787,13 @@ function updateCoinItems(dt) {
     if (dist < player.radius + c.size / 2 + 8) {
       AudioManager.playSound('coin');
       awardCoins(c.value);
+      // Floating text at coin position (not player) for clear attribution
+      addFloating(c.x, c.y - 20, '+' + c.value + ' \uD83E\uDE99', '#fde047', 20);
+      coinPickupFlashTimer = 1; // brief gold screen pulse
       // Ring burst for satisfying pickup feel
       ringBursts.push({ x: c.x, y: c.y, r: c.size * 0.4, maxR: c.size * 3.5, color: '#fbbf24', alpha: 0.9, speed: 200 });
       ringBursts.push({ x: c.x, y: c.y, r: 0,            maxR: c.size * 2.2, color: '#fff',    alpha: 0.5, speed: 280 });
-      spawnParticles(c.x, c.y, '#fde047', 12);
+      spawnParticles(c.x, c.y, '#fde047', settings.reducedMotion ? 5 : 14);
       coinItems.splice(i, 1);
       continue;
     }
@@ -3299,6 +3305,7 @@ function tickScoreOverTime(dt) {
 function awardNearMiss(ob) {
   if (nearMissCooldownTimer > 0) return; // global spam guard — 300 ms between near misses
   nearMissCooldownTimer = 0.30;
+  nearMissGlowTimer     = 1; // flash player glow bright
   AudioManager.playSound('nearMiss');
   missionRun.nearMissesThisRun++;
   // Larger, distinct text — snaps attention without cluttering
@@ -3673,6 +3680,19 @@ function render(ts) {
     ctx.fillStyle = pg;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
+  // Gold screen pulse on coin pickup
+  if (coinPickupFlashTimer > 0 && !settings.reducedMotion) {
+    const ep = coinPickupFlashTimer * coinPickupFlashTimer;
+    const cg = ctx.createRadialGradient(
+      canvas.width / 2, canvas.height / 2, 0,
+      canvas.width / 2, canvas.height / 2, Math.max(canvas.width, canvas.height) * 0.50
+    );
+    cg.addColorStop(0,   'rgba(253,224,71,' + (ep * 0.22).toFixed(3) + ')');
+    cg.addColorStop(0.6, 'rgba(251,191,36,' + (ep * 0.10).toFixed(3) + ')');
+    cg.addColorStop(1,   'rgba(0,0,0,0)');
+    ctx.fillStyle = cg;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
   // Combo vignette: red pulsing edge when combo >= 5
   if (combo >= 5 && !settings.reducedMotion) {
     const intensity = Math.min(1, (combo - 4) / 8); // ramps from 0 at combo 5 → full at combo 13
@@ -3705,6 +3725,8 @@ function gameLoop(ts) {
   tickShake(dt);
   if (colorChangeGrace > 0) colorChangeGrace -= dt;
   if (nearMissCooldownTimer > 0) nearMissCooldownTimer -= dt;
+  if (nearMissGlowTimer    > 0) nearMissGlowTimer     = Math.max(0, nearMissGlowTimer - dt / 0.30);
+  if (coinPickupFlashTimer > 0) coinPickupFlashTimer  = Math.max(0, coinPickupFlashTimer - dt / 0.25);
   if (comboPulseTimer > 0) comboPulseTimer = Math.max(0, comboPulseTimer - dt / 0.35);
   tickForbiddenTimer(dt);
   tickDifficulty(dt);
@@ -3783,6 +3805,8 @@ function startGame() {
   warningActive = false; nextForbiddenIdx = -1;
   activePowerupKey = null; activePowerupTimer = 0; activePowerupTotal = 0;
   nearMissCooldownTimer = 0;
+  nearMissGlowTimer    = 0;
+  coinPickupFlashTimer = 0;
   comboPulseTimer = 0;
   shakeX = shakeY = shakeTimer = 0;
   panicTimer    = 0;
@@ -3898,6 +3922,9 @@ function triggerGameOver() {
   AudioManager.stopMusic();
   AudioManager.playSound('death');
   if (navigator.vibrate) navigator.vibrate([100, 50, 200]);
+
+  // Red death flash overlay
+  flashForbiddenBorder('#ff1111');
 
   // Big particle burst at player position
   spawnParticles(player.x, player.y, '#ff4444', settings.reducedMotion ? 8 : 28);
