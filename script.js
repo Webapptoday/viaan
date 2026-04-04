@@ -56,9 +56,9 @@ const COMBO_BONUS_PER         = 25;   // pts per combo level on each color chang
 const POWERUP_COLLECT_BONUS   = 50;   // flat pts for picking up any power-up
 const POWERUP_INTERVAL    = 15;   // s between powerup spawns (more frequent to compensate)
 const DIFF_SCALE_EVERY    = 12;   // s between difficulty bumps — bumps every 12 s for steeper mid-game curve
-const MAX_OBSTACLES       = 42;   // hard cap — dense, dangerous screen
+const MAX_OBSTACLES       = 30;   // hard cap — dense but readable
 const GRACE_PERIOD        = 1.0;  // s at start with no forbidden obstacles
-const FORBIDDEN_MIN_RATIO = 0.45; // keep at least 45% of active obstacles forbidden
+const FORBIDDEN_MIN_RATIO = 0.65; // keep at least 65% of active obstacles forbidden — keeps screen readable
 const CLUSTER_CHANCE      = 0.10; // probability any spawn tick fires a cluster instead of a single obstacle
 const NARROW_CHANCE       = 0.05; // probability any spawn tick fires a narrow-lane wall pattern
 const MAX_WALL_OBSTACLES  = 2;    // max simultaneous wide wall-segment obstacles (prevents stacking)
@@ -2475,7 +2475,7 @@ function spawnCluster() {
       const xB   = Math.min(Math.max(xA + side * (w * 1.4 + 20 + Math.random() * 30), 8), cw - w - 8);
       const yOff = -(h * 0.8 + 10 + Math.random() * 20);
       pushMember(xA, 0,    w, h, vy,        pickCI(needForbidden));
-      pushMember(xB, yOff, w, h, vy * 1.05, pickCI(false));
+      pushMember(xB, yOff, w, h, vy * 1.05, pickCI(Math.random() < 0.40)); // 40% chance second is also dangerous
       break;
     }
 
@@ -2498,7 +2498,7 @@ function spawnCluster() {
       const xOff = (Math.random() - 0.5) * 28;     // slight horizontal wobble
       const yOff = -(h + 12 + Math.random() * 20); // second block directly above
       pushMember(x,        0,    w, h, vy,       pickCI(needForbidden));
-      pushMember(x + xOff, yOff, w, h, vy * 1.1, pickCI(false));
+      pushMember(x + xOff, yOff, w, h, vy * 1.1, pickCI(Math.random() < 0.40)); // 40% chance second is also dangerous
       break;
     }
   }
@@ -2612,7 +2612,7 @@ function drawObstacle(ob) {
   ctx.save();
 
   // Safe obstacles are visually quieter — clearly distinct from dangerous ones
-  if (!isForbidden) ctx.globalAlpha = 0.60;
+  if (!isForbidden) ctx.globalAlpha = 0.28;
 
   // Fill
   pathRoundRect(ctx, ob.x, ob.y, ob.w, ob.h, 8);
