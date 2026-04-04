@@ -55,6 +55,7 @@ const NEAR_MISS_BONUS     = 40;
 const COMBO_BONUS_PER         = 25;   // pts per combo level on each color change (combo×25: 25, 50, 75…)
 const POWERUP_COLLECT_BONUS   = 50;   // flat pts for picking up any power-up
 const POWERUP_INTERVAL    = 15;   // s between powerup spawns (more frequent to compensate)
+const COIN_ITEM_INTERVAL  = 4.5;  // s between coin pickup spawns
 const DIFF_SCALE_EVERY    = 12;   // s between difficulty bumps — bumps every 12 s for steeper mid-game curve
 const MAX_OBSTACLES       = 30;   // hard cap — dense but readable
 const GRACE_PERIOD        = 1.0;  // s at start with no forbidden obstacles
@@ -332,6 +333,7 @@ let lastFrameTime = 0;
 let obstacles     = [];
 let particles     = [];
 let powerups      = [];
+let coinItems     = []; // collectable gold coin pickups
 let floatingTexts = [];
 let ringBursts    = []; // expanding ring effects for powerup pickups
 
@@ -351,6 +353,7 @@ let forbiddenInterval = 3.2;
 let warningActive     = false;
 let nextForbiddenIdx  = -1;
 let powerupTimer      = 0;
+let coinItemTimer     = 0;
 let difficultyBumps   = 0;
 let difficultyTimer   = 0;
 let speedMultiplier   = 1.0;
@@ -2355,25 +2358,15 @@ function drawPlayerInner(skin, now) {
 function spawnObstacle() {
   if (obstacles.length >= MAX_OBSTACLES) return;
 
-  // ── Forbidden-ratio enforcement ──────────────────────────────────
-  // After the grace period, always keep at least one forbidden obstacle on
-  // screen, and push up to FORBIDDEN_MIN_RATIO when density is sufficient.
-  const pastGrace  = graceTimer >= GRACE_PERIOD;
-  const nForbidden = obstacles.filter(o => o.colorIndex === forbiddenIndex).length;
-  const ratio      = obstacles.length > 0 ? nForbidden / obstacles.length : 1;
-  const forceF     = pastGrace &&
-                     (nForbidden === 0 ||
-                      (obstacles.length >= 2 && ratio < activeForbiddenRatio()));
-
+  // After grace period all obstacles are the forbidden color — everything is dangerous.
+  // During grace period only safe colors are used so the player can orient.
+  const pastGrace = graceTimer >= GRACE_PERIOD;
   let colorIndex;
-  if (forceF) {
+  if (pastGrace) {
     colorIndex = forbiddenIndex;
   } else {
     colorIndex = Math.floor(Math.random() * GAME_COLORS.length);
-    // During grace period never spawn the forbidden color
-    if (!pastGrace && colorIndex === forbiddenIndex) {
-      colorIndex = (colorIndex + 1) % GAME_COLORS.length;
-    }
+    if (colorIndex === forbiddenIndex) colorIndex = (colorIndex + 1) % GAME_COLORS.length;
   }
 
   // ── Type selection ────────────────────────────────────────────────
@@ -2403,11 +2396,15 @@ function spawnObstacle() {
   const freq = (type === 1) ? 1.3 + Math.random() * 1.5 : 0;
   const ox  = amp + w / 2 + Math.random() * Math.max(10, canvas.width - amp * 2 - w);
 
+  const isForbiddenSpawn = graceTimer >= GRACE_PERIOD;
   obstacles.push({
     x: ox - w / 2, y: -h - 12, w, h, vy, baseVy: vy, type,
     colorIndex,
     driftAmp: amp, driftFreq: freq, driftPhase: Math.random() * Math.PI * 2, driftTime: 0,
-    originX: ox, nearMissIdx: -1,  // index of forbiddenColor when near-miss was first observed; -1 = none
+    originX: ox, nearMissIdx: -1,
+    // Mutation fields
+    burstTimer: 0, burstMul: 1, burstCooldown: false, burstTrail: [],
+    gravityPull: isForbiddenSpawn && Math.random() < PULL_CHANCE,
   });
 }
 
@@ -2425,26 +2422,29 @@ function spawnCluster() {
   function pushMember(x, yOff, w, h, vy, colorIndex) {
     if (obstacles.length >= MAX_OBSTACLES) return;
     const fvy = slow ? vy * 0.4 : vy;
+    const isForbiddenSpawn = graceTimer >= GRACE_PERIOD;
     obstacles.push({
       x, y: -h - 12 + yOff, w, h,
       vy: fvy, baseVy: fvy, type: 0,
       colorIndex,
       driftAmp: 0, driftFreq: 0, driftPhase: 0, driftTime: 0,
       originX: x + w / 2, nearMissIdx: -1,
+      burstTimer: 0, burstMul: 1, burstCooldown: false, burstTrail: [],
+      gravityPull: isForbiddenSpawn && Math.random() < PULL_CHANCE,
     });
   }
 
-  // Picks a colorIndex respecting grace period; forces forbidden when needed.
-  function pickCI(force) {
-    if (force) return forbiddenIndex;
+  // After grace period all cluster members are forbidden — no safe blocks.
+  function pickCI(_force) {
     const past = graceTimer >= GRACE_PERIOD;
+    if (past) return forbiddenIndex;
     let ci = Math.floor(Math.random() * GAME_COLORS.length);
-    if (!past && ci === forbiddenIndex) ci = (ci + 1) % GAME_COLORS.length;
+    if (ci === forbiddenIndex) ci = (ci + 1) % GAME_COLORS.length;
     return ci;
   }
 
   const past          = graceTimer >= GRACE_PERIOD;
-  const needForbidden = past && obstacles.filter(o => o.colorIndex === forbiddenIndex).length === 0;
+  const needForbidden = false; // unused — pickCI always returns forbidden post-grace
   const vy            = base + Math.random() * 55;
 
   switch (Math.floor(Math.random() * 4)) {
@@ -2523,20 +2523,24 @@ function spawnNarrowLane() {
   function pushWall(x, yOff, w, h, vy, colorIndex) {
     if (obstacles.length >= MAX_OBSTACLES) return;
     const fvy = slow ? vy * 0.4 : vy;
+    const isForbiddenSpawn = graceTimer >= GRACE_PERIOD;
     obstacles.push({
       x, y: -h - 12 + yOff, w, h,
       vy: fvy, baseVy: fvy, type: 0,
       colorIndex,
       driftAmp: 0, driftFreq: 0, driftPhase: 0, driftTime: 0,
       originX: x + w / 2, nearMissIdx: -1,
+      burstTimer: 0, burstMul: 1, burstCooldown: false, burstTrail: [],
+      gravityPull: isForbiddenSpawn && Math.random() < PULL_CHANCE,
     });
   }
 
-  function pickCI(force) {
-    if (force) return forbiddenIndex;
+  // After grace period all walls are forbidden. During grace use safe colors.
+  function pickCI(_force) {
     const past = graceTimer >= GRACE_PERIOD;
+    if (past) return forbiddenIndex;
     let ci = Math.floor(Math.random() * GAME_COLORS.length);
-    if (!past && ci === forbiddenIndex) ci = (ci + 1) % GAME_COLORS.length;
+    if (ci === forbiddenIndex) ci = (ci + 1) % GAME_COLORS.length;
     return ci;
   }
 
@@ -2550,24 +2554,78 @@ function spawnNarrowLane() {
     if (rw > 8) pushWall(gEnd + 2, yOff, rw, h, vy, pickCI(needF && lw > 8));
   }
 
-  const past          = graceTimer >= GRACE_PERIOD;
-  const needForbidden = past && obstacles.filter(o => o.colorIndex === forbiddenIndex).length === 0;
-  const vy            = base + Math.random() * 40;
-  const h             = 26 + Math.random() * 14;   // 26–40 px tall — less imposing
-  const gap           = 68 + Math.random() * 20;   // 68–88 px wide — fairer gap
-  const gCtr          = cw * 0.25 + Math.random() * cw * 0.5;
-  pushRow(gCtr, gap, h, 0, vy, needForbidden);
+  const vy   = base + Math.random() * 40;
+  const h    = 26 + Math.random() * 14;
+  const gap  = 68 + Math.random() * 20;
+  const gCtr = cw * 0.25 + Math.random() * cw * 0.5;
+  pushRow(gCtr, gap, h, 0, vy, false);
 }
+
+// ── Mutation constants ────────────────────────────────────────────────────────
+// SPEED_BURST: forbidden blocks randomly surge 2–3× speed for a short window.
+// GRAVITY_PULL: forbidden blocks pull the player if they are nearby.
+const BURST_CHANCE     = 0.008; // probability per frame to trigger a burst on a forbidden block
+const BURST_SPEED_MUL  = 2.0;   // minimum speed multiplier during burst (random up to 3×)
+const BURST_DURATION   = 0.55;  // s a burst lasts
+const PULL_RADIUS      = 110;   // px — distance inside which gravity pull activates
+const PULL_FORCE       = 52;    // px/s² pull toward block center (applied to player position)
+const PULL_CHANCE      = 0.35;  // fraction of new forbidden obstacles that get a gravity-pull mutation
 
 function updateObstacles(dt) {
   for (let i = obstacles.length - 1; i >= 0; i--) {
     const ob = obstacles[i];
+
+    // ── Speed Burst mutation ──────────────────────────────────────────────────
+    if (isDangerous(ob)) {
+      if (ob.burstTimer > 0) {
+        ob.burstTimer -= dt;
+        if (ob.burstTimer <= 0) {
+          // Burst ends — restore original speed
+          ob.vy = ob.baseVy;
+          ob.burstTimer = 0;
+          ob.burstMul   = 1;
+        }
+      } else if (!ob.burstCooldown && Math.random() < BURST_CHANCE) {
+        // Trigger burst
+        ob.burstMul   = BURST_SPEED_MUL + Math.random() * (3.0 - BURST_SPEED_MUL);
+        ob.vy         = ob.baseVy * ob.burstMul;
+        ob.burstTimer = BURST_DURATION;
+        // Seed a short glow-trail array on the block
+        ob.burstTrail = [];
+      }
+    }
+
+    // Record glow trail positions while burst is active
+    if (ob.burstTimer > 0) {
+      if (!ob.burstTrail) ob.burstTrail = [];
+      ob.burstTrail.unshift({ x: ob.x + ob.w / 2, y: ob.y + ob.h / 2, t: ob.burstTimer / BURST_DURATION });
+      if (ob.burstTrail.length > 8) ob.burstTrail.length = 8;
+    }
+
     ob.y += ob.vy * dt;
 
     if (ob.type === 1) {
       ob.driftTime += dt;
       ob.x = ob.originX - ob.w / 2 + Math.sin(ob.driftTime * ob.driftFreq + ob.driftPhase) * ob.driftAmp;
       ob.x = Math.max(0, Math.min(canvas.width - ob.w, ob.x));
+    }
+
+    // ── Gravity Pull mutation ─────────────────────────────────────────────────
+    if (ob.gravityPull && isDangerous(ob) && ob.y > -ob.h) {
+      const bx  = ob.x + ob.w / 2;
+      const by  = ob.y + ob.h / 2;
+      const pdx = bx - player.x;
+      const pdy = by - player.y;
+      const dist = Math.sqrt(pdx * pdx + pdy * pdy);
+      if (dist < PULL_RADIUS && dist > 1) {
+        // Dampen pull so it doesn't snap — strength falls off linearly with distance
+        const strength = PULL_FORCE * dt * (1 - dist / PULL_RADIUS);
+        player.x += (pdx / dist) * strength;
+        player.y += (pdy / dist) * strength;
+        // Clamp to canvas
+        player.x = Math.max(player.radius, Math.min(canvas.width  - player.radius, player.x));
+        player.y = Math.max(player.radius, Math.min(canvas.height - player.radius, player.y));
+      }
     }
 
     // Near-miss: record the forbiddenIndex active at the moment of the close pass.
@@ -2609,6 +2667,25 @@ function drawObstacle(ob) {
   const colorDef = GAME_COLORS[ob.colorIndex];
   const hex      = colorDef.hex;
   const symbol   = colorDef.symbol;
+
+  // ── Speed Burst glow trail ────────────────────────────────────────────────
+  if (ob.burstTrail && ob.burstTrail.length > 0 && !settings.reducedMotion) {
+    for (let t = ob.burstTrail.length - 1; t >= 0; t--) {
+      const pt    = ob.burstTrail[t];
+      const alpha = pt.t * 0.55 * (1 - t / ob.burstTrail.length);
+      const r     = (ob.w * 0.5) * (0.5 + 0.5 * (1 - t / ob.burstTrail.length));
+      ctx.save();
+      ctx.globalAlpha  = Math.max(0, alpha);
+      ctx.shadowColor  = hex;
+      ctx.shadowBlur   = 20;
+      ctx.fillStyle    = hex;
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+
   ctx.save();
 
   // Safe obstacles are visually quieter — clearly distinct from dangerous ones
@@ -2619,13 +2696,44 @@ function drawObstacle(ob) {
   ctx.fillStyle = hex;
 
   if (isForbidden) {
-    // Pulsing glow: oscillates between blur 18 and 32 — draws the eye, signals danger
-    const pulse = 18 + 14 * (0.5 + 0.5 * Math.sin(Date.now() / 200));
-    ctx.shadowColor = hex;
+    // Pulsing glow: base + extra intensity during a speed burst
+    const burstBoost = ob.burstTimer > 0 ? 20 + 12 * (ob.burstTimer / BURST_DURATION) : 0;
+    const pulse = 18 + 14 * (0.5 + 0.5 * Math.sin(Date.now() / 200)) + burstBoost;
+    ctx.shadowColor = ob.burstTimer > 0 ? '#ffffff' : hex;
     ctx.shadowBlur  = pulse;
   }
   ctx.fill();
   ctx.shadowBlur = 0;
+
+  // ── Gravity Pull aura ─────────────────────────────────────────────────────
+  if (ob.gravityPull && isForbidden && !settings.reducedMotion) {
+    const cx  = ob.x + ob.w / 2;
+    const cy  = ob.y + ob.h / 2;
+    const now = Date.now();
+    const pulseA = 0.12 + 0.08 * Math.sin(now / 320);
+    const rInner = Math.max(ob.w, ob.h) * 0.6;
+    const rOuter = rInner + PULL_RADIUS * 0.55;
+    const grad   = ctx.createRadialGradient(cx, cy, rInner, cx, cy, rOuter);
+    grad.addColorStop(0,   `rgba(180,80,255,${pulseA.toFixed(3)})`);
+    grad.addColorStop(0.6, `rgba(120,40,200,${(pulseA * 0.4).toFixed(3)})`);
+    grad.addColorStop(1,   'rgba(80,0,160,0)');
+    ctx.save();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle   = grad;
+    ctx.beginPath();
+    ctx.arc(cx, cy, rOuter, 0, Math.PI * 2);
+    ctx.fill();
+    // Swirling dashes around the block edge
+    ctx.strokeStyle = `rgba(210,120,255,${(pulseA * 1.5).toFixed(3)})`;
+    ctx.lineWidth   = 1.5;
+    ctx.setLineDash([6, 8]);
+    ctx.lineDashOffset = -(now / 80) % 14;
+    ctx.beginPath();
+    ctx.arc(cx, cy, rInner + 8, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+  }
 
   if (isForbidden) {
     // Strong white border — danger outline is always readable regardless of block color
@@ -2657,6 +2765,68 @@ function drawObstacle(ob) {
     drawHatchPattern(ob.x, ob.y, ob.w, ob.h, 8);
   }
 
+  ctx.restore();
+}
+
+// ============================================================
+// SECTION 10b: COIN PICKUP SYSTEM
+// ============================================================
+
+function spawnCoinItem() {
+  const sz = 20;
+  coinItems.push({
+    x: sz + Math.random() * (canvas.width - sz * 2),
+    y: -sz - 12,
+    size: sz,
+    vy: 110 + Math.random() * 40,
+    value: 1 + Math.floor(Math.random() * 3), // 1–3 coins
+  });
+}
+
+function updateCoinItems(dt) {
+  for (let i = coinItems.length - 1; i >= 0; i--) {
+    const c = coinItems[i];
+    c.y += c.vy * dt;
+    const dx   = player.x - c.x;
+    const dy   = player.y - c.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist < player.radius + c.size / 2 + 6) {
+      AudioManager.playSound('coin');
+      awardCoins(c.value);
+      spawnParticles(c.x, c.y, '#fbbf24', 8);
+      coinItems.splice(i, 1);
+      continue;
+    }
+    if (c.y > canvas.height + 20) coinItems.splice(i, 1);
+  }
+}
+
+function drawCoinItem(c) {
+  const r     = c.size / 2;
+  const pulse = 0.85 + 0.15 * Math.sin(performance.now() / 400 + c.x);
+  ctx.save();
+  ctx.shadowColor = 'rgba(251,191,36,0.7)';
+  ctx.shadowBlur  = 8 + 6 * pulse;
+  const g = ctx.createRadialGradient(
+    c.x - r * 0.35, c.y - r * 0.28, 0,
+    c.x,             c.y,            r
+  );
+  g.addColorStop(0,    '#fef9c3');
+  g.addColorStop(0.22, '#fde047');
+  g.addColorStop(0.55, '#eab308');
+  g.addColorStop(0.88, '#a16207');
+  g.addColorStop(1,    '#78350f');
+  ctx.beginPath();
+  ctx.arc(c.x, c.y, r * pulse, 0, Math.PI * 2);
+  ctx.fillStyle = g;
+  ctx.fill();
+  // Inner ring
+  ctx.beginPath();
+  ctx.arc(c.x, c.y, r * 0.65, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(255,255,255,0.30)';
+  ctx.lineWidth   = 1.5;
+  ctx.shadowBlur  = 0;
+  ctx.stroke();
   ctx.restore();
 }
 
@@ -3458,6 +3628,7 @@ function render(ts) {
   drawBackground();
   obstacles.forEach(drawObstacle);
   powerups.forEach(drawPowerup);
+  coinItems.forEach(drawCoinItem);
   drawTrail();
   drawPlayer();
   drawParticles();
@@ -3547,8 +3718,12 @@ function gameLoop(ts) {
   powerupTimer += dt;
   if (powerupTimer >= POWERUP_INTERVAL) { powerupTimer = 0; spawnPowerup(); }
 
+  coinItemTimer += dt;
+  if (coinItemTimer >= COIN_ITEM_INTERVAL) { coinItemTimer = 0; spawnCoinItem(); }
+
   updateObstacles(dt);
   updatePowerups(dt);
+  updateCoinItems(dt);
   checkCollisions();
   render(ts);
 
@@ -3562,13 +3737,13 @@ function gameLoop(ts) {
 function startGame() {
   Audio.init();
   score = 0; combo = 0; maxCombo = 0; graceTimer = 0;
-  obstacles = []; particles = []; powerups = []; floatingTexts = []; ringBursts = [];
+  obstacles = []; particles = []; powerups = []; coinItems = []; floatingTexts = []; ringBursts = [];
   milestoneBanner = null;
   _scoreMilestonesHit = new Set();
   _timeMilestonesHit  = new Set();
   _comboMilestonesHit = new Set();
   playerTrail = [];
-  spawnTimer = 0; powerupTimer = 0; difficultyTimer = 0; difficultyBumps = 0;
+  spawnTimer = 0; powerupTimer = 0; coinItemTimer = 0; difficultyTimer = 0; difficultyBumps = 0;
   // Reset per-run mission counters (cumulative stat handled separately in evaluateMissions)
   missionRun = { seconds: 0, score: 0, colorChanges: 0, powerupsThisRun: 0, nearMissesThisRun: 0, panicWavesSurvived: 0, maxCombo: 0 };
   // Apply any pending mission bonus
