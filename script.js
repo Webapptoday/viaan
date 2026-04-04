@@ -61,10 +61,7 @@ const MAX_OBSTACLES       = 30;   // hard cap — dense but readable
 const GRACE_PERIOD        = 1.0;  // s at start with no forbidden obstacles
 const FORBIDDEN_MIN_RATIO = 0.65; // keep at least 65% of active obstacles forbidden — keeps screen readable
 const CLUSTER_CHANCE      = 0.10; // probability any spawn tick fires a cluster instead of a single obstacle
-const NARROW_CHANCE       = 0.05; // probability any spawn tick fires a narrow-lane wall pattern
-const WALL_PATTERN_CHANCE = 0;    // disabled — wall pattern removed from spawning
-const WALL_PATTERN_CD     = 12;   // minimum seconds between wall patterns
-const MAX_WALL_OBSTACLES  = 2;    // max simultaneous wide wall-segment obstacles (prevents stacking)
+// Wall / narrow-lane patterns removed — challenge comes from spawn rate and color cycling.
 
 // ============================================================
 // SECTION 2: MUTABLE STATE
@@ -358,7 +355,7 @@ let warningActive     = false;
 let nextForbiddenIdx  = -1;
 let powerupTimer      = 0;
 let coinItemTimer     = 0;
-let wallPatternCooldown = 0; // s remaining before next wall pattern is allowed
+
 let difficultyBumps   = 0;
 let difficultyTimer   = 0;
 let speedMultiplier   = 1.0;
@@ -2361,7 +2358,7 @@ function drawPlayerInner(skin, now) {
 // ============================================================
 // SECTION 9: OBSTACLE SYSTEM
 // ============================================================
-// Types: 0=NORMAL (straight), 1=DRIFTER (sinusoidal), 2=BIG (large+slow)
+// Types: 0=NORMAL (straight), 2=BIG (large+slow)
 
 function spawnObstacle() {
   if (obstacles.length >= MAX_OBSTACLES) return;
@@ -2378,12 +2375,12 @@ function spawnObstacle() {
   }
 
   // ── Type selection ────────────────────────────────────────────────
-  // 0=straight square  1=drifter  2=big slow hazard
+  // 0=straight square  2=big slow hazard
   // 3=bullet (tall thin, fast)  4=dart (tiny, superfast)
-  // Weights: 0→28% | 1→35% | 2→6% | 3→14% | 4→17%
+  // Weights: 0→50% | 2→10% | 3→25% | 4→15%
   // Type 2 is also hard-capped at 2 on-screen; surplus becomes type 0.
   const rnd  = Math.random();
-  let   type = rnd < 0.28 ? 0 : (rnd < 0.63 ? 1 : (rnd < 0.69 ? 2 : (rnd < 0.83 ? 3 : 4)));
+  let   type = rnd < 0.50 ? 0 : (rnd < 0.60 ? 2 : (rnd < 0.85 ? 3 : 4));
   // Cap big obstacles — if 2 already on screen, demote to type 0
   if (type === 2 && obstacles.filter(o => o.type === 2).length >= 2) type = 0;
   const base = GAME_CONFIG.baseSpeed * speedMultiplier * panicSpeedMult();
@@ -2399,20 +2396,13 @@ function spawnObstacle() {
 
   if (activePowerupKey === 'SLOW') vy *= 0.4;
 
-  // Drifters: tighter, predictable amplitude so motion reads cleanly
-  const amp  = (type === 1) ? 40 + Math.random() * 40 : 0;
-  // Slow, uniform frequency — steady rhythm the player can read
-  const freq = (type === 1) ? 0.9 + Math.random() * 0.6 : 0;
-  const ox  = amp + w / 2 + Math.random() * Math.max(10, canvas.width - amp * 2 - w);
+  const ox  = w / 2 + Math.random() * Math.max(10, canvas.width - w);
 
   const isForbiddenSpawn = graceTimer >= GRACE_PERIOD;
   obstacles.push({
     x: ox - w / 2, y: -h - 12, w, h, vy, baseVy: vy, type,
     colorIndex,
-    driftAmp: amp, driftFreq: freq, driftPhase: Math.random() * Math.PI * 2, driftTime: 0,
     originX: ox, nearMissIdx: -1,
-    // Mutation fields
-    burstTimer: 0, burstMul: 1, burstCooldown: false, burstTrail: [],
     gravityPull: false,
   });
 }
@@ -2436,9 +2426,7 @@ function spawnCluster() {
       x, y: -h - 12 + yOff, w, h,
       vy: fvy, baseVy: fvy, type: 0,
       colorIndex,
-      driftAmp: 0, driftFreq: 0, driftPhase: 0, driftTime: 0,
       originX: x + w / 2, nearMissIdx: -1,
-      burstTimer: 0, burstMul: 1, burstCooldown: false, burstTrail: [],
       gravityPull: false,
     });
   }
@@ -2460,7 +2448,6 @@ function spawnCluster() {
 
     // GATE — wall on each side, one navigable gap
     case 0: {
-      if (countWallObstacles() >= MAX_WALL_OBSTACLES) { spawnObstacle(); break; } // fallback if cap hit
       const gap  = 72 + Math.random() * 24;                       // 72–96 px — roomy gate
       const gCtr = cw * 0.25 + Math.random() * cw * 0.5;         // 25–75% across
       const gx   = Math.max(4, gCtr - gap / 2);
@@ -2513,160 +2500,19 @@ function spawnCluster() {
   }
 }
 
-// ── Narrow-lane spawning ─────────────────────────────────────────────────────
-// 5 % of spawn ticks place a near-full-width wall with a single gap.
-// Only SQUEEZE (single row) fires — one clear pressure moment, not a labyrinth.
-// Skips entirely when MAX_WALL_OBSTACLES wide segments are already on screen.
-function countWallObstacles() {
-  // A wall segment is a type-0 obstacle wider than 40 % of the canvas.
-  return obstacles.filter(o => o.type === 0 && o.w > canvas.width * 0.40).length;
-}
 
-function spawnNarrowLane() {
-  if (obstacles.length >= MAX_OBSTACLES) return;
-  if (countWallObstacles() >= MAX_WALL_OBSTACLES) return; // cap: no stacking
-  const cw   = canvas.width;
-  const base = GAME_CONFIG.baseSpeed * speedMultiplier * panicSpeedMult();
-  const slow = activePowerupKey === 'SLOW';
 
-  function pushWall(x, yOff, w, h, vy, colorIndex) {
-    if (obstacles.length >= MAX_OBSTACLES) return;
-    const fvy = slow ? vy * 0.4 : vy;
-    const isForbiddenSpawn = graceTimer >= GRACE_PERIOD;
-    obstacles.push({
-      x, y: -h - 12 + yOff, w, h,
-      vy: fvy, baseVy: fvy, type: 0,
-      colorIndex,
-      driftAmp: 0, driftFreq: 0, driftPhase: 0, driftTime: 0,
-      originX: x + w / 2, nearMissIdx: -1,
-      burstTimer: 0, burstMul: 1, burstCooldown: false, burstTrail: [],
-      gravityPull: false,
-    });
-  }
 
-  // After grace period all walls are forbidden. During grace use safe colors.
-  function pickCI(_force) {
-    const past = graceTimer >= GRACE_PERIOD;
-    if (past) return forbiddenIndex;
-    let ci = Math.floor(Math.random() * GAME_COLORS.length);
-    if (ci === forbiddenIndex) ci = (ci + 1) % GAME_COLORS.length;
-    return ci;
-  }
 
-  // Single row, wider gap (68–88 px) — readable, achievable, still tight.
-  function pushRow(gCtr, gapW, h, yOff, vy, needF) {
-    const gx   = Math.max(4, gCtr - gapW / 2);
-    const gEnd = Math.min(cw - 4, gx + gapW);
-    const lw   = gx - 4;
-    const rw   = cw - gEnd - 4;
-    if (lw > 8) pushWall(2,        yOff, lw, h, vy, pickCI(needF && rw <= 8));
-    if (rw > 8) pushWall(gEnd + 2, yOff, rw, h, vy, pickCI(needF && lw > 8));
-  }
 
-  const vy   = base + Math.random() * 40;
-  const h    = 26 + Math.random() * 14;
-  const gap  = 88 + Math.random() * 20;   // 88–108 px — always wide enough to pass through
-  const gCtr = cw * 0.25 + Math.random() * cw * 0.5;
-  pushRow(gCtr, gap, h, 0, vy, false);
-}
 
-// ── Wall Pattern mutation ─────────────────────────────────────────────────────────
-// Spawns a row of 4–6 forbidden bricks across the full canvas width
-// with a single tight gap (54–68 px). Fires at most once every WALL_PATTERN_CD s
-// and only after the grace period + 2 s warmup.
-function spawnWallPattern() {
-  if (graceTimer < GRACE_PERIOD + 2) return;
-  if (wallPatternCooldown > 0) return;
-  if (countWallObstacles() >= MAX_WALL_OBSTACLES) return;
-  if (obstacles.length >= MAX_OBSTACLES - 4) return; // need headroom
-
-  const cw   = canvas.width;
-  const base = GAME_CONFIG.baseSpeed * speedMultiplier * panicSpeedMult();
-  const slow = activePowerupKey === 'SLOW';
-
-  const gap  = 54 + Math.random() * 14;              // 54–68 px — tight but fair
-  const gCtr = cw * 0.20 + Math.random() * cw * 0.60; // gap centre 20–80%
-  const gx   = Math.max(6, gCtr - gap / 2);
-  const gEnd = Math.min(cw - 6, gx + gap);
-  const h    = 28 + Math.random() * 10;              // 28–38 px tall
-  const vy   = (base + Math.random() * 30) * 1.12;   // 12% faster than normal
-  const fvy  = slow ? vy * 0.4 : vy;
-
-  // Split a horizontal range into evenly-spaced bricks with 3 px gutters
-  function pushBricksInRange(startX, endX) {
-    const totalW = endX - startX;
-    if (totalW < 14) return;
-    const numBricks = Math.min(4, Math.max(1, Math.floor(totalW / 36)));
-    const gutters   = (numBricks - 1) * 3;
-    const brickW    = Math.floor((totalW - gutters) / numBricks);
-    for (let i = 0; i < numBricks; i++) {
-      if (obstacles.length >= MAX_OBSTACLES) break;
-      const bx = startX + i * (brickW + 3);
-      obstacles.push({
-        x: bx, y: -h - 12, w: brickW, h,
-        vy: fvy, baseVy: fvy, type: 0,
-        colorIndex: forbiddenIndex,
-        driftAmp: 0, driftFreq: 0, driftPhase: 0, driftTime: 0,
-        originX: bx + brickW / 2, nearMissIdx: -1,
-        burstTimer: 0, burstMul: 1, burstCooldown: false, burstTrail: [],
-        gravityPull: false, // wall bricks never pull — gap navigation is already hard
-      });
-    }
-  }
-
-  pushBricksInRange(4, gx - 3);
-  pushBricksInRange(gEnd + 3, cw - 4);
-
-  wallPatternCooldown = WALL_PATTERN_CD;
-  addFloating(cw / 2, canvas.height * 0.18, '⚠ WALL!', '#ef4444', 22);
-  triggerShake(3.5, 0.18);
-}
-
-// ── Mutation constants ────────────────────────────────────────────────────────
-// SPEED_BURST: forbidden blocks randomly surge 2–3× speed for a short window.
-const BURST_CHANCE     = 0.008; // probability per frame to trigger a burst on a forbidden block
-const BURST_SPEED_MUL  = 2.0;   // minimum speed multiplier during burst (random up to 3×)
-const BURST_DURATION   = 0.55;  // s a burst lasts
-// Gravity Pull removed — it hurt gameplay clarity.
+// Mutations removed: Speed Burst, Gravity Pull, Wall Pattern — all hurt gameplay clarity.
 
 function updateObstacles(dt) {
   for (let i = obstacles.length - 1; i >= 0; i--) {
     const ob = obstacles[i];
 
-    // ── Speed Burst mutation (type 0 and 2 only — not fast/long blocks) ───────
-    if (isDangerous(ob) && ob.type !== 3 && ob.type !== 4) {
-      if (ob.burstTimer > 0) {
-        ob.burstTimer -= dt;
-        if (ob.burstTimer <= 0) {
-          // Burst ends — restore original speed
-          ob.vy = ob.baseVy;
-          ob.burstTimer = 0;
-          ob.burstMul   = 1;
-        }
-      } else if (!ob.burstCooldown && Math.random() < BURST_CHANCE) {
-        // Trigger burst
-        ob.burstMul   = BURST_SPEED_MUL + Math.random() * (3.0 - BURST_SPEED_MUL);
-        ob.vy         = ob.baseVy * ob.burstMul;
-        ob.burstTimer = BURST_DURATION;
-        // Seed a short glow-trail array on the block
-        ob.burstTrail = [];
-      }
-    }
-
-    // Record glow trail positions while burst is active
-    if (ob.burstTimer > 0) {
-      if (!ob.burstTrail) ob.burstTrail = [];
-      ob.burstTrail.unshift({ x: ob.x + ob.w / 2, y: ob.y + ob.h / 2, t: ob.burstTimer / BURST_DURATION });
-      if (ob.burstTrail.length > 8) ob.burstTrail.length = 8;
-    }
-
     ob.y += ob.vy * dt;
-
-    if (ob.type === 1) {
-      ob.driftTime += dt;
-      ob.x = ob.originX - ob.w / 2 + Math.sin(ob.driftTime * ob.driftFreq + ob.driftPhase) * ob.driftAmp;
-      ob.x = Math.max(0, Math.min(canvas.width - ob.w, ob.x));
-    }
 
     // Near-miss: record the forbiddenIndex active at the moment of the close pass.
     // Storing the index (not a boolean) means the award at exit is independent of
@@ -2720,10 +2566,9 @@ function drawObstacle(ob) {
   ctx.fillStyle = hex;
 
   if (isForbidden) {
-    // Pulsing glow: base + extra intensity during a speed burst
-    const burstBoost = ob.burstTimer > 0 ? 20 + 12 * (ob.burstTimer / BURST_DURATION) : 0;
-    const pulse = 18 + 14 * (0.5 + 0.5 * Math.sin(Date.now() / 200)) + burstBoost;
-    ctx.shadowColor = ob.burstTimer > 0 ? '#ffffff' : hex;
+    // Pulsing glow
+    const pulse = 18 + 14 * (0.5 + 0.5 * Math.sin(Date.now() / 200));
+    ctx.shadowColor = hex;
     ctx.shadowBlur  = pulse;
   }
   ctx.fill();
@@ -3755,10 +3600,8 @@ function gameLoop(ts) {
   if (spawnTimer >= panicSpawnRate()) {
     spawnTimer = 0;
     const r = Math.random();
-    if      (r < NARROW_CHANCE)                              spawnNarrowLane();
-    else if (r < NARROW_CHANCE + WALL_PATTERN_CHANCE)        spawnWallPattern();
-    else if (r < NARROW_CHANCE + WALL_PATTERN_CHANCE + CLUSTER_CHANCE) spawnCluster();
-    else                                                     spawnObstacle();
+    if (r < CLUSTER_CHANCE) spawnCluster();
+    else                    spawnObstacle();
   }
 
   powerupTimer += dt;
@@ -3766,8 +3609,6 @@ function gameLoop(ts) {
 
   coinItemTimer += dt;
   if (coinItemTimer >= COIN_ITEM_INTERVAL) { coinItemTimer = 0; spawnCoinItem(); }
-
-  if (wallPatternCooldown > 0) wallPatternCooldown -= dt;
 
   updateObstacles(dt);
   updatePowerups(dt);
@@ -3791,7 +3632,7 @@ function startGame() {
   _timeMilestonesHit  = new Set();
   _comboMilestonesHit = new Set();
   playerTrail = [];
-  spawnTimer = 0; powerupTimer = 0; coinItemTimer = 0; wallPatternCooldown = 0; difficultyTimer = 0; difficultyBumps = 0;
+  spawnTimer = 0; powerupTimer = 0; coinItemTimer = 0; difficultyTimer = 0; difficultyBumps = 0;
   // Reset per-run mission counters (cumulative stat handled separately in evaluateMissions)
   missionRun = { seconds: 0, score: 0, colorChanges: 0, powerupsThisRun: 0, nearMissesThisRun: 0, panicWavesSurvived: 0, maxCombo: 0 };
   // Apply any pending mission bonus
@@ -3852,16 +3693,6 @@ function startGame() {
         // Guarantee a drifter every 3rd pre-fill for immediate lateral movement
         // Also demote any type-2 (big) pre-fills to type 0 — opening screen stays clean
         if (ob.type === 2) { ob.type = 0; ob.w = 28 + Math.random()*16; ob.h = ob.w; }
-        if (_i % 3 === 1 && ob.type !== 1) {
-          ob.type       = 1;
-          ob.driftAmp   = 55 + Math.random() * 70;
-          ob.driftFreq  = 1.3 + Math.random() * 1.5;
-          ob.driftPhase = Math.random() * Math.PI * 2;
-          ob.originX    = Math.min(
-            Math.max(ob.x + ob.w / 2, ob.driftAmp),
-            canvas.width - ob.driftAmp
-          );
-        }
       }
     }
     spawnTimer = 0;
