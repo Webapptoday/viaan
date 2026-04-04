@@ -326,8 +326,6 @@ let score         = 0;
 let combo         = 0;
 let maxCombo      = 0;
 let gameStartTime = 0;
-let pausedDuration = 0;  // total ms spent paused this run
-let pauseStartTime = 0;  // performance.now() when current pause began
 let graceTimer    = 0;
 let lastFrameTime = 0;
 
@@ -363,6 +361,8 @@ let activePowerupTimer = 0;
 let activePowerupTotal = 0;
 
 let colorChangeGrace   = 0; // s remaining — brief invincibility on forbidden color change
+
+let nearMissCooldownTimer = 0; // global cooldown (s) to prevent near-miss spam from multiple simultaneous blocks
 
 let shakeX = 0, shakeY = 0, shakeTimer = 0;
 
@@ -3097,6 +3097,8 @@ function tickScoreOverTime(dt) {
 }
 
 function awardNearMiss(ob) {
+  if (nearMissCooldownTimer > 0) return; // global spam guard — 300 ms between near misses
+  nearMissCooldownTimer = 0.30;
   AudioManager.playSound('nearMiss');
   missionRun.nearMissesThisRun++;
   // Larger, distinct text — snaps attention without cluttering
@@ -3480,6 +3482,7 @@ function gameLoop(ts) {
   updatePlayer(dt);
   tickShake(dt);
   if (colorChangeGrace > 0) colorChangeGrace -= dt;
+  if (nearMissCooldownTimer > 0) nearMissCooldownTimer -= dt;
   tickForbiddenTimer(dt);
   tickDifficulty(dt);
   tickActivePowerup(dt);
@@ -3494,7 +3497,7 @@ function gameLoop(ts) {
   maybeUpdateHud(ts);
 
   // Survival time milestones
-  const elapsed = (performance.now() - gameStartTime - pausedDuration) / 1000;
+  const elapsed = (performance.now() - gameStartTime) / 1000;
   for (const t of TIME_MILESTONES) {
     if (elapsed >= t && !_timeMilestonesHit.has(t)) {
       _timeMilestonesHit.add(t);
@@ -3549,6 +3552,7 @@ function startGame() {
   }
   warningActive = false; nextForbiddenIdx = -1;
   activePowerupKey = null; activePowerupTimer = 0; activePowerupTotal = 0;
+  nearMissCooldownTimer = 0;
   shakeX = shakeY = shakeTimer = 0;
   panicTimer    = 0;
   panicPhase    = 'cooldown';
@@ -3607,8 +3611,6 @@ function startGame() {
     }
     spawnTimer = 0;
     gameStartTime = performance.now();
-    pausedDuration = 0;
-    pauseStartTime = 0;
     lastFrameTime = performance.now();
     const c = GAME_COLORS[forbiddenIndex];
     Announce.say('Game started. Forbidden color: ' + c.name + '.');
@@ -3622,7 +3624,6 @@ function pauseGame() {
   currentState = STATE.PAUSED;
   cancelAnimationFrame(rafHandle); rafHandle = null;
   clearAllInputs();
-  pauseStartTime = performance.now();
   Music.pause();
   document.getElementById('pause-overlay').hidden = false;
   requestAnimationFrame(() => document.getElementById('btn-resume').focus());
@@ -3631,8 +3632,6 @@ function pauseGame() {
 
 function resumeGame() {
   if (currentState !== STATE.PAUSED) return;
-  if (pauseStartTime) pausedDuration += performance.now() - pauseStartTime;
-  pauseStartTime = 0;
   document.getElementById('pause-overlay').hidden = true;
   currentState  = STATE.PLAYING;
   lastFrameTime = performance.now();
@@ -3678,7 +3677,7 @@ function triggerGameOver() {
   setTimeout(() => {
     const final      = Math.floor(score);
     missionRun.score    = final;
-    missionRun.seconds  = Math.floor((performance.now() - gameStartTime - pausedDuration) / 1000);
+    missionRun.seconds  = Math.floor((performance.now() - gameStartTime) / 1000);
     missionRun.maxCombo = maxCombo;
     evaluateMissions();
     const wasNewBest = final > settings.bestScore;
@@ -3686,7 +3685,7 @@ function triggerGameOver() {
     if (wasNewBest) { settings.bestScore = final; saveSettings(); newBestThisGame = true; }
     if (wasNewBest) checkSkinUnlocks(prevBest, settings.bestScore);
 
-    const elapsed = Math.floor((performance.now() - gameStartTime - pausedDuration) / 1000);
+    const elapsed = Math.floor((performance.now() - gameStartTime) / 1000);
     const coinsEarned = awardRunCoins(final, elapsed);
     updateSkinsUI();
     updateStats(elapsed); // persist lifetime stats before showing overlay
