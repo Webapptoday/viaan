@@ -371,6 +371,7 @@ let panicCooldown  = 18;   // s until first wave (starts after grace)
 let panicTimer     = 0;   // counts up during cooldown / down during wave / down during announce
 let panicPhase     = 'cooldown'; // 'cooldown' | 'announce' | 'wave'
 let panicDuration  = 0;   // chosen length of current wave (2–4 s)
+let comboPulseTimer = 0;  // 0→1 flash on combo increase, decays over ~0.35s
 
 // Double Danger state
 let ddPhase        = 'idle';  // 'idle' | 'announce' | 'active'
@@ -1747,6 +1748,10 @@ function awardCoins(amount) {
   settings.coins += amount;
   saveSettings();
   updateCoinUI(true);
+  // Show floating coin text during gameplay
+  if (currentState === STATE.PLAYING && player) {
+    addFloating(player.x, player.y - 80, '+' + amount + ' \uD83E\uDE99', '#fbbf24', 16);
+  }
 }
 
 function awardRunCoins(finalScore, elapsedSecs) {
@@ -2134,8 +2139,9 @@ function drawPlayer() {
   }
 
   // ── Body ────────────────────────────────────────────────────
-  // Glow intensity by rarity / effect
-  let shadowBlur = 20;
+  // Glow intensity by rarity / effect — boosted by combo
+  const comboGlowBoost = Math.min(combo * 3, 30); // up to +30px glow at combo 10
+  let shadowBlur = 20 + comboGlowBoost;
   let c1 = skin.color1, c2 = skin.color2;
   if (skin.effect === 'flicker') {
     const flick = 0.6 + 0.4 * Math.sin(now / 70 + 2.1);
@@ -2965,6 +2971,7 @@ function changeForbiddenColor() {
   if (combo > 1) {
     addFloating(player.x, player.y - 65, '\uD83D\uDD25 x' + combo + '! +' + bonus, '#f59e0b');
     AudioManager.playSound('combo', combo);
+    comboPulseTimer = 1; // trigger screen pulse
   } else {
     addFloating(player.x, player.y - 65, '+' + bonus + ' Survived!', '#f59e0b');
   }
@@ -3142,6 +3149,14 @@ function tickPanicWave(dt) {
       panicPhase    = 'announce';
       panicDuration = 2.0 + Math.random() * 2.0; // 2–4 s
       triggerShake(6, 0.3);
+      // Red entrance flash via CSS overlay
+      const _panicFlash = document.getElementById('color-flash-overlay');
+      if (_panicFlash && !settings.reducedMotion) {
+        _panicFlash.style.setProperty('--flash-color', '#ff1111');
+        _panicFlash.classList.remove('flash-active');
+        void _panicFlash.offsetWidth;
+        _panicFlash.classList.add('flash-active');
+      }
     }
 
   } else if (panicPhase === 'announce') {
@@ -3451,6 +3466,19 @@ function render(ts) {
   drawMilestoneBanner();
   drawPanicBanner();
   drawDoubleDangerBanner();
+  // Screen pulse on combo increase — brief white radial flash from center
+  if (comboPulseTimer > 0 && !settings.reducedMotion) {
+    const easedPulse = comboPulseTimer * comboPulseTimer; // ease-out
+    const pg = ctx.createRadialGradient(
+      canvas.width / 2, canvas.height / 2, 0,
+      canvas.width / 2, canvas.height / 2, Math.max(canvas.width, canvas.height) * 0.55
+    );
+    pg.addColorStop(0,   'rgba(255,220,50,' + (easedPulse * 0.18).toFixed(3) + ')');
+    pg.addColorStop(0.5, 'rgba(255,150,0,'  + (easedPulse * 0.08).toFixed(3) + ')');
+    pg.addColorStop(1,   'rgba(0,0,0,0)');
+    ctx.fillStyle = pg;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  }
   // Combo vignette: red pulsing edge when combo >= 5
   if (combo >= 5 && !settings.reducedMotion) {
     const intensity = Math.min(1, (combo - 4) / 8); // ramps from 0 at combo 5 → full at combo 13
@@ -3483,6 +3511,7 @@ function gameLoop(ts) {
   tickShake(dt);
   if (colorChangeGrace > 0) colorChangeGrace -= dt;
   if (nearMissCooldownTimer > 0) nearMissCooldownTimer -= dt;
+  if (comboPulseTimer > 0) comboPulseTimer = Math.max(0, comboPulseTimer - dt / 0.35);
   tickForbiddenTimer(dt);
   tickDifficulty(dt);
   tickActivePowerup(dt);
@@ -3553,6 +3582,7 @@ function startGame() {
   warningActive = false; nextForbiddenIdx = -1;
   activePowerupKey = null; activePowerupTimer = 0; activePowerupTotal = 0;
   nearMissCooldownTimer = 0;
+  comboPulseTimer = 0;
   shakeX = shakeY = shakeTimer = 0;
   panicTimer    = 0;
   panicPhase    = 'cooldown';
