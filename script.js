@@ -56,7 +56,7 @@ const NEAR_MISS_BONUS     = 40;
 const COMBO_BONUS_PER         = 25;   // pts per combo level on each color change (combo×25: 25, 50, 75…)
 const POWERUP_COLLECT_BONUS   = 50;   // flat pts for picking up any power-up
 const POWERUP_INTERVAL    = 15;   // s between powerup spawns (more frequent to compensate)
-const COIN_ITEM_INTERVAL  = 4.5;  // s between coin pickup spawns
+const COIN_ITEM_INTERVAL  = 6.0;  // s between coin pickup spawns
 const DIFF_SCALE_EVERY    = 9;    // s between difficulty bumps
 const MAX_OBSTACLES       = 30;   // hard cap — dense but readable
 const GRACE_PERIOD        = 1.0;  // s at start with no forbidden obstacles
@@ -82,69 +82,69 @@ const MISSION_DEFS = [
     id: 'survive45',    difficulty: 'easy',
     label: 'Survivor I',
     description: 'Survive for 45 seconds in a single run.',
-    stat: 'seconds',    goal: 45,   coinReward: 30,
+    stat: 'seconds',    goal: 45,   coinReward: 10,
   },
   {
     id: 'score500',     difficulty: 'easy',
     label: 'Score Seeker',
     description: 'Reach a score of 500 in a single run.',
-    stat: 'score',      goal: 500,  coinReward: 30,
+    stat: 'score',      goal: 500,  coinReward: 10,
   },
   {
     id: 'nearmiss3',    difficulty: 'easy',
     label: 'Close Shave',
     description: 'Land 3 near misses in a single run.',
-    stat: 'nearMissesThisRun', goal: 3, coinReward: 30,
+    stat: 'nearMissesThisRun', goal: 3, coinReward: 10,
   },
   // ── Medium ────────────────────────────────────────────────────
   {
     id: 'survive90',    difficulty: 'medium',
     label: 'Survivor II',
     description: 'Survive for 90 seconds in a single run.',
-    stat: 'seconds',    goal: 90,   coinReward: 60,
+    stat: 'seconds',    goal: 90,   coinReward: 20,
   },
   {
     id: 'score1500',    difficulty: 'medium',
     label: 'High Scorer',
     description: 'Reach a score of 1500 in a single run.',
-    stat: 'score',      goal: 1500, coinReward: 60,
+    stat: 'score',      goal: 1500, coinReward: 20,
   },
   {
     id: 'colorchange8', difficulty: 'medium',
     label: 'Color Veteran',
     description: 'Survive 8 color shifts in one run.',
-    stat: 'colorChanges', goal: 8,  coinReward: 60,
+    stat: 'colorChanges', goal: 8,  coinReward: 20,
   },
   {
     id: 'powerups10',   difficulty: 'medium',
     label: 'Power Hoarder',
     description: 'Collect 10 power-ups across all runs.',
-    stat: 'powerupsThisRun', goal: 10, coinReward: 60, cumulative: true,
+    stat: 'powerupsThisRun', goal: 10, coinReward: 20, cumulative: true,
   },
   // ── Hard ──────────────────────────────────────────────────────
   {
     id: 'survive150',   difficulty: 'hard',
     label: 'Ironclad',
     description: 'Survive for 2 minutes 30 seconds in a single run.',
-    stat: 'seconds',    goal: 150,  coinReward: 120,
+    stat: 'seconds',    goal: 150,  coinReward: 40,
   },
   {
     id: 'score3000',    difficulty: 'hard',
     label: 'Score Master',
     description: 'Reach a score of 3000 in a single run.',
-    stat: 'score',      goal: 3000, coinReward: 120,
+    stat: 'score',      goal: 3000, coinReward: 40,
   },
   {
     id: 'panic3run',    difficulty: 'hard',
     label: 'Panic Proof',
     description: 'Survive 3 panic waves in a single run.',
-    stat: 'panicWavesSurvived', goal: 3, coinReward: 120,
+    stat: 'panicWavesSurvived', goal: 3, coinReward: 40,
   },
   {
     id: 'combo15',      difficulty: 'hard',
     label: 'Combo King',
     description: 'Reach a 15× combo in a single run.',
-    stat: 'maxCombo',   goal: 15,   coinReward: 120,
+    stat: 'maxCombo',   goal: 15,   coinReward: 40,
   },
 ];
 
@@ -314,6 +314,7 @@ function updateMissionUI() {
 let currentState = STATE.HOME;
 let newBestThisGame = false; // tracks if a new best was set during the last game session
 
+const ECONOMY_VERSION = 1; // increment to trigger a one-time coin balance reset
 let settings = {
   sound:          true,
   reducedMotion:  false,
@@ -486,6 +487,12 @@ function loadSettings() {
     const raw = localStorage.getItem('forbiddenColor_settings');
     if (!raw) return;
     const s = JSON.parse(raw);
+    if ((s.economyVersion || 0) < ECONOMY_VERSION) {
+      // Economy was rebalanced — reset stored coin balance once
+      settings.economyVersion = ECONOMY_VERSION;
+      saveSettings();
+      return;
+    }
     if (typeof s.sound         === 'boolean') settings.sound         = s.sound;
     if (typeof s.reducedMotion === 'boolean') settings.reducedMotion = s.reducedMotion;
     if (typeof s.highContrast  === 'boolean') settings.highContrast  = s.highContrast;
@@ -1257,14 +1264,14 @@ const HomePreview = (() => {
 const DailyChallenge = (() => {
   // All possible challenge templates. Stat matches missionRun keys or 'elapsed'.
   const POOL = [
-    { id: 'survive30',  label: 'Survive 30 seconds',           stat: 'elapsed',          goal: 30,  coins: 50 },
-    { id: 'survive60',  label: 'Survive 60 seconds',           stat: 'elapsed',          goal: 60,  coins: 75 },
-    { id: 'score300',   label: 'Reach a score of 300',         stat: 'score',            goal: 300, coins: 50 },
-    { id: 'score600',   label: 'Reach a score of 600',         stat: 'score',            goal: 600, coins: 75 },
-    { id: 'nearmiss2',  label: 'Land 2 near misses in one run', stat: 'nearMissesThisRun', goal: 2,  coins: 50 },
-    { id: 'colorchange5', label: 'Survive 5 color shifts',   stat: 'colorChanges',     goal: 5,  coins: 60 },
-    { id: 'combo8',     label: 'Reach an 8× combo',           stat: 'maxCombo',         goal: 8,  coins: 65 },
-    { id: 'powerups3',  label: 'Collect 3 power-ups',         stat: 'powerupsThisRun',  goal: 3,  coins: 55 },
+    { id: 'survive30',  label: 'Survive 30 seconds',           stat: 'elapsed',          goal: 30,  coins: 15 },
+    { id: 'survive60',  label: 'Survive 60 seconds',           stat: 'elapsed',          goal: 60,  coins: 25 },
+    { id: 'score300',   label: 'Reach a score of 300',         stat: 'score',            goal: 300, coins: 15 },
+    { id: 'score600',   label: 'Reach a score of 600',         stat: 'score',            goal: 600, coins: 25 },
+    { id: 'nearmiss2',  label: 'Land 2 near misses in one run', stat: 'nearMissesThisRun', goal: 2,  coins: 15 },
+    { id: 'colorchange5', label: 'Survive 5 color shifts',   stat: 'colorChanges',     goal: 5,  coins: 20 },
+    { id: 'combo8',     label: 'Reach an 8× combo',           stat: 'maxCombo',         goal: 8,  coins: 22 },
+    { id: 'powerups3',  label: 'Collect 3 power-ups',         stat: 'powerupsThisRun',  goal: 3,  coins: 18 },
   ];
 
   const STORAGE_KEY = 'forbiddenColor_dailyChallenge';
@@ -1772,11 +1779,11 @@ function awardCoins(amount, showFloat = false) {
 }
 
 function awardRunCoins(finalScore, elapsedSecs) {
-  const fromScore    = Math.floor(finalScore / 50);
-  const fromSurvival = Math.floor(elapsedSecs / 30);
-  const fromMisses   = Math.min(missionRun.nearMissesThisRun, 5);
-  const fromPanic    = missionRun.panicWavesSurvived * 2;
-  const fromPowerups = missionRun.powerupsThisRun;
+  const fromScore    = Math.floor(finalScore / 200);
+  const fromSurvival = Math.floor(elapsedSecs / 60);
+  const fromMisses   = Math.min(missionRun.nearMissesThisRun, 3);
+  const fromPanic    = missionRun.panicWavesSurvived;
+  const fromPowerups = Math.floor(missionRun.powerupsThisRun / 2);
   const total = fromScore + fromSurvival + fromMisses + fromPanic + fromPowerups;
   if (total > 0) awardCoins(total);
   return total;
@@ -2912,7 +2919,7 @@ function spawnCoinItem() {
     y: -sz - 12,
     size: sz,
     vy: 95 + Math.random() * 30, // slightly slower so player has time to react
-    value: 1 + Math.floor(Math.random() * 3), // 1–3 coins
+    value: 1 + Math.floor(Math.random() * 2), // 1–2 coins
   });
 }
 
