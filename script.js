@@ -392,6 +392,13 @@ let ddDuration     = 0;
 let dd2ndIndex     = -1;      // second forbidden color (-1 = none)
 let ddBlockTimer   = 0;       // s remaining before DD can fire (post-panic buffer)
 let panicBlockFromDD = 0;     // s remaining before panic wave can fire (post-DD buffer)
+
+// Roaming safe-gap state — the open corridor wanders across the screen over time.
+// Resets on startGame. Drives pickSafeLane() so the player must keep repositioning.
+let _safeLaneDrift   = 2;   // which lane the open gap is currently biased toward
+let _lastSafeLane    = -1;  // the safe lane chosen last wave — prevents same column repeat
+let _wavesUntilDrift = 3;   // countdown: when 0, _safeLaneDrift shifts ±1
+
 const PANIC_ANNOUNCE = 0.9; // s of banner before wave starts
 const PANIC_COOLDOWN_BASE = 12; // s between waves
 const PANIC_COOLDOWN_VAR  =  8; // randomised extra: 12–20 s gap
@@ -2488,6 +2495,8 @@ function spawnObstacle() {
     const _cx = _spawnLanes[_ci];
     if (Math.abs(_cx - player.x) >= spawnSafeR) { ox = _cx; break; }
   }
+  // Sub-lane jitter — breaks perfect vertical-column appearance
+  ox += (Math.random() - 0.5) * (_laneW * 0.45);
   // Clamp so block stays fully on screen regardless of its width
   ox = Math.max(w / 2 + 2, Math.min(canvas.width - w / 2 - 2, ox));
 
@@ -2548,13 +2557,30 @@ function spawnWave() {
   const beforeLen = obstacles.length;
   for (const laneIdx of blocked) {
     if (obstacles.length >= MAX_OBSTACLES) break;
-    const cx = lanes[laneIdx];
+    // Sub-lane X jitter — removes rigid vertical-column look
+    const jitter = (Math.random() - 0.5) * lw * 0.44;
+    const cx = Math.max(4, Math.min(cw - 4, lanes[laneIdx] + jitter));
     // Never spawn inside player safe radius
     if (Math.abs(cx - player.x) < player.radius + 44) continue;
 
-    const w   = Math.max(14, lw * 0.76 + (Math.random() - 0.5) * 8);
-    const h   = 24 + Math.random() * 18;
-    const vyR = base + Math.random() * 60;
+    // Block size variety — mix of small darts, medium, tall bullets, wide fills, rare large
+    let w, h, wType;
+    const szRoll = Math.random();
+    if (szRoll < 0.22) {
+      w = 10 + Math.random() * 10;  h = 10 + Math.random() * 10;  wType = 4; // small/dart
+    } else if (szRoll < 0.48) {
+      w = 22 + Math.random() * 16;  h = 20 + Math.random() * 16;  wType = 0; // medium
+    } else if (szRoll < 0.67) {
+      w = 12 + Math.random() * 10;  h = 46 + Math.random() * 26;  wType = 3; // tall/bullet
+    } else if (szRoll < 0.90) {
+      w = Math.max(16, lw * 0.60 + Math.random() * 14);  h = 20 + Math.random() * 14;  wType = 0; // wide moderate
+    } else {
+      const bigCount = obstacles.filter(o => o.type === 2).length;
+      if (bigCount < 2) { w = 50 + Math.random() * 18;  h = 34 + Math.random() * 12;  wType = 2; } // large hazard
+      else               { w = 22 + Math.random() * 14;  h = 20 + Math.random() * 14;  wType = 0; }
+    }
+    const speedScale = wType === 4 ? 1.65 : (wType === 3 ? 1.35 : (wType === 2 ? 0.62 : 1.0));
+    const vyR = base * speedScale + Math.random() * 70;
     const vy  = slow ? vyR * 0.4 : vyR;
 
     // Color: honor warning-phase fairness (30% forbidden during color transition)
@@ -2579,7 +2605,7 @@ function spawnWave() {
 
     obstacles.push({
       x: cx - w / 2, y: -h - 12, w, h,
-      vy, baseVy: vy, type: 0,
+      vy, baseVy: vy, type: wType,
       colorIndex,
       originX: cx, nearMissIdx: -1,
       gravityPull: false,
@@ -2624,20 +2650,36 @@ function getPlayerLane() {
 //   30% → adjacent lane (gentle push)
 //   10% → farther lane  (skill test)
 function pickSafeLane(playerLane) {
-  const r = Math.random();
-  if (r < 0.60) {
-    return playerLane;
-  } else if (r < 0.90) {
-    // Adjacent: prefer the side with more open space
-    const toRight = NUM_LANES - 1 - playerLane;
-    const toLeft  = playerLane;
-    const dir     = toRight >= toLeft ? 1 : -1;
-    return Math.max(0, Math.min(NUM_LANES - 1, playerLane + dir));
-  } else {
-    // Farther: 2 lanes away in a random direction
-    const offset = (Math.random() < 0.5 ? -1 : 1) * 2;
-    return Math.max(0, Math.min(NUM_LANES - 1, playerLane + offset));
+  // Advance drift countdown -- gap shifts +-1 lane every 3-5 waves
+  _wavesUntilDrift--;
+  if (_wavesUntilDrift <= 0) {
+    _wavesUntilDrift = 3 + Math.floor(Math.random() * 3);
+    _safeLaneDrift  += Math.random() < 0.5 ? 1 : -1;
+    _safeLaneDrift   = Math.max(0, Math.min(NUM_LANES - 1, _safeLaneDrift));
   }
+
+  const r = Math.random();
+  let candidate;
+  if (r < 0.20) {
+    // Mercy: 1 step from player -- prevents permanently unreachable gap
+    const adj = playerLane + (Math.random() < 0.5 ? -1 : 1);
+    candidate = Math.max(0, Math.min(NUM_LANES - 1, adj));
+  } else if (r < 0.60) {
+    // Drift position -- player must move toward the roaming gap
+    candidate = _safeLaneDrift;
+  } else {
+    // Drift neighborhood -- 1 step from drift position
+    candidate = Math.max(0, Math.min(NUM_LANES - 1,
+      _safeLaneDrift + (Math.random() < 0.5 ? -1 : 1)));
+  }
+
+  // Prevent the exact same safe lane on consecutive waves
+  if (candidate === _lastSafeLane && NUM_LANES > 2) {
+    const nudge = candidate < _safeLaneDrift ? 1 : -1;
+    candidate = Math.max(0, Math.min(NUM_LANES - 1, candidate + nudge));
+  }
+  _lastSafeLane = candidate;
+  return candidate;
 }
 
 // Builds the set of lane indices to BLOCK this wave.
@@ -2645,40 +2687,20 @@ function pickSafeLane(playerLane) {
 // • At low difficulty a neighbor of safeLane is also kept open (breathing room).
 // • Blocked lanes are sorted so the player’s side fills first — directional pressure.
 function pickBlockedLanes(safeLane, playerLane) {
-  const b = difficultyBumps;
+  const b          = difficultyBumps;
+  const maxBlocked = b < 2 ? 3 : (b < 5 ? 4 : NUM_LANES - 1);
 
-  // Open set: always the safe lane.
-  const openSet = new Set([safeLane]);
-
-  // Keep one extra open neighbor at low difficulty for breathing room.
-  if (b < 4) {
-    // Pick the neighbor of safeLane that is AWAY from the player —
-    // so the pressure build-up across blocked lanes points at the player.
-    const awayDir = (playerLane <= safeLane) ? 1 : -1;
-    const neighbor = safeLane + awayDir;
-    if (neighbor >= 0 && neighbor < NUM_LANES) openSet.add(neighbor);
-  }
-
-  // All lanes not in openSet become blocked.
-  const blocked = [];
+  const allBlocked = [];
   for (let i = 0; i < NUM_LANES; i++) {
-    if (!openSet.has(i)) blocked.push(i);
+    if (i !== safeLane) allBlocked.push(i);
   }
 
-  // Pressure bias: sort blocked lanes so those closest to the player spawn first.
-  // When MAX_OBSTACLES is hit early, the player-side is already filled in —
-  // creating genuine directional squeeze without ever closing the safe path.
-  blocked.sort((a, bIdx) => {
-    const aDist = Math.abs(a - playerLane);
-    const bDist = Math.abs(bIdx - playerLane);
-    return aDist - bDist; // ascending: nearest-to-player first
-  });
+  allBlocked.sort((a, bIdx) =>
+    Math.abs(a - playerLane) - Math.abs(bIdx - playerLane)
+  );
 
-  return blocked;
+  return allBlocked.slice(0, maxBlocked);
 }
-
-// Returns true if at least one non-blocked lane column is clear of existing obstacles
-// within BAND px of the player's current Y. Used to validate waves before committing.
 function validateEscapeRoute(laneCenters, blockedIdxs, laneW) {
   const BAND = 80;
   for (let i = 0; i < laneCenters.length; i++) {
@@ -3941,6 +3963,9 @@ function startGame() {
   dd2ndIndex    = -1;
   ddBlockTimer  = 0;
   panicBlockFromDD = 0;
+  _safeLaneDrift   = Math.floor(NUM_LANES / 2);
+  _lastSafeLane    = -1;
+  _wavesUntilDrift = 3 + Math.floor(Math.random() * 2);
 
   spawnRate         = GAME_CONFIG.spawnRate;
   forbiddenInterval = GAME_CONFIG.forbiddenInterval;
