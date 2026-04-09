@@ -2434,11 +2434,29 @@ function spawnObstacle() {
   }
 
   const isForbiddenSpawn = graceTimer >= GRACE_PERIOD;
+
+  // Behaviors: mutually exclusive — 13% sway on straight blocks, 9% pulse on straight/big
+  const behRoll = Math.random();
+  const doSway  = behRoll < 0.13 && type === 0;
+  const doPulse = behRoll >= 0.13 && behRoll < 0.22 && (type === 0 || type === 2);
+
   obstacles.push({
     x: ox - w / 2, y: -h - 12, w, h, vy, baseVy: vy, type,
     colorIndex,
     originX: ox, nearMissIdx: -1,
     gravityPull: false,
+    // Side-to-side sway (slow sine sweep — only type 0, ~13%)
+    swayAmp:   doSway ? 25 + Math.random() * 22 : 0,
+    swayFreq:  doSway ? 0.65 + Math.random() * 0.50 : 0,
+    swayPhase: doSway ? Math.random() * Math.PI * 2 : 0,
+    swayTime:  0,
+    // Size pulse (smooth grow/shrink — ~9%, not fast bullet types)
+    pulseAmp:   doPulse ? 0.17 : 0,
+    pulseFreq:  doPulse ? 1.4 + Math.random() * 1.0 : 0,
+    pulsePhase: doPulse ? Math.random() * Math.PI * 2 : 0,
+    pulseTime:  0,
+    baseW: w, baseH: h,
+    cy: -h / 2 - 12, // tracked center-Y for pulse height scaling
   });
 }
 
@@ -2551,7 +2569,31 @@ function updateObstacles(dt) {
   for (let i = obstacles.length - 1; i >= 0; i--) {
     const ob = obstacles[i];
 
-    ob.y += ob.vy * dt;
+    // ── Y advance ─────────────────────────────────────────────────────────────
+    // Pulse blocks track center-Y so height scaling stays anchored.
+    if (ob.pulseAmp > 0) {
+      ob.cy += ob.vy * dt;
+    } else {
+      ob.y += ob.vy * dt;
+    }
+
+    // ── Sway: smooth sine sweep left–right ────────────────────────────────
+    if (ob.swayAmp > 0) {
+      ob.swayTime += dt;
+      const sx = ob.originX + Math.sin(ob.swayTime * ob.swayFreq + ob.swayPhase) * ob.swayAmp;
+      ob.x = Math.max(0, Math.min(canvas.width - ob.w, sx - ob.w / 2));
+    }
+
+    // ── Pulse: smooth grow/shrink around center ─────────────────────────────
+    if (ob.pulseAmp > 0) {
+      ob.pulseTime += dt;
+      const raw   = 1 + ob.pulseAmp * Math.sin(ob.pulseTime * ob.pulseFreq + ob.pulsePhase);
+      const scale = Math.max(0.82, Math.min(1.18, raw)); // safety clamp
+      ob.w = ob.baseW * scale;
+      ob.h = ob.baseH * scale;
+      ob.x = Math.max(0, Math.min(canvas.width - ob.w, ob.originX - ob.w / 2));
+      ob.y = ob.cy - ob.h / 2;
+    }
 
     // Near-miss: record the forbiddenIndex active at the moment of the close pass.
     // Storing the index (not a boolean) means the award at exit is independent of
@@ -2600,6 +2642,16 @@ function drawObstacle(ob) {
 
   if (!isForbidden && !isWarning) {
     // ── Neutral block — dim, passable, gives the field texture without threat ──
+    // Sway blocks get a faint ghost offset so the player can read the sweep direction
+    if (ob.swayAmp > 0) {
+      const ghostOff = Math.sin((ob.swayTime - 0.18) * ob.swayFreq + ob.swayPhase) * ob.swayAmp;
+      const ghostX   = Math.max(0, Math.min(canvas.width - ob.w, ob.originX + ghostOff - ob.w / 2));
+      pathRoundRect(ctx, ghostX, ob.y, ob.w, ob.h, 8);
+      ctx.globalAlpha = 0.10;
+      ctx.fillStyle   = hex;
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
     pathRoundRect(ctx, ob.x, ob.y, ob.w, ob.h, 8);
     ctx.globalAlpha = 0.28;
     ctx.fillStyle   = hex;
