@@ -314,7 +314,7 @@ function updateMissionUI() {
 let currentState = STATE.HOME;
 let newBestThisGame = false; // tracks if a new best was set during the last game session
 
-const ECONOMY_VERSION = 1; // increment to trigger a one-time coin balance reset
+const ECONOMY_VERSION = 2; // increment to trigger a one-time coin balance reset
 const SKIN_VERSION    = 1; // increment to trigger a one-time purchased-skins reset
 let settings = {
   sound:          true,
@@ -489,8 +489,10 @@ function loadSettings() {
     if (!raw) return;
     const s = JSON.parse(raw);
     if ((s.economyVersion || 0) < ECONOMY_VERSION) {
-      // Economy was rebalanced — reset stored coin balance once
+      // Economy/score reset — clear coins and best score once
       settings.economyVersion = ECONOMY_VERSION;
+      settings.coins = 0;
+      settings.bestScore = 0;
       saveSettings();
       return;
     }
