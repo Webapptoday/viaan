@@ -2363,14 +2363,17 @@ function drawPlayerInner(skin, now) {
 function spawnObstacle() {
   if (obstacles.length >= MAX_OBSTACLES) return;
 
-  // After grace period all obstacles are the forbidden color — everything is dangerous.
-  // During grace period only safe colors are used so the player can orient.
-  const pastGrace = graceTimer >= GRACE_PERIOD;
+  // Color assignment: during grace only safe colors; after grace a 60/40 mix of
+  // forbidden (dangerous) and random non-forbidden (neutral) keeps the screen readable
+  // while maintaining tension.
   let colorIndex;
-  if (pastGrace) {
-    colorIndex = forbiddenIndex;
-  } else {
+  if (graceTimer < GRACE_PERIOD) {
     colorIndex = Math.floor(Math.random() * GAME_COLORS.length);
+    if (colorIndex === forbiddenIndex) colorIndex = (colorIndex + 1) % GAME_COLORS.length;
+  } else if (Math.random() < 0.60) {
+    colorIndex = forbiddenIndex; // dangerous
+  } else {
+    colorIndex = Math.floor(Math.random() * GAME_COLORS.length); // neutral
     if (colorIndex === forbiddenIndex) colorIndex = (colorIndex + 1) % GAME_COLORS.length;
   }
 
@@ -2396,7 +2399,14 @@ function spawnObstacle() {
 
   if (activePowerupKey === 'SLOW') vy *= 0.4;
 
-  const ox  = w / 2 + Math.random() * Math.max(10, canvas.width - w);
+  // Spawn position — avoid a safe horizontal band around the player so a block
+  // can never appear directly overhead.  Up to 5 re-picks before giving up.
+  let ox = w / 2 + Math.random() * Math.max(10, canvas.width - w);
+  const spawnSafeR = player.radius + 40;
+  for (let _t = 0; _t < 5; _t++) {
+    if (Math.abs(ox - player.x) >= spawnSafeR) break;
+    ox = w / 2 + Math.random() * Math.max(10, canvas.width - w);
+  }
 
   const isForbiddenSpawn = graceTimer >= GRACE_PERIOD;
   obstacles.push({
@@ -2431,10 +2441,14 @@ function spawnCluster() {
     });
   }
 
-  // After grace period all cluster members are forbidden — no safe blocks.
+  // Cluster color: same 60/40 mix as solo spawns for visual consistency.
   function pickCI(_force) {
-    const past = graceTimer >= GRACE_PERIOD;
-    if (past) return forbiddenIndex;
+    if (graceTimer < GRACE_PERIOD) {
+      let ci = Math.floor(Math.random() * GAME_COLORS.length);
+      if (ci === forbiddenIndex) ci = (ci + 1) % GAME_COLORS.length;
+      return ci;
+    }
+    if (Math.random() < 0.60) return forbiddenIndex;
     let ci = Math.floor(Math.random() * GAME_COLORS.length);
     if (ci === forbiddenIndex) ci = (ci + 1) % GAME_COLORS.length;
     return ci;
@@ -2548,34 +2562,56 @@ function drawHatchPattern(x, y, w, h, r) {
 }
 
 function drawObstacle(ob) {
-  const isForbidden = isDangerous(ob); // re-evaluated every frame — no stale state
-  // Derive color from colorIndex every frame — single source of truth, never stale
-  const colorDef = GAME_COLORS[ob.colorIndex];
-  const hex      = colorDef.hex;
-  const symbol   = colorDef.symbol;
-
-  // ── Speed Burst glow trail — disabled (visual clutter removed) ──────────────
+  const isForbidden = isDangerous(ob);
+  // A block is in warning state if it matches the upcoming forbidden color and we're
+  // in the warning window — it is NOT dangerous yet but signals the player to dodge.
+  const isWarning   = !isForbidden && warningActive && nextForbiddenIdx >= 0
+                      && ob.colorIndex === nextForbiddenIdx;
+  const colorDef    = GAME_COLORS[ob.colorIndex];
+  const hex         = colorDef.hex;
+  const symbol      = colorDef.symbol;
 
   ctx.save();
 
-  // Safe obstacles are invisible — only forbidden blocks are rendered
-  if (!isForbidden) { ctx.restore(); return; }
+  if (!isForbidden && !isWarning) {
+    // ── Neutral block — dim, passable, gives the field texture without threat ──
+    pathRoundRect(ctx, ob.x, ob.y, ob.w, ob.h, 8);
+    ctx.globalAlpha = 0.28;
+    ctx.fillStyle   = hex;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.restore();
+    return;
+  }
 
-  // Fill
   pathRoundRect(ctx, ob.x, ob.y, ob.w, ob.h, 8);
   ctx.fillStyle = hex;
 
-  if (isForbidden) {
-    // Pulsing glow
+  if (isWarning) {
+    // ── Warning block — pulsing glow, not dangerous yet ──────────────────────
+    const remaining = Math.max(0, forbiddenInterval - forbiddenTimer);
+    const warnProg  = Math.max(0, Math.min(1, 1 - remaining / WARNING_DURATION)); // 0→1
+    const flicker   = 0.5 + 0.5 * Math.sin(Date.now() / 100); // fast flicker
+    ctx.globalAlpha = 0.55 + 0.35 * warnProg;
+    ctx.shadowColor = hex;
+    ctx.shadowBlur  = 6 + 20 * warnProg + 8 * flicker;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur  = 0;
+    // Animated border signals imminent danger
+    pathRoundRect(ctx, ob.x, ob.y, ob.w, ob.h, 8);
+    ctx.strokeStyle = `rgba(255,255,255,${(0.30 + 0.55 * flicker).toFixed(2)})`;
+    ctx.lineWidth   = 2;
+    ctx.stroke();
+  } else {
+    // ── Forbidden (dangerous) block — full brightness ─────────────────────────
     const pulse = 18 + 14 * (0.5 + 0.5 * Math.sin(Date.now() / 200));
     ctx.shadowColor = hex;
     ctx.shadowBlur  = pulse;
-  }
-  ctx.fill();
-  ctx.shadowBlur = 0;
+    ctx.fill();
+    ctx.shadowBlur  = 0;
 
-  if (isForbidden) {
-    // Strong white border — danger outline is always readable regardless of block color
+    // Strong white border — danger outline readable regardless of block color
     pathRoundRect(ctx, ob.x, ob.y, ob.w, ob.h, 8);
     ctx.strokeStyle = 'rgba(255,255,255,0.90)';
     ctx.lineWidth   = 3;
@@ -2584,7 +2620,7 @@ function drawObstacle(ob) {
     ctx.stroke();
     ctx.shadowBlur  = 0;
 
-    // Symbol inside the block — only shown in colorblind mode
+    // Symbol — only in colorblind mode
     const minDim = Math.min(ob.w, ob.h);
     if (settings.colorblind && minDim >= 20) {
       const fontSize = Math.max(10, Math.min(14, minDim * 0.38));
@@ -2597,11 +2633,8 @@ function drawObstacle(ob) {
       ctx.fillText(symbol, ob.x + ob.w / 2, ob.y + ob.h / 2);
       ctx.shadowBlur   = 0;
     }
-  }
-
-  // Colorblind mode: hatch pattern on forbidden blocks (additive — keeps hatch + symbol)
-  if (settings.colorblind && isForbidden) {
-    drawHatchPattern(ob.x, ob.y, ob.w, ob.h, 8);
+    // Hatch overlay in colorblind mode
+    if (settings.colorblind) drawHatchPattern(ob.x, ob.y, ob.w, ob.h, 8);
   }
 
   ctx.restore();
