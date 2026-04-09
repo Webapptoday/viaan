@@ -61,8 +61,9 @@ const DIFF_SCALE_EVERY    = 9;    // s between difficulty bumps
 const MAX_OBSTACLES       = 30;   // hard cap — dense but readable
 const GRACE_PERIOD        = 1.0;  // s at start with no forbidden obstacles
 const FORBIDDEN_MIN_RATIO = 0.65; // keep at least 65% of active obstacles forbidden — keeps screen readable
-const CLUSTER_CHANCE      = 0.10; // probability any spawn tick fires a cluster instead of a single obstacle
-const MIN_CLEAR_GAP       = 72;   // px — minimum unblocked horizontal corridor guaranteed after every spawn
+const CLUSTER_CHANCE      = 0.35; // structured wave patterns fire on 35% of spawn ticks
+const MIN_CLEAR_GAP       = 72;   // px — minimum unblocked corridor guaranteed at player row
+const NUM_LANES           = 6;    // play area divided into this many columns for controlled, fair spawning
 // Wall / narrow-lane patterns removed — challenge comes from spawn rate and color cycling.
 
 // ============================================================
@@ -2429,18 +2430,20 @@ function drawPlayerInner(skin, now) {
 function spawnObstacle() {
   if (obstacles.length >= MAX_OBSTACLES) return;
 
-  // Color assignment: during grace only safe colors; after grace a 60/40 mix of
-  // forbidden (dangerous) and random non-forbidden (neutral) keeps the screen readable
-  // while maintaining tension.
+  // Color: 60/40 forbidden/neutral post-grace, but drops to 30/70 while the warning
+  // phase is active so new spawns don't pile up forbidden blocks during color transitions.
   let colorIndex;
   if (graceTimer < GRACE_PERIOD) {
     colorIndex = Math.floor(Math.random() * GAME_COLORS.length);
     if (colorIndex === forbiddenIndex) colorIndex = (colorIndex + 1) % GAME_COLORS.length;
-  } else if (Math.random() < 0.60) {
-    colorIndex = forbiddenIndex; // dangerous
   } else {
-    colorIndex = Math.floor(Math.random() * GAME_COLORS.length); // neutral
-    if (colorIndex === forbiddenIndex) colorIndex = (colorIndex + 1) % GAME_COLORS.length;
+    const forbRatio = warningActive ? 0.30 : 0.60;
+    if (Math.random() < forbRatio) {
+      colorIndex = forbiddenIndex;
+    } else {
+      colorIndex = Math.floor(Math.random() * GAME_COLORS.length);
+      if (colorIndex === forbiddenIndex) colorIndex = (colorIndex + 1) % GAME_COLORS.length;
+    }
   }
 
   // ── Type selection ────────────────────────────────────────────────
@@ -2465,14 +2468,17 @@ function spawnObstacle() {
 
   if (activePowerupKey === 'SLOW') vy *= 0.4;
 
-  // Spawn position — avoid a safe horizontal band around the player so a block
-  // can never appear directly overhead.  Up to 8 re-picks before giving up.
-  let ox = w / 2 + Math.random() * Math.max(10, canvas.width - w);
-  const spawnSafeR = player.radius + 50;
-  for (let _t = 0; _t < 8; _t++) {
+  // Spawn position — pick a random lane center; retry a different lane if it falls
+  // inside the player safe radius (up to 6 retries, then nearest safe lane).
+  const _spawnLanes = getLaneCenters();
+  const spawnSafeR  = player.radius + 50;
+  let ox = _spawnLanes[Math.floor(Math.random() * NUM_LANES)];
+  for (let _t = 0; _t < 6; _t++) {
     if (Math.abs(ox - player.x) >= spawnSafeR) break;
-    ox = w / 2 + Math.random() * Math.max(10, canvas.width - w);
+    ox = _spawnLanes[Math.floor(Math.random() * NUM_LANES)];
   }
+  // Clamp so block stays fully on screen regardless of its width
+  ox = Math.max(w / 2 + 2, Math.min(canvas.width - w / 2 - 2, ox));
 
   const isForbiddenSpawn = graceTimer >= GRACE_PERIOD;
 
@@ -2507,110 +2513,139 @@ function spawnObstacle() {
   }
 }
 
-// ── Cluster spawning ────────────────────────────────────────────────────────
-// 22 % of spawn ticks fire 2–3 obstacles in a named pattern instead of one.
-// Four patterns: GATE (wall + gap), STAGGER (diagonal pair),
-//                SPREAD (3 blocks, 2 gaps), CHASE (back-to-back pair).
-// All patterns guarantee a navigable corridor ≥ 50 px wide.
-function spawnCluster() {
-  const cw   = canvas.width;
-  const base = GAME_CONFIG.baseSpeed * speedMultiplier * panicSpeedMult();
-  const slow = activePowerupKey === 'SLOW';
+// ── Lane-based wave spawner ──────────────────────────────────────────────────
+// Spawns 2–4 blocks using a named lane pattern that always leaves open corridors.
+// Replaces old random-X cluster patterns with a controlled, fair wave system.
+function spawnWave() {
+  if (obstacles.length >= MAX_OBSTACLES) return;
+  const cw        = canvas.width;
+  const lw        = cw / NUM_LANES;
+  const lanes     = getLaneCenters();
+  const base      = GAME_CONFIG.baseSpeed * speedMultiplier * panicSpeedMult();
+  const slow      = activePowerupKey === 'SLOW';
+  const postGrace = graceTimer >= GRACE_PERIOD;
 
-  // Push one cluster member directly (always type-0 straight for readability).
-  function pushMember(x, yOff, w, h, vy, colorIndex) {
-    if (obstacles.length >= MAX_OBSTACLES) return;
-    const fvy = slow ? vy * 0.4 : vy;
-    const isForbiddenSpawn = graceTimer >= GRACE_PERIOD;
+  // Pick a pattern; retry up to 4 times to find one with a real escape route
+  let blocked;
+  for (let attempt = 0; attempt < 4; attempt++) {
+    blocked = pickBlockedLanes();
+    if (!postGrace || validateEscapeRoute(lanes, blocked, lw)) break;
+  }
+
+  const beforeLen = obstacles.length;
+  for (const laneIdx of blocked) {
+    if (obstacles.length >= MAX_OBSTACLES) break;
+    const cx = lanes[laneIdx];
+    // Skip lane if it sits directly over the player safe zone
+    if (Math.abs(cx - player.x) < player.radius + 44) continue;
+
+    const w   = Math.max(14, lw * 0.76 + (Math.random() - 0.5) * 8);
+    const h   = 24 + Math.random() * 18;
+    const vyR = base + Math.random() * 60;
+    const vy  = slow ? vyR * 0.4 : vyR;
+
+    // Color: honor warning-phase fairness (30% forbidden during color transition)
+    let colorIndex;
+    if (!postGrace) {
+      colorIndex = Math.floor(Math.random() * GAME_COLORS.length);
+      if (colorIndex === forbiddenIndex) colorIndex = (colorIndex + 1) % GAME_COLORS.length;
+    } else {
+      const forbRatio = warningActive ? 0.30 : 0.60;
+      if (Math.random() < forbRatio) {
+        colorIndex = forbiddenIndex;
+      } else {
+        colorIndex = Math.floor(Math.random() * GAME_COLORS.length);
+        if (colorIndex === forbiddenIndex) colorIndex = (colorIndex + 1) % GAME_COLORS.length;
+      }
+    }
+
+    // Sway only on solo-lane waves; pulse on any
+    const behRoll = Math.random();
+    const doSway  = behRoll < 0.10 && blocked.length === 1;
+    const doPulse = behRoll >= 0.10 && behRoll < 0.18;
+
     obstacles.push({
-      x, y: -h - 12 + yOff, w, h,
-      vy: fvy, baseVy: fvy, type: 0,
+      x: cx - w / 2, y: -h - 12, w, h,
+      vy, baseVy: vy, type: 0,
       colorIndex,
-      originX: x + w / 2, nearMissIdx: -1,
+      originX: cx, nearMissIdx: -1,
       gravityPull: false,
+      swayAmp:   doSway ? 20 + Math.random() * 20 : 0,
+      swayFreq:  doSway ? 0.65 + Math.random() * 0.50 : 0,
+      swayPhase: doSway ? Math.random() * Math.PI * 2 : 0,
+      swayTime:  0,
+      pulseAmp:   doPulse ? 0.15 : 0,
+      pulseFreq:  doPulse ? 1.4 + Math.random() * 0.8 : 0,
+      pulsePhase: doPulse ? Math.random() * Math.PI * 2 : 0,
+      pulseTime:  0,
+      baseW: w, baseH: h,
+      cy: -h / 2 - 12,
     });
   }
 
-  // Cluster color: same 60/40 mix as solo spawns for visual consistency.
-  function pickCI(_force) {
-    if (graceTimer < GRACE_PERIOD) {
-      let ci = Math.floor(Math.random() * GAME_COLORS.length);
-      if (ci === forbiddenIndex) ci = (ci + 1) % GAME_COLORS.length;
-      return ci;
-    }
-    if (Math.random() < 0.60) return forbiddenIndex;
-    let ci = Math.floor(Math.random() * GAME_COLORS.length);
-    if (ci === forbiddenIndex) ci = (ci + 1) % GAME_COLORS.length;
-    return ci;
-  }
-
-  const past          = graceTimer >= GRACE_PERIOD;
-  const needForbidden = false; // unused — pickCI always returns forbidden post-grace
-  const vy            = base + Math.random() * 55;
-
-  switch (Math.floor(Math.random() * 4)) {
-
-    // GATE — wall on each side, one navigable gap
-    case 0: {
-      const gap  = 72 + Math.random() * 24;                       // 72–96 px — roomy gate
-      const gCtr = cw * 0.25 + Math.random() * cw * 0.5;         // 25–75% across
-      const gx   = Math.max(4, gCtr - gap / 2);
-      const gEnd = Math.min(cw - 4, gx + gap);
-      const lw   = Math.max(20, gx - 4);
-      const rw   = Math.max(20, cw - gEnd - 4);
-      const h    = 26 + Math.random() * 18;
-      const lCI  = pickCI(needForbidden && Math.random() < 0.5);
-      const rCI  = pickCI(needForbidden && lCI !== forbiddenIndex);
-      pushMember(2,       0, lw, h, vy, lCI);
-      pushMember(gEnd + 2, 0, rw, h, vy, rCI);
-      break;
-    }
-
-    // STAGGER — two blocks offset diagonally; player weaves between them
-    case 1: {
-      const w    = 32 + Math.random() * 18;
-      const h    = w;
-      const xA   = 8 + Math.random() * (cw - w - 16);
-      const side = xA < cw / 2 ? 1 : -1;
-      const xB   = Math.min(Math.max(xA + side * (w * 1.4 + 20 + Math.random() * 30), 8), cw - w - 8);
-      const yOff = -(h * 0.8 + 10 + Math.random() * 20);
-      pushMember(xA, 0,    w, h, vy,        pickCI(needForbidden));
-      pushMember(xB, yOff, w, h, vy * 1.05, pickCI(Math.random() < 0.40)); // 40% chance second is also dangerous
-      break;
-    }
-
-    // SPREAD — three blocks across width, two gaps to choose from
-    case 2: {
-      const gap    = 72 + Math.random() * 20;  // Widened: 72–92 px — always enough to fit through
-      const blockW = Math.max(20, (cw - gap * 2 - 10) / 3);
-      const h      = 22 + Math.random() * 18;
-      const xs     = [5, 5 + blockW + gap, 5 + (blockW + gap) * 2];
-      const fSlot  = needForbidden ? Math.floor(Math.random() * 3) : -1;
-      xs.forEach((x, k) => pushMember(x, 0, blockW, h, vy, pickCI(fSlot === k)));
-      break;
-    }
-
-    // CHASE — two blocks at similar X, directly back-to-back
-    case 3: {
-      const w    = 28 + Math.random() * 22;
-      const h    = 24 + Math.random() * 14;
-      const x    = 8 + Math.random() * (cw - w - 16);
-      const xOff = (Math.random() - 0.5) * 28;     // slight horizontal wobble
-      const yOff = -(h + 12 + Math.random() * 20); // second block directly above
-      pushMember(x,        0,    w, h, vy,       pickCI(needForbidden));
-      pushMember(x + xOff, yOff, w, h, vy * 1.1, pickCI(Math.random() < 0.40)); // 40% chance second is also dangerous
-      break;
-    }
+  // Final safety net: roll back entire wave if no path remains
+  if (postGrace && largestClearGap(player.y) < MIN_CLEAR_GAP) {
+    obstacles.length = beforeLen;
   }
 }
 
 
-
-
-
-
-
 // Mutations removed: Speed Burst, Gravity Pull, Wall Pattern — all hurt gameplay clarity.
+
+// ── Lane-based spawn helpers ────────────────────────────────────────────────────────────────────────
+
+// Returns an array of NUM_LANES center-X positions evenly spanning canvas width.
+function getLaneCenters() {
+  const lw = canvas.width / NUM_LANES;
+  return Array.from({ length: NUM_LANES }, (_, i) => lw * (i + 0.5));
+}
+
+// Returns the set of lane indices to BLOCK this wave.
+// Pattern pool expands with difficultyBumps — early game stays sparse and readable.
+function pickBlockedLanes() {
+  const b        = difficultyBumps;
+  const patterns = [
+    // ── Always available: light pressure (0–1 blocked lanes) ──
+    { blocked: [0],          minB: 0 },  // single left
+    { blocked: [1],          minB: 0 },  // single inner-left
+    { blocked: [4],          minB: 0 },  // single inner-right
+    { blocked: [5],          minB: 0 },  // single right
+    { blocked: [0, 1],       minB: 0 },  // left pair — right side wide open
+    { blocked: [4, 5],       minB: 0 },  // right pair — left side wide open
+    { blocked: [2, 3],       minB: 0 },  // center pair — both outer lanes open
+    { blocked: [0, 5],       minB: 0 },  // outer wings — wide center gap
+    // ── Mid difficulty (3+ bumps): 3 lanes blocked ──
+    { blocked: [0, 1, 2],    minB: 3 },  // left squeeze — right three lanes open
+    { blocked: [3, 4, 5],    minB: 3 },  // right squeeze — left three lanes open
+    { blocked: [1, 2, 3],    minB: 3 },  // center three — outer edges open
+    { blocked: [0, 2, 4],    minB: 3 },  // alternating even — gaps between each
+    { blocked: [1, 3, 5],    minB: 3 },  // alternating odd
+    // ── Hard (5+ bumps): 4 lanes blocked ──
+    { blocked: [1, 2, 3, 4], minB: 5 },  // wide center — only outer lanes open
+    { blocked: [0, 1, 4, 5], minB: 5 },  // outer pairs — center gap only
+  ];
+  const avail = patterns.filter(p => p.minB <= b);
+  return avail[Math.floor(Math.random() * avail.length)].blocked;
+}
+
+// Returns true if at least one non-blocked lane column is clear of existing obstacles
+// within BAND px of the player's current Y. Used to validate waves before committing.
+function validateEscapeRoute(laneCenters, blockedIdxs, laneW) {
+  const BAND = 80;
+  for (let i = 0; i < laneCenters.length; i++) {
+    if (blockedIdxs.includes(i)) continue;
+    const lx = laneCenters[i] - laneW / 2;
+    const rx = laneCenters[i] + laneW / 2;
+    let obstructed = false;
+    for (const ob of obstacles) {
+      if (ob.y + ob.h < player.y - BAND) continue;
+      if (ob.y        > player.y + BAND) continue;
+      if (ob.x < rx && ob.x + ob.w > lx) { obstructed = true; break; }
+    }
+    if (!obstructed) return true;
+  }
+  return false;
+}
 
 // ── Horizontal path guarantee ───────────────────────────────────────────────────────────
 // Scans a horizontal band [scanY ± BAND] for blocked columns.
@@ -3796,7 +3831,7 @@ function gameLoop(ts) {
   if (spawnTimer >= panicSpawnRate()) {
     spawnTimer = 0;
     const r = Math.random();
-    if (r < CLUSTER_CHANCE) spawnCluster();
+    if (r < CLUSTER_CHANCE) spawnWave();
     else                    spawnObstacle();
   }
 
