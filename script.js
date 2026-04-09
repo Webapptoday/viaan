@@ -22,6 +22,7 @@ const POWERUP_DEFS = {
   SLOW:   { label: 'Slow Time', icon: '\u23F1',        color: '#38bdf8', duration: 6  },
   CLEAR:  { label: 'Clear!',    icon: '\u2728',         color: '#e879f9', duration: 0  },
   BOOST:  { label: 'Score x2',  icon: '\u26A1',         color: '#fb923c', duration: 8  },
+  SMALL:  { label: 'Small Mode',icon: '\uD83D\uDD35',  color: '#34d399', duration: 5  },
 };
 const POWERUP_KEYS = Object.keys(POWERUP_DEFS);
 
@@ -344,7 +345,7 @@ let _scoreMilestonesHit = new Set();
 let _timeMilestonesHit  = new Set();
 let _comboMilestonesHit = new Set();
 
-const player = { x: 0, y: 0, radius: 24, speed: 255, hasShield: false };
+const player = { x: 0, y: 0, radius: 24, baseRadius: 24, speed: 255, hasShield: false };
 let playerTrail = []; // recent positions for trail-producing skins
 
 let spawnTimer        = 0;
@@ -364,6 +365,7 @@ let forbiddenIndex    = 0;
 let activePowerupKey   = null;
 let activePowerupTimer = 0;
 let activePowerupTotal = 0;
+let playerRadiusTarget = 24; // lerp target for smooth SMALL powerup shrink/restore
 
 let colorChangeGrace   = 0; // s remaining — brief invincibility on forbidden color change
 
@@ -1977,6 +1979,14 @@ function updatePlayer(dt) {
 
   player.x += dx * player.speed * dt;
   player.y += dy * player.speed * dt;
+
+  // Smooth radius lerp — used by SMALL powerup (approx 80 px/s transition)
+  if (Math.abs(player.radius - playerRadiusTarget) > 0.3) {
+    player.radius += (playerRadiusTarget - player.radius) * Math.min(1, dt * 14);
+  } else {
+    player.radius = playerRadiusTarget;
+  }
+
   clampPlayer();
 }
 
@@ -2131,6 +2141,21 @@ function drawPlayer() {
     ctx.globalAlpha = t * 0.55;
     ctx.stroke();
     ctx.globalAlpha = 1;
+  }
+
+  // ── Small Mode ring — cyan pulsing ring shows shrunk state ────
+  if (activePowerupKey === 'SMALL') {
+    const pulse = 0.5 + 0.5 * Math.sin(now / 160);
+    ctx.beginPath();
+    ctx.arc(player.x, player.y, player.radius + 7 + pulse * 3, 0, Math.PI * 2);
+    ctx.strokeStyle = '#34d399';
+    ctx.lineWidth   = 2;
+    ctx.globalAlpha = 0.55 + pulse * 0.35;
+    ctx.shadowColor = '#34d399';
+    ctx.shadowBlur  = 10;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur  = 0;
   }
 
   // ── Shield ring ───────────────────────────────────────────────
@@ -2784,6 +2809,13 @@ function collectPowerup(p) {
   addFloating(p.x, p.y - 38, p.icon + ' +' + POWERUP_COLLECT_BONUS, p.color, 18);
 
   switch (p.key) {
+    case 'SMALL':
+      playerRadiusTarget = Math.round(player.baseRadius * 0.58); // ~14 px
+      activePowerupKey   = 'SMALL';
+      activePowerupTimer = POWERUP_DEFS.SMALL.duration;
+      activePowerupTotal = POWERUP_DEFS.SMALL.duration;
+      addFloating(p.x, p.y - 38, '\uD83D\uDD35 Small!', '#34d399', 18);
+      break;
     case 'SHIELD':
       player.hasShield   = true;
       activePowerupKey   = 'SHIELD';
@@ -2817,6 +2849,7 @@ function tickActivePowerup(dt) {
   if (activePowerupTimer <= 0) {
     if (activePowerupKey === 'SLOW')   obstacles.forEach(o => { o.vy = o.baseVy; });
     if (activePowerupKey === 'SHIELD') { player.hasShield = false; Announce.say('Shield expired.'); }
+    if (activePowerupKey === 'SMALL')  { playerRadiusTarget = player.baseRadius; Announce.say('Small Mode ended.'); }
     else                               { Announce.say('Power-up expired.'); }
     activePowerupKey = null;
     updatePowerupDisplay();
@@ -3678,6 +3711,8 @@ function startGame() {
   }
   warningActive = false; nextForbiddenIdx = -1;
   activePowerupKey = null; activePowerupTimer = 0; activePowerupTotal = 0;
+  playerRadiusTarget = player.baseRadius;
+  player.radius      = player.baseRadius;
   nearMissCooldownTimer = 0;
   nearMissGlowTimer    = 0;
   coinPickupFlashTimer = 0;
