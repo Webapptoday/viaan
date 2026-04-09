@@ -27,7 +27,7 @@ const POWERUP_DEFS = {
 const POWERUP_KEYS = Object.keys(POWERUP_DEFS);
 
 // Single built-in difficulty — ramps automatically via tickDifficulty()
-const GAME_CONFIG = { playerSpeed: 255, spawnRate: 0.36, forbiddenInterval: 3.2, baseSpeed: 178 };
+const GAME_CONFIG = { playerSpeed: 255, spawnRate: 0.22, forbiddenInterval: 3.2, baseSpeed: 178 };
 
 // Player skins — unlock thresholds are bestScore requirements (bestScore never decreases)
 const SKIN_DEFS = [
@@ -3842,16 +3842,15 @@ function startGame() {
   setTimeout(() => {
     resizeCanvas();
     initPlayer();
-    // Pre-fill obstacles so there's immediate on-screen danger
-    const preCount = 14;
+    // Pre-fill obstacles so there's immediate on-screen pressure
+    const preCount = 18;
     for (let _i = 0; _i < preCount; _i++) {
       spawnObstacle();
       if (obstacles.length > 0) {
         const ob = obstacles[obstacles.length - 1];
-        // Tighter stagger — all pre-fills arrive within the first ~1.5 s
-        ob.y = -(ob.h + 10) - _i * (canvas.height * 0.14 + 8);
-        // Guarantee a drifter every 3rd pre-fill for immediate lateral movement
-        // Also demote any type-2 (big) pre-fills to type 0 — opening screen stays clean
+        // Tight stagger — blocks arrive in a quick wave over the first ~2 s
+        ob.y = -(ob.h + 10) - _i * (canvas.height * 0.10 + 6);
+        // Demote big blocks on pre-fill — opening screen stays readable
         if (ob.type === 2) { ob.type = 0; ob.w = 28 + Math.random()*16; ob.h = ob.w; }
       }
     }
