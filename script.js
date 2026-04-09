@@ -2945,7 +2945,7 @@ function updateCoinItems(dt) {
       AudioManager.playSound('coin');
       awardCoins(c.value);
       // Floating text at coin position (not player) for clear attribution
-      addFloating(c.x, c.y - 20, '+' + c.value, '#fde047', 20);
+      addFloating(c.x, c.y - 20, '+' + c.value, '#fde047', 20, true);
       coinPickupFlashTimer = 1; // brief gold screen pulse
       // Ring burst for satisfying pickup feel
       ringBursts.push({ x: c.x, y: c.y, r: c.size * 0.4, maxR: c.size * 3.5, color: '#fbbf24', alpha: 0.9, speed: 200 });
@@ -3249,8 +3249,8 @@ function drawMilestoneBanner() {
   ctx.restore();
 }
 
-function addFloating(x, y, text, color, size) {
-  floatingTexts.push({ x, y, text, color: color || '#facc15', alpha: 1, vy: -50, timer: 1.5, size: size || 15, scale: 1.4 });
+function addFloating(x, y, text, color, size, coinIcon) {
+  floatingTexts.push({ x, y, text, color: color || '#facc15', alpha: 1, vy: -50, timer: 1.5, size: size || 15, scale: 1.4, coinIcon: !!coinIcon });
 }
 
 function tickFloating(dt) {
@@ -3277,7 +3277,46 @@ function drawFloating() {
     ctx.shadowBlur   = 6;
     ctx.translate(t.x, t.y);
     ctx.scale(t.scale, t.scale);
-    ctx.fillText(t.text, 0, 0);
+    if (t.coinIcon) {
+      // Draw inline coin circle + text
+      const r   = Math.round(t.size * 0.52);
+      const gap = 5;
+      const tw  = ctx.measureText(t.text).width;
+      const totalW = r * 2 + gap + tw;
+      const startX = -totalW / 2;
+      const cx = startX + r;
+      // Coin radial gradient matching the CSS .coin-icon
+      const grad = ctx.createRadialGradient(cx - r * 0.18, -r * 0.22, r * 0.1, cx, 0, r);
+      grad.addColorStop(0,    '#fef9c3');
+      grad.addColorStop(0.22, '#fde047');
+      grad.addColorStop(0.55, '#eab308');
+      grad.addColorStop(0.88, '#a16207');
+      grad.addColorStop(1,    '#78350f');
+      ctx.beginPath();
+      ctx.arc(cx, 0, r, 0, Math.PI * 2);
+      ctx.fillStyle = grad;
+      ctx.fill();
+      // Glow
+      ctx.shadowColor = 'rgba(251,191,36,0.8)';
+      ctx.shadowBlur  = 8;
+      ctx.beginPath();
+      ctx.arc(cx, 0, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 6;
+      ctx.shadowColor = 'rgba(0,0,0,0.9)';
+      // Inner ring
+      ctx.beginPath();
+      ctx.arc(cx, 0, r - 2, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+      ctx.lineWidth   = 1.5;
+      ctx.stroke();
+      // Text
+      ctx.fillStyle  = t.color;
+      ctx.textAlign  = 'left';
+      ctx.fillText(t.text, startX + r * 2 + gap, 0);
+    } else {
+      ctx.fillText(t.text, 0, 0);
+    }
     ctx.restore();
   });
 }
