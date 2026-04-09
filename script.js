@@ -33,14 +33,14 @@ const GAME_CONFIG = { playerSpeed: 255, spawnRate: 0.22, forbiddenInterval: 3.2,
 const SKIN_DEFS = [
   // ── Common ──
   { id: 'classic', name: 'Classic', unlock:    0, rarity: 'common', effect: 'none',    color1: '#ffffff', color2: '#c084fc', glow: '#a855f7', shape: 'circle', trail: false },
-  { id: 'neon',    name: 'Neon',    unlock:  100, rarity: 'common', effect: 'pulse',   color1: '#ccfdf2', color2: '#06b6d4', glow: '#06b6d4', shape: 'circle', trail: true  },
+  { id: 'neon',    name: 'Neon',    unlock: 0, coinCost:  75, rarity: 'common', effect: 'pulse',   color1: '#ccfdf2', color2: '#06b6d4', glow: '#06b6d4', shape: 'circle', trail: true  },
   // ── Rare ──
-  { id: 'ice',     name: 'Ice',     unlock:  300, rarity: 'rare',   effect: 'shimmer', color1: '#e0f2fe', color2: '#38bdf8', glow: '#7dd3fc', shape: 'circle', trail: true  },
-  { id: 'lava',    name: 'Lava',    unlock:  600, rarity: 'rare',   effect: 'flicker', color1: '#fef08a', color2: '#ef4444', glow: '#f97316', shape: 'circle', trail: true  },
+  { id: 'ice',     name: 'Ice',     unlock: 0, coinCost: 150, rarity: 'rare',   effect: 'shimmer', color1: '#e0f2fe', color2: '#38bdf8', glow: '#7dd3fc', shape: 'circle', trail: true  },
+  { id: 'lava',    name: 'Lava',    unlock: 0, coinCost: 175, rarity: 'rare',   effect: 'flicker', color1: '#fef08a', color2: '#ef4444', glow: '#f97316', shape: 'circle', trail: true  },
   { id: 'crimson',  name: 'Crimson',  unlock: 0, coinCost: 200, rarity: 'rare',      effect: 'flicker',  color1: '#ffe4e1', color2: '#dc2626', glow: '#ef4444', shape: 'circle', trail: true  },
   // ── Epic ──
-  { id: 'gold',    name: 'Gold',    unlock: 1000, rarity: 'epic',   effect: 'shimmer', color1: '#fefce8', color2: '#eab308', glow: '#fbbf24', shape: 'star',   trail: false },
-  { id: 'void',     name: 'Void',     unlock: 2000, rarity: 'epic',      effect: 'void',     color1: '#ddd6fe', color2: '#3b0764', glow: '#c084fc', shape: 'star',   trail: true  },
+  { id: 'gold',    name: 'Gold',    unlock: 0, coinCost: 300, rarity: 'epic',   effect: 'shimmer', color1: '#fefce8', color2: '#eab308', glow: '#fbbf24', shape: 'star',   trail: false },
+  { id: 'void',     name: 'Void',     unlock: 0, coinCost: 425, rarity: 'epic',      effect: 'void',     color1: '#ddd6fe', color2: '#3b0764', glow: '#c084fc', shape: 'star',   trail: true  },
   { id: 'electric', name: 'Electric', unlock: 0, coinCost: 350, rarity: 'epic',      effect: 'electric', color1: '#e0f2fe', color2: '#0284c7', glow: '#38bdf8', shape: 'circle', trail: true  },
   { id: 'inferno',  name: 'Inferno',  unlock: 0, coinCost: 350, rarity: 'epic',      effect: 'inferno',  color1: '#fffbeb', color2: '#dc2626', glow: '#f97316', shape: 'circle', trail: true  },
   { id: 'prism',    name: 'Prism',    unlock: 0, coinCost: 350, rarity: 'epic',      effect: 'prism',    color1: '#ffffff', color2: '#a855f7', glow: '#e879f9', shape: 'circle', trail: true  },
@@ -315,6 +315,7 @@ let currentState = STATE.HOME;
 let newBestThisGame = false; // tracks if a new best was set during the last game session
 
 const ECONOMY_VERSION = 1; // increment to trigger a one-time coin balance reset
+const SKIN_VERSION    = 1; // increment to trigger a one-time purchased-skins reset
 let settings = {
   sound:          true,
   reducedMotion:  false,
@@ -490,6 +491,14 @@ function loadSettings() {
     if ((s.economyVersion || 0) < ECONOMY_VERSION) {
       // Economy was rebalanced — reset stored coin balance once
       settings.economyVersion = ECONOMY_VERSION;
+      saveSettings();
+      return;
+    }
+    if ((s.skinVersion || 0) < SKIN_VERSION) {
+      // Skin shop converted to coin-only — reset purchased skins once
+      settings.skinVersion = SKIN_VERSION;
+      settings.purchasedSkins = [];
+      settings.selectedSkin = 'classic';
       saveSettings();
       return;
     }
