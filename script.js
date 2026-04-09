@@ -345,7 +345,7 @@ let _scoreMilestonesHit = new Set();
 let _timeMilestonesHit  = new Set();
 let _comboMilestonesHit = new Set();
 
-const player = { x: 0, y: 0, radius: 24, baseRadius: 24, speed: 255, hasShield: false };
+const player = { x: 0, y: 0, radius: 24, baseRadius: 24, speed: 255, hasShield: false, vx: 0, vy: 0 };
 let playerTrail = []; // recent positions for trail-producing skins
 
 let spawnTimer        = 0;
@@ -1932,8 +1932,12 @@ function drawTrail() {
   });
 }
 
-// ============================================================
-// SECTION 8: PLAYER
+// ── Movement physics constants ───────────────────────────────────────
+// Accel: reach max speed in ~6 frames @ 60 fps — responsive but not instant.
+// Friction: velocity decays to ~10% in ~0.2s — snappy stop, no long slide.
+const PLAYER_ACCEL   = 2200; // px/s² — how fast velocity builds
+const PLAYER_FRICTION = 18;  // exponential decay factor (per-frame: 1-(1-e^-k*dt))
+
 // ============================================================
 
 function initPlayer() {
@@ -1941,44 +1945,80 @@ function initPlayer() {
   player.y         = canvas.height - 90;
   player.hasShield = false;
   player.speed     = GAME_CONFIG.playerSpeed;
+  player.vx        = 0;
+  player.vy        = 0;
 }
 
 function clampPlayer() {
-  player.x = Math.max(player.radius, Math.min(canvas.width  - player.radius, player.x));
-  player.y = Math.max(player.radius, Math.min(canvas.height - player.radius, player.y));
+  const r = player.radius;
+  if (player.x < r)                    { player.x = r;                    player.vx = Math.abs(player.vx) * 0.25; }
+  if (player.x > canvas.width  - r)   { player.x = canvas.width  - r;    player.vx = -Math.abs(player.vx) * 0.25; }
+  if (player.y < r)                    { player.y = r;                    player.vy = Math.abs(player.vy) * 0.25; }
+  if (player.y > canvas.height - r)   { player.y = canvas.height - r;    player.vy = -Math.abs(player.vy) * 0.25; }
 }
 
 function updatePlayer(dt) {
-  // Record position BEFORE moving so the trail lags behind the player
-  if (getSkin().trail) {
-    playerTrail.push({ x: player.x, y: player.y });
-    if (playerTrail.length > 14) playerTrail.shift();
-  }
+  // Trail — record before moving so the ghost lags visually behind the player.
+  // Always record (all skins) — trail is drawn only for skins that opt-in via trail:true.
+  playerTrail.push({ x: player.x, y: player.y });
+  if (playerTrail.length > 14) playerTrail.shift();
 
+  // ── Gather input direction ──────────────────────────────────────────────────
   const l = keys.left  || touchDirs.left;
   const r = keys.right || touchDirs.right;
   const u = keys.up    || touchDirs.up;
   const d = keys.down  || touchDirs.down;
 
-  let dx = (r ? 1 : 0) - (l ? 1 : 0);
-  let dy = (d ? 1 : 0) - (u ? 1 : 0);
-  if (dx !== 0 && dy !== 0) { dx *= 0.7071; dy *= 0.7071; }
+  let inputX = (r ? 1 : 0) - (l ? 1 : 0);
+  let inputY = (d ? 1 : 0) - (u ? 1 : 0);
+  if (inputX !== 0 && inputY !== 0) { inputX *= 0.7071; inputY *= 0.7071; } // diagonal normalise
 
-  // Canvas touch-drag: steer directly toward finger (overrides D-pad when active)
+  // Canvas touch-drag: drive toward finger (overrides D-pad)
+  let usingTouchDrag = false;
   if (touchTarget) {
+    usingTouchDrag = true;
     const tdx  = touchTarget.x - player.x;
     const tdy  = touchTarget.y - player.y;
     const dist = Math.hypot(tdx, tdy);
-    if (dist > 6) {
-      dx = tdx / dist;
-      dy = tdy / dist;
+    if (dist > 10) {          // 10 px dead-zone — ignore micro-jitter
+      inputX = tdx / dist;
+      inputY = tdy / dist;
+      // Scale input 0→1 over 12–60 px so near-finger movement is gentler
+      const proximity = Math.min(1, (dist - 10) / 50);
+      inputX *= proximity;
+      inputY *= proximity;
     } else {
-      dx = 0; dy = 0; // inside dead zone — stop
+      inputX = 0; inputY = 0;
     }
   }
 
-  player.x += dx * player.speed * dt;
-  player.y += dy * player.speed * dt;
+  // ── Velocity physics ────────────────────────────────────────────────────
+  const maxSpd = player.speed;
+  const hasInput = inputX !== 0 || inputY !== 0;
+
+  if (hasInput) {
+    // Accelerate toward desired direction
+    player.vx += inputX * PLAYER_ACCEL * dt;
+    player.vy += inputY * PLAYER_ACCEL * dt;
+  } else {
+    // Friction decay — exponential so it always converges cleanly to zero
+    const decay = Math.exp(-PLAYER_FRICTION * dt);
+    player.vx *= decay;
+    player.vy *= decay;
+    // Dead-stop micro-velocities to avoid float drift
+    if (Math.abs(player.vx) < 0.5) player.vx = 0;
+    if (Math.abs(player.vy) < 0.5) player.vy = 0;
+  }
+
+  // Speed cap
+  const spd = Math.hypot(player.vx, player.vy);
+  if (spd > maxSpd) {
+    player.vx = (player.vx / spd) * maxSpd;
+    player.vy = (player.vy / spd) * maxSpd;
+  }
+
+  player.x += player.vx * dt;
+  player.y += player.vy * dt;
 
   // Smooth radius lerp — used by SMALL powerup (approx 80 px/s transition)
   if (Math.abs(player.radius - playerRadiusTarget) > 0.3) {
