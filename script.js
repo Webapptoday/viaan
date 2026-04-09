@@ -80,69 +80,69 @@ const MISSION_DEFS = [
   // ── Easy ──────────────────────────────────────────────────────
   {
     id: 'survive45',    difficulty: 'easy',
-    label: '⏱ Survivor I',
+    label: 'Survivor I',
     description: 'Survive for 45 seconds in a single run.',
     stat: 'seconds',    goal: 45,   coinReward: 30,
   },
   {
     id: 'score500',     difficulty: 'easy',
-    label: '🎯 Score Seeker',
+    label: 'Score Seeker',
     description: 'Reach a score of 500 in a single run.',
     stat: 'score',      goal: 500,  coinReward: 30,
   },
   {
     id: 'nearmiss3',    difficulty: 'easy',
-    label: '😅 Close Shave',
+    label: 'Close Shave',
     description: 'Get 3 near misses in a single run.',
     stat: 'nearMissesThisRun', goal: 3, coinReward: 30,
   },
   // ── Medium ────────────────────────────────────────────────────
   {
     id: 'survive90',    difficulty: 'medium',
-    label: '⏱ Survivor II',
+    label: 'Survivor II',
     description: 'Survive for 90 seconds in a single run.',
     stat: 'seconds',    goal: 90,   coinReward: 60,
   },
   {
     id: 'score1500',    difficulty: 'medium',
-    label: '🎯 High Scorer',
+    label: 'High Scorer',
     description: 'Reach a score of 1500 in a single run.',
     stat: 'score',      goal: 1500, coinReward: 60,
   },
   {
     id: 'colorchange8', difficulty: 'medium',
-    label: '🎨 Color Veteran',
+    label: 'Color Veteran',
     description: 'Survive 8 forbidden color changes in one run.',
     stat: 'colorChanges', goal: 8,  coinReward: 60,
   },
   {
     id: 'powerups10',   difficulty: 'medium',
-    label: '⚡ Power Hoarder',
+    label: 'Power Hoarder',
     description: 'Collect 10 power-ups across any number of runs.',
     stat: 'powerupsThisRun', goal: 10, coinReward: 60, cumulative: true,
   },
   // ── Hard ──────────────────────────────────────────────────────
   {
     id: 'survive150',   difficulty: 'hard',
-    label: '⏱ Ironclad',
+    label: 'Ironclad',
     description: 'Survive for 2 minutes 30 seconds in a single run.',
     stat: 'seconds',    goal: 150,  coinReward: 120,
   },
   {
     id: 'score3000',    difficulty: 'hard',
-    label: '🎯 Score Master',
+    label: 'Score Master',
     description: 'Reach a score of 3000 in a single run.',
     stat: 'score',      goal: 3000, coinReward: 120,
   },
   {
     id: 'panic3run',    difficulty: 'hard',
-    label: '🌊 Panic Proof',
+    label: 'Panic Proof',
     description: 'Survive 3 panic waves in a single run.',
     stat: 'panicWavesSurvived', goal: 3, coinReward: 120,
   },
   {
     id: 'combo15',      difficulty: 'hard',
-    label: '🔥 Combo King',
+    label: 'Combo King',
     description: 'Reach a 15× combo in a single run.',
     stat: 'maxCombo',   goal: 15,   coinReward: 120,
   },
@@ -459,16 +459,15 @@ function renderStatsUI() {
   if (!el) return;
   gameStats.bestScore = settings.bestScore; // keep in sync
   const rows = [
-    { label: 'Best Score',       value: gameStats.bestScore,                  icon: '🏆' },
-    { label: 'Total Runs',       value: gameStats.totalRuns,                  icon: '🎮' },
-    { label: 'Longest Survival', value: fmtTime(gameStats.longestSurvival),   icon: '⏱' },
-    { label: 'Power-ups Grabbed',value: gameStats.totalPowerups,             icon: '⚡' },
-    { label: 'Near Misses',      value: gameStats.totalNearMisses,           icon: '😅' },
-    { label: 'Panic Waves Survived', value: gameStats.totalPanicWaves,       icon: '🌊' },
+    { label: 'Best Score',           value: gameStats.bestScore                },
+    { label: 'Total Runs',           value: gameStats.totalRuns                },
+    { label: 'Longest Survival',     value: fmtTime(gameStats.longestSurvival) },
+    { label: 'Power-ups Grabbed',    value: gameStats.totalPowerups            },
+    { label: 'Near Misses',          value: gameStats.totalNearMisses          },
+    { label: 'Panic Waves Survived', value: gameStats.totalPanicWaves          },
   ];
   el.innerHTML = rows.map(r =>
     `<div class="stat-item">
-       <span class="stat-icon" aria-hidden="true">${r.icon}</span>
        <span class="stat-label">${r.label}</span>
        <span class="stat-value">${r.value}</span>
      </div>`
@@ -4018,9 +4017,9 @@ function pickDeathMessage(score, combo, colorChanges) {
   // Milestone hints
   const milestones = [50, 100, 200, 300, 500, 750, 1000, 1500, 2000];
   const next = milestones.find(m => m > score && m - score <= score * 0.25);
-  if (next) return '🔥 So close to ' + next + '!';
+  if (next) return 'So close to ' + next + '!';
   if (colorChanges === 1) return 'One more color change next time!';
-  if (combo >= 8) return '🔥 Incredible combo run!';
+  if (combo >= 8) return 'Incredible combo run!';
   if (combo >= 4) return 'Great combo! Keep it up!';
   // Generic arcade messages
   const msgs = [
@@ -4072,12 +4071,13 @@ function triggerGameOver() {
     document.getElementById('gameover-combo').textContent = maxCombo;
     document.getElementById('gameover-time').textContent   = timeStr;
     document.getElementById('gameover-coins').textContent  = '+' + coinsEarned;
-    document.getElementById('gameover-icon').textContent  = wasNewBest ? '\uD83C\uDFC6' : '\uD83D\uDC80';
+    const goIcon = document.getElementById('gameover-icon');
+    if (goIcon) goIcon.textContent = '';
     document.getElementById('new-best-badge').hidden      = !wasNewBest;
 
     const deathMsg = document.getElementById('death-message');
     if (deathMsg) {
-      deathMsg.textContent = wasNewBest ? '\uD83C\uDF89 New Record!' : pickDeathMessage(final, maxCombo, missionRun.colorChanges);
+      deathMsg.textContent = wasNewBest ? 'New Record' : pickDeathMessage(final, maxCombo, missionRun.colorChanges);
       deathMsg.classList.remove('death-msg-in');
       void deathMsg.offsetWidth; // reflow to restart animation
       deathMsg.classList.add('death-msg-in');

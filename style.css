@@ -2,6 +2,7 @@
    FORBIDDEN COLOR — Stylesheet v2
    ============================================================ */
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=Space+Grotesk:wght@700;800&display=swap');
 /* ---- Reset ---- */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 /* Ensure [hidden] always wins over any display property set in author CSS */
@@ -66,7 +67,7 @@ html {
 }
 body {
   height: 100%;
-  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
   color: var(--text);
   overflow: hidden;
   -webkit-tap-highlight-color: transparent;
@@ -248,9 +249,10 @@ body::before {
 .title-mark    { font-size: 2.4rem; margin-bottom: 4px; line-height: 1; }
 
 .game-title {
+  font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif;
   font-size: clamp(2.6rem, 9vw, 4.2rem);
-  font-weight: 900;
-  letter-spacing: -2px;
+  font-weight: 800;
+  letter-spacing: -1.5px;
   background: linear-gradient(135deg, var(--accent-light) 0%, var(--accent2) 55%, #f472b6 100%);
   background-size: 200% auto;
   -webkit-background-clip: text;
@@ -267,11 +269,13 @@ body::before {
 }
 
 .game-subtitle {
-  color: var(--text-muted);
-  font-size: .95rem;
-  max-width: 360px;
+  color: rgba(148, 163, 184, 0.72);
+  font-size: .9rem;
+  font-weight: 500;
+  max-width: 380px;
   margin: 0 auto 18px;
-  line-height: 1.65;
+  line-height: 1.6;
+  letter-spacing: .1px;
 }
 
 .home-highscore {
@@ -512,26 +516,27 @@ body::before {
 .btn:active { transform: scale(.97) !important; box-shadow: none !important; }
 
 .btn-primary {
-  background: linear-gradient(135deg, #7c3aed, #ec4899);
+  background: linear-gradient(135deg, #7c3aed 0%, #9333ea 40%, #ec4899 100%);
   color: #fff;
-  box-shadow: 0 4px 20px rgba(124,58,237,.45);
+  box-shadow: 0 4px 20px rgba(124,58,237,.40);
 }
 .btn-primary:hover {
-  filter: brightness(1.1);
-  box-shadow: 0 8px 32px rgba(124,58,237,.70), 0 0 0 1px rgba(168,85,247,.35);
-  transform: scale(1.04) translateY(-2px);
+  filter: brightness(1.08);
+  box-shadow: 0 8px 32px rgba(124,58,237,.60), 0 0 0 1px rgba(168,85,247,.30);
+  transform: scale(1.035) translateY(-2px);
 }
 
 .btn-secondary {
-  background: rgba(255,255,255,.06);
-  color: var(--text);
-  border: 1px solid var(--card-border);
+  background: rgba(255,255,255,.055);
+  color: var(--text-muted);
+  border: 1px solid rgba(255,255,255,.12);
 }
 .btn-secondary:hover {
-  background: rgba(255,255,255,.11);
-  box-shadow: 0 4px 18px rgba(124,58,237,.30);
-  border-color: rgba(168,85,247,.5);
-  transform: scale(1.03) translateY(-1px);
+  background: rgba(255,255,255,.10);
+  color: var(--text);
+  box-shadow: 0 4px 18px rgba(124,58,237,.25);
+  border-color: rgba(168,85,247,.40);
+  transform: scale(1.025) translateY(-1px);
 }
 
 .btn-large { font-size: 1.12rem; padding: 15px 28px; min-height: 56px; }
@@ -558,11 +563,11 @@ body::before {
   50%       { box-shadow: 0 8px 36px rgba(124,58,237,.75), 0 0 72px rgba(168,85,247,.36); }
 }
 
-/* Secondary buttons in home-actions — keep them quiet */
+/* Secondary buttons in home-actions — clean and restrained */
 .home-actions .btn-secondary {
   font-size: .94rem;
   min-height: 46px;
-  opacity: .82;
+  letter-spacing: .3px;
   transition: opacity .14s ease, transform .14s cubic-bezier(.34,1.56,.64,1),
               box-shadow .14s ease, background .14s ease;
 }
@@ -635,13 +640,13 @@ kbd {
 
 .howto-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
 .howto-list li {
-  display: flex; align-items: flex-start; gap: 10px;
-  padding: 9px 12px;
+  padding: 9px 13px;
   background: rgba(255,255,255,.04);
   border-radius: var(--radius-sm);
-  font-size: .91rem; line-height: 1.5;
+  border-left: 2px solid rgba(168,85,247,.28);
+  font-size: .91rem; line-height: 1.55;
 }
-.howto-icon { font-size: 1rem; flex-shrink: 0; margin-top: 2px; }
+.howto-icon { display: none; }
 
 .controls-table { width: 100%; border-collapse: collapse; font-size: .91rem; }
 .controls-table th, .controls-table td {
@@ -692,10 +697,12 @@ kbd {
 .settings-panel section:last-of-type { border-bottom: none; }
 
 .spanel-section-title {
-  font-size: .72rem; font-weight: 700;
-  color: var(--text-muted);
-  text-transform: uppercase; letter-spacing: 1.6px;
+  font-size: .65rem; font-weight: 800;
+  color: rgba(148, 163, 184, 0.52);
+  text-transform: uppercase; letter-spacing: 2px;
   margin-bottom: 14px;
+  padding-left: 9px;
+  border-left: 2px solid var(--accent);
   display: flex; align-items: center; justify-content: space-between;
 }
 .coin-balance-badge {
@@ -1446,7 +1453,8 @@ kbd {
   box-shadow: var(--shadow-lg), inset 0 1px 0 rgba(255,255,255,.06);
   display: flex; flex-direction: column; gap: 12px;
 }
-.overlay-icon { font-size: 2.6rem; line-height: 1; }
+.overlay-icon { display: none; }
+#gameover-title { animation: gameoverPop .4s .05s cubic-bezier(.34,1.56,.64,1) both; }
 .overlay-box h2 { font-size: 1.9rem; font-weight: 900; }
 .overlay-hint { color: var(--text-muted); font-size: .86rem; margin-top: -4px; }
 .overlay-btns { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
@@ -1505,11 +1513,12 @@ kbd {
 }
 
 .new-best-badge {
-  background: linear-gradient(135deg, rgba(251,191,36,.25), rgba(251,191,36,.1));
-  border: 1px solid rgba(251,191,36,.5);
+  background: linear-gradient(135deg, rgba(168,85,247,.20), rgba(124,58,237,.08));
+  border: 1px solid rgba(168,85,247,.45);
   border-radius: var(--radius-sm);
-  color: var(--gold); font-weight: 800; font-size: 1rem;
-  padding: 8px 18px;
+  color: var(--accent-light); font-weight: 800; font-size: .8rem;
+  letter-spacing: 1.5px; text-transform: uppercase;
+  padding: 9px 20px;
   animation: badgePop .5s .15s cubic-bezier(.34,1.56,.64,1) both;
 }
 .new-best-badge[hidden] { display: none; }
@@ -1654,7 +1663,7 @@ kbd {
 }
 .stat-item:last-child { border-bottom: none; }
 
-.stat-icon  { font-size: 1rem; flex-shrink: 0; width: 22px; text-align: center; }
+.stat-icon  { display: none; }
 .stat-label { flex: 1; color: var(--text-muted); }
 .stat-value {
   font-weight: 800;

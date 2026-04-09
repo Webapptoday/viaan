@@ -4,7 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <title>Forbidden Color</title>
-  <link rel="stylesheet" href="style.css?v=5" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=Space+Grotesk:wght@700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css?v=6" />
 </head>
 <body>
 
@@ -32,11 +35,10 @@
     <div class="home-inner">
 
       <header class="home-header">
-        <div class="title-mark" aria-hidden="true">🎨</div>
         <h1 class="game-title">Forbidden Color</h1>
-        <p class="game-subtitle">Avoid the <strong>forbidden color</strong>. How long can you survive?</p>
+        <p class="game-subtitle">Dodge the <strong>forbidden color</strong>. Survive every shift.</p>
         <div class="home-highscore" aria-label="High score display">
-          <span class="hs-label">🏆 Best</span>
+          <span class="hs-label">Best</span>
           <span class="hs-value" id="home-highscore">0</span>
         </div>
         <div class="home-coins" aria-label="Coin balance">
@@ -48,7 +50,6 @@
       <!-- Daily Challenge -->
       <div id="daily-challenge" class="daily-challenge-card" aria-label="Daily Challenge" role="region">
         <div class="dc-header">
-          <span class="dc-badge" aria-hidden="true">📅</span>
           <span class="dc-title">Daily Challenge</span>
           <span class="dc-timer" id="dc-timer" aria-live="polite"></span>
         </div>
@@ -69,15 +70,15 @@
       <!-- Two-button home: Start + Settings/Help -->
       <div class="home-actions">
         <button id="btn-start" class="btn btn-primary btn-large">
-          <span aria-hidden="true">▶</span> Start Game
+          Play
         </button>
         <button id="btn-progress" class="btn btn-secondary"
                 aria-haspopup="dialog" aria-controls="modal-progress">
-          <span aria-hidden="true">🛒</span> Shop
+          Shop
         </button>
         <button id="btn-settings" class="btn btn-secondary btn-settings-open"
                 aria-haspopup="dialog" aria-controls="modal-settings">
-          <span aria-hidden="true">⚙</span> Settings &amp; Help
+          Settings
         </button>
       </div>
 
@@ -101,11 +102,11 @@
 
       <!-- ── PREFERENCES ── -->
       <section aria-labelledby="spanel-prefs-id">
-        <h3 class="spanel-section-title" id="spanel-prefs-id">⚙ Preferences</h3>
+        <h3 class="spanel-section-title" id="spanel-prefs-id">Preferences</h3>
         <div class="settings-grid">
 
           <label class="toggle-label">
-            <span class="toggle-text"><span class="toggle-icon" aria-hidden="true">🔊</span>Sound</span>
+            <span class="toggle-text">Sound</span>
             <span class="toggle-wrap">
               <input type="checkbox" id="sound-toggle" role="switch" aria-label="Toggle sound" />
               <span class="toggle-track" aria-hidden="true"></span>
@@ -113,7 +114,7 @@
           </label>
 
           <label class="toggle-label">
-            <span class="toggle-text"><span class="toggle-icon" aria-hidden="true">🌀</span>Reduced Motion</span>
+            <span class="toggle-text">Reduced Motion</span>
             <span class="toggle-wrap">
               <input type="checkbox" id="reduced-motion-toggle" role="switch" aria-label="Toggle reduced motion" />
               <span class="toggle-track" aria-hidden="true"></span>
@@ -121,7 +122,7 @@
           </label>
 
           <label class="toggle-label">
-            <span class="toggle-text"><span class="toggle-icon" aria-hidden="true">🔆</span>High Contrast</span>
+            <span class="toggle-text">High Contrast</span>
             <span class="toggle-wrap">
               <input type="checkbox" id="high-contrast-toggle" role="switch" aria-label="Toggle high contrast mode" />
               <span class="toggle-track" aria-hidden="true"></span>
@@ -129,7 +130,7 @@
           </label>
 
           <label class="toggle-label">
-            <span class="toggle-text"><span class="toggle-icon" aria-hidden="true">👁</span>Colorblind Mode</span>
+            <span class="toggle-text">Colorblind Mode</span>
             <span class="toggle-wrap">
               <input type="checkbox" id="colorblind-toggle" role="switch" aria-label="Toggle colorblind mode — adds patterns and symbols to dangerous blocks" />
               <span class="toggle-track" aria-hidden="true"></span>
@@ -141,22 +142,22 @@
 
       <!-- ── HOW TO PLAY ── -->
       <section aria-labelledby="spanel-howto-id">
-        <h3 class="spanel-section-title" id="spanel-howto-id">📖 How to Play</h3>
+        <h3 class="spanel-section-title" id="spanel-howto-id">How to Play</h3>
         <ul class="howto-list">
-          <li><span class="howto-icon" aria-hidden="true">🕹️</span><span>Move with <strong>Arrow Keys</strong> or <strong>WASD</strong> — on mobile, <strong>drag anywhere</strong> on the screen.</span></li>
-          <li><span class="howto-icon" aria-hidden="true">🚫</span><span>The <strong>Forbidden Color</strong> is shown in the top bar — <em>never touch those blocks!</em></span></li>
-          <li><span class="howto-icon" aria-hidden="true">✅</span><span>All <em>other</em> colored blocks are safe to pass through freely.</span></li>
-          <li><span class="howto-icon" aria-hidden="true">⏱</span><span>Watch the <strong>countdown bar</strong> — it drains fast! A brief flash previews the next color. React quickly!</span></li>
-          <li><span class="howto-icon" aria-hidden="true">🔥</span><span>Surviving each color change builds your <strong>combo</strong> for big bonus points.</span></li>
-          <li><span class="howto-icon" aria-hidden="true">⚡</span><span>Collect glowing spinning stars for <strong>power-ups</strong>: Shield, Slow Time, Clear blocks, or Score ×2.</span></li>
-          <li><span class="howto-icon" aria-hidden="true">💫</span><span>Dodge very close to a dangerous block for a <strong>Near Miss</strong> bonus!</span></li>
-          <li><span class="howto-icon" aria-hidden="true">♿</span><span>Colorblind mode adds hatch patterns &amp; symbols to dangerous blocks. High Contrast boosts visual separation.</span></li>
+          <li>Move with <strong>Arrow Keys</strong> or <strong>WASD</strong> — on mobile, <strong>drag anywhere</strong> on the screen.</li>
+          <li>The <strong>Forbidden Color</strong> is shown in the top bar — <em>never touch those blocks</em>.</li>
+          <li>All <em>other</em> colored blocks are safe to pass through freely.</li>
+          <li>Watch the <strong>countdown bar</strong> — it drains fast. A brief flash previews the next color. React quickly.</li>
+          <li>Surviving each color change builds your <strong>combo</strong> for bonus points.</li>
+          <li>Collect glowing power-ups: Shield, Slow Time, Clear Screen, or Score ×2.</li>
+          <li>Dodge very close to a dangerous block for a <strong>Near Miss</strong> bonus.</li>
+          <li>Colorblind mode adds patterns &amp; symbols to dangerous blocks. High Contrast boosts visual separation.</li>
         </ul>
       </section>
 
       <!-- ── CONTROLS ── -->
       <section aria-labelledby="spanel-controls-id">
-        <h3 class="spanel-section-title" id="spanel-controls-id">⌨ Controls</h3>
+        <h3 class="spanel-section-title" id="spanel-controls-id">Controls</h3>
         <table class="controls-table" aria-label="Keyboard controls reference">
           <thead>
             <tr><th scope="col">Keys</th><th scope="col">Action</th></tr>
@@ -200,7 +201,7 @@
           </div>
           <p class="shop-coin-hint">Earn coins each run. Spend them on premium skins.</p>
         </div>
-        <h3 class="spanel-section-title" id="prog-skins-id">🎨 Skins</h3>
+        <h3 class="spanel-section-title" id="prog-skins-id">Skins</h3>
         <div class="skin-carousel" id="skin-carousel">
           <button class="skin-nav-btn" id="skin-prev" type="button" aria-label="Previous skin">&#8249;</button>
           <div class="skin-stage" id="skin-stage" role="region" aria-live="polite" aria-label="Current skin"></div>
@@ -211,13 +212,13 @@
 
       <!-- ── STATS ── -->
       <section aria-labelledby="prog-stats-id">
-        <h3 class="spanel-section-title" id="prog-stats-id">📊 Stats</h3>
+        <h3 class="spanel-section-title" id="prog-stats-id">Stats</h3>
         <div id="stats-grid" class="stats-grid" aria-label="Lifetime game statistics"></div>
       </section>
 
       <!-- ── CHALLENGES ── -->
       <section aria-labelledby="prog-challenges-id">
-        <h3 class="spanel-section-title" id="prog-challenges-id">🎯 Challenges</h3>
+        <h3 class="spanel-section-title" id="prog-challenges-id">Challenges</h3>
         <p class="skins-hint">Complete challenges to earn rewards. Progress saves automatically.</p>
         <div id="missions-list" class="missions-list" aria-label="Active challenges"></div>
       </section>
@@ -300,12 +301,11 @@
     <div id="pause-overlay" class="game-overlay" role="dialog"
          aria-modal="true" aria-labelledby="pause-title" hidden>
       <div class="overlay-box">
-        <div class="overlay-icon" aria-hidden="true">⏸</div>
         <h2 id="pause-title">Paused</h2>
-        <p class="overlay-hint">Take a breath…</p>
+        <p class="overlay-hint">Game paused.</p>
         <div class="overlay-btns">
-          <button class="btn btn-primary btn-large" id="btn-resume">▶ Resume <kbd>P</kbd></button>
-          <button class="btn btn-secondary"         id="btn-home-from-pause">🏠 Home</button>
+          <button class="btn btn-primary btn-large" id="btn-resume">Resume <kbd>P</kbd></button>
+          <button class="btn btn-secondary"         id="btn-home-from-pause">Home</button>
         </div>
       </div>
     </div>
@@ -314,40 +314,40 @@
     <div id="gameover-overlay" class="game-overlay" role="dialog"
          aria-modal="true" aria-labelledby="gameover-title" hidden>
       <div class="overlay-box gameover-box">
-        <div class="overlay-icon gameover-icon" id="gameover-icon" aria-hidden="true">💀</div>
+        <div class="overlay-icon gameover-icon" id="gameover-icon" aria-hidden="true"></div>
         <h2 id="gameover-title">Game Over</h2>
         <div class="death-message" id="death-message" aria-live="polite"></div>
         <div class="score-summary">
           <div class="score-row score-final-row">
-            <span class="score-label">Your Score</span>
+            <span class="score-label">Score</span>
             <span class="score-big" id="final-score" aria-live="polite">0</span>
           </div>
           <div class="score-divider"></div>
           <div class="score-row">
-            <span>🏆 Best</span>
+            <span>Best</span>
             <span id="gameover-best">0</span>
           </div>
           <div class="score-row">
-            <span>🔥 Max Combo</span>
+            <span>Max Combo</span>
             <span id="gameover-combo">0</span>
           </div>
           <div class="score-row">
-            <span>⏱ Survived</span>
+            <span>Time</span>
             <span id="gameover-time">0s</span>
           </div>
           <div class="score-row">
-            <span><span class="coin-icon coin-sm" aria-hidden="true"></span> Coins Earned</span>
+            <span><span class="coin-icon coin-sm" aria-hidden="true"></span> Coins</span>
             <span id="gameover-coins" class="gameover-coins-val">0</span>
           </div>
         </div>
-        <div class="new-best-badge" id="new-best-badge" hidden>🎉 New Record!</div>
+        <div class="new-best-badge" id="new-best-badge" hidden>New Record</div>
         <div class="overlay-btns">
           <button class="btn btn-primary btn-large" id="btn-restart">↺ Play Again <kbd>R</kbd></button>
-          <button class="btn btn-secondary"         id="btn-home-from-gameover">🏠 Home <kbd>H</kbd></button>
+          <button class="btn btn-secondary"         id="btn-home-from-gameover">Home <kbd>H</kbd></button>
         </div>
         <div class="share-row">
-          <button class="btn btn-share" id="btn-share-score" type="button" aria-label="Copy challenge text to clipboard">📋 Copy Challenge</button>
-          <span class="share-copied" id="share-copied" aria-live="polite" hidden>✓ Copied!</span>
+          <button class="btn btn-share" id="btn-share-score" type="button" aria-label="Copy challenge text to clipboard">Copy Score</button>
+          <span class="share-copied" id="share-copied" aria-live="polite" hidden>✓ Copied</span>
         </div>
       </div>
     </div>
@@ -379,6 +379,6 @@
     </div>
   </div>
 
-  <script src="script.js?v=27"></script>
+  <script src="script.js?v=28"></script>
 </body>
 </html>
