@@ -1782,6 +1782,21 @@ kbd {
   margin-top: 5px;
 }
 
+/* Completed challenges section */
+.missions-completed-heading {
+  font-size: .78rem;
+  color: var(--text-muted);
+  margin-top: 16px;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+}
+.mission-item.mission-done {
+  opacity: .55;
+  border-color: rgba(74,222,128,.18);
+  background: rgba(74,222,128,.04);
+}
+
 /* Locked tier */
 .mission-item.mission-tier-locked {
   opacity: .45;

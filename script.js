@@ -77,7 +77,7 @@ const NUM_LANES           = 6;    // play area divided into this many columns fo
 //   rewardLabel, repeatable (can be re-earned after reset).
 // ============================================================
 const MISSION_DEFS = [
-  // ── Easy ──────────────────────────────────────────────────────
+  // ── Easy ──────────────────────────────────────────────
   {
     id: 'survive45',    difficulty: 'easy',
     label: 'Survivor I',
@@ -85,10 +85,10 @@ const MISSION_DEFS = [
     stat: 'seconds',    goal: 45,   coinReward: 10,
   },
   {
-    id: 'score500',     difficulty: 'easy',
+    id: 'score5000',    difficulty: 'easy',
     label: 'Score Seeker',
-    description: 'Reach a score of 500 in a single run.',
-    stat: 'score',      goal: 500,  coinReward: 10,
+    description: 'Reach a score of 5,000 in a single run.',
+    stat: 'score',      goal: 5000, coinReward: 10,
   },
   {
     id: 'nearmiss3',    difficulty: 'easy',
@@ -96,43 +96,55 @@ const MISSION_DEFS = [
     description: 'Land 3 near misses in a single run.',
     stat: 'nearMissesThisRun', goal: 3, coinReward: 10,
   },
-  // ── Medium ────────────────────────────────────────────────────
   {
-    id: 'survive90',    difficulty: 'medium',
+    id: 'streak3',      difficulty: 'easy',
+    label: 'On a Roll',
+    description: 'Play Forbidden Color 3 days in a row.',
+    stat: 'streak',     goal: 3,    coinReward: 10,
+  },
+  // ── Medium ──────────────────────────────────────────
+  {
+    id: 'survive180',   difficulty: 'medium',
     label: 'Survivor II',
-    description: 'Survive for 90 seconds in a single run.',
-    stat: 'seconds',    goal: 90,   coinReward: 20,
+    description: 'Survive for 3 minutes in a single run.',
+    stat: 'seconds',    goal: 180,  coinReward: 20,
   },
   {
-    id: 'score1500',    difficulty: 'medium',
+    id: 'score15000',   difficulty: 'medium',
     label: 'High Scorer',
-    description: 'Reach a score of 1500 in a single run.',
-    stat: 'score',      goal: 1500, coinReward: 20,
+    description: 'Reach a score of 15,000 in a single run.',
+    stat: 'score',      goal: 15000, coinReward: 20,
   },
   {
-    id: 'colorchange8', difficulty: 'medium',
+    id: 'colorchange20', difficulty: 'medium',
     label: 'Color Veteran',
-    description: 'Survive 8 color shifts in one run.',
-    stat: 'colorChanges', goal: 8,  coinReward: 20,
+    description: 'Survive 20 color shifts in one run.',
+    stat: 'colorChanges', goal: 20, coinReward: 20,
   },
   {
-    id: 'powerups10',   difficulty: 'medium',
+    id: 'powerups25',   difficulty: 'medium',
     label: 'Power Hoarder',
-    description: 'Collect 10 power-ups across all runs.',
-    stat: 'powerupsThisRun', goal: 10, coinReward: 20, cumulative: true,
+    description: 'Collect 25 power-ups across all runs.',
+    stat: 'powerupsThisRun', goal: 25, coinReward: 20, cumulative: true,
   },
-  // ── Hard ──────────────────────────────────────────────────────
   {
-    id: 'survive150',   difficulty: 'hard',
+    id: 'streak7',      difficulty: 'medium',
+    label: 'Week Warrior',
+    description: 'Play Forbidden Color 7 days in a row.',
+    stat: 'streak',     goal: 7,    coinReward: 20,
+  },
+  // ── Hard ──────────────────────────────────────────────
+  {
+    id: 'survive360',   difficulty: 'hard',
     label: 'Ironclad',
-    description: 'Survive for 2 minutes 30 seconds in a single run.',
-    stat: 'seconds',    goal: 150,  coinReward: 40,
+    description: 'Survive for 6 minutes in a single run.',
+    stat: 'seconds',    goal: 360,  coinReward: 40,
   },
   {
-    id: 'score3000',    difficulty: 'hard',
+    id: 'score35000',   difficulty: 'hard',
     label: 'Score Master',
-    description: 'Reach a score of 3000 in a single run.',
-    stat: 'score',      goal: 3000, coinReward: 40,
+    description: 'Reach a score of 35,000 in a single run.',
+    stat: 'score',      goal: 35000, coinReward: 40,
   },
   {
     id: 'panic3run',    difficulty: 'hard',
@@ -141,10 +153,22 @@ const MISSION_DEFS = [
     stat: 'panicWavesSurvived', goal: 3, coinReward: 40,
   },
   {
-    id: 'combo15',      difficulty: 'hard',
+    id: 'combo20',      difficulty: 'hard',
     label: 'Combo King',
-    description: 'Reach a 15× combo in a single run.',
-    stat: 'maxCombo',   goal: 15,   coinReward: 40,
+    description: 'Reach a 20× combo in a single run.',
+    stat: 'maxCombo',   goal: 20,   coinReward: 40,
+  },
+  {
+    id: 'nearmiss10',   difficulty: 'hard',
+    label: 'Bulletproof',
+    description: 'Land 10 near misses in a single run.',
+    stat: 'nearMissesThisRun', goal: 10, coinReward: 40,
+  },
+  {
+    id: 'streak30',     difficulty: 'hard',
+    label: 'Dedicated',
+    description: 'Play Forbidden Color 30 days in a row.',
+    stat: 'streak',     goal: 30,   coinReward: 40,
   },
 ];
 
@@ -158,6 +182,27 @@ let missionRun = { seconds: 0, score: 0, colorChanges: 0, powerupsThisRun: 0, ne
 let pendingMissionBonus = 0;
 let skinCarouselIdx = 0;       // index of the currently shown skin in the carousel
 let skinCarouselAnimating = false; // true while a slide animation is in progress
+
+// ── Daily streak tracking ──────────────────────────────────────────────
+function todayDateStr() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+function updateStreak() {
+  const today = todayDateStr();
+  if (settings.streakLastDate === today) return;
+  const lastDate  = settings.streakLastDate ? new Date(settings.streakLastDate) : null;
+  const todayDate = new Date(today);
+  const diffDays  = lastDate ? Math.round((todayDate - lastDate) / 86400000) : 0;
+  if (diffDays === 1) {
+    settings.streakCount = (settings.streakCount || 0) + 1;
+  } else {
+    settings.streakCount = 1;
+  }
+  settings.streakLastDate = today;
+  saveSettings();
+}
 
 function loadMissions() {
   try {
@@ -216,10 +261,11 @@ function evaluateMissions() {
     if (!missionState[m.id]) missionState[m.id] = { done: false, claimed: false, progress: 0 };
     const ms = missionState[m.id];
 
+    const statVal = m.stat === 'streak' ? (settings.streakCount || 0) : (missionRun[m.stat] || 0);
     if (m.cumulative) {
-      ms.progress += (missionRun[m.stat] || 0);
+      ms.progress += statVal;
     } else {
-      ms.progress = Math.max(ms.progress, missionRun[m.stat] || 0);
+      ms.progress = Math.max(ms.progress, statVal);
     }
 
     if (ms.progress >= m.goal) {
@@ -267,56 +313,87 @@ function claimMission(id) {
   }
 }
 
+function buildMissionCard(m) {
+  const done    = isMissionDone(m);
+  const claimed = isMissionClaimed(m);
+  const locked  = isTierLocked(m.difficulty);
+  const prog    = getMissionProgress(m);
+  const pct     = Math.min(100, Math.round((prog / m.goal) * 100));
+
+  const item = document.createElement('div');
+  item.className = 'mission-item' +
+    (locked ? ' mission-tier-locked' : done ? ' mission-completed' : '');
+  item.dataset.missionId = m.id;
+
+  const diffLabel = { easy: 'Easy', medium: 'Medium', hard: 'Hard' }[m.difficulty] || '';
+  const diffBadge = '<span class="mission-diff mission-diff-' + (m.difficulty || 'easy') + '">' + diffLabel + '</span>';
+  const coinAmt   = m.coinReward || 20;
+  const rewardBadge = locked ? '' :
+    '<span class="mission-reward"><span class="coin-icon coin-sm" aria-hidden="true"></span>' + coinAmt + '</span>';
+
+  let footer;
+  if (locked) {
+    const unlockTier = m.difficulty === 'medium' ? 'Easy' : 'Medium';
+    footer = '<p class="mission-locked-label">🔒 Complete all ' + unlockTier + ' challenges to unlock</p>';
+  } else if (done) {
+    footer = '<button class="mission-claim-btn" data-claim-id="' + m.id + '" ' +
+      'aria-label="Claim ' + coinAmt + ' coins for ' + m.label + '">' +
+      'Claim</button>';
+  } else {
+    footer = '<div class="mission-footer">' +
+      '<span class="mission-progress">' + Math.min(prog, m.goal) + ' / ' + m.goal + '</span>' +
+      '<div class="mission-bar-track" aria-hidden="true"><div class="mission-bar-fill" style="width:' + pct + '%"></div></div>' +
+      '</div>';
+  }
+
+  item.innerHTML =
+    '<div class="mission-row">' +
+      '<span class="mission-label">' + m.label + '</span>' +
+      '<span class="mission-meta">' + rewardBadge + diffBadge + '</span>' +
+    '</div>' +
+    '<p class="mission-desc">' + m.description + '</p>' +
+    footer;
+
+  return item;
+}
+
 function updateMissionUI() {
-  const list = document.getElementById('missions-list');
+  const list     = document.getElementById('missions-list');
+  const doneList = document.getElementById('missions-completed-list');
+  const doneWrap = document.getElementById('missions-completed-section');
   if (!list) return;
+
   list.innerHTML = '';
+  const completedItems = [];
+
   MISSION_DEFS.forEach(m => {
-    const done    = isMissionDone(m);
-    const claimed = isMissionClaimed(m);
-    const locked  = isTierLocked(m.difficulty);
-    const prog    = getMissionProgress(m);
-    const pct     = Math.min(100, Math.round((prog / m.goal) * 100));
-    const prereq  = m.difficulty === 'medium' ? 'Easy' : 'Hard';
-
-    const item = document.createElement('div');
-    item.className = 'mission-item' +
-      (locked ? ' mission-tier-locked' : done && claimed ? ' mission-done' : done ? ' mission-completed' : '');
-    item.dataset.missionId = m.id;
-
-    const diffLabel = { easy: 'Easy', medium: 'Medium', hard: 'Hard' }[m.difficulty] || '';
-    const diffBadge = '<span class="mission-diff mission-diff-' + (m.difficulty || 'easy') + '">' + diffLabel + '</span>';
-    const coinAmt   = m.coinReward || 20;
-    const rewardBadge = (done && claimed) || locked ? '' :
-      '<span class="mission-reward"><span class="coin-icon coin-sm" aria-hidden="true"></span>' + coinAmt + '</span>';
-
-    let footer;
-    if (locked) {
-      const unlockTier = m.difficulty === 'medium' ? 'Easy' : 'Medium';
-      footer = '<p class="mission-locked-label">🔒 Complete all ' + unlockTier + ' challenges to unlock</p>';
-    } else if (done && claimed) {
-      footer = '<p class="mission-claimed-label">Claimed</p>';
-    } else if (done) {
-      footer = '<button class="mission-claim-btn" data-claim-id="' + m.id + '" ' +
-        'aria-label="Claim ' + coinAmt + ' coins for ' + m.label + '">' +
-        'Claim</button>';
+    if (isMissionClaimed(m)) {
+      completedItems.push(m);
     } else {
-      footer = '<div class="mission-footer">' +
-        '<span class="mission-progress">' + Math.min(prog, m.goal) + ' / ' + m.goal + '</span>' +
-        '<div class="mission-bar-track" aria-hidden="true"><div class="mission-bar-fill" style="width:' + pct + '%"></div></div>' +
-        '</div>';
+      list.appendChild(buildMissionCard(m));
     }
-
-    item.innerHTML =
-      '<div class="mission-row">' +
-        '<span class="mission-label">' + m.label + '</span>' +
-        '<span class="mission-meta">' + rewardBadge + diffBadge + '</span>' +
-      '</div>' +
-      '<p class="mission-desc">' + m.description + '</p>' +
-      footer;
-
-    list.appendChild(item);
   });
+
+  // Completed section
+  if (doneList && doneWrap) {
+    doneList.innerHTML = '';
+    doneWrap.hidden = completedItems.length === 0;
+    completedItems.forEach(m => {
+      const item = document.createElement('div');
+      item.className = 'mission-item mission-done';
+      const diffLabel = { easy: 'Easy', medium: 'Medium', hard: 'Hard' }[m.difficulty] || '';
+      item.innerHTML =
+        '<div class="mission-row">' +
+          '<span class="mission-label">' + m.label + '</span>' +
+          '<span class="mission-meta">' +
+            '<span class="mission-diff mission-diff-' + m.difficulty + '">' + diffLabel + '</span>' +
+          '</span>' +
+        '</div>' +
+        '<p class="mission-desc">' + m.description + '</p>' +
+        '<p class="mission-claimed-label">✓ Claimed</p>';
+      doneList.appendChild(item);
+    });
+  }
 
   // Wire claim buttons after DOM insertion
   list.querySelectorAll('.mission-claim-btn').forEach(btn => {
@@ -338,6 +415,8 @@ let settings = {
   selectedSkin:   'classic',
   coins:          0,
   purchasedSkins: [],
+  streakCount:    0,
+  streakLastDate: '',
 };
 
 let score         = 0;
@@ -529,6 +608,8 @@ function loadSettings() {
     }
     if (typeof s.bestScore === 'number' && s.bestScore >= 0) settings.bestScore = s.bestScore;
     if (typeof s.coins === 'number' && s.coins >= 0) settings.coins = s.coins;
+    if (typeof s.streakCount === 'number')    settings.streakCount    = s.streakCount;
+    if (typeof s.streakLastDate === 'string') settings.streakLastDate = s.streakLastDate;
     if (Array.isArray(s.purchasedSkins)) {
       settings.purchasedSkins = s.purchasedSkins.filter(id => SKIN_DEFS.some(sk => sk.id === id));
     }
@@ -4072,6 +4153,7 @@ function startGame() {
       }
     }
     spawnTimer = 0;
+    updateStreak();  // record today's play for daily streak
     gameStartTime    = performance.now();
     pausedDuration   = 0;
     pauseStartTime   = 0;
