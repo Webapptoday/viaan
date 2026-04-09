@@ -4133,7 +4133,7 @@ function triggerGameOver() {
   setTimeout(() => {
     const final      = Math.floor(score);
     missionRun.score    = final;
-    missionRun.seconds  = Math.floor((performance.now() - gameStartTime - pausedDuration) / 1000);
+    missionRun.seconds  = Math.max(0, Math.floor((performance.now() - gameStartTime - pausedDuration) / 1000));
     missionRun.maxCombo = maxCombo;
     evaluateMissions();
     const wasNewBest = final > settings.bestScore;
@@ -4141,7 +4141,7 @@ function triggerGameOver() {
     if (wasNewBest) { settings.bestScore = final; saveSettings(); newBestThisGame = true; }
     if (wasNewBest) checkSkinUnlocks(prevBest, settings.bestScore);
 
-    const elapsed = Math.floor((performance.now() - gameStartTime - pausedDuration) / 1000);
+    const elapsed = Math.max(0, Math.floor((performance.now() - gameStartTime - pausedDuration) / 1000));
     const coinsEarned = awardRunCoins(final, elapsed);
     updateSkinsUI();
     updateStats(elapsed); // persist lifetime stats before showing overlay
