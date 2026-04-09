@@ -1790,7 +1790,7 @@ function awardCoins(amount, showFloat = false) {
 }
 
 function awardRunCoins(finalScore, elapsedSecs) {
-  const fromScore    = Math.floor(finalScore / 200);
+  const fromScore    = Math.floor(finalScore / 1000);
   const fromSurvival = Math.floor(elapsedSecs / 60);
   const fromMisses   = Math.min(missionRun.nearMissesThisRun, 3);
   const fromPanic    = missionRun.panicWavesSurvived;
