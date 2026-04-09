@@ -1794,7 +1794,7 @@ function awardRunCoins(finalScore, elapsedSecs) {
   const fromSurvival = Math.floor(elapsedSecs / 60);
   const fromMisses   = Math.min(missionRun.nearMissesThisRun, 3);
   const fromPanic    = missionRun.panicWavesSurvived;
-  const fromPowerups = Math.floor(missionRun.powerupsThisRun / 2);
+  const fromPowerups = 0;
   const total = fromScore + fromSurvival + fromMisses + fromPanic + fromPowerups;
   if (total > 0) awardCoins(total);
   return total;
