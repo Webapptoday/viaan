@@ -27,7 +27,7 @@ const POWERUP_DEFS = {
 const POWERUP_KEYS = Object.keys(POWERUP_DEFS);
 
 // Single built-in difficulty — ramps automatically via tickDifficulty()
-const GAME_CONFIG = { playerSpeed: 255, spawnRate: 0.22, forbiddenInterval: 3.2, baseSpeed: 178 };
+const GAME_CONFIG = { playerSpeed: 255, spawnRate: 0.22, forbiddenInterval: 3.2, baseSpeed: 210 };
 
 // Player skins — unlock thresholds are bestScore requirements (bestScore never decreases)
 const SKIN_DEFS = [
@@ -57,7 +57,7 @@ const COMBO_BONUS_PER         = 25;   // pts per combo level on each color chang
 const POWERUP_COLLECT_BONUS   = 50;   // flat pts for picking up any power-up
 const POWERUP_INTERVAL    = 15;   // s between powerup spawns (more frequent to compensate)
 const COIN_ITEM_INTERVAL  = 4.5;  // s between coin pickup spawns
-const DIFF_SCALE_EVERY    = 12;   // s between difficulty bumps — bumps every 12 s for steeper mid-game curve
+const DIFF_SCALE_EVERY    = 9;    // s between difficulty bumps
 const MAX_OBSTACLES       = 30;   // hard cap — dense but readable
 const GRACE_PERIOD        = 1.0;  // s at start with no forbidden obstacles
 const FORBIDDEN_MIN_RATIO = 0.65; // keep at least 65% of active obstacles forbidden — keeps screen readable
@@ -3825,7 +3825,9 @@ function startGame() {
   spawnRate         = GAME_CONFIG.spawnRate;
   forbiddenInterval = GAME_CONFIG.forbiddenInterval;
   speedMultiplier   = 1.0;
-  forbiddenTimer    = 0;
+  // Head-start timers — first coin ~3s in, first color change ~6s in
+  forbiddenTimer    = GAME_CONFIG.forbiddenInterval - 6.0;
+  coinItemTimer     = COIN_ITEM_INTERVAL - 3.0;
   forbiddenIndex    = Math.floor(Math.random() * GAME_COLORS.length);
   nextForbiddenIdx  = -1;
 
