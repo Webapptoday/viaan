@@ -2468,14 +2468,26 @@ function spawnObstacle() {
 
   if (activePowerupKey === 'SLOW') vy *= 0.4;
 
-  // Spawn position — pick a random lane center; retry a different lane if it falls
-  // inside the player safe radius (up to 6 retries, then nearest safe lane).
+  // Spawn position — avoid the player's current lane and safe radius.
+  // Prefers lanes on the opposite side from the player for balanced pressure.
   const _spawnLanes = getLaneCenters();
+  const _playerLane = getPlayerLane();
+  const _laneW      = canvas.width / NUM_LANES;
   const spawnSafeR  = player.radius + 50;
-  let ox = _spawnLanes[Math.floor(Math.random() * NUM_LANES)];
-  for (let _t = 0; _t < 6; _t++) {
-    if (Math.abs(ox - player.x) >= spawnSafeR) break;
-    ox = _spawnLanes[Math.floor(Math.random() * NUM_LANES)];
+  // Build a shuffled list of non-player lanes as candidates
+  const _candidates = [];
+  for (let _i = 0; _i < NUM_LANES; _i++) {
+    if (_i !== _playerLane) _candidates.push(_i);
+  }
+  // Shuffle
+  for (let _i = _candidates.length - 1; _i > 0; _i--) {
+    const _j = Math.floor(Math.random() * (_i + 1));
+    [_candidates[_i], _candidates[_j]] = [_candidates[_j], _candidates[_i]];
+  }
+  let ox = _spawnLanes[_candidates[0] ?? Math.floor(Math.random() * NUM_LANES)];
+  for (const _ci of _candidates) {
+    const _cx = _spawnLanes[_ci];
+    if (Math.abs(_cx - player.x) >= spawnSafeR) { ox = _cx; break; }
   }
   // Clamp so block stays fully on screen regardless of its width
   ox = Math.max(w / 2 + 2, Math.min(canvas.width - w / 2 - 2, ox));
@@ -2525,10 +2537,12 @@ function spawnWave() {
   const slow      = activePowerupKey === 'SLOW';
   const postGrace = graceTimer >= GRACE_PERIOD;
 
-  // Pick a pattern; retry up to 4 times to find one with a real escape route
-  let blocked;
+  // Detect which lane the player is in, then choose a player-aware safe lane.
+  const playerLane = getPlayerLane();
+  let safeLane, blocked;
   for (let attempt = 0; attempt < 4; attempt++) {
-    blocked = pickBlockedLanes();
+    safeLane = pickSafeLane(playerLane);
+    blocked  = pickBlockedLanes(safeLane, playerLane);
     if (!postGrace || validateEscapeRoute(lanes, blocked, lw)) break;
   }
 
@@ -2536,7 +2550,7 @@ function spawnWave() {
   for (const laneIdx of blocked) {
     if (obstacles.length >= MAX_OBSTACLES) break;
     const cx = lanes[laneIdx];
-    // Skip lane if it sits directly over the player safe zone
+    // Never spawn inside player safe radius
     if (Math.abs(cx - player.x) < player.radius + 44) continue;
 
     const w   = Math.max(14, lw * 0.76 + (Math.random() - 0.5) * 8);
@@ -2559,7 +2573,7 @@ function spawnWave() {
       }
     }
 
-    // Sway only on solo-lane waves; pulse on any
+    // Sway only on single-lane waves; pulse on any
     const behRoll = Math.random();
     const doSway  = behRoll < 0.10 && blocked.length === 1;
     const doPulse = behRoll >= 0.10 && behRoll < 0.18;
@@ -2583,7 +2597,7 @@ function spawnWave() {
     });
   }
 
-  // Final safety net: roll back entire wave if no path remains
+  // Final safety net: roll back entire wave if no escape remains
   if (postGrace && largestClearGap(player.y) < MIN_CLEAR_GAP) {
     obstacles.length = beforeLen;
   }
@@ -2600,32 +2614,68 @@ function getLaneCenters() {
   return Array.from({ length: NUM_LANES }, (_, i) => lw * (i + 0.5));
 }
 
-// Returns the set of lane indices to BLOCK this wave.
-// Pattern pool expands with difficultyBumps — early game stays sparse and readable.
-function pickBlockedLanes() {
-  const b        = difficultyBumps;
-  const patterns = [
-    // ── Always available: light pressure (0–1 blocked lanes) ──
-    { blocked: [0],          minB: 0 },  // single left
-    { blocked: [1],          minB: 0 },  // single inner-left
-    { blocked: [4],          minB: 0 },  // single inner-right
-    { blocked: [5],          minB: 0 },  // single right
-    { blocked: [0, 1],       minB: 0 },  // left pair — right side wide open
-    { blocked: [4, 5],       minB: 0 },  // right pair — left side wide open
-    { blocked: [2, 3],       minB: 0 },  // center pair — both outer lanes open
-    { blocked: [0, 5],       minB: 0 },  // outer wings — wide center gap
-    // ── Mid difficulty (3+ bumps): 3 lanes blocked ──
-    { blocked: [0, 1, 2],    minB: 3 },  // left squeeze — right three lanes open
-    { blocked: [3, 4, 5],    minB: 3 },  // right squeeze — left three lanes open
-    { blocked: [1, 2, 3],    minB: 3 },  // center three — outer edges open
-    { blocked: [0, 2, 4],    minB: 3 },  // alternating even — gaps between each
-    { blocked: [1, 3, 5],    minB: 3 },  // alternating odd
-    // ── Hard (5+ bumps): 4 lanes blocked ──
-    { blocked: [1, 2, 3, 4], minB: 5 },  // wide center — only outer lanes open
-    { blocked: [0, 1, 4, 5], minB: 5 },  // outer pairs — center gap only
-  ];
-  const avail = patterns.filter(p => p.minB <= b);
-  return avail[Math.floor(Math.random() * avail.length)].blocked;
+// Returns the lane index (0 – NUM_LANES-1) that the player is currently inside.
+function getPlayerLane() {
+  const lw = canvas.width / NUM_LANES;
+  return Math.max(0, Math.min(NUM_LANES - 1, Math.floor(player.x / lw)));
+}
+
+// Chooses a safe lane relative to the player using a 60 / 30 / 10 distribution:
+//   60% → player’s own lane (reward staying still)
+//   30% → adjacent lane (gentle push)
+//   10% → farther lane  (skill test)
+function pickSafeLane(playerLane) {
+  const r = Math.random();
+  if (r < 0.60) {
+    return playerLane;
+  } else if (r < 0.90) {
+    // Adjacent: prefer the side with more open space
+    const toRight = NUM_LANES - 1 - playerLane;
+    const toLeft  = playerLane;
+    const dir     = toRight >= toLeft ? 1 : -1;
+    return Math.max(0, Math.min(NUM_LANES - 1, playerLane + dir));
+  } else {
+    // Farther: 2 lanes away in a random direction
+    const offset = (Math.random() < 0.5 ? -1 : 1) * 2;
+    return Math.max(0, Math.min(NUM_LANES - 1, playerLane + offset));
+  }
+}
+
+// Builds the set of lane indices to BLOCK this wave.
+// • safeLane is always kept open.
+// • At low difficulty a neighbor of safeLane is also kept open (breathing room).
+// • Blocked lanes are sorted so the player’s side fills first — directional pressure.
+function pickBlockedLanes(safeLane, playerLane) {
+  const b = difficultyBumps;
+
+  // Open set: always the safe lane.
+  const openSet = new Set([safeLane]);
+
+  // Keep one extra open neighbor at low difficulty for breathing room.
+  if (b < 4) {
+    // Pick the neighbor of safeLane that is AWAY from the player —
+    // so the pressure build-up across blocked lanes points at the player.
+    const awayDir = (playerLane <= safeLane) ? 1 : -1;
+    const neighbor = safeLane + awayDir;
+    if (neighbor >= 0 && neighbor < NUM_LANES) openSet.add(neighbor);
+  }
+
+  // All lanes not in openSet become blocked.
+  const blocked = [];
+  for (let i = 0; i < NUM_LANES; i++) {
+    if (!openSet.has(i)) blocked.push(i);
+  }
+
+  // Pressure bias: sort blocked lanes so those closest to the player spawn first.
+  // When MAX_OBSTACLES is hit early, the player-side is already filled in —
+  // creating genuine directional squeeze without ever closing the safe path.
+  blocked.sort((a, bIdx) => {
+    const aDist = Math.abs(a - playerLane);
+    const bDist = Math.abs(bIdx - playerLane);
+    return aDist - bDist; // ascending: nearest-to-player first
+  });
+
+  return blocked;
 }
 
 // Returns true if at least one non-blocked lane column is clear of existing obstacles
