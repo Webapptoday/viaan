@@ -20,7 +20,7 @@ const GAME_COLORS = [
 const POWERUP_DEFS = {
   SHIELD: { label: 'Shield',    icon: '\uD83D\uDEE1', color: '#facc15', duration: 10 },
   SLOW:   { label: 'Slow Time', icon: '\u23F1',        color: '#38bdf8', duration: 6  },
-  CLEAR:  { label: 'Clear!',    icon: '\u2728',         color: '#e879f9', duration: 0  },
+  CLEAR:  { label: 'Clear',    icon: '\u2728',         color: '#e879f9', duration: 0  },
   BOOST:  { label: 'Score x2',  icon: '\u26A1',         color: '#fb923c', duration: 8  },
   SMALL:  { label: 'Small Mode',icon: '\uD83D\uDD35',  color: '#34d399', duration: 5  },
 };
@@ -93,7 +93,7 @@ const MISSION_DEFS = [
   {
     id: 'nearmiss3',    difficulty: 'easy',
     label: 'Close Shave',
-    description: 'Get 3 near misses in a single run.',
+    description: 'Land 3 near misses in a single run.',
     stat: 'nearMissesThisRun', goal: 3, coinReward: 30,
   },
   // ── Medium ────────────────────────────────────────────────────
@@ -112,13 +112,13 @@ const MISSION_DEFS = [
   {
     id: 'colorchange8', difficulty: 'medium',
     label: 'Color Veteran',
-    description: 'Survive 8 forbidden color changes in one run.',
+    description: 'Survive 8 color shifts in one run.',
     stat: 'colorChanges', goal: 8,  coinReward: 60,
   },
   {
     id: 'powerups10',   difficulty: 'medium',
     label: 'Power Hoarder',
-    description: 'Collect 10 power-ups across any number of runs.',
+    description: 'Collect 10 power-ups across all runs.',
     stat: 'powerupsThisRun', goal: 10, coinReward: 60, cumulative: true,
   },
   // ── Hard ──────────────────────────────────────────────────────
@@ -282,11 +282,11 @@ function updateMissionUI() {
 
     let footer;
     if (done && claimed) {
-      footer = '<p class="mission-claimed-label">✓ Claimed</p>';
+      footer = '<p class="mission-claimed-label">Claimed</p>';
     } else if (done) {
       footer = '<button class="mission-claim-btn" data-claim-id="' + m.id + '" ' +
         'aria-label="Claim ' + coinAmt + ' coins for ' + m.label + '">' +
-        '<span class="coin-icon coin-sm" aria-hidden="true"></span> Claim +' + coinAmt + '</button>';
+        'Claim</button>';
     } else {
       footer = '<div class="mission-footer">' +
         '<span class="mission-progress">' + Math.min(prog, m.goal) + ' / ' + m.goal + '</span>' +
@@ -296,7 +296,7 @@ function updateMissionUI() {
 
     item.innerHTML =
       '<div class="mission-row">' +
-        '<span class="mission-label">' + m.label + (done && claimed ? ' ✓' : '') + '</span>' +
+        '<span class="mission-label">' + m.label + '</span>' +
         '<span class="mission-meta">' + rewardBadge + diffBadge + '</span>' +
       '</div>' +
       '<p class="mission-desc">' + m.description + '</p>' +
@@ -1254,8 +1254,8 @@ const DailyChallenge = (() => {
     { id: 'survive60',  label: 'Survive 60 seconds',           stat: 'elapsed',          goal: 60,  coins: 75 },
     { id: 'score300',   label: 'Reach a score of 300',         stat: 'score',            goal: 300, coins: 50 },
     { id: 'score600',   label: 'Reach a score of 600',         stat: 'score',            goal: 600, coins: 75 },
-    { id: 'nearmiss2',  label: 'Get 2 near misses in one run', stat: 'nearMissesThisRun', goal: 2,  coins: 50 },
-    { id: 'colorchange5', label: 'Survive 5 color changes',   stat: 'colorChanges',     goal: 5,  coins: 60 },
+    { id: 'nearmiss2',  label: 'Land 2 near misses in one run', stat: 'nearMissesThisRun', goal: 2,  coins: 50 },
+    { id: 'colorchange5', label: 'Survive 5 color shifts',   stat: 'colorChanges',     goal: 5,  coins: 60 },
     { id: 'combo8',     label: 'Reach an 8× combo',           stat: 'maxCombo',         goal: 8,  coins: 65 },
     { id: 'powerups3',  label: 'Collect 3 power-ups',         stat: 'powerupsThisRun',  goal: 3,  coins: 55 },
   ];
@@ -1578,7 +1578,7 @@ function updateSkinsUI(direction) {
   // ── Action button ──────────────────────────────────────────
   let actionHTML = '';
   if (selected) {
-    actionHTML = '<button class="btn btn-secondary sc-action" disabled type="button">✓ Equipped</button>';
+    actionHTML = '<button class="btn btn-secondary sc-action" disabled type="button">Equipped</button>';
   } else if (available) {
     actionHTML = '<button class="btn btn-primary sc-action" data-action="equip" data-skin="' + skin.id + '" type="button">Equip</button>';
   } else if (isCoinSkin) {
@@ -1594,7 +1594,7 @@ function updateSkinsUI(direction) {
   let barHTML = '';
   if (!isCoinSkin && locked) {
     const pct = Math.min(100, Math.round((settings.bestScore / skin.unlock) * 100));
-    progressHTML = '<span class="sc-progress-label">' + settings.bestScore + ' / ' + skin.unlock + ' score needed</span>';
+    progressHTML = '<span class="sc-progress-label">' + settings.bestScore + ' / ' + skin.unlock + ' to unlock</span>';
     barHTML = '<div class="skin-bar-track sc-bar"><div class="skin-bar-fill" style="width:' + pct + '%"></div></div>';
   }
 
@@ -1760,7 +1760,7 @@ function awardCoins(amount, showFloat = false) {
   updateCoinUI(true);
   // Floating text only when explicitly requested (e.g. mission rewards shown at center)
   if (showFloat && currentState === STATE.PLAYING && player) {
-    addFloating(player.x, player.y - 72, '+' + amount + ' \uD83E\uDE99', '#fde047', 18);
+    addFloating(player.x, player.y - 72, '+' + amount, '#fde047', 18);
   }
 }
 
@@ -1794,13 +1794,13 @@ function showBuyConfirm(skinId) {
   const need      = skin.coinCost - settings.coins;
 
   const coinSpan = '<span class="coin-icon coin-sm" aria-hidden="true"></span>';
-  title.innerHTML   = 'Buy ' + skin.name + ' skin for ' + coinSpan + ' ' + skin.coinCost + '?';
+  title.innerHTML   = 'Unlock ' + skin.name + ' for ' + coinSpan + ' ' + skin.coinCost;
   balance.textContent = settings.coins;
 
   confirm.disabled = !canAfford;
   noCoins.hidden   = canAfford;
   if (!canAfford) {
-    shortage.innerHTML = 'You need ' + coinSpan + ' ' + need + ' more coin' + (need === 1 ? '' : 's') + ' to unlock this skin.';
+    shortage.innerHTML = 'Need ' + coinSpan + ' ' + need + ' more to unlock this skin.';
   }
 
   dialog.dataset.state = canAfford ? 'afford' : 'broke';
@@ -1857,8 +1857,8 @@ function checkSkinUnlocks(prevBest, newBest) {
 function showSkinUnlockToast(skin) {
   const toast = document.getElementById('skin-unlock-toast');
   if (!toast) return;
-  toast.innerHTML = '<span class="sut-icon" aria-hidden="true">🎨</span>' +
-    '<span class="sut-text"><strong>' + skin.name + '</strong> skin unlocked!</span>' +
+  toast.innerHTML =
+    '<span class="sut-text"><strong>' + skin.name + '</strong> unlocked</span>' +
     '<span class="sut-rarity" data-rarity="' + skin.rarity + '">' + skin.rarity + '</span>';
   toast.hidden = false;
   toast.classList.remove('sut-show');
@@ -2905,7 +2905,7 @@ function updateCoinItems(dt) {
       AudioManager.playSound('coin');
       awardCoins(c.value);
       // Floating text at coin position (not player) for clear attribution
-      addFloating(c.x, c.y - 20, '+' + c.value + ' \uD83E\uDE99', '#fde047', 20);
+      addFloating(c.x, c.y - 20, '+' + c.value, '#fde047', 20);
       coinPickupFlashTimer = 1; // brief gold screen pulse
       // Ring burst for satisfying pickup feel
       ringBursts.push({ x: c.x, y: c.y, r: c.size * 0.4, maxR: c.size * 3.5, color: '#fbbf24', alpha: 0.9, speed: 200 });
@@ -3010,7 +3010,7 @@ function updatePowerups(dt) {
 function collectPowerup(p) {
   missionRun.powerupsThisRun++;  // mission tracking
   AudioManager.playSound('coin');
-  Announce.say('Power-up: ' + p.label);
+  Announce.say(p.label + ' activated.');
   spawnParticles(p.x, p.y, p.color, 14);
   // Expanding ring burst — two rings at slightly different speeds
   if (!settings.reducedMotion) {
@@ -3020,7 +3020,7 @@ function collectPowerup(p) {
   if (navigator.vibrate) navigator.vibrate([30, 20, 30]);
 
   addScore(POWERUP_COLLECT_BONUS);
-  addFloating(p.x, p.y - 38, p.icon + ' +' + POWERUP_COLLECT_BONUS, p.color, 18);
+  addFloating(p.x, p.y - 38, p.label + '  +' + POWERUP_COLLECT_BONUS, p.color, 18);
 
   switch (p.key) {
     case 'SMALL':
@@ -3028,7 +3028,6 @@ function collectPowerup(p) {
       activePowerupKey   = 'SMALL';
       activePowerupTimer = POWERUP_DEFS.SMALL.duration;
       activePowerupTotal = POWERUP_DEFS.SMALL.duration;
-      addFloating(p.x, p.y - 38, '\uD83D\uDD35 Small!', '#34d399', 18);
       break;
     case 'SHIELD':
       player.hasShield   = true;
@@ -3044,7 +3043,6 @@ function collectPowerup(p) {
       break;
     case 'CLEAR':
       obstacles = obstacles.filter(o => o.colorIndex !== forbiddenIndex);
-      addFloating(player.x, player.y - 52, '\u2728 Clear!', '#e879f9');
       break;
     case 'BOOST':
       activePowerupKey   = 'BOOST';
@@ -3293,18 +3291,18 @@ function changeForbiddenColor() {
   const bonus = combo * COMBO_BONUS_PER;
   addScore(bonus, false);
   if (combo > 1) {
-    addFloating(player.x, player.y - 65, '\uD83D\uDD25 x' + combo + '! +' + bonus, '#f59e0b');
+    addFloating(player.x, player.y - 65, 'x' + combo + '  +' + bonus, '#f59e0b');
     AudioManager.playSound('combo', combo);
     comboPulseTimer = 1; // trigger screen pulse
   } else {
-    addFloating(player.x, player.y - 65, '+' + bonus + ' Survived!', '#f59e0b');
+    addFloating(player.x, player.y - 65, '+' + bonus, '#f59e0b');
   }
 
   // Combo milestones
   for (const threshold of COMBO_MILESTONES) {
     if (combo >= threshold && !_comboMilestonesHit.has(threshold)) {
       _comboMilestonesHit.add(threshold);
-      triggerMilestone('\uD83D\uDD25 x' + threshold + ' COMBO!', '#f97316');
+      triggerMilestone('x' + threshold + ' COMBO', '#f97316');
     }
   }
   updateComboDisplay();
@@ -3377,10 +3375,10 @@ function checkCollisions() {
       if (activePowerupKey === 'SHIELD') { activePowerupKey = null; updatePowerupDisplay(); }
       obstacles.splice(i, 1);
       spawnParticles(ob.x + ob.w / 2, ob.y + ob.h / 2, GAME_COLORS[ob.colorIndex].hex, 16);
-      addFloating(player.x, player.y - 55, '\uD83D\uDEE1 Shield!', '#facc15');
+      addFloating(player.x, player.y - 55, 'Blocked', '#facc15');
       triggerShake(6, 0.22);
       if (navigator.vibrate) navigator.vibrate(50);
-      Announce.say('Shield blocked a hit!');
+      Announce.say('Shield absorbed a hit.');
     } else {
       triggerGameOver();
       return;
@@ -3413,8 +3411,8 @@ function tickScoreOverTime(dt) {
   for (const threshold of SCORE_MILESTONES) {
     if (s >= threshold && !_scoreMilestonesHit.has(threshold)) {
       _scoreMilestonesHit.add(threshold);
-      const label = threshold >= 1000 ? (threshold / 1000) + 'K!' : threshold + '!';
-      triggerMilestone('🌟 ' + label, '#fbbf24');
+      const label = threshold >= 1000 ? (threshold / 1000) + 'K' : String(threshold);
+      triggerMilestone(label, '#fbbf24');
     }
   }
   // Beyond fixed list: every 5000 above 10000
@@ -3422,7 +3420,7 @@ function tickScoreOverTime(dt) {
     const extraStep = Math.floor(s / 5000) * 5000;
     if (!_scoreMilestonesHit.has(extraStep)) {
       _scoreMilestonesHit.add(extraStep);
-      triggerMilestone('🌟 ' + (extraStep / 1000) + 'K!', '#fbbf24');
+      triggerMilestone((extraStep / 1000) + 'K', '#fbbf24');
     }
   }
 }
@@ -3489,7 +3487,7 @@ function tickPanicWave(dt) {
     if (panicTimer >= PANIC_ANNOUNCE) {
       panicTimer = 0;
       panicPhase = 'wave';
-      Announce.say('Panic Wave! Obstacles are faster and more dangerous.');
+      Announce.say('Surge active. Obstacles are faster.');
     }
 
   } else if (panicPhase === 'wave') {
@@ -3551,7 +3549,7 @@ function drawPanicBanner() {
   ctx.fillStyle    = isWave ? '#ff3333' : '#ff8800';
   ctx.shadowColor  = isWave ? '#ff0000' : '#ff6600';
   ctx.shadowBlur   = isWave ? 18 : 8;
-  ctx.fillText(isWave ? '⚡ PANIC WAVE ⚡' : '⚠ PANIC WAVE INCOMING', cx, cy);
+  ctx.fillText(isWave ? 'PANIC WAVE' : 'PANIC INCOMING', cx, cy);
 
   ctx.restore();
 }
@@ -3591,7 +3589,7 @@ function tickDoubleDanger(dt) {
       ddTimer    = 0;
       ddPhase    = 'active';
       ddDuration = 2.0 + Math.random() * 2.0; // 2–4 s
-      Announce.say('Double Danger! Avoid both ' + GAME_COLORS[forbiddenIndex].name + ' and ' + GAME_COLORS[dd2ndIndex].name + '!');
+      Announce.say('Double Danger. Avoid ' + GAME_COLORS[forbiddenIndex].name + ' and ' + GAME_COLORS[dd2ndIndex].name + '.');
     }
 
   } else if (ddPhase === 'active') {
@@ -3603,7 +3601,7 @@ function tickDoubleDanger(dt) {
       dd2ndIndex       = -1;
       panicBlockFromDD = EVENT_POST_BUFFER; // prevent panic wave for 5 s
       updateForbiddenDisplay();
-      Announce.say('Double Danger over. Only ' + GAME_COLORS[forbiddenIndex].name + ' is now forbidden.');
+      Announce.say('Double Danger ended.');
     }
   }
 }
@@ -3652,7 +3650,7 @@ function drawDoubleDangerBanner() {
   ctx.fillStyle    = isActive ? '#ffcc00' : '#ffa040';
   ctx.shadowColor  = isActive ? '#ff8800' : '#ff6600';
   ctx.shadowBlur   = isActive ? 16 : 8;
-  ctx.fillText(isActive ? '⚠ DOUBLE DANGER ⚠' : '⚠ DOUBLE DANGER INCOMING', cx, cy);
+  ctx.fillText(isActive ? 'DOUBLE DANGER' : 'DANGER INCOMING', cx, cy);
 
   ctx.restore();
 }
@@ -3871,8 +3869,8 @@ function gameLoop(ts) {
   for (const t of TIME_MILESTONES) {
     if (elapsed >= t && !_timeMilestonesHit.has(t)) {
       _timeMilestonesHit.add(t);
-      const label = t >= 60 ? (t / 60) + ' Minute' + (t > 60 ? 's' : '') + '!' : t + 's Survived!';
-      triggerMilestone('\u23F1 ' + label, '#a78bfa');
+      const label = t >= 60 ? Math.floor(t / 60) + 'm Survived' : t + 's Survived';
+      triggerMilestone(label, '#a78bfa');
     }
   }
 
@@ -3921,7 +3919,7 @@ function startGame() {
     pendingMissionBonus = 0;
     saveMissions();
     // Award after game starts so addScore works normally
-    setTimeout(() => { addScore(bonus); addFloating(canvas.width / 2, 80, '+' + bonus + ' Mission Bonus!', '#a78bfa'); }, 800);
+    setTimeout(() => { addScore(bonus); addFloating(canvas.width / 2, 80, '+' + bonus + ' Bonus', '#a78bfa'); }, 800);
   }
   warningActive = false; nextForbiddenIdx = -1;
   activePowerupKey = null; activePowerupTimer = 0; activePowerupTotal = 0;
@@ -4017,14 +4015,14 @@ function pickDeathMessage(score, combo, colorChanges) {
   // Milestone hints
   const milestones = [50, 100, 200, 300, 500, 750, 1000, 1500, 2000];
   const next = milestones.find(m => m > score && m - score <= score * 0.25);
-  if (next) return 'So close to ' + next + '!';
-  if (colorChanges === 1) return 'One more color change next time!';
-  if (combo >= 8) return 'Incredible combo run!';
-  if (combo >= 4) return 'Great combo! Keep it up!';
-  // Generic arcade messages
+  if (next) return 'Almost ' + next + '.';
+  if (colorChanges === 1) return 'One more shift next time.';
+  if (combo >= 8) return 'Incredible run.';
+  if (combo >= 4) return 'Strong combo. Keep going.';
+  // Generic messages
   const msgs = [
-    'So close!', 'Try again!', 'Keep going!', 'You got this!',
-    'Almost!', 'One more run!', 'Don’t give up!', 'Next time!',
+    'So close.', 'Try again.', 'Keep going.', 'You got this.',
+    'Almost.', 'One more run.', "Don't stop now.", 'Next time.',
   ];
   return msgs[Math.floor(Math.random() * msgs.length)];
 }
