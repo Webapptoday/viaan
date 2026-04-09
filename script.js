@@ -62,6 +62,7 @@ const MAX_OBSTACLES       = 30;   // hard cap — dense but readable
 const GRACE_PERIOD        = 1.0;  // s at start with no forbidden obstacles
 const FORBIDDEN_MIN_RATIO = 0.65; // keep at least 65% of active obstacles forbidden — keeps screen readable
 const CLUSTER_CHANCE      = 0.10; // probability any spawn tick fires a cluster instead of a single obstacle
+const MIN_CLEAR_GAP       = 72;   // px — minimum unblocked horizontal corridor guaranteed after every spawn
 // Wall / narrow-lane patterns removed — challenge comes from spawn rate and color cycling.
 
 // ============================================================
@@ -2465,10 +2466,10 @@ function spawnObstacle() {
   if (activePowerupKey === 'SLOW') vy *= 0.4;
 
   // Spawn position — avoid a safe horizontal band around the player so a block
-  // can never appear directly overhead.  Up to 5 re-picks before giving up.
+  // can never appear directly overhead.  Up to 8 re-picks before giving up.
   let ox = w / 2 + Math.random() * Math.max(10, canvas.width - w);
-  const spawnSafeR = player.radius + 40;
-  for (let _t = 0; _t < 5; _t++) {
+  const spawnSafeR = player.radius + 50;
+  for (let _t = 0; _t < 8; _t++) {
     if (Math.abs(ox - player.x) >= spawnSafeR) break;
     ox = w / 2 + Math.random() * Math.max(10, canvas.width - w);
   }
@@ -2498,6 +2499,12 @@ function spawnObstacle() {
     baseW: w, baseH: h,
     cy: -h / 2 - 12, // tracked center-Y for pulse height scaling
   });
+
+  // Path safety check: if the new block would leave no viable corridor at the player row,
+  // remove it immediately. Cull decisions happen top-of-screen so the player never sees a pop.
+  if (graceTimer >= GRACE_PERIOD && largestClearGap(player.y) < MIN_CLEAR_GAP) {
+    obstacles.pop();
+  }
 }
 
 // ── Cluster spawning ────────────────────────────────────────────────────────
@@ -2574,7 +2581,7 @@ function spawnCluster() {
 
     // SPREAD — three blocks across width, two gaps to choose from
     case 2: {
-      const gap    = 52 + Math.random() * 14;
+      const gap    = 72 + Math.random() * 20;  // Widened: 72–92 px — always enough to fit through
       const blockW = Math.max(20, (cw - gap * 2 - 10) / 3);
       const h      = 22 + Math.random() * 18;
       const xs     = [5, 5 + blockW + gap, 5 + (blockW + gap) * 2];
@@ -2604,6 +2611,37 @@ function spawnCluster() {
 
 
 // Mutations removed: Speed Burst, Gravity Pull, Wall Pattern — all hurt gameplay clarity.
+
+// ── Horizontal path guarantee ───────────────────────────────────────────────────────────
+// Scans a horizontal band [scanY ± BAND] for blocked columns.
+// Returns the widest unblocked gap (px). Used to cull spawns that would trap the player.
+function largestClearGap(scanY) {
+  const BAND = 60; // px above/below to check
+  const W    = canvas.width;
+  // Build a sorted list of [left, right] coverage segments from on-screen obstacles
+  const segs = [];
+  for (const ob of obstacles) {
+    if (ob.y + ob.h < scanY - BAND) continue; // above band
+    if (ob.y       > scanY + BAND) continue;  // below band
+    segs.push([ob.x, ob.x + ob.w]);
+  }
+  if (segs.length === 0) return W;
+  segs.sort((a, b) => a[0] - b[0]);
+  // Merge overlapping segments
+  const merged = [segs[0].slice()];
+  for (let i = 1; i < segs.length; i++) {
+    const cur = merged[merged.length - 1];
+    if (segs[i][0] <= cur[1]) { cur[1] = Math.max(cur[1], segs[i][1]); }
+    else                      { merged.push(segs[i].slice()); }
+  }
+  // Find largest gap in [0, W] not covered
+  let maxGap = merged[0][0]; // gap from left edge to first segment
+  for (let i = 1; i < merged.length; i++) {
+    maxGap = Math.max(maxGap, merged[i][0] - merged[i - 1][1]);
+  }
+  maxGap = Math.max(maxGap, W - merged[merged.length - 1][1]); // gap to right edge
+  return maxGap;
+}
 
 function updateObstacles(dt) {
   for (let i = obstacles.length - 1; i >= 0; i--) {
