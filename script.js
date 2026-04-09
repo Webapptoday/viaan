@@ -200,11 +200,19 @@ function isMissionClaimed(m) {
   return !!(missionState[m.id] && missionState[m.id].claimed);
 }
 
+// Returns true if a difficulty tier is locked (prerequisite tier not fully claimed)
+function isTierLocked(difficulty) {
+  if (difficulty === 'easy') return false;
+  const pre = difficulty === 'medium' ? 'easy' : 'medium';
+  return !MISSION_DEFS.filter(m => m.difficulty === pre).every(m => isMissionClaimed(m));
+}
+
 // Called every completed game to evaluate all missions against current run stats
 function evaluateMissions() {
   let anyNewlyDone = false;
   MISSION_DEFS.forEach(m => {
     if (isMissionDone(m)) return;
+    if (isTierLocked(m.difficulty)) return; // tier prerequisite not met
     if (!missionState[m.id]) missionState[m.id] = { done: false, claimed: false, progress: 0 };
     const ms = missionState[m.id];
 
@@ -266,22 +274,27 @@ function updateMissionUI() {
   MISSION_DEFS.forEach(m => {
     const done    = isMissionDone(m);
     const claimed = isMissionClaimed(m);
+    const locked  = isTierLocked(m.difficulty);
     const prog    = getMissionProgress(m);
     const pct     = Math.min(100, Math.round((prog / m.goal) * 100));
+    const prereq  = m.difficulty === 'medium' ? 'Easy' : 'Hard';
 
     const item = document.createElement('div');
     item.className = 'mission-item' +
-      (done && claimed ? ' mission-done' : done ? ' mission-completed' : '');
+      (locked ? ' mission-tier-locked' : done && claimed ? ' mission-done' : done ? ' mission-completed' : '');
     item.dataset.missionId = m.id;
 
     const diffLabel = { easy: 'Easy', medium: 'Medium', hard: 'Hard' }[m.difficulty] || '';
     const diffBadge = '<span class="mission-diff mission-diff-' + (m.difficulty || 'easy') + '">' + diffLabel + '</span>';
     const coinAmt   = m.coinReward || 20;
-    const rewardBadge = (done && claimed) ? '' :
+    const rewardBadge = (done && claimed) || locked ? '' :
       '<span class="mission-reward"><span class="coin-icon coin-sm" aria-hidden="true"></span>' + coinAmt + '</span>';
 
     let footer;
-    if (done && claimed) {
+    if (locked) {
+      const unlockTier = m.difficulty === 'medium' ? 'Easy' : 'Medium';
+      footer = '<p class="mission-locked-label">🔒 Complete all ' + unlockTier + ' challenges to unlock</p>';
+    } else if (done && claimed) {
       footer = '<p class="mission-claimed-label">Claimed</p>';
     } else if (done) {
       footer = '<button class="mission-claim-btn" data-claim-id="' + m.id + '" ' +

@@ -1782,6 +1782,17 @@ kbd {
   margin-top: 5px;
 }
 
+/* Locked tier */
+.mission-item.mission-tier-locked {
+  opacity: .45;
+  pointer-events: none;
+  border-color: rgba(255,255,255,.06);
+}
+.mission-locked-label {
+  font-size: .72rem; color: var(--text-muted);
+  margin-top: 5px; font-style: italic;
+}
+
 /* Mission completion toast */
 .mission-toast {
   position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px);
