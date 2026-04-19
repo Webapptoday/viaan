@@ -33,7 +33,7 @@ const POWERUP_UPGRADE_DEFS = {
 const POWERUP_UPGRADE_KEYS = Object.keys(POWERUP_UPGRADE_DEFS);
 
 // Single built-in difficulty — ramps automatically via tickDifficulty()
-const GAME_CONFIG = { playerSpeed: 255, spawnRate: 0.18, forbiddenInterval: 2.7, baseSpeed: 225 };
+const GAME_CONFIG = { playerSpeed: 255, spawnRate: 0.13, forbiddenInterval: 2.7, baseSpeed: 225 };
 
 // Player skins — unlock thresholds are bestScore requirements (bestScore never decreases)
 const SKIN_DEFS = [
@@ -44,14 +44,22 @@ const SKIN_DEFS = [
   { id: 'ice',     name: 'Ice',     unlock: 0, coinCost: 150, rarity: 'rare',   effect: 'shimmer', color1: '#e0f2fe', color2: '#38bdf8', glow: '#7dd3fc', shape: 'circle', trail: true  },
   { id: 'lava',    name: 'Lava',    unlock: 0, coinCost: 175, rarity: 'rare',   effect: 'flicker', color1: '#fef08a', color2: '#ef4444', glow: '#f97316', shape: 'circle', trail: true  },
   { id: 'crimson',  name: 'Crimson',  unlock: 0, coinCost: 200, rarity: 'rare',      effect: 'flicker',  color1: '#ffe4e1', color2: '#dc2626', glow: '#ef4444', shape: 'circle', trail: true  },
+  { id: 'aurora',   name: 'Aurora',   unlock: 0, lifetimeUnlock: 2500, rarity: 'rare', effect: 'shimmer', color1: '#d1fae5', color2: '#0ea5e9', glow: '#22d3ee', shape: 'circle', trail: true  },
   // ── Epic ──
   { id: 'gold',    name: 'Gold',    unlock: 0, coinCost: 300, rarity: 'epic',   effect: 'shimmer', color1: '#fefce8', color2: '#eab308', glow: '#fbbf24', shape: 'star',   trail: false },
   { id: 'void',     name: 'Void',     unlock: 0, coinCost: 425, rarity: 'epic',      effect: 'void',     color1: '#ddd6fe', color2: '#3b0764', glow: '#c084fc', shape: 'star',   trail: true  },
   { id: 'electric', name: 'Electric', unlock: 0, coinCost: 350, rarity: 'epic',      effect: 'electric', color1: '#e0f2fe', color2: '#0284c7', glow: '#38bdf8', shape: 'circle', trail: true  },
   { id: 'inferno',  name: 'Inferno',  unlock: 0, coinCost: 350, rarity: 'epic',      effect: 'inferno',  color1: '#fffbeb', color2: '#dc2626', glow: '#f97316', shape: 'circle', trail: true  },
   { id: 'prism',    name: 'Prism',    unlock: 0, coinCost: 350, rarity: 'epic',      effect: 'prism',    color1: '#ffffff', color2: '#a855f7', glow: '#e879f9', shape: 'circle', trail: true  },
+  { id: 'afterglow', name: 'Afterglow', unlock: 0, lifetimeUnlock: 10000, rarity: 'epic', effect: 'prism', color1: '#fef3c7', color2: '#f472b6', glow: '#fb7185', shape: 'circle', trail: true  },
   // ── Legendary ──
   { id: 'galaxy',   name: 'Galaxy',   unlock: 0, coinCost: 550, rarity: 'legendary', effect: 'galaxy',   color1: '#c4b5fd', color2: '#1e1b4b', glow: '#818cf8', shape: 'star',   trail: true  },
+  { id: 'eclipse',  name: 'Eclipse',  unlock: 0, lifetimeUnlock: 25000, rarity: 'legendary', effect: 'void', color1: '#f5f3ff', color2: '#111827', glow: '#a78bfa', shape: 'star', trail: true  },
+];
+const LIFETIME_REWARD_DEFS = [
+  { id: 'aurora', milestone: 2500, label: 'Aurora Skin', description: 'A cool neon shimmer skin.', type: 'skin' },
+  { id: 'afterglow', milestone: 10000, label: 'Afterglow Skin', description: 'A saturated sunset prism skin.', type: 'skin' },
+  { id: 'eclipse', milestone: 25000, label: 'Eclipse Skin', description: 'A dark legendary cosmic skin.', type: 'skin' },
 ];
 
 const STATE = { HOME: 'home', PLAYING: 'playing', PAUSED: 'paused', GAMEOVER: 'gameover' };
@@ -64,16 +72,16 @@ const POWERUP_COLLECT_BONUS   = 50;   // flat pts for picking up any power-up
 const POWERUP_INTERVAL    = 15;   // s between powerup spawns (more frequent to compensate)
 const COIN_ITEM_INTERVAL  = 6.0;  // s between coin pickup spawns
 const DIFF_SCALE_EVERY    = 6;    // s between difficulty bumps
-const MAX_OBSTACLES       = 40;   // hard cap — dense but still readable under longer block lifetimes
-const GRACE_PERIOD        = 0.45; // s at start with no forbidden obstacles
+const MAX_OBSTACLES       = 48;   // increased from 40 — blocks persist longer now, need more capacity
+const GRACE_PERIOD        = 0.25; // reduced from 0.45 — game pressures player much earlier
 const FORBIDDEN_MIN_RATIO = 0.65; // keep at least 65% of active obstacles forbidden — keeps screen readable
 const CLUSTER_CHANCE      = 0.55; // structured wave patterns fire on most spawn ticks
-const MIN_CLEAR_GAP       = 76;   // px — minimum unblocked corridor guaranteed at player row
+const MIN_CLEAR_GAP       = 72;   // slightly reduced from 76 — tighter corridors increase urgency
 const NUM_LANES           = 6;    // play area divided into this many columns for controlled, fair spawning
 const CAMPING_WAVE_LIMIT  = 3;    // consecutive spawn waves in same player lane before anti-camp kicks in
 const MAX_SAFE_LANE_STREAK = 2;   // hard cap for repeating the exact same safe lane
 const MAX_PLAYER_LANE_SHIELD = 1; // how long single spawns may keep avoiding the player's lane
-const OBSTACLE_CLEANUP_MARGIN = 140; // extra travel below the screen before cleanup, so pressure persists
+const OBSTACLE_CLEANUP_MARGIN = 700; // increased from 140 — blocks stay on screen much longer, building screen pressure
 // Wall / narrow-lane patterns removed — challenge comes from spawn rate and color cycling.
 
 // ============================================================
@@ -422,9 +430,11 @@ let settings = {
   highContrast:   false,
   colorblind:     false,
   bestScore:      0,
+  lifetimeScore:  0,
   selectedSkin:   'classic',
   coins:          0,
   purchasedSkins: [],
+  lifetimeRewards: [],
   powerupUpgrades: {},
   streakCount:    0,
   streakLastDate: '',
@@ -571,11 +581,16 @@ function fmtTime(s) {
   return Math.floor(s / 60) + 'm ' + (s % 60) + 's';
 }
 
+function formatNumber(value) {
+  return Math.floor(Math.max(0, value || 0)).toLocaleString();
+}
+
 function renderStatsUI() {
   const el = document.getElementById('stats-grid');
   if (!el) return;
   gameStats.bestScore = settings.bestScore; // keep in sync
   const rows = [
+    { label: 'Lifetime Score',       value: formatNumber(settings.lifetimeScore || 0) },
     { label: 'Best Score',           value: gameStats.bestScore                },
     { label: 'Total Runs',           value: gameStats.totalRuns                },
     { label: 'Longest Survival',     value: fmtTime(gameStats.longestSurvival) },
@@ -623,6 +638,7 @@ function loadSettings() {
       settings.selectedSkin = s.selectedSkin;
     }
     if (typeof s.bestScore === 'number' && s.bestScore >= 0) settings.bestScore = s.bestScore;
+    if (typeof s.lifetimeScore === 'number' && s.lifetimeScore >= 0) settings.lifetimeScore = Math.floor(s.lifetimeScore);
     if (typeof s.coins === 'number' && s.coins >= 0) settings.coins = s.coins;
     if (s.powerupUpgrades && typeof s.powerupUpgrades === 'object') {
       settings.powerupUpgrades = s.powerupUpgrades;
@@ -632,7 +648,11 @@ function loadSettings() {
     if (Array.isArray(s.purchasedSkins)) {
       settings.purchasedSkins = s.purchasedSkins.filter(id => SKIN_DEFS.some(sk => sk.id === id));
     }
+    if (Array.isArray(s.lifetimeRewards)) {
+      settings.lifetimeRewards = s.lifetimeRewards.filter(id => LIFETIME_REWARD_DEFS.some(reward => reward.id === id));
+    }
     normalizePowerupUpgradeState();
+    normalizeLifetimeRewardState();
   } catch (_) {}
 }
 
@@ -659,8 +679,105 @@ function applySettingsToUI() {
   if (hsEl)    hsEl.textContent = settings.bestScore;
   updateSkinsUI();
   updateCoinUI();
+  renderLifetimeProgressUI();
   updatePowerupUpgradeUI();
   applyColorMode();
+}
+
+function normalizeLifetimeRewardState() {
+  if (!Array.isArray(settings.lifetimeRewards)) {
+    settings.lifetimeRewards = [];
+  }
+  settings.lifetimeRewards = [...new Set(settings.lifetimeRewards)]
+    .filter(id => LIFETIME_REWARD_DEFS.some(reward => reward.id === id));
+}
+
+function isLifetimeRewardUnlocked(id) {
+  normalizeLifetimeRewardState();
+  return settings.lifetimeRewards.includes(id);
+}
+
+function getNextLifetimeReward() {
+  normalizeLifetimeRewardState();
+  return LIFETIME_REWARD_DEFS.find(reward => !isLifetimeRewardUnlocked(reward.id)) || null;
+}
+
+function getLifetimeProgressState() {
+  const total = Math.max(0, Math.floor(settings.lifetimeScore || 0));
+  const nextReward = getNextLifetimeReward();
+  if (!nextReward) {
+    return { total, nextReward: null, pct: 100 };
+  }
+  const previousMilestone = LIFETIME_REWARD_DEFS
+    .filter(reward => reward.milestone < nextReward.milestone)
+    .reduce((max, reward) => Math.max(max, reward.milestone), 0);
+  const span = Math.max(1, nextReward.milestone - previousMilestone);
+  const current = Math.max(0, Math.min(span, total - previousMilestone));
+  return {
+    total,
+    nextReward,
+    pct: Math.max(0, Math.min(100, Math.round((current / span) * 100))),
+  };
+}
+
+function unlockLifetimeRewards(prevScore, newScore) {
+  normalizeLifetimeRewardState();
+  const unlocked = [];
+  LIFETIME_REWARD_DEFS.forEach(reward => {
+    if (prevScore < reward.milestone && newScore >= reward.milestone && !settings.lifetimeRewards.includes(reward.id)) {
+      settings.lifetimeRewards.push(reward.id);
+      unlocked.push(reward.id);
+    }
+  });
+  normalizeLifetimeRewardState();
+  return unlocked;
+}
+
+function renderLifetimeProgressUI() {
+  normalizeLifetimeRewardState();
+  const progress = getLifetimeProgressState();
+  const totalText = formatNumber(progress.total);
+  const nextText = progress.nextReward
+    ? 'Next unlock at ' + formatNumber(progress.nextReward.milestone) + ' Lifetime Score'
+    : 'All lifetime rewards unlocked';
+  const detailText = progress.nextReward
+    ? formatNumber(progress.total) + ' / ' + formatNumber(progress.nextReward.milestone) + ' • ' + progress.nextReward.label
+    : 'Every milestone reward claimed';
+
+  const homeScore = document.getElementById('home-lifetime-score');
+  const homeBar = document.getElementById('home-lifetime-bar');
+  const homeNext = document.getElementById('home-lifetime-next');
+  const homeDetail = document.getElementById('home-lifetime-detail');
+  const shopScore = document.getElementById('lifetime-score-value');
+  const shopBar = document.getElementById('lifetime-progress-bar');
+  const shopNext = document.getElementById('lifetime-next-target');
+  const shopDetail = document.getElementById('lifetime-progress-detail');
+  const rewardList = document.getElementById('lifetime-rewards-list');
+
+  if (homeScore) homeScore.textContent = totalText;
+  if (homeBar) homeBar.style.width = progress.pct + '%';
+  if (homeNext) homeNext.textContent = nextText;
+  if (homeDetail) homeDetail.textContent = detailText;
+  if (shopScore) shopScore.textContent = totalText;
+  if (shopBar) shopBar.style.width = progress.pct + '%';
+  if (shopNext) shopNext.textContent = nextText;
+  if (shopDetail) shopDetail.textContent = detailText;
+
+  if (rewardList) {
+    rewardList.innerHTML = LIFETIME_REWARD_DEFS.map(reward => {
+      const unlocked = isLifetimeRewardUnlocked(reward.id);
+      return '<article class="lifetime-reward-card' + (unlocked ? ' reward-unlocked' : '') + '">' +
+        '<div class="lifetime-reward-top">' +
+          '<div>' +
+            '<h4 class="lifetime-reward-name">' + reward.label + '</h4>' +
+            '<p class="lifetime-reward-desc">' + reward.description + '</p>' +
+          '</div>' +
+          '<span class="lifetime-reward-milestone">' + formatNumber(reward.milestone) + '</span>' +
+        '</div>' +
+        '<p class="lifetime-reward-status">' + (unlocked ? 'Unlocked' : 'Locked until ' + formatNumber(reward.milestone)) + '</p>' +
+      '</article>';
+    }).join('');
+  }
 }
 
 function normalizePowerupUpgradeState() {
@@ -1773,6 +1890,7 @@ function hideModal(id) {
 // ============================================================
 
 function isSkinAvailable(skin) {
+  if (skin.lifetimeUnlock) return isLifetimeRewardUnlocked(skin.id);
   if (skin.coinCost) return settings.purchasedSkins.includes(skin.id);
   return settings.bestScore >= skin.unlock;
 }
@@ -1792,6 +1910,7 @@ function updateSkinsUI(direction) {
   const skin = SKIN_DEFS[skinCarouselIdx];
 
   const isCoinSkin = !!skin.coinCost;
+  const isLifetimeSkin = !!skin.lifetimeUnlock;
   const available  = isSkinAvailable(skin);
   const locked     = !available;
   const selected   = settings.selectedSkin === skin.id && available;
@@ -1804,6 +1923,8 @@ function updateSkinsUI(direction) {
     actionHTML = '<button class="btn btn-secondary sc-action" disabled type="button">Equipped</button>';
   } else if (available) {
     actionHTML = '<button class="btn btn-primary sc-action" data-action="equip" data-skin="' + skin.id + '" type="button">Equip</button>';
+  } else if (isLifetimeSkin) {
+    actionHTML = '<button class="btn btn-secondary sc-action" disabled type="button">Unlock at ' + formatNumber(skin.lifetimeUnlock) + '</button>';
   } else if (isCoinSkin) {
     if (canAfford) {
       actionHTML = '<button class="btn btn-primary sc-action" data-action="buy" data-skin="' + skin.id + '" type="button">Buy &nbsp;' + coinSpan + ' ' + skin.coinCost + '</button>';
@@ -1815,7 +1936,11 @@ function updateSkinsUI(direction) {
   // ── Progress bar for score-locked skins ───────────────────
   let progressHTML = '';
   let barHTML = '';
-  if (!isCoinSkin && locked) {
+  if (isLifetimeSkin && locked) {
+    const pct = Math.min(100, Math.round(((settings.lifetimeScore || 0) / skin.lifetimeUnlock) * 100));
+    progressHTML = '<span class="sc-progress-label">' + formatNumber(settings.lifetimeScore || 0) + ' / ' + formatNumber(skin.lifetimeUnlock) + ' lifetime score</span>';
+    barHTML = '<div class="skin-bar-track sc-bar"><div class="skin-bar-fill" style="width:' + pct + '%"></div></div>';
+  } else if (!isCoinSkin && locked) {
     const pct = Math.min(100, Math.round((settings.bestScore / skin.unlock) * 100));
     progressHTML = '<span class="sc-progress-label">' + settings.bestScore + ' / ' + skin.unlock + ' to unlock</span>';
     barHTML = '<div class="skin-bar-track sc-bar"><div class="skin-bar-fill" style="width:' + pct + '%"></div></div>';
@@ -1917,6 +2042,7 @@ function updateSkinsUI(direction) {
         settings.selectedSkin = skinId;
         saveSettings();
         updateSkinsUI();
+        renderLifetimeProgressUI();
         Audio.uiClick();
       } else if (action === 'buy') {
         showBuyConfirm(skinId);
@@ -1966,6 +2092,7 @@ function updateCoinUI(animate) {
   if (homeCoinEl)     homeCoinEl.textContent     = settings.coins;
   if (progressCoinEl) progressCoinEl.textContent = settings.coins;
   updatePowerupUpgradeUI();
+  renderLifetimeProgressUI();
   if (animate && homeCoinEl) {
     const pill = homeCoinEl.closest('.home-coins');
     if (pill) {
@@ -2053,6 +2180,7 @@ function confirmBuySkin() {
   saveSettings();
   updateCoinUI();
   updateSkinsUI();
+  renderLifetimeProgressUI();
   showSkinUnlockToast(skin);
   Audio.uiClick();
 }
@@ -2072,7 +2200,7 @@ function _closeBuyDialog() {
 
 function checkSkinUnlocks(prevBest, newBest) {
   SKIN_DEFS.forEach(skin => {
-    if (skin.unlock > 0 && prevBest < skin.unlock && newBest >= skin.unlock) {
+    if (skin.unlock > 0 && !skin.coinCost && !skin.lifetimeUnlock && prevBest < skin.unlock && newBest >= skin.unlock) {
       setTimeout(() => showSkinUnlockToast(skin), 1400);
     }
   });
@@ -2692,17 +2820,18 @@ function spawnObstacle() {
   if (activePowerupKey === 'SLOW') vy *= 0.4;
 
   // Spawn position — bias toward the player's lane and neighbors so staying still is punished.
+  // INCREASED PRESSURE: Higher bias values mean blocks track player position more directly.
   const _spawnLanes = getLaneCenters();
   const _playerLane = getPlayerLane();
   observePlayerLaneForSpawn(_playerLane);
   const isCamping = _samePlayerLaneWaves >= CAMPING_WAVE_LIMIT;
   const shieldPlayerLane = !isCamping && _playerLaneShieldStreak < MAX_PLAYER_LANE_SHIELD;
   const _laneW      = canvas.width / NUM_LANES;
-  const spawnSafeR  = player.radius + (shieldPlayerLane ? 30 : (isCamping ? 8 : 14));
+  const spawnSafeR  = player.radius + (shieldPlayerLane ? 26 : (isCamping ? 6 : 10));
   const _candidates = getPressuredLaneOrder(_playerLane, !shieldPlayerLane);
   let pickedLane = _candidates[0] ?? Math.floor(Math.random() * NUM_LANES);
   let ox = _spawnLanes[pickedLane];
-  const pressureBias = isCamping ? 0.80 : 0.55;
+  const pressureBias = isCamping ? 0.92 : 0.72;
   for (const _ci of _candidates) {
     const _cx = getTargetedLaneX(_spawnLanes[_ci], _laneW, player.x, pressureBias);
     if (Math.abs(_cx - player.x) >= spawnSafeR) { ox = _cx; pickedLane = _ci; break; }
@@ -2765,12 +2894,12 @@ function spawnWave() {
 
   const beforeLen = obstacles.length;
   const isCamping = _samePlayerLaneWaves >= CAMPING_WAVE_LIMIT;
-  const wavePressure = isCamping ? 0.72 : 0.45;
+  const wavePressure = isCamping ? 0.85 : 0.65;
   for (const laneIdx of blocked) {
     if (obstacles.length >= MAX_OBSTACLES) break;
     const cx = Math.max(4, Math.min(cw - 4, getTargetedLaneX(lanes[laneIdx], lw, player.x, wavePressure)));
     // Never spawn inside player safe radius
-    if (Math.abs(cx - player.x) < player.radius + (_samePlayerLaneWaves >= CAMPING_WAVE_LIMIT ? 12 : 24)) continue;
+    if (Math.abs(cx - player.x) < player.radius + (_samePlayerLaneWaves >= CAMPING_WAVE_LIMIT ? 10 : 18)) continue;
 
     // Block size variety — mix of small darts, medium, tall bullets, wide fills, rare large
     let w, h, wType;
@@ -4424,11 +4553,24 @@ function triggerGameOver() {
     if (wasNewBest) { settings.bestScore = final; saveSettings(); newBestThisGame = true; }
     if (wasNewBest) checkSkinUnlocks(prevBest, settings.bestScore);
 
+    const prevLifetimeScore = settings.lifetimeScore || 0;
+    settings.lifetimeScore = prevLifetimeScore + final;
+    const lifetimeUnlocks = unlockLifetimeRewards(prevLifetimeScore, settings.lifetimeScore);
+    saveSettings();
+
     const elapsed = Math.max(0, Math.floor((performance.now() - gameStartTime - pausedDuration) / 1000));
     const coinsEarned = awardRunCoins(final, elapsed);
     updateSkinsUI();
+    renderLifetimeProgressUI();
     updateStats(elapsed); // persist lifetime stats before showing overlay
     const timeStr  = elapsed >= 60 ? Math.floor(elapsed / 60) + 'm ' + (elapsed % 60) + 's' : elapsed + 's';
+
+    lifetimeUnlocks.forEach((skinId, idx) => {
+      const unlockedSkin = SKIN_DEFS.find(skin => skin.id === skinId);
+      if (unlockedSkin) {
+        setTimeout(() => showSkinUnlockToast(unlockedSkin), 1400 + (idx * 450));
+      }
+    });
 
     document.getElementById('gameover-best').textContent  = settings.bestScore;
     document.getElementById('gameover-combo').textContent = maxCombo;
@@ -4703,6 +4845,7 @@ function init() {
   loadStats();
   loadMissions();
   applySettingsToUI();
+  renderLifetimeProgressUI();
   updateMissionUI();
 
   // Kick off home screen background and coin count-up on first load
@@ -4737,6 +4880,7 @@ function init() {
   document.getElementById('btn-progress').addEventListener('click', () => {
     Audio.uiClick();
     renderStatsUI();
+    renderLifetimeProgressUI();
     const selIdx = SKIN_DEFS.findIndex(s => s.id === settings.selectedSkin);
     if (selIdx >= 0) skinCarouselIdx = selIdx;
     updateSkinsUI();

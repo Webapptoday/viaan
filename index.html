@@ -45,6 +45,17 @@
           <span class="coin-icon" aria-hidden="true"></span>
           <span class="coins-value" id="home-coins">0</span>
         </div>
+        <div class="home-lifetime-card" aria-label="Lifetime score progression">
+          <div class="home-lifetime-head">
+            <span class="home-lifetime-label">Lifetime Score</span>
+            <span class="home-lifetime-value" id="home-lifetime-score">0</span>
+          </div>
+          <div class="lifetime-track" aria-hidden="true">
+            <div class="lifetime-fill" id="home-lifetime-bar"></div>
+          </div>
+          <p class="home-lifetime-next" id="home-lifetime-next">Next unlock at 2,500 Lifetime Score</p>
+          <p class="home-lifetime-detail" id="home-lifetime-detail">0 / 2,500 • Aurora Skin</p>
+        </div>
       </header>
 
       <!-- Daily Challenge -->
@@ -214,6 +225,22 @@
         <h3 class="spanel-section-title" id="prog-powerups-id">Powerup Upgrades</h3>
         <p class="skins-hint">Small duration boosts only. Max 3 levels per powerup.</p>
         <div id="powerup-upgrades-list" class="powerup-upgrades-list" aria-label="Powerup upgrades"></div>
+      </section>
+
+      <section aria-labelledby="prog-lifetime-id">
+        <h3 class="spanel-section-title" id="prog-lifetime-id">Lifetime Progress</h3>
+        <div class="lifetime-progress-panel" aria-label="Lifetime score progression and rewards">
+          <div class="lifetime-progress-top">
+            <span class="lifetime-progress-label">Lifetime Score</span>
+            <span class="lifetime-progress-value" id="lifetime-score-value">0</span>
+          </div>
+          <div class="lifetime-track" aria-hidden="true">
+            <div class="lifetime-fill" id="lifetime-progress-bar"></div>
+          </div>
+          <p class="lifetime-next-target" id="lifetime-next-target">Next unlock at 2,500 Lifetime Score</p>
+          <p class="lifetime-progress-detail" id="lifetime-progress-detail">0 / 2,500 • Aurora Skin</p>
+          <div id="lifetime-rewards-list" class="lifetime-rewards-list" aria-label="Lifetime milestone rewards"></div>
+        </div>
       </section>
 
       <!-- ── STATS ── -->

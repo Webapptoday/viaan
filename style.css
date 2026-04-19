@@ -321,6 +321,79 @@ body::before {
   margin-top: 8px;
 }
 
+.home-lifetime-card {
+  margin: 14px auto 0;
+  width: min(420px, 100%);
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  border: 1px solid rgba(255,255,255,.12);
+  background: linear-gradient(160deg, rgba(255,255,255,.06) 0%, rgba(56,189,248,.06) 100%);
+  box-shadow: 0 8px 24px rgba(0,0,0,.22);
+  text-align: left;
+}
+
+.home-lifetime-head,
+.lifetime-progress-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.home-lifetime-label,
+.lifetime-progress-label {
+  font-size: .72rem;
+  font-weight: 800;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.home-lifetime-value,
+.lifetime-progress-value {
+  font-size: 1.15rem;
+  font-weight: 900;
+  letter-spacing: -.03em;
+  color: #f8fafc;
+}
+
+.lifetime-track {
+  width: 100%;
+  height: 8px;
+  margin-top: 10px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255,255,255,.08);
+}
+
+.lifetime-fill {
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #22d3ee 0%, #a855f7 100%);
+  transition: width .35s ease;
+}
+
+.home-lifetime-next,
+.home-lifetime-detail,
+.lifetime-next-target,
+.lifetime-progress-detail {
+  margin-top: 8px;
+  font-size: .8rem;
+  line-height: 1.5;
+}
+
+.home-lifetime-next,
+.lifetime-next-target {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.home-lifetime-detail,
+.lifetime-progress-detail {
+  color: var(--text-muted);
+}
+
 /* CSS circular gold coin */
 .coin-icon {
   display: inline-block;
@@ -810,6 +883,69 @@ kbd {
 .powerup-upgrade-btn {
   width: 100%;
   justify-content: center;
+}
+
+.lifetime-progress-panel {
+  margin-top: 12px;
+  padding: 16px;
+  border-radius: var(--radius);
+  border: 1px solid var(--card-border);
+  background: linear-gradient(160deg, rgba(255,255,255,.05) 0%, rgba(34,211,238,.05) 100%);
+}
+
+.lifetime-rewards-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.lifetime-reward-card {
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,.08);
+  background: rgba(255,255,255,.035);
+}
+
+.lifetime-reward-card.reward-unlocked {
+  border-color: rgba(74,222,128,.35);
+  background: linear-gradient(160deg, rgba(74,222,128,.10) 0%, rgba(255,255,255,.04) 100%);
+}
+
+.lifetime-reward-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.lifetime-reward-name {
+  margin: 0;
+  font-size: .9rem;
+  font-weight: 800;
+}
+
+.lifetime-reward-desc,
+.lifetime-reward-status {
+  margin: 4px 0 0;
+  font-size: .74rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.lifetime-reward-milestone {
+  flex-shrink: 0;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(168,85,247,.16);
+  color: #ddd6fe;
+  font-size: .72rem;
+  font-weight: 800;
+}
+
+.lifetime-reward-card.reward-unlocked .lifetime-reward-status {
+  color: #86efac;
+  font-weight: 700;
 }
 
 /* ============================================================
@@ -1691,6 +1827,7 @@ kbd {
   .game-title { letter-spacing: -1.5px; }
   .game-subtitle { font-size: .88rem; margin-bottom: 10px; }
   .home-highscore { padding: 8px 16px; }
+  .home-lifetime-card { padding: 12px 14px; }
 }
 
 @media (max-width: 360px) {
