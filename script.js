@@ -25,9 +25,15 @@ const POWERUP_DEFS = {
   SMALL:  { label: 'Small Mode',icon: '\uD83D\uDD35',  color: '#34d399', duration: 5  },
 };
 const POWERUP_KEYS = Object.keys(POWERUP_DEFS);
+const POWERUP_UPGRADE_DEFS = {
+  SHIELD: { maxLevel: 3, bonusPerLevel: 0.5, costs: [500, 1200, 2000] },
+  SMALL:  { maxLevel: 3, bonusPerLevel: 0.5, costs: [500, 1200, 2000] },
+  SLOW:   { maxLevel: 3, bonusPerLevel: 0.5, costs: [500, 1200, 2000] },
+};
+const POWERUP_UPGRADE_KEYS = Object.keys(POWERUP_UPGRADE_DEFS);
 
 // Single built-in difficulty — ramps automatically via tickDifficulty()
-const GAME_CONFIG = { playerSpeed: 255, spawnRate: 0.22, forbiddenInterval: 3.2, baseSpeed: 210 };
+const GAME_CONFIG = { playerSpeed: 255, spawnRate: 0.18, forbiddenInterval: 2.7, baseSpeed: 225 };
 
 // Player skins — unlock thresholds are bestScore requirements (bestScore never decreases)
 const SKIN_DEFS = [
@@ -57,13 +63,17 @@ const COMBO_BONUS_PER         = 25;   // pts per combo level on each color chang
 const POWERUP_COLLECT_BONUS   = 50;   // flat pts for picking up any power-up
 const POWERUP_INTERVAL    = 15;   // s between powerup spawns (more frequent to compensate)
 const COIN_ITEM_INTERVAL  = 6.0;  // s between coin pickup spawns
-const DIFF_SCALE_EVERY    = 9;    // s between difficulty bumps
-const MAX_OBSTACLES       = 30;   // hard cap — dense but readable
-const GRACE_PERIOD        = 1.0;  // s at start with no forbidden obstacles
+const DIFF_SCALE_EVERY    = 6;    // s between difficulty bumps
+const MAX_OBSTACLES       = 40;   // hard cap — dense but still readable under longer block lifetimes
+const GRACE_PERIOD        = 0.45; // s at start with no forbidden obstacles
 const FORBIDDEN_MIN_RATIO = 0.65; // keep at least 65% of active obstacles forbidden — keeps screen readable
-const CLUSTER_CHANCE      = 0.35; // structured wave patterns fire on 35% of spawn ticks
-const MIN_CLEAR_GAP       = 72;   // px — minimum unblocked corridor guaranteed at player row
+const CLUSTER_CHANCE      = 0.55; // structured wave patterns fire on most spawn ticks
+const MIN_CLEAR_GAP       = 76;   // px — minimum unblocked corridor guaranteed at player row
 const NUM_LANES           = 6;    // play area divided into this many columns for controlled, fair spawning
+const CAMPING_WAVE_LIMIT  = 3;    // consecutive spawn waves in same player lane before anti-camp kicks in
+const MAX_SAFE_LANE_STREAK = 2;   // hard cap for repeating the exact same safe lane
+const MAX_PLAYER_LANE_SHIELD = 1; // how long single spawns may keep avoiding the player's lane
+const OBSTACLE_CLEANUP_MARGIN = 140; // extra travel below the screen before cleanup, so pressure persists
 // Wall / narrow-lane patterns removed — challenge comes from spawn rate and color cycling.
 
 // ============================================================
@@ -415,6 +425,7 @@ let settings = {
   selectedSkin:   'classic',
   coins:          0,
   purchasedSkins: [],
+  powerupUpgrades: {},
   streakCount:    0,
   streakLastDate: '',
 };
@@ -492,12 +503,17 @@ let panicBlockFromDD = 0;     // s remaining before panic wave can fire (post-DD
 let _safeLaneDrift   = 2;   // which lane the open gap is currently biased toward
 let _lastSafeLane    = -1;  // the safe lane chosen last wave — prevents same column repeat
 let _wavesUntilDrift = 3;   // countdown: when 0, _safeLaneDrift shifts ±1
+let _safeLaneStreak  = 0;   // consecutive waves that picked the same safe lane
+let _lastPlayerLaneSeen = -1; // player lane at previous spawn wave
+let _samePlayerLaneWaves = 0; // consecutive spawn waves player stayed in same lane
+let _playerLaneSafeStreak = 0; // consecutive waves where player's lane was picked as safe
+let _playerLaneShieldStreak = 0; // consecutive single-spawn waves that avoided player's lane
 
 const PANIC_ANNOUNCE = 0.9; // s of banner before wave starts
-const PANIC_COOLDOWN_BASE = 12; // s between waves
-const PANIC_COOLDOWN_VAR  =  8; // randomised extra: 12–20 s gap
+const PANIC_COOLDOWN_BASE = 5; // s between waves
+const PANIC_COOLDOWN_VAR  = 3; // randomised extra: 5–8 s gap
 
-const DD_MIN_PLAYTIME   = 25;   // earliest Double Danger can fire (s into run)
+const DD_MIN_PLAYTIME   = 18;   // earliest Double Danger can fire (s into run)
 const DD_COOLDOWN_BASE  = 30;   // s between DD events
 const DD_COOLDOWN_VAR   = 18;   // randomised range: 30–48 s
 const DD_ANNOUNCE       = 0.75; // warning banner duration (s)
@@ -608,11 +624,15 @@ function loadSettings() {
     }
     if (typeof s.bestScore === 'number' && s.bestScore >= 0) settings.bestScore = s.bestScore;
     if (typeof s.coins === 'number' && s.coins >= 0) settings.coins = s.coins;
+    if (s.powerupUpgrades && typeof s.powerupUpgrades === 'object') {
+      settings.powerupUpgrades = s.powerupUpgrades;
+    }
     if (typeof s.streakCount === 'number')    settings.streakCount    = s.streakCount;
     if (typeof s.streakLastDate === 'string') settings.streakLastDate = s.streakLastDate;
     if (Array.isArray(s.purchasedSkins)) {
       settings.purchasedSkins = s.purchasedSkins.filter(id => SKIN_DEFS.some(sk => sk.id === id));
     }
+    normalizePowerupUpgradeState();
   } catch (_) {}
 }
 
@@ -639,7 +659,91 @@ function applySettingsToUI() {
   if (hsEl)    hsEl.textContent = settings.bestScore;
   updateSkinsUI();
   updateCoinUI();
+  updatePowerupUpgradeUI();
   applyColorMode();
+}
+
+function normalizePowerupUpgradeState() {
+  if (!settings.powerupUpgrades || typeof settings.powerupUpgrades !== 'object') {
+    settings.powerupUpgrades = {};
+  }
+  POWERUP_UPGRADE_KEYS.forEach(key => {
+    const def = POWERUP_UPGRADE_DEFS[key];
+    const raw = Number(settings.powerupUpgrades[key]);
+    settings.powerupUpgrades[key] = Number.isFinite(raw)
+      ? Math.max(0, Math.min(def.maxLevel, Math.floor(raw)))
+      : 0;
+  });
+}
+
+function getPowerupUpgradeLevel(key) {
+  if (!POWERUP_UPGRADE_DEFS[key]) return 0;
+  normalizePowerupUpgradeState();
+  return settings.powerupUpgrades[key] || 0;
+}
+
+function getPowerupDuration(key) {
+  const def = POWERUP_DEFS[key];
+  if (!def) return 0;
+  const upDef = POWERUP_UPGRADE_DEFS[key];
+  if (!upDef) return def.duration;
+  return def.duration + getPowerupUpgradeLevel(key) * upDef.bonusPerLevel;
+}
+
+function formatSeconds(seconds) {
+  return (Math.round(seconds * 10) / 10).toFixed(1) + 's';
+}
+
+function updatePowerupUpgradeUI() {
+  const list = document.getElementById('powerup-upgrades-list');
+  if (!list) return;
+  normalizePowerupUpgradeState();
+
+  const coinSpan = '<span class="coin-icon coin-sm" aria-hidden="true"></span>';
+  list.innerHTML = POWERUP_UPGRADE_KEYS.map(key => {
+    const def = POWERUP_DEFS[key];
+    const upDef = POWERUP_UPGRADE_DEFS[key];
+    const level = getPowerupUpgradeLevel(key);
+    const nextLevel = level + 1;
+    const isMaxed = level >= upDef.maxLevel;
+    const currentDuration = getPowerupDuration(key);
+    const nextDuration = def.duration + Math.min(nextLevel, upDef.maxLevel) * upDef.bonusPerLevel;
+    const nextCost = isMaxed ? 0 : upDef.costs[level];
+    const canAfford = !isMaxed && settings.coins >= nextCost;
+    const buttonHtml = isMaxed
+      ? '<button class="btn btn-secondary powerup-upgrade-btn" type="button" disabled>Maxed</button>'
+      : '<button class="btn ' + (canAfford ? 'btn-primary' : 'btn-secondary') + ' powerup-upgrade-btn" type="button" data-upgrade-key="' + key + '"' + (canAfford ? '' : ' disabled') + '>Upgrade ' + coinSpan + ' ' + nextCost + '</button>';
+
+    return '<article class="powerup-upgrade-card" data-powerup-key="' + key + '">' +
+      '<div class="powerup-upgrade-head">' +
+        '<span class="powerup-upgrade-icon" style="color:' + def.color + '">' + def.icon + '</span>' +
+        '<div class="powerup-upgrade-copy">' +
+          '<h4 class="powerup-upgrade-name">' + def.label + '</h4>' +
+          '<p class="powerup-upgrade-meta">Level ' + level + ' / ' + upDef.maxLevel + ' • Current ' + formatSeconds(currentDuration) + '</p>' +
+        '</div>' +
+      '</div>' +
+      '<p class="powerup-upgrade-effect">' + (isMaxed ? 'Duration bonus capped at +' + formatSeconds(level * upDef.bonusPerLevel) : 'Next level: ' + formatSeconds(nextDuration) + ' total duration') + '</p>' +
+      buttonHtml +
+    '</article>';
+  }).join('');
+}
+
+function buyPowerupUpgrade(key) {
+  const upDef = POWERUP_UPGRADE_DEFS[key];
+  if (!upDef) return;
+  normalizePowerupUpgradeState();
+  const level = getPowerupUpgradeLevel(key);
+  if (level >= upDef.maxLevel) return;
+  const cost = upDef.costs[level];
+  if (settings.coins < cost) return;
+
+  settings.coins -= cost;
+  settings.powerupUpgrades[key] = level + 1;
+  saveSettings();
+  updateCoinUI();
+  updatePowerupUpgradeUI();
+  updateSkinsUI();
+  Audio.uiClick();
 }
 
 // ============================================================
@@ -1861,6 +1965,7 @@ function updateCoinUI(animate) {
   const progressCoinEl = document.getElementById('progress-coins');
   if (homeCoinEl)     homeCoinEl.textContent     = settings.coins;
   if (progressCoinEl) progressCoinEl.textContent = settings.coins;
+  updatePowerupUpgradeUI();
   if (animate && homeCoinEl) {
     const pill = homeCoinEl.closest('.home-coins');
     if (pill) {
@@ -2555,7 +2660,7 @@ function spawnObstacle() {
     colorIndex = Math.floor(Math.random() * GAME_COLORS.length);
     if (colorIndex === forbiddenIndex) colorIndex = (colorIndex + 1) % GAME_COLORS.length;
   } else {
-    const forbRatio = warningActive ? 0.30 : 0.60;
+    const forbRatio = warningActive ? 0.34 : activeForbiddenRatio();
     if (Math.random() < forbRatio) {
       colorIndex = forbiddenIndex;
     } else {
@@ -2586,29 +2691,23 @@ function spawnObstacle() {
 
   if (activePowerupKey === 'SLOW') vy *= 0.4;
 
-  // Spawn position — avoid the player's current lane and safe radius.
-  // Prefers lanes on the opposite side from the player for balanced pressure.
+  // Spawn position — bias toward the player's lane and neighbors so staying still is punished.
   const _spawnLanes = getLaneCenters();
   const _playerLane = getPlayerLane();
+  observePlayerLaneForSpawn(_playerLane);
+  const isCamping = _samePlayerLaneWaves >= CAMPING_WAVE_LIMIT;
+  const shieldPlayerLane = !isCamping && _playerLaneShieldStreak < MAX_PLAYER_LANE_SHIELD;
   const _laneW      = canvas.width / NUM_LANES;
-  const spawnSafeR  = player.radius + 50;
-  // Build a shuffled list of non-player lanes as candidates
-  const _candidates = [];
-  for (let _i = 0; _i < NUM_LANES; _i++) {
-    if (_i !== _playerLane) _candidates.push(_i);
-  }
-  // Shuffle
-  for (let _i = _candidates.length - 1; _i > 0; _i--) {
-    const _j = Math.floor(Math.random() * (_i + 1));
-    [_candidates[_i], _candidates[_j]] = [_candidates[_j], _candidates[_i]];
-  }
-  let ox = _spawnLanes[_candidates[0] ?? Math.floor(Math.random() * NUM_LANES)];
+  const spawnSafeR  = player.radius + (shieldPlayerLane ? 30 : (isCamping ? 8 : 14));
+  const _candidates = getPressuredLaneOrder(_playerLane, !shieldPlayerLane);
+  let pickedLane = _candidates[0] ?? Math.floor(Math.random() * NUM_LANES);
+  let ox = _spawnLanes[pickedLane];
+  const pressureBias = isCamping ? 0.80 : 0.55;
   for (const _ci of _candidates) {
-    const _cx = _spawnLanes[_ci];
-    if (Math.abs(_cx - player.x) >= spawnSafeR) { ox = _cx; break; }
+    const _cx = getTargetedLaneX(_spawnLanes[_ci], _laneW, player.x, pressureBias);
+    if (Math.abs(_cx - player.x) >= spawnSafeR) { ox = _cx; pickedLane = _ci; break; }
   }
-  // Sub-lane jitter — breaks perfect vertical-column appearance
-  ox += (Math.random() - 0.5) * (_laneW * 0.45);
+  _playerLaneShieldStreak = pickedLane === _playerLane ? 0 : (_playerLaneShieldStreak + 1);
   // Clamp so block stays fully on screen regardless of its width
   ox = Math.max(w / 2 + 2, Math.min(canvas.width - w / 2 - 2, ox));
 
@@ -2640,7 +2739,7 @@ function spawnObstacle() {
 
   // Path safety check: if the new block would leave no viable corridor at the player row,
   // remove it immediately. Cull decisions happen top-of-screen so the player never sees a pop.
-  if (graceTimer >= GRACE_PERIOD && largestClearGap(player.y) < MIN_CLEAR_GAP) {
+  if (graceTimer >= GRACE_PERIOD && largestClearGap(player.y) < currentRequiredClearGap()) {
     obstacles.pop();
   }
 }
@@ -2659,21 +2758,19 @@ function spawnWave() {
 
   // Detect which lane the player is in, then choose a player-aware safe lane.
   const playerLane = getPlayerLane();
-  let safeLane, blocked;
-  for (let attempt = 0; attempt < 4; attempt++) {
-    safeLane = pickSafeLane(playerLane);
-    blocked  = pickBlockedLanes(safeLane, playerLane);
-    if (!postGrace || validateEscapeRoute(lanes, blocked, lw)) break;
-  }
+  observePlayerLaneForSpawn(playerLane);
+  const plan = buildWavePlan(lanes, playerLane, lw, postGrace);
+  const safeLane = plan.safeLane;
+  const blocked  = plan.blocked;
 
   const beforeLen = obstacles.length;
+  const isCamping = _samePlayerLaneWaves >= CAMPING_WAVE_LIMIT;
+  const wavePressure = isCamping ? 0.72 : 0.45;
   for (const laneIdx of blocked) {
     if (obstacles.length >= MAX_OBSTACLES) break;
-    // Sub-lane X jitter — removes rigid vertical-column look
-    const jitter = (Math.random() - 0.5) * lw * 0.44;
-    const cx = Math.max(4, Math.min(cw - 4, lanes[laneIdx] + jitter));
+    const cx = Math.max(4, Math.min(cw - 4, getTargetedLaneX(lanes[laneIdx], lw, player.x, wavePressure)));
     // Never spawn inside player safe radius
-    if (Math.abs(cx - player.x) < player.radius + 44) continue;
+    if (Math.abs(cx - player.x) < player.radius + (_samePlayerLaneWaves >= CAMPING_WAVE_LIMIT ? 12 : 24)) continue;
 
     // Block size variety — mix of small darts, medium, tall bullets, wide fills, rare large
     let w, h, wType;
@@ -2701,7 +2798,7 @@ function spawnWave() {
       colorIndex = Math.floor(Math.random() * GAME_COLORS.length);
       if (colorIndex === forbiddenIndex) colorIndex = (colorIndex + 1) % GAME_COLORS.length;
     } else {
-      const forbRatio = warningActive ? 0.30 : 0.60;
+      const forbRatio = warningActive ? 0.34 : activeForbiddenRatio();
       if (Math.random() < forbRatio) {
         colorIndex = forbiddenIndex;
       } else {
@@ -2735,7 +2832,7 @@ function spawnWave() {
   }
 
   // Final safety net: roll back entire wave if no escape remains
-  if (postGrace && largestClearGap(player.y) < MIN_CLEAR_GAP) {
+  if (postGrace && largestClearGap(player.y) < currentRequiredClearGap()) {
     obstacles.length = beforeLen;
   }
 }
@@ -2757,40 +2854,123 @@ function getPlayerLane() {
   return Math.max(0, Math.min(NUM_LANES - 1, Math.floor(player.x / lw)));
 }
 
-// Chooses a safe lane relative to the player using a 60 / 30 / 10 distribution:
-//   60% → player’s own lane (reward staying still)
-//   30% → adjacent lane (gentle push)
-//   10% → farther lane  (skill test)
+function observePlayerLaneForSpawn(playerLane) {
+  if (playerLane === _lastPlayerLaneSeen) {
+    _samePlayerLaneWaves += 1;
+  } else {
+    _samePlayerLaneWaves = 1;
+    _playerLaneShieldStreak = 0;
+  }
+  _lastPlayerLaneSeen = playerLane;
+}
+
+function currentRequiredClearGap() {
+  return Math.max(MIN_CLEAR_GAP - difficultyBumps * 4, 56);
+}
+
+function getLanePressureScore(laneIdx, playerLane) {
+  const dist = Math.abs(laneIdx - playerLane);
+  let score = dist === 0 ? 12 : (dist === 1 ? 8.5 : (dist === 2 ? 4 : 1));
+  score += Math.min(difficultyBumps, 6) * (dist <= 1 ? 0.9 : 0.25);
+  if (_samePlayerLaneWaves >= CAMPING_WAVE_LIMIT) {
+    if (dist === 0) score += 9;
+    else if (dist === 1) score += 5;
+  }
+  return score;
+}
+
+function getTargetedLaneX(laneCenter, laneW, playerX, pressure) {
+  const maxPull = laneW * 0.22;
+  const pull = Math.max(-maxPull, Math.min(maxPull, playerX - laneCenter)) * pressure;
+  const jitter = (Math.random() - 0.5) * laneW * (0.34 - pressure * 0.10);
+  return laneCenter + pull + jitter;
+}
+
+function getPressuredLaneOrder(playerLane, includePlayerLane) {
+  const lanes = [];
+  for (let i = 0; i < NUM_LANES; i++) {
+    if (!includePlayerLane && i === playerLane) continue;
+    lanes.push(i);
+  }
+  lanes.sort((a, b) => {
+    const diff = getLanePressureScore(b, playerLane) - getLanePressureScore(a, playerLane);
+    return diff !== 0 ? diff : (Math.random() < 0.5 ? -1 : 1);
+  });
+  return lanes;
+}
+
+function pickAdjacentLane(baseLane, preferredLane) {
+  const opts = [];
+  if (baseLane > 0) opts.push(baseLane - 1);
+  if (baseLane < NUM_LANES - 1) opts.push(baseLane + 1);
+  if (opts.length === 0) return baseLane;
+  opts.sort((a, b) => {
+    const da = Math.abs(a - preferredLane);
+    const db = Math.abs(b - preferredLane);
+    if (da !== db) return da - db;
+    return Math.random() < 0.5 ? -1 : 1;
+  });
+  return opts[0];
+}
+
+function buildWavePlan(laneCenters, playerLane, laneW, postGrace) {
+  const attempts = postGrace ? 8 : 4;
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    const safeLane = pickSafeLane(playerLane);
+    const blocked  = pickBlockedLanes(safeLane, playerLane);
+    if (!postGrace || validateEscapeRoute(laneCenters, blocked, laneW)) {
+      return { safeLane, blocked };
+    }
+  }
+
+  const fallbackSafe = pickAdjacentLane(playerLane, _safeLaneDrift);
+  return {
+    safeLane: fallbackSafe,
+    blocked: pickBlockedLanes(fallbackSafe, playerLane),
+  };
+}
+
+// Chooses a safe lane that is usually near the player, but rarely exactly on them.
+// This keeps escape routes readable while forcing frequent repositioning.
 function pickSafeLane(playerLane) {
-  // Advance drift countdown -- gap shifts +-1 lane every 3-5 waves
+  // Advance drift countdown -- gap shifts +-1 lane every 2-4 waves
   _wavesUntilDrift--;
   if (_wavesUntilDrift <= 0) {
-    _wavesUntilDrift = 3 + Math.floor(Math.random() * 3);
+    _wavesUntilDrift = 2 + Math.floor(Math.random() * 3);
     _safeLaneDrift  += Math.random() < 0.5 ? 1 : -1;
     _safeLaneDrift   = Math.max(0, Math.min(NUM_LANES - 1, _safeLaneDrift));
   }
 
+  const nearbySafe = pickAdjacentLane(playerLane, _safeLaneDrift);
+  const driftNeighbor = pickAdjacentLane(_safeLaneDrift, playerLane);
   const r = Math.random();
   let candidate;
-  if (r < 0.20) {
-    // Mercy: 1 step from player -- prevents permanently unreachable gap
-    const adj = playerLane + (Math.random() < 0.5 ? -1 : 1);
-    candidate = Math.max(0, Math.min(NUM_LANES - 1, adj));
-  } else if (r < 0.60) {
-    // Drift position -- player must move toward the roaming gap
+  const isCamping = _samePlayerLaneWaves >= CAMPING_WAVE_LIMIT;
+  if (isCamping) {
+    candidate = nearbySafe;
+  } else if (r < 0.58) {
+    candidate = nearbySafe;
+  } else if (r < 0.82) {
+    candidate = driftNeighbor;
+  } else if (r < 0.94) {
     candidate = _safeLaneDrift;
   } else {
-    // Drift neighborhood -- 1 step from drift position
-    candidate = Math.max(0, Math.min(NUM_LANES - 1,
-      _safeLaneDrift + (Math.random() < 0.5 ? -1 : 1)));
+    candidate = playerLane;
   }
 
-  // Prevent the exact same safe lane on consecutive waves
-  if (candidate === _lastSafeLane && NUM_LANES > 2) {
-    const nudge = candidate < _safeLaneDrift ? 1 : -1;
-    candidate = Math.max(0, Math.min(NUM_LANES - 1, candidate + nudge));
+  // Never let the same safe lane repeat indefinitely.
+  if (_lastSafeLane >= 0 && candidate === _lastSafeLane && _safeLaneStreak >= MAX_SAFE_LANE_STREAK) {
+    candidate = pickAdjacentLane(_lastSafeLane, playerLane);
   }
+
+  // Player lane should be a brief exception, not the normal answer.
+  if (candidate === playerLane && (isCamping || _playerLaneSafeStreak >= 1)) {
+    candidate = nearbySafe;
+  }
+
+  _safeLaneStreak = (candidate === _lastSafeLane) ? (_safeLaneStreak + 1) : 1;
   _lastSafeLane = candidate;
+  _playerLaneSafeStreak = (candidate === playerLane) ? (_playerLaneSafeStreak + 1) : 0;
   return candidate;
 }
 
@@ -2800,16 +2980,17 @@ function pickSafeLane(playerLane) {
 // • Blocked lanes are sorted so the player’s side fills first — directional pressure.
 function pickBlockedLanes(safeLane, playerLane) {
   const b          = difficultyBumps;
-  const maxBlocked = b < 2 ? 3 : (b < 5 ? 4 : NUM_LANES - 1);
+  const maxBlocked = b < 1 ? 4 : (b < 4 ? 5 : NUM_LANES - 1);
 
   const allBlocked = [];
   for (let i = 0; i < NUM_LANES; i++) {
     if (i !== safeLane) allBlocked.push(i);
   }
 
-  allBlocked.sort((a, bIdx) =>
-    Math.abs(a - playerLane) - Math.abs(bIdx - playerLane)
-  );
+  allBlocked.sort((a, bIdx) => {
+    const diff = getLanePressureScore(bIdx, playerLane) - getLanePressureScore(a, playerLane);
+    return diff !== 0 ? diff : (Math.random() < 0.5 ? -1 : 1);
+  });
 
   return allBlocked.slice(0, maxBlocked);
 }
@@ -2900,7 +3081,7 @@ function updateObstacles(dt) {
       ob.nearMissIdx = forbiddenIndex;
     }
 
-    if (ob.y > canvas.height + 20) {
+    if (ob.y > canvas.height + Math.max(OBSTACLE_CLEANUP_MARGIN, ob.h * 1.25)) {
       if (ob.nearMissIdx >= 0) awardNearMiss(ob);
       obstacles.splice(i, 1);
     }
@@ -3160,19 +3341,19 @@ function collectPowerup(p) {
     case 'SMALL':
       playerRadiusTarget = Math.round(player.baseRadius * 0.58); // ~14 px
       activePowerupKey   = 'SMALL';
-      activePowerupTimer = POWERUP_DEFS.SMALL.duration;
-      activePowerupTotal = POWERUP_DEFS.SMALL.duration;
+      activePowerupTimer = getPowerupDuration('SMALL');
+      activePowerupTotal = activePowerupTimer;
       break;
     case 'SHIELD':
       player.hasShield   = true;
       activePowerupKey   = 'SHIELD';
-      activePowerupTimer = POWERUP_DEFS.SHIELD.duration;
-      activePowerupTotal = POWERUP_DEFS.SHIELD.duration;
+      activePowerupTimer = getPowerupDuration('SHIELD');
+      activePowerupTotal = activePowerupTimer;
       break;
     case 'SLOW':
       activePowerupKey   = 'SLOW';
-      activePowerupTimer = POWERUP_DEFS.SLOW.duration;
-      activePowerupTotal = POWERUP_DEFS.SLOW.duration;
+      activePowerupTimer = getPowerupDuration('SLOW');
+      activePowerupTotal = activePowerupTimer;
       obstacles.forEach(o => { o.vy = o.baseVy * 0.4; });
       break;
     case 'CLEAR':
@@ -3623,17 +3804,22 @@ function awardNearMiss(ob) {
 // The active spawn rate is read via panicSpawnRate() below.
 // No state is permanently altered; everything resets after each wave.
 function panicSpawnRate() {
-  return panicPhase === 'wave' ? spawnRate * 0.42 : spawnRate; // ~2.4× faster during wave
+  return panicPhase === 'wave' ? spawnRate * 0.34 : spawnRate; // ~3× faster during wave
 }
 function panicSpeedMult() {
-  return panicPhase === 'wave' ? 1.25 : 1.0; // 25 % faster obstacle velocity during wave
+  return panicPhase === 'wave' ? 1.32 : 1.0; // 32 % faster obstacle velocity during wave
 }
 function activeForbiddenRatio() {
-  return panicPhase === 'wave' ? 0.62 : FORBIDDEN_MIN_RATIO; // more dangerous blocks during wave
+  if (panicPhase === 'wave') return 0.74;
+  return Math.min(0.62 + difficultyBumps * 0.02, 0.72);
+}
+function currentClusterChance() {
+  const earlyRamp = Math.min(graceTimer, 8) * 0.015;
+  return Math.min(CLUSTER_CHANCE + earlyRamp + difficultyBumps * 0.035, 0.82);
 }
 
 function tickPanicWave(dt) {
-  if (graceTimer < GRACE_PERIOD + 2) return; // never fire in first 3 s
+  if (graceTimer < GRACE_PERIOD + 1.0) return; // never fire in the opening second
   if (panicBlockFromDD > 0) { panicBlockFromDD -= dt; } // count down post-DD buffer
 
   if (panicPhase === 'cooldown') {
@@ -3834,12 +4020,9 @@ function tickDifficulty(dt) {
   difficultyTimer = 0;
   difficultyBumps++;
   const prevMultiplier = speedMultiplier;
-  // Steeper linear speed ramp; hard cap at 2.8×
-  speedMultiplier   = Math.min(1.0 + difficultyBumps * 0.14, 2.8);
-  // Steeper spawn ramp (0.82 decay vs 0.85); floor 0.14 s — very dense late game
-  spawnRate         = Math.max(GAME_CONFIG.spawnRate * Math.pow(0.82, difficultyBumps), 0.14);
-  // forbiddenInterval floors at 2.0 s for relentless pressure
-  forbiddenInterval = Math.max(GAME_CONFIG.forbiddenInterval - difficultyBumps * 0.24, 2.0);
+  speedMultiplier   = Math.min(1.0 + difficultyBumps * 0.18, 3.1);
+  spawnRate         = Math.max(GAME_CONFIG.spawnRate * Math.pow(0.78, difficultyBumps), 0.105);
+  forbiddenInterval = Math.max(GAME_CONFIG.forbiddenInterval - difficultyBumps * 0.28, 1.6);
   // Rescale existing on-screen obstacles so the speed-up is felt immediately,
   // not only on newly spawned ones. Preserves per-type relative speeds.
   if (speedMultiplier > prevMultiplier) {
@@ -4051,7 +4234,7 @@ function gameLoop(ts) {
   if (spawnTimer >= panicSpawnRate()) {
     spawnTimer = 0;
     const r = Math.random();
-    if (r < CLUSTER_CHANCE) spawnWave();
+    if (r < currentClusterChance()) spawnWave();
     else                    spawnObstacle();
   }
 
@@ -4117,12 +4300,17 @@ function startGame() {
   _safeLaneDrift   = Math.floor(NUM_LANES / 2);
   _lastSafeLane    = -1;
   _wavesUntilDrift = 3 + Math.floor(Math.random() * 2);
+  _safeLaneStreak  = 0;
+  _lastPlayerLaneSeen = -1;
+  _samePlayerLaneWaves = 0;
+  _playerLaneSafeStreak = 0;
+  _playerLaneShieldStreak = 0;
 
   spawnRate         = GAME_CONFIG.spawnRate;
   forbiddenInterval = GAME_CONFIG.forbiddenInterval;
   speedMultiplier   = 1.0;
   // Head-start timers — first coin ~3s in, first color change ~6s in
-  forbiddenTimer    = GAME_CONFIG.forbiddenInterval - 6.0;
+  forbiddenTimer    = GAME_CONFIG.forbiddenInterval - 4.2;
   coinItemTimer     = COIN_ITEM_INTERVAL - 3.0;
   forbiddenIndex    = Math.floor(Math.random() * GAME_COLORS.length);
   nextForbiddenIdx  = -1;
@@ -4141,13 +4329,13 @@ function startGame() {
     resizeCanvas();
     initPlayer();
     // Pre-fill obstacles so there's immediate on-screen pressure
-    const preCount = 18;
+    const preCount = 24;
     for (let _i = 0; _i < preCount; _i++) {
       spawnObstacle();
       if (obstacles.length > 0) {
         const ob = obstacles[obstacles.length - 1];
-        // Tight stagger — blocks arrive in a quick wave over the first ~2 s
-        ob.y = -(ob.h + 10) - _i * (canvas.height * 0.10 + 6);
+        // Tight stagger — blocks arrive in a quick opening rush.
+        ob.y = -(ob.h + 10) - _i * (canvas.height * 0.082 + 4);
         // Demote big blocks on pre-fill — opening screen stays readable
         if (ob.type === 2) { ob.type = 0; ob.w = 28 + Math.random()*16; ob.h = ob.w; }
       }
@@ -4552,6 +4740,7 @@ function init() {
     const selIdx = SKIN_DEFS.findIndex(s => s.id === settings.selectedSkin);
     if (selIdx >= 0) skinCarouselIdx = selIdx;
     updateSkinsUI();
+    updatePowerupUpgradeUI();
     showModal('modal-progress');
   });
 
@@ -4642,6 +4831,15 @@ function init() {
     updateSkinsUI('next');
     Audio.uiClick();
   });
+
+  const powerupUpgradeList = document.getElementById('powerup-upgrades-list');
+  if (powerupUpgradeList) {
+    powerupUpgradeList.addEventListener('click', e => {
+      const btn = e.target.closest('[data-upgrade-key]');
+      if (!btn) return;
+      buyPowerupUpgrade(btn.dataset.upgradeKey);
+    });
+  }
 
   // Keyboard
   window.addEventListener('keydown', onKeyDown, { passive: false });
