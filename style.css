@@ -2024,3 +2024,364 @@ kbd {
 .mission-toast.mission-toast-show {
   opacity: 1; transform: translateX(-50%) translateY(0);
 }
+
+  /* ============================================================
+     SHOP — FULL-SCREEN OVERLAY
+     ============================================================ */
+
+  /* The shop overlay stretches edge-to-edge — no centering, no padding */
+  .shop-overlay {
+    padding: 0 !important;
+    align-items: stretch !important;
+    justify-content: stretch !important;
+  }
+
+  /* Full-screen flex container inside the overlay */
+  .shop-fullscreen {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: 0;
+    background: #0a0614;
+    overflow: hidden;
+  }
+
+  /* ── Top navigation bar ── */
+  .shop-topbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 20px;
+    height: 60px;
+    flex-shrink: 0;
+    background: rgba(10,6,20,.95);
+    border-bottom: 1px solid rgba(255,255,255,.08);
+    backdrop-filter: blur(12px);
+    z-index: 10;
+  }
+
+  .shop-topbar-left {
+    flex-shrink: 0;
+    min-width: 80px;
+  }
+
+  .shop-title {
+    font-size: 1.1rem;
+    font-weight: 900;
+    letter-spacing: -.5px;
+    color: var(--text);
+    margin: 0;
+    white-space: nowrap;
+  }
+
+  /* ── Tab navigation ── */
+  .shop-tabs {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex: 1;
+    justify-content: center;
+  }
+
+  .shop-tab-btn {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 18px;
+    border: none;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--text-muted);
+    font-family: inherit;
+    font-size: .84rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background .16s, color .16s, box-shadow .16s;
+    white-space: nowrap;
+    position: relative;
+  }
+
+  .shop-tab-btn::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 50%;
+    transform: translateX(-50%) scaleX(0);
+    width: 80%;
+    height: 2px;
+    background: var(--accent-light);
+    border-radius: 2px;
+    transition: transform .2s cubic-bezier(.34,1.56,.64,1);
+  }
+
+  .shop-tab-btn:hover {
+    background: rgba(255,255,255,.06);
+    color: var(--text);
+  }
+
+  .shop-tab-btn.shop-tab-active {
+    background: rgba(168,85,247,.18);
+    color: #e9d5ff;
+    box-shadow: 0 0 0 1px rgba(168,85,247,.35);
+  }
+
+  .shop-tab-btn.shop-tab-active::after {
+    transform: translateX(-50%) scaleX(1);
+  }
+
+  .shop-tab-btn:focus-visible {
+    outline: 3px solid var(--accent-light);
+    outline-offset: 2px;
+  }
+
+  .shop-tab-icon {
+    font-size: 1rem;
+    line-height: 1;
+  }
+
+  /* ── Top-right: coin + close ── */
+  .shop-topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+    min-width: 80px;
+    justify-content: flex-end;
+  }
+
+  .shop-coin-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(135deg, rgba(251,191,36,.18), rgba(251,191,36,.07));
+    border: 1px solid rgba(251,191,36,.42);
+    border-radius: 999px;
+    padding: 6px 14px 6px 9px;
+    flex-shrink: 0;
+  }
+
+  .shop-coin-pill .coin-icon { width: 20px; height: 20px; }
+  .shop-coin-pill .coins-value { font-size: .95rem; font-weight: 800; }
+
+  .shop-close-btn {
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
+  }
+
+  /* ── Scrollable body ── */
+  .shop-body {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* ── Panels ── */
+  .shop-panel {
+    display: none;
+    padding: 28px 24px 40px;
+    min-height: 100%;
+    animation: shopPanelIn .22s ease both;
+  }
+
+  .shop-panel.shop-panel-active {
+    display: block;
+  }
+
+  .shop-panel[hidden] {
+    display: none !important;
+  }
+
+  @keyframes shopPanelIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .shop-panel-heading {
+    font-size: .65rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: rgba(148,163,184,.55);
+    margin: 0 0 16px;
+    padding-left: 9px;
+    border-left: 2px solid var(--accent);
+    display: flex;
+    align-items: center;
+  }
+
+  .shop-panel-hint {
+    font-size: .78rem;
+    color: var(--text-muted);
+    margin: -8px 0 18px;
+    line-height: 1.5;
+  }
+
+  .shop-lifetime-section {
+    margin-top: 36px;
+  }
+
+  .shop-stats-section {
+    margin-top: 36px;
+  }
+
+  /* ── Skin grid ── */
+  .skin-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 12px;
+  }
+
+  /* Skin grid cards reuse .skin-btn base but override sizing */
+  .skin-grid .skin-btn {
+    width: 100%;
+    padding: 16px 10px 14px;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .skin-grid .skin-btn .skin-preview {
+    width: 52px;
+    height: 52px;
+  }
+
+  /* Lock overlay on locked grid cards */
+  .skin-grid .skin-btn.skin-locked {
+    position: relative;
+  }
+
+  .skin-grid-lock-icon {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    font-size: .75rem;
+    line-height: 1;
+    opacity: .7;
+  }
+
+  .skin-grid-status {
+    font-size: .68rem;
+    font-weight: 800;
+    padding: 3px 8px;
+    border-radius: 999px;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  .skin-grid-status.skin-grid-equipped {
+    background: rgba(168,85,247,.25);
+    color: #e9d5ff;
+    box-shadow: 0 0 8px rgba(168,85,247,.3);
+  }
+
+  .skin-grid-status.skin-grid-owned {
+    background: rgba(74,222,128,.15);
+    color: #86efac;
+  }
+
+  .skin-grid-cost {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: .72rem;
+    font-weight: 800;
+    color: #fbbf24;
+    background: rgba(234,179,8,.14);
+    border-radius: 999px;
+    padding: 3px 9px;
+    margin-top: 2px;
+  }
+
+  .skin-grid-cost.skin-grid-unaffordable {
+    color: var(--text-muted);
+    background: rgba(255,255,255,.06);
+  }
+
+  .skin-grid-lock-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    width: 100%;
+    margin-top: 3px;
+  }
+
+  .skin-grid-lock-label {
+    font-size: .64rem;
+    color: var(--text-muted);
+    font-weight: 700;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
+
+  .skin-grid .skin-bar-track {
+    width: 100%;
+  }
+
+  /* Upgrades panel: wider cards on large screens */
+  #shop-panel-upgrades .powerup-upgrades-list {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    max-width: 900px;
+  }
+
+  /* Challenges panel: constrained max width for readability */
+  #shop-panel-challenges .missions-list {
+    max-width: 640px;
+  }
+
+  #shop-panel-challenges .shop-stats-section {
+    max-width: 480px;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 600px) {
+    .shop-topbar {
+      padding: 0 12px;
+      height: 54px;
+      gap: 8px;
+    }
+    .shop-title {
+      font-size: .9rem;
+    }
+    .shop-tab-btn {
+      padding: 7px 12px;
+      font-size: .78rem;
+      gap: 5px;
+    }
+    .shop-tab-icon { display: none; }
+    .shop-panel {
+      padding: 20px 14px 36px;
+    }
+    .skin-grid {
+      grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+      gap: 9px;
+    }
+    .shop-coin-pill .coins-value { font-size: .85rem; }
+  }
+
+  @media (max-width: 400px) {
+    .shop-tab-btn { padding: 6px 9px; font-size: .72rem; }
+    .skin-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .shop-topbar-left { display: none; }
+  }
+
+  @media (min-width: 900px) {
+    .skin-grid {
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 14px;
+    }
+    .shop-panel {
+      padding: 32px 40px 60px;
+    }
+    .shop-topbar {
+      padding: 0 32px;
+    }
+  }

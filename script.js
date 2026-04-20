@@ -1,4 +1,4 @@
-﻿// ============================================================
+// ============================================================
 // FORBIDDEN COLOR — Game Logic v2
 // ============================================================
 'use strict';
@@ -2085,8 +2085,83 @@ function updateSkinsUI(direction) {
     });
   }
 }
+  function updateSkinsUI() {
+    const grid = document.getElementById('skin-stage');
+    if (!grid) return;
 
+    const coinSpan = '<span class="coin-icon coin-sm" aria-hidden="true"></span>';
+
+    grid.innerHTML = SKIN_DEFS.map(skin => {
+      const isCoinSkin     = !!skin.coinCost;
+      const isLifetimeSkin = !!skin.lifetimeUnlock;
+      const available      = isSkinAvailable(skin);
+      const locked         = !available;
+      const selected       = settings.selectedSkin === skin.id && available;
+      const canAfford      = isCoinSkin && settings.coins >= skin.coinCost;
+
+      // Status badge / cost label at the bottom of the card
+      let statusHTML = '';
+      if (selected) {
+        statusHTML = '<span class="skin-grid-status skin-grid-equipped">Equipped</span>';
+      } else if (available) {
+        statusHTML = '<span class="skin-grid-status skin-grid-owned">Owned</span>';
+      } else if (isLifetimeSkin) {
+        const pct = Math.min(100, Math.round(((settings.lifetimeScore || 0) / skin.lifetimeUnlock) * 100));
+        statusHTML =
+          '<div class="skin-grid-lock-info">' +
+            '<span class="skin-grid-lock-label">🕒 ' + formatNumber(skin.lifetimeUnlock) + '</span>' +
+            '<div class="skin-bar-track"><div class="skin-bar-fill" style="width:' + pct + '%"></div></div>' +
+          '</div>';
+      } else if (isCoinSkin) {
+        const cls = canAfford ? '' : ' skin-grid-unaffordable';
+        statusHTML = '<div class="skin-grid-cost' + cls + '">' + coinSpan + ' ' + skin.coinCost + '</div>';
+      }
+
+      const cardClasses = [
+        'skin-btn',
+        locked ? 'skin-locked' : '',
+        selected ? 'skin-selected' : '',
+        isCoinSkin && !available ? 'skin-coin-card' : '',
+        isCoinSkin && !available && !canAfford ? 'skin-unaffordable' : '',
+      ].filter(Boolean).join(' ');
+
+      return (
+        '<div class="' + cardClasses + '" data-skin="' + skin.id + '" data-rarity="' + skin.rarity + '" role="listitem" tabindex="0">' +
+          (locked ? '<span class="skin-grid-lock-icon" aria-hidden="true">🔒</span>' : '') +
+          '<span class="skin-preview" style="--skin-c1:' + skin.color1 + ';--skin-c2:' + skin.color2 + '" aria-hidden="true"></span>' +
+          '<span class="skin-rarity" data-rarity="' + skin.rarity + '">' + skin.rarity + '</span>' +
+          '<span class="skin-name">' + skin.name + '</span>' +
+          statusHTML +
+        '</div>'
+      );
+    }).join('');
 function updateCoinUI(animate) {
+    // Wire click & keyboard handlers on each card
+    grid.querySelectorAll('.skin-btn').forEach(card => {
+      const handler = () => {
+        const skinId = card.dataset.skin;
+        const skin   = SKIN_DEFS.find(s => s.id === skinId);
+        if (!skin) return;
+        if (isSkinAvailable(skin)) {
+          if (settings.selectedSkin !== skinId) {
+            settings.selectedSkin = skinId;
+            saveSettings();
+            updateSkinsUI();
+            renderLifetimeProgressUI();
+            Audio.uiClick();
+          }
+        } else if (skin.coinCost && settings.coins >= skin.coinCost) {
+          showBuyConfirm(skinId);
+        } else {
+          Audio.uiClick();
+        }
+      };
+      card.addEventListener('click', handler);
+      card.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handler(); }
+      });
+    });
+  }
   const homeCoinEl     = document.getElementById('home-coins');
   const progressCoinEl = document.getElementById('progress-coins');
   if (homeCoinEl)     homeCoinEl.textContent     = settings.coins;
@@ -4879,10 +4954,19 @@ function init() {
   document.getElementById('btn-settings').addEventListener('click', () => { Audio.uiClick(); showModal('modal-settings'); });
   document.getElementById('btn-progress').addEventListener('click', () => {
     Audio.uiClick();
+    // Reset to Skins tab on every open
+    document.querySelectorAll('.shop-tab-btn').forEach(b => {
+      const active = b.dataset.tab === 'skins';
+      b.classList.toggle('shop-tab-active', active);
+      b.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
+    document.querySelectorAll('.shop-panel').forEach(panel => {
+      const active = panel.id === 'shop-panel-skins';
+      panel.hidden = !active;
+      panel.classList.toggle('shop-panel-active', active);
+    });
     renderStatsUI();
     renderLifetimeProgressUI();
-    const selIdx = SKIN_DEFS.findIndex(s => s.id === settings.selectedSkin);
-    if (selIdx >= 0) skinCarouselIdx = selIdx;
     updateSkinsUI();
     updatePowerupUpgradeUI();
     showModal('modal-progress');
@@ -4898,82 +4982,25 @@ function init() {
   document.getElementById('btn-progress-close').addEventListener('click', () => {
     hideModal('modal-progress'); document.getElementById('btn-progress').focus();
   });
-  document.getElementById('btn-progress-close-bottom').addEventListener('click', () => {
-    hideModal('modal-progress'); document.getElementById('btn-progress').focus();
-  });
 
-  // Game overlays
-  document.getElementById('btn-resume').addEventListener('click', resumeGame);
-  document.getElementById('btn-home-from-pause').addEventListener('click', returnHome);
-  document.getElementById('btn-restart').addEventListener('click', restartGame);
-  document.getElementById('btn-home-from-gameover').addEventListener('click', returnHome);
-
-  // Share / copy challenge button
-  document.getElementById('btn-share-score').addEventListener('click', () => {
-    Audio.uiClick();
-    const scoreVal = document.getElementById('btn-share-score').dataset.score || '0';
-    const url = location.href.split('?')[0]; // clean URL, no query params
-    const text = 'I scored ' + scoreVal + ' in Forbidden Color — can you beat me? ' + url;
-    const copiedEl = document.getElementById('share-copied');
-    let hideTimer = null;
-    const showCopied = () => {
-      if (copiedEl) {
-        copiedEl.hidden = false;
-        copiedEl.classList.remove('shareCopiedIn');
-        void copiedEl.offsetWidth;
-        clearTimeout(hideTimer);
-        hideTimer = setTimeout(() => { copiedEl.hidden = true; }, 2200);
-      }
-    };
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).then(showCopied).catch(() => {
-        // Fallback: execCommand
-        const ta = document.createElement('textarea');
-        ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
-        document.body.appendChild(ta); ta.select();
-        try { document.execCommand('copy'); showCopied(); } catch (_e) {}
-        document.body.removeChild(ta);
+  // Shop tab switching
+  document.querySelectorAll('.shop-tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = btn.dataset.tab;
+      document.querySelectorAll('.shop-tab-btn').forEach(b => {
+        b.classList.toggle('shop-tab-active', b.dataset.tab === target);
+        b.setAttribute('aria-selected', b.dataset.tab === target ? 'true' : 'false');
       });
-    } else {
-      const ta = document.createElement('textarea');
-      ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
-      document.body.appendChild(ta); ta.select();
-      try { document.execCommand('copy'); showCopied(); } catch (_e) {}
-      document.body.removeChild(ta);
-    }
-  });
-
-  // Touch pause button
-  document.getElementById('touch-pause').addEventListener('pointerdown', e => {
-    e.preventDefault();
-    if      (currentState === STATE.PLAYING) pauseGame();
-    else if (currentState === STATE.PAUSED)  resumeGame();
-  }, { passive: false });
-
-  // Settings
-  document.getElementById('sound-toggle').addEventListener('change', e => {
-    settings.sound = e.target.checked; saveSettings(); Audio.init();
-  });
-  document.getElementById('reduced-motion-toggle').addEventListener('change', e => {
-    settings.reducedMotion = e.target.checked; applyColorMode(); saveSettings();
-  });
-  document.getElementById('high-contrast-toggle').addEventListener('change', e => {
-    settings.highContrast = e.target.checked; applyColorMode(); saveSettings();
-  });
-  document.getElementById('colorblind-toggle').addEventListener('change', e => {
-    settings.colorblind = e.target.checked; applyColorMode(); saveSettings();
-  });
-
-  // Skin carousel — prev / next arrows
-  document.getElementById('skin-prev').addEventListener('click', () => {
-    skinCarouselIdx = (skinCarouselIdx - 1 + SKIN_DEFS.length) % SKIN_DEFS.length;
-    updateSkinsUI('prev');
-    Audio.uiClick();
-  });
-  document.getElementById('skin-next').addEventListener('click', () => {
-    skinCarouselIdx = (skinCarouselIdx + 1) % SKIN_DEFS.length;
-    updateSkinsUI('next');
-    Audio.uiClick();
+      document.querySelectorAll('.shop-panel').forEach(panel => {
+        const isTarget = panel.id === 'shop-panel-' + target;
+        panel.hidden = !isTarget;
+        panel.classList.toggle('shop-panel-active', isTarget);
+      });
+      if (target === 'skins')      { updateSkinsUI(); }
+      if (target === 'upgrades')   { updatePowerupUpgradeUI(); renderLifetimeProgressUI(); }
+      if (target === 'challenges') { renderStatsUI(); }
+      Audio.uiClick();
+    });
   });
 
   const powerupUpgradeList = document.getElementById('powerup-upgrades-list');
