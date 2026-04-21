@@ -70,7 +70,7 @@ const NEAR_MISS_BONUS     = 40;
 const COMBO_BONUS_PER         = 25;   // pts per combo level on each color change (combo×25: 25, 50, 75…)
 const POWERUP_COLLECT_BONUS   = 50;   // flat pts for picking up any power-up
 const POWERUP_INTERVAL    = 15;   // s between powerup spawns (more frequent to compensate)
-const COIN_ITEM_INTERVAL  = 6.0;  // s between coin pickup spawns
+const COIN_ITEM_INTERVAL  = 8.5;  // s between coin column spawns (columns have 4-6 coins each)
 const DIFF_SCALE_EVERY    = 6;    // s between difficulty bumps
 const MAX_OBSTACLES       = 48;   // increased from 40 — blocks persist longer now, need more capacity
 const GRACE_PERIOD        = 0.25; // reduced from 0.45 — game pressures player much earlier
@@ -83,6 +83,54 @@ const MAX_SAFE_LANE_STREAK = 2;   // hard cap for repeating the exact same safe 
 const MAX_PLAYER_LANE_SHIELD = 1; // how long single spawns may keep avoiding the player's lane
 const OBSTACLE_CLEANUP_MARGIN = 700; // increased from 140 — blocks stay on screen much longer, building screen pressure
 // Wall / narrow-lane patterns removed — challenge comes from spawn rate and color cycling.
+
+const FLOW_CONFIG = {
+  maxCombo: 36,
+  passiveGainPerSec: 0.42,
+  motionBonusScale: 0.18,
+  coinGainPerCoin: 0.85,
+  nearMissGain: 1.6,
+  colorShiftGain: 1.2,
+  shieldHitPenalty: 3.5,
+  idleGrace: 1.7,
+  idleDecayPerSec: 1.0,
+  campRadius: 78,
+  campGrace: 2.4,
+  campDecayPerSec: 1.3,
+  movementMinSpeed: 42,
+  scoreMultPerCombo: 0.12,
+  scoreMultCap: 2.1,
+  coinMultPerCombo: 0.08,
+  coinMultCap: 1.2,
+  spawnIntervalPerCombo: 0.022,
+  spawnIntervalCap: 0.34,
+  gapTightenPerCombo: 0.95,
+  gapTightenCap: 15,
+  targetingPerCombo: 0.012,
+  targetingCap: 0.18,
+  switchSpeedPerCombo: 0.018,
+  switchSpeedCap: 0.28,
+  extraMovePerCombo: 0.012,
+  extraMoveCap: 0.14,
+  trickUnlockCombo: 7,
+  trickChancePerCombo: 0.015,
+  trickChanceCap: 0.22,
+  ambientFxCombo: 4,
+  ambientFxInterval: 0.16,
+  closeCallCoins: 1,
+};
+
+// ── Mini run goals shown in HUD ──────────────────────────────
+const MINI_GOAL_DEFS = [
+  { id: 'coins5',    label: 'Collect 5 coins',   icon: '🪙', stat: 'pickupCoins', goal: 5,    reward: 4 },
+  { id: 'miss2',     label: 'Near-miss ×2',       icon: '⚡', stat: 'nearMisses',  goal: 2,    reward: 4 },
+  { id: 'score2k',   label: 'Score 2,000',         icon: '🎯', stat: 'score',       goal: 2000, reward: 5 },
+  { id: 'survive30', label: 'Survive 30s',          icon: '⏱', stat: 'seconds',     goal: 30,   reward: 4 },
+  { id: 'combo5',    label: '5× combo',             icon: '🔥', stat: 'combo',       goal: 5,    reward: 5 },
+  { id: 'coins10',   label: 'Collect 10 coins',     icon: '🪙', stat: 'pickupCoins', goal: 10,   reward: 6 },
+  { id: 'miss5',     label: 'Near-miss ×5',         icon: '⚡', stat: 'nearMisses',  goal: 5,    reward: 6 },
+  { id: 'score5k',   label: 'Score 5,000',           icon: '🎯', stat: 'score',       goal: 5000, reward: 7 },
+];
 
 // ============================================================
 // SECTION 2: MUTABLE STATE
@@ -490,6 +538,14 @@ let nearMissCooldownTimer = 0; // global cooldown (s) to prevent near-miss spam 
 let nearMissGlowTimer    = 0; // 0→1 — boosts player glow briefly on near miss
 let coinPickupFlashTimer = 0; // 0→1 — brief gold screen pulse on coin collect
 
+// ── Coin streak & run tracking ───────────────────────────────
+let coinStreakCount         = 0;   // consecutive coins collected without gap
+let coinStreakTimer         = 0;   // countdown (s) until streak resets
+let coinsFromPickupsThisRun = 0;  // coins earned from in-run pickups
+
+// ── Mini run goal ────────────────────────────────────────────
+let runMiniGoal = null; // { ...def, progress: 0, done: false }
+
 let shakeX = 0, shakeY = 0, shakeTimer = 0;
 
 // Panic wave state
@@ -498,6 +554,23 @@ let panicTimer     = 0;   // counts up during cooldown / down during wave / down
 let panicPhase     = 'cooldown'; // 'cooldown' | 'announce' | 'wave'
 let panicDuration  = 0;   // chosen length of current wave (2–4 s)
 let comboPulseTimer = 0;  // 0→1 flash on combo increase, decays over ~0.35s
+let flowState = {
+  meter: 0,
+  idleTime: 0,
+  areaTime: 0,
+  campPressure: 0,
+  anchorX: 0,
+  anchorY: 0,
+  prevX: 0,
+  prevY: 0,
+  particleTimer: 0,
+  displayCombo: -1,
+};
+
+// ── Try Mode & Shop Preview ──────────────────────────────────
+const tryMode = { active: false, timer: 0, duration: 8, originalSkin: null };
+let _shopPreviewRaf      = null;
+let _shopPreviewSkinId   = null;
 
 // Double Danger state
 let ddPhase        = 'idle';  // 'idle' | 'announce' | 'active'
@@ -1834,20 +1907,166 @@ function updateTimerBar(elapsed, total) {
 }
 
 function updateComboDisplay() {
-  const el  = document.getElementById('combo-display');
-  const val = document.getElementById('combo-val');
+  const el      = document.getElementById('combo-display');
+  const val     = document.getElementById('combo-val');
+  const scoreEl = document.getElementById('combo-score-mult');
+  const coinEl  = document.getElementById('combo-coin-bonus');
+  const fillEl  = document.getElementById('combo-meter-fill');
   if (!el) return;
-  el.hidden = (combo < 1);
+  el.hidden = false;
   if (val) val.textContent = combo;
-  // Visual tier based on combo level
-  el.classList.remove('combo-t2', 'combo-t3', 'combo-t4');
-  if      (combo >= 7) el.classList.add('combo-t4');
-  else if (combo >= 4) el.classList.add('combo-t3');
-  else if (combo >= 2) el.classList.add('combo-t2');
-  // Pop animation on every increment
-  el.classList.remove('combo-pop');
-  void el.offsetWidth; // force reflow to restart animation
-  el.classList.add('combo-pop');
+  if (scoreEl) scoreEl.textContent = 'Score x' + getFlowScoreMultiplier().toFixed(2);
+  if (coinEl)  coinEl.textContent  = 'Coins +' + Math.round((getFlowCoinMultiplier() - 1) * 100) + '%';
+  if (fillEl)  fillEl.style.width  = Math.max(0, Math.min(100, (flowState.meter / FLOW_CONFIG.maxCombo) * 100)).toFixed(1) + '%';
+  el.classList.remove('combo-idle', 'combo-t2', 'combo-t3', 'combo-t4');
+  if      (combo >= 10) el.classList.add('combo-t4');
+  else if (combo >= 6)  el.classList.add('combo-t3');
+  else if (combo >= 2)  el.classList.add('combo-t2');
+  else                  el.classList.add('combo-idle');
+  if (flowState.displayCombo !== combo) {
+    el.classList.remove('combo-pop');
+    void el.offsetWidth;
+    el.classList.add('combo-pop');
+    flowState.displayCombo = combo;
+  }
+}
+
+function resetFlowState(x, y) {
+  flowState.meter = 0;
+  flowState.idleTime = 0;
+  flowState.areaTime = 0;
+  flowState.campPressure = 0;
+  flowState.anchorX = x || 0;
+  flowState.anchorY = y || 0;
+  flowState.prevX = x || 0;
+  flowState.prevY = y || 0;
+  flowState.particleTimer = 0;
+  flowState.displayCombo = -1;
+  combo = 0;
+}
+
+function syncComboFromFlow() {
+  combo = Math.max(0, Math.min(FLOW_CONFIG.maxCombo, Math.floor(flowState.meter)));
+  if (combo > maxCombo) maxCombo = combo;
+  missionRun.maxCombo = Math.max(missionRun.maxCombo || 0, combo);
+}
+
+function getFlowIntensity() {
+  return Math.min(1, combo / FLOW_CONFIG.maxCombo);
+}
+
+function getFlowScoreMultiplier() {
+  return 1 + Math.min(combo * FLOW_CONFIG.scoreMultPerCombo, FLOW_CONFIG.scoreMultCap);
+}
+
+function getFlowCoinMultiplier() {
+  return 1 + Math.min(combo * FLOW_CONFIG.coinMultPerCombo, FLOW_CONFIG.coinMultCap);
+}
+
+function getActiveSpawnInterval() {
+  const comboReduction = Math.min(combo * FLOW_CONFIG.spawnIntervalPerCombo, FLOW_CONFIG.spawnIntervalCap);
+  const campReduction  = flowState.campPressure * 0.12;
+  return Math.max(0.085, panicSpawnRate() * (1 - comboReduction - campReduction));
+}
+
+function getActiveForbiddenInterval() {
+  const comboReduction = Math.min(combo * FLOW_CONFIG.switchSpeedPerCombo, FLOW_CONFIG.switchSpeedCap);
+  return Math.max(1.2, forbiddenInterval * (1 - comboReduction));
+}
+
+function getFlowGapTighten() {
+  return Math.min(combo * FLOW_CONFIG.gapTightenPerCombo, FLOW_CONFIG.gapTightenCap);
+}
+
+function getFlowTargetingBonus() {
+  return Math.min(combo * FLOW_CONFIG.targetingPerCombo, FLOW_CONFIG.targetingCap) + flowState.campPressure * 0.10;
+}
+
+function getFlowMovingChance() {
+  if (combo < 4) return 0;
+  return Math.min((combo - 3) * FLOW_CONFIG.extraMovePerCombo, FLOW_CONFIG.extraMoveCap);
+}
+
+function getFlowTrickChance() {
+  if (combo < FLOW_CONFIG.trickUnlockCombo) return 0;
+  return Math.min((combo - FLOW_CONFIG.trickUnlockCombo + 1) * FLOW_CONFIG.trickChancePerCombo, FLOW_CONFIG.trickChanceCap);
+}
+
+function pickObstacleTrick(type, postGrace, allowLateral) {
+  const chance = getFlowTrickChance();
+  if (!postGrace || chance <= 0 || Math.random() >= chance) return null;
+  if (type === 2 || type === 3) return 'surge';
+  return allowLateral ? (Math.random() < 0.55 ? 'juke' : 'surge') : 'surge';
+}
+
+function applyFlowDelta(delta, reason) {
+  if (!Number.isFinite(delta) || delta === 0) return;
+  const prevCombo = combo;
+  flowState.meter = Math.max(0, Math.min(FLOW_CONFIG.maxCombo + 0.999, flowState.meter + delta));
+  syncComboFromFlow();
+  if (combo > prevCombo) {
+    comboPulseTimer = 1;
+    for (const threshold of COMBO_MILESTONES) {
+      if (combo >= threshold && !_comboMilestonesHit.has(threshold)) {
+        _comboMilestonesHit.add(threshold);
+        triggerMilestone('x' + threshold + ' FLOW', '#f97316');
+      }
+    }
+    if (reason !== 'idle' && reason !== 'camp' && combo > 1) {
+      AudioManager.playSound('combo', combo);
+    }
+  }
+}
+
+function tickFlowSystem(dt) {
+  const dx = player.x - flowState.prevX;
+  const dy = player.y - flowState.prevY;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+  const speed = dt > 0 ? dist / dt : 0;
+  const moving = speed > FLOW_CONFIG.movementMinSpeed || Math.abs(player.vx) > FLOW_CONFIG.movementMinSpeed || Math.abs(player.vy) > FLOW_CONFIG.movementMinSpeed;
+
+  applyFlowDelta((FLOW_CONFIG.passiveGainPerSec + Math.min(speed / 240, FLOW_CONFIG.motionBonusScale)) * dt, 'survival');
+
+  if (moving || touchTarget || keys.left || keys.right || keys.up || keys.down) {
+    flowState.idleTime = 0;
+  } else {
+    flowState.idleTime += dt;
+  }
+  if (flowState.idleTime > FLOW_CONFIG.idleGrace) {
+    applyFlowDelta(-FLOW_CONFIG.idleDecayPerSec * dt * (1 + flowState.campPressure * 0.8), 'idle');
+  }
+
+  if (Math.hypot(player.x - flowState.anchorX, player.y - flowState.anchorY) > FLOW_CONFIG.campRadius) {
+    flowState.anchorX = player.x;
+    flowState.anchorY = player.y;
+    flowState.areaTime = 0;
+  } else {
+    flowState.areaTime += dt;
+  }
+  flowState.campPressure = Math.max(0, Math.min(1, (flowState.areaTime - FLOW_CONFIG.campGrace) / 2.1));
+  if (flowState.campPressure > 0) {
+    applyFlowDelta(-FLOW_CONFIG.campDecayPerSec * flowState.campPressure * dt, 'camp');
+  }
+
+  if (combo >= FLOW_CONFIG.ambientFxCombo && !settings.reducedMotion) {
+    flowState.particleTimer -= dt;
+    if (flowState.particleTimer <= 0) {
+      flowState.particleTimer = Math.max(0.08, FLOW_CONFIG.ambientFxInterval - getFlowIntensity() * 0.08);
+      const angle = Math.random() * Math.PI * 2;
+      const radius = player.radius + 8 + Math.random() * 10;
+      spawnParticles(
+        player.x + Math.cos(angle) * radius,
+        player.y + Math.sin(angle) * radius,
+        combo >= 10 ? '#f59e0b' : '#a855f7',
+        2
+      );
+    }
+  } else {
+    flowState.particleTimer = 0;
+  }
+
+  flowState.prevX = player.x;
+  flowState.prevY = player.y;
 }
 
 function updatePowerupDisplay() {
@@ -1874,6 +2093,7 @@ function showModal(id) {
   const m = document.getElementById(id);
   if (!m) return;
   m.hidden = false;
+  if (id === 'modal-progress') startShopPreviewLoop();
   requestAnimationFrame(() => {
     const first = m.querySelector('button,[href],input,select,[tabindex]:not([tabindex="-1"])');
     if (first) first.focus();
@@ -1883,6 +2103,7 @@ function showModal(id) {
 function hideModal(id) {
   const m = document.getElementById(id);
   if (m) m.hidden = true;
+  if (id === 'modal-progress') stopShopPreviewLoop();
 }
 
 // ============================================================
@@ -1901,271 +2122,13 @@ function getSkin() {
   return skin;
 }
 
-function updateSkinsUI(direction) {
-  const stage  = document.getElementById('skin-stage');
-  const dotsEl = document.getElementById('skin-dots');
-  if (!stage) return;
 
-  skinCarouselIdx = ((skinCarouselIdx % SKIN_DEFS.length) + SKIN_DEFS.length) % SKIN_DEFS.length;
-  const skin = SKIN_DEFS[skinCarouselIdx];
-
-  const isCoinSkin = !!skin.coinCost;
-  const isLifetimeSkin = !!skin.lifetimeUnlock;
-  const available  = isSkinAvailable(skin);
-  const locked     = !available;
-  const selected   = settings.selectedSkin === skin.id && available;
-  const canAfford  = isCoinSkin && settings.coins >= skin.coinCost;
-  const coinSpan   = '<span class="coin-icon coin-sm" aria-hidden="true"></span>';
-
-  // ── Action button ──────────────────────────────────────────
-  let actionHTML = '';
-  if (selected) {
-    actionHTML = '<button class="btn btn-secondary sc-action" disabled type="button">Equipped</button>';
-  } else if (available) {
-    actionHTML = '<button class="btn btn-primary sc-action" data-action="equip" data-skin="' + skin.id + '" type="button">Equip</button>';
-  } else if (isLifetimeSkin) {
-    actionHTML = '<button class="btn btn-secondary sc-action" disabled type="button">Unlock at ' + formatNumber(skin.lifetimeUnlock) + '</button>';
-  } else if (isCoinSkin) {
-    if (canAfford) {
-      actionHTML = '<button class="btn btn-primary sc-action" data-action="buy" data-skin="' + skin.id + '" type="button">Buy &nbsp;' + coinSpan + ' ' + skin.coinCost + '</button>';
-    } else {
-      actionHTML = '<button class="btn btn-secondary sc-action" disabled type="button">' + coinSpan + ' ' + settings.coins + ' / ' + skin.coinCost + '</button>';
-    }
-  }
-
-  // ── Progress bar for score-locked skins ───────────────────
-  let progressHTML = '';
-  let barHTML = '';
-  if (isLifetimeSkin && locked) {
-    const pct = Math.min(100, Math.round(((settings.lifetimeScore || 0) / skin.lifetimeUnlock) * 100));
-    progressHTML = '<span class="sc-progress-label">' + formatNumber(settings.lifetimeScore || 0) + ' / ' + formatNumber(skin.lifetimeUnlock) + ' lifetime score</span>';
-    barHTML = '<div class="skin-bar-track sc-bar"><div class="skin-bar-fill" style="width:' + pct + '%"></div></div>';
-  } else if (!isCoinSkin && locked) {
-    const pct = Math.min(100, Math.round((settings.bestScore / skin.unlock) * 100));
-    progressHTML = '<span class="sc-progress-label">' + settings.bestScore + ' / ' + skin.unlock + ' to unlock</span>';
-    barHTML = '<div class="skin-bar-track sc-bar"><div class="skin-bar-fill" style="width:' + pct + '%"></div></div>';
-  }
-
-  const cardClasses = [
-    'sc-card skin-btn',
-    locked     ? 'skin-locked'    : '',
-    selected   ? 'skin-selected'  : '',
-    isCoinSkin ? 'skin-coin-card' : '',
-    (isCoinSkin && !available && !canAfford) ? 'skin-unaffordable' : '',
-  ].filter(Boolean).join(' ');
-
-  // Build new card element
-  const newCard = document.createElement('div');
-  newCard.className = cardClasses;
-  newCard.dataset.skin   = skin.id;
-  newCard.dataset.rarity = skin.rarity;
-  newCard.innerHTML =
-    '<span class="skin-preview" style="--skin-c1:' + skin.color1 + ';--skin-c2:' + skin.color2 + '" aria-hidden="true"></span>' +
-    '<span class="skin-rarity" data-rarity="' + skin.rarity + '">' + skin.rarity + '</span>' +
-    '<span class="skin-name sc-name">' + skin.name + '</span>' +
-    progressHTML + barHTML + actionHTML;
-
-  // Directional slide animation
-  // Right arrow (next): current card exits LEFT, new card enters from RIGHT
-  // Left  arrow (prev): current card exits RIGHT, new card enters from LEFT
-  const oldCard = stage.firstElementChild;
-  if (direction && oldCard && !skinCarouselAnimating) {
-    skinCarouselAnimating = true;
-    const prevBtn = document.getElementById('skin-prev');
-    const nextBtn = document.getElementById('skin-next');
-    if (prevBtn) prevBtn.disabled = true;
-    if (nextBtn) nextBtn.disabled = true;
-
-    const enterFrom = direction === 'next' ? '100%'  : '-100%';
-    const exitTo    = direction === 'next' ? '-100%' : '100%';
-    const DURATION  = 420; // ms — matches setTimeout below
-    const EASING    = 'transform ' + DURATION + 'ms cubic-bezier(0.4,0,0.2,1)';
-
-    // Lock stage height so it doesn't collapse while both cards are absolute
-    const lockedH = oldCard.offsetHeight;
-    if (lockedH > 0) stage.style.height = lockedH + 'px';
-
-    // Both cards: absolutely stacked inside the relative stage
-    [oldCard, newCard].forEach(c => {
-      c.style.position   = 'absolute';
-      c.style.top        = '0';
-      c.style.left       = '0';
-      c.style.width      = '100%';
-      c.style.willChange = 'transform';
-      c.style.transition = 'none';
-    });
-    newCard.style.transform = 'translateX(' + enterFrom + ')';
-    oldCard.style.transform = 'translateX(0)';
-    stage.appendChild(newCard);
-
-    // Double rAF: first frame lets browser paint initial positions,
-    // second frame starts the transition so it is always animated
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        newCard.style.transition = EASING;
-        oldCard.style.transition = EASING;
-        newCard.style.transform  = 'translateX(0)';
-        oldCard.style.transform  = 'translateX(' + exitTo + ')';
-
-        setTimeout(() => {
-          stage.innerHTML = '';
-          // Strip all the inline animation styles from newCard
-          newCard.style.position   = '';
-          newCard.style.top        = '';
-          newCard.style.left       = '';
-          newCard.style.width      = '';
-          newCard.style.willChange = '';
-          newCard.style.transition = '';
-          newCard.style.transform  = '';
-          stage.style.height = '';
-          stage.appendChild(newCard);
-          if (prevBtn) prevBtn.disabled = false;
-          if (nextBtn) nextBtn.disabled = false;
-          skinCarouselAnimating = false;
-        }, DURATION + 20);
-      });
-    });
-  } else {
-    stage.innerHTML = '';
-    stage.appendChild(newCard);
-  }
-
-  // Wire action button
-  const actionBtn = newCard.querySelector('[data-action]');
-  if (actionBtn) {
-    actionBtn.addEventListener('click', () => {
-      const action = actionBtn.dataset.action;
-      const skinId = actionBtn.dataset.skin;
-      const sk = SKIN_DEFS.find(s => s.id === skinId);
-      if (!sk) return;
-      if (action === 'equip') {
-        settings.selectedSkin = skinId;
-        saveSettings();
-        updateSkinsUI();
-        renderLifetimeProgressUI();
-        Audio.uiClick();
-      } else if (action === 'buy') {
-        showBuyConfirm(skinId);
-      }
-    });
-  }
-
-  // ── Dot indicators ─────────────────────────────────────────
-  if (dotsEl) {
-    const RARITY_DOT = {
-      common:    'rgba(255,255,255,.65)',
-      rare:      'rgba(56,189,248,.85)',
-      epic:      'rgba(251,191,36,.85)',
-      legendary: 'rgba(168,85,247,.95)',
-    };
-    dotsEl.innerHTML = SKIN_DEFS.map((s, i) => {
-      const active = i === skinCarouselIdx;
-      const color  = RARITY_DOT[s.rarity] || 'rgba(255,255,255,.25)';
-      return '<span class="sc-dot' + (active ? ' sc-dot-active' : '') +
-             '" data-dot="' + i + '" tabindex="0" role="button" aria-label="' + s.name + '"' +
-             (active ? ' style="--dot-c:' + color + '"' : '') + '></span>';
-    }).join('');
-    dotsEl.querySelectorAll('.sc-dot').forEach(dot => {
-      dot.addEventListener('click', () => {
-        const newIdx = +dot.dataset.dot;
-        const dir = newIdx > skinCarouselIdx ? 'next' : newIdx < skinCarouselIdx ? 'prev' : null;
-        skinCarouselIdx = newIdx;
-        updateSkinsUI(dir);
-        Audio.uiClick();
-      });
-      dot.addEventListener('keydown', e => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          const newIdx = +dot.dataset.dot;
-          const dir = newIdx > skinCarouselIdx ? 'next' : newIdx < skinCarouselIdx ? 'prev' : null;
-          skinCarouselIdx = newIdx;
-          updateSkinsUI(dir);
-        }
-      });
-    });
-  }
-}
-  function updateSkinsUI() {
-    const grid = document.getElementById('skin-stage');
-    if (!grid) return;
-
-    const coinSpan = '<span class="coin-icon coin-sm" aria-hidden="true"></span>';
-
-    grid.innerHTML = SKIN_DEFS.map(skin => {
-      const isCoinSkin     = !!skin.coinCost;
-      const isLifetimeSkin = !!skin.lifetimeUnlock;
-      const available      = isSkinAvailable(skin);
-      const locked         = !available;
-      const selected       = settings.selectedSkin === skin.id && available;
-      const canAfford      = isCoinSkin && settings.coins >= skin.coinCost;
-
-      // Status badge / cost label at the bottom of the card
-      let statusHTML = '';
-      if (selected) {
-        statusHTML = '<span class="skin-grid-status skin-grid-equipped">Equipped</span>';
-      } else if (available) {
-        statusHTML = '<span class="skin-grid-status skin-grid-owned">Owned</span>';
-      } else if (isLifetimeSkin) {
-        const pct = Math.min(100, Math.round(((settings.lifetimeScore || 0) / skin.lifetimeUnlock) * 100));
-        statusHTML =
-          '<div class="skin-grid-lock-info">' +
-            '<span class="skin-grid-lock-label">🕒 ' + formatNumber(skin.lifetimeUnlock) + '</span>' +
-            '<div class="skin-bar-track"><div class="skin-bar-fill" style="width:' + pct + '%"></div></div>' +
-          '</div>';
-      } else if (isCoinSkin) {
-        const cls = canAfford ? '' : ' skin-grid-unaffordable';
-        statusHTML = '<div class="skin-grid-cost' + cls + '">' + coinSpan + ' ' + skin.coinCost + '</div>';
-      }
-
-      const cardClasses = [
-        'skin-btn',
-        locked ? 'skin-locked' : '',
-        selected ? 'skin-selected' : '',
-        isCoinSkin && !available ? 'skin-coin-card' : '',
-        isCoinSkin && !available && !canAfford ? 'skin-unaffordable' : '',
-      ].filter(Boolean).join(' ');
-
-      return (
-        '<div class="' + cardClasses + '" data-skin="' + skin.id + '" data-rarity="' + skin.rarity + '" role="listitem" tabindex="0">' +
-          (locked ? '<span class="skin-grid-lock-icon" aria-hidden="true">🔒</span>' : '') +
-          '<span class="skin-preview" style="--skin-c1:' + skin.color1 + ';--skin-c2:' + skin.color2 + '" aria-hidden="true"></span>' +
-          '<span class="skin-rarity" data-rarity="' + skin.rarity + '">' + skin.rarity + '</span>' +
-          '<span class="skin-name">' + skin.name + '</span>' +
-          statusHTML +
-        '</div>'
-      );
-    }).join('');
 function updateCoinUI(animate) {
-    // Wire click & keyboard handlers on each card
-    grid.querySelectorAll('.skin-btn').forEach(card => {
-      const handler = () => {
-        const skinId = card.dataset.skin;
-        const skin   = SKIN_DEFS.find(s => s.id === skinId);
-        if (!skin) return;
-        if (isSkinAvailable(skin)) {
-          if (settings.selectedSkin !== skinId) {
-            settings.selectedSkin = skinId;
-            saveSettings();
-            updateSkinsUI();
-            renderLifetimeProgressUI();
-            Audio.uiClick();
-          }
-        } else if (skin.coinCost && settings.coins >= skin.coinCost) {
-          showBuyConfirm(skinId);
-        } else {
-          Audio.uiClick();
-        }
-      };
-      card.addEventListener('click', handler);
-      card.addEventListener('keydown', e => {
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handler(); }
-      });
-    });
-  }
   const homeCoinEl     = document.getElementById('home-coins');
   const progressCoinEl = document.getElementById('progress-coins');
   if (homeCoinEl)     homeCoinEl.textContent     = settings.coins;
   if (progressCoinEl) progressCoinEl.textContent = settings.coins;
+  updateSkinsUI();
   updatePowerupUpgradeUI();
   renderLifetimeProgressUI();
   if (animate && homeCoinEl) {
@@ -2179,15 +2142,209 @@ function updateCoinUI(animate) {
   }
 }
 
-function awardCoins(amount, showFloat = false) {
-  if (amount <= 0) return;
-  settings.coins += amount;
+// ── Shop Preview Loop ──────────────────────────────────────
+function startShopPreviewLoop() {
+  if (_shopPreviewRaf) return;
+  function tick() {
+    _shopPreviewRaf = requestAnimationFrame(tick);
+    const previewCanvas = document.getElementById('skin-preview-canvas');
+    if (!previewCanvas) return;
+    const skinId = _shopPreviewSkinId || settings.selectedSkin;
+    const skin   = SKIN_DEFS.find(s => s.id === skinId) || SKIN_DEFS[0];
+    const pCtx   = previewCanvas.getContext('2d');
+    const W = previewCanvas.width, H = previewCanvas.height;
+    pCtx.clearRect(0, 0, W, H);
+    const now = performance.now();
+    const bob = Math.sin(now / 900) * 4;
+    drawSkinPreviewAt(pCtx, skin, W / 2, H / 2 + bob, 28, now);
+  }
+  _shopPreviewRaf = requestAnimationFrame(tick);
+}
+
+function stopShopPreviewLoop() {
+  if (_shopPreviewRaf) {
+    cancelAnimationFrame(_shopPreviewRaf);
+    _shopPreviewRaf = null;
+  }
+}
+
+// ── Select skin in preview panel (hover / click / open) ───
+function selectSkinForPreview(skinId) {
+  _shopPreviewSkinId = skinId;
+  const skin       = SKIN_DEFS.find(s => s.id === skinId) || SKIN_DEFS[0];
+  const nameEl     = document.getElementById('preview-skin-name');
+  const rarityEl   = document.getElementById('preview-skin-rarity');
+  const actionsEl  = document.getElementById('preview-actions');
+  if (nameEl)   nameEl.textContent = skin.name;
+  if (rarityEl) { rarityEl.textContent = skin.rarity; rarityEl.dataset.rarity = skin.rarity; }
+  if (!actionsEl) return;
+
+  const available  = isSkinAvailable(skin);
+  const selected   = settings.selectedSkin === skin.id && available;
+  const isCoinSkin = !!skin.coinCost;
+  const isLifetime = !!skin.lifetimeUnlock;
+  const canAfford  = isCoinSkin && settings.coins >= skin.coinCost;
+  const coinSpan   = '<span class="coin-icon coin-sm" aria-hidden="true"></span>';
+
+  let primaryHTML = '';
+  if (selected) {
+    primaryHTML = '<button class="btn btn-secondary preview-btn-disabled" disabled>✓ Equipped</button>';
+  } else if (available) {
+    primaryHTML = '<button class="btn btn-primary preview-equip-btn" data-skin="' + skin.id + '">Equip</button>';
+  } else if (isLifetime) {
+    primaryHTML = '<button class="btn btn-secondary preview-btn-disabled" disabled>🔒 ' + formatNumber(skin.lifetimeUnlock) + '</button>';
+  } else if (isCoinSkin && canAfford) {
+    primaryHTML = '<button class="btn btn-primary preview-buy-btn" data-skin="' + skin.id + '">Buy ' + coinSpan + ' ' + skin.coinCost + '</button>';
+  } else if (isCoinSkin) {
+    primaryHTML = '<button class="btn btn-secondary preview-btn-disabled" disabled>' + coinSpan + ' ' + skin.coinCost + '</button>';
+  }
+
+  const tryHTML = '<button class="btn btn-try preview-try-btn" data-skin="' + skin.id + '">▶ Try</button>';
+  actionsEl.innerHTML = primaryHTML + tryHTML;
+
+  const equipBtn = actionsEl.querySelector('.preview-equip-btn');
+  if (equipBtn) {
+    equipBtn.addEventListener('click', () => {
+      settings.selectedSkin = skin.id;
+      saveSettings();
+      updateSkinsUI();
+      renderLifetimeProgressUI();
+      Audio.uiClick();
+    });
+  }
+  const buyBtn = actionsEl.querySelector('.preview-buy-btn');
+  if (buyBtn) {
+    buyBtn.addEventListener('click', () => { showBuyConfirm(skin.id); Audio.uiClick(); });
+  }
+  actionsEl.querySelectorAll('.preview-try-btn').forEach(btn => {
+    btn.addEventListener('click', () => startTrySkin(skin.id));
+  });
+}
+
+function updateSkinsUI() {
+  const grid = document.getElementById('skin-stage');
+  if (!grid) return;
+  const coinSpan = '<span class="coin-icon coin-sm" aria-hidden="true"></span>';
+
+  grid.innerHTML = SKIN_DEFS.map(skin => {
+    const isCoinSkin     = !!skin.coinCost;
+    const isLifetimeSkin = !!skin.lifetimeUnlock;
+    const available      = isSkinAvailable(skin);
+    const locked         = !available;
+    const selected       = settings.selectedSkin === skin.id && available;
+    const canAfford      = isCoinSkin && settings.coins >= skin.coinCost;
+
+    let statusHTML = '';
+    if (selected) {
+      statusHTML = '<span class="skin-grid-status skin-grid-equipped">Equipped</span>';
+    } else if (available) {
+      statusHTML = '<span class="skin-grid-status skin-grid-owned">Owned</span>';
+    } else if (isLifetimeSkin) {
+      const pct = Math.min(100, Math.round(((settings.lifetimeScore || 0) / skin.lifetimeUnlock) * 100));
+      statusHTML = '<div class="skin-grid-lock-info">' +
+        '<span class="skin-grid-lock-label">🕒 ' + formatNumber(skin.lifetimeUnlock) + '</span>' +
+        '<div class="skin-bar-track"><div class="skin-bar-fill" style="width:' + pct + '%"></div></div>' +
+        '</div>';
+    } else if (isCoinSkin) {
+      const cls = canAfford ? '' : ' skin-grid-unaffordable';
+      statusHTML = '<div class="skin-grid-cost' + cls + '">' + coinSpan + ' ' + skin.coinCost + '</div>';
+    }
+
+    const cardClasses = [
+      'skin-btn',
+      locked   ? 'skin-locked'    : '',
+      selected ? 'skin-selected'  : '',
+      isCoinSkin && !available ? 'skin-coin-card' : '',
+      isCoinSkin && !available && !canAfford ? 'skin-unaffordable' : '',
+    ].filter(Boolean).join(' ');
+
+    return '<div class="' + cardClasses + '" data-skin="' + skin.id + '" data-rarity="' + skin.rarity + '" role="listitem" tabindex="0">' +
+      (locked ? '<span class="skin-grid-lock-icon" aria-hidden="true">🔒</span>' : '') +
+      '<span class="skin-preview" style="--skin-c1:' + skin.color1 + ';--skin-c2:' + skin.color2 + '" aria-hidden="true"></span>' +
+      '<span class="skin-rarity" data-rarity="' + skin.rarity + '">' + skin.rarity + '</span>' +
+      '<span class="skin-name">' + skin.name + '</span>' +
+      statusHTML +
+      '</div>';
+  }).join('');
+
+  // Wire click, hover, and keyboard handlers on each card
+  grid.querySelectorAll('.skin-btn').forEach(card => {
+    const skinId = card.dataset.skin;
+    card.addEventListener('mouseenter', () => selectSkinForPreview(skinId));
+    card.addEventListener('focus',      () => selectSkinForPreview(skinId));
+    card.addEventListener('click', () => {
+      const skin = SKIN_DEFS.find(s => s.id === skinId);
+      if (!skin) return;
+      selectSkinForPreview(skinId);
+      if (isSkinAvailable(skin)) {
+        if (settings.selectedSkin !== skinId) {
+          settings.selectedSkin = skinId;
+          saveSettings();
+          updateSkinsUI();
+          renderLifetimeProgressUI();
+          Audio.uiClick();
+        }
+      } else if (skin.coinCost && settings.coins >= skin.coinCost) {
+        showBuyConfirm(skinId);
+      } else {
+        Audio.uiClick();
+      }
+    });
+    card.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); card.click(); }
+    });
+  });
+
+  // Update preview panel for current or previously hovered skin
+  selectSkinForPreview(_shopPreviewSkinId || settings.selectedSkin);
+}
+
+// ── Try Mode ──────────────────────────────────────────────
+function startTrySkin(skinId) {
+  if (tryMode.active) return;
+  tryMode.originalSkin  = settings.selectedSkin;
+  settings.selectedSkin = skinId; // temporary — NOT saved to localStorage
+  tryMode.active = true;
+  tryMode.timer  = tryMode.duration;
+  stopShopPreviewLoop();
+  hideModal('modal-progress');
+  startGame();
+  // Show try mode banner after game starts
+  setTimeout(() => {
+    const banner = document.getElementById('try-mode-banner');
+    if (banner) banner.hidden = false;
+  }, 100);
+}
+
+function endTrySkin() {
+  tryMode.active = false;
+  tryMode.timer  = 0;
+  settings.selectedSkin = tryMode.originalSkin || 'classic';
+  const banner = document.getElementById('try-mode-banner');
+  if (banner) banner.hidden = true;
+  cancelAnimationFrame(rafHandle); rafHandle = null;
+  AudioManager.stopMusic();
+  currentState = STATE.HOME;
+  showScreen('home-screen');
+  showModal('modal-progress');
+  updateSkinsUI();
+  selectSkinForPreview(settings.selectedSkin);
+}
+
+function awardCoins(amount, showFloat = false, source = 'generic') {
+  if (tryMode.active) return 0;
+  if (amount <= 0) return 0;
+  const scaled = currentState === STATE.PLAYING && (source === 'pickup' || source === 'close-call')
+    ? Math.max(1, Math.round(amount * getFlowCoinMultiplier()))
+    : amount;
+  settings.coins += scaled;
   saveSettings();
   updateCoinUI(true);
   // Floating text only when explicitly requested (e.g. mission rewards shown at center)
   if (showFloat && currentState === STATE.PLAYING && player) {
-    addFloating(player.x, player.y - 72, '+' + amount, '#fde047', 18);
+    addFloating(player.x, player.y - 72, '+' + scaled, '#fde047', 18);
   }
+  return scaled;
 }
 
 function awardRunCoins(finalScore, elapsedSecs) {
@@ -2196,7 +2353,8 @@ function awardRunCoins(finalScore, elapsedSecs) {
   const fromMisses   = Math.min(missionRun.nearMissesThisRun, 3);
   const fromPanic    = missionRun.panicWavesSurvived;
   const fromPowerups = 0;
-  const total = fromScore + fromSurvival + fromMisses + fromPanic + fromPowerups;
+  const fromFlow     = Math.floor(maxCombo / 6);
+  const total = fromScore + fromSurvival + fromMisses + fromPanic + fromPowerups + fromFlow;
   if (total > 0) awardCoins(total);
   return total;
 }
@@ -2218,6 +2376,7 @@ function showBuyConfirm(skinId) {
 
   const canAfford = settings.coins >= skin.coinCost;
   const need      = skin.coinCost - settings.coins;
+
 
   const coinSpan = '<span class="coin-icon coin-sm" aria-hidden="true"></span>';
   title.innerHTML   = 'Unlock ' + skin.name + ' for ' + coinSpan + ' ' + skin.coinCost;
@@ -2849,6 +3008,287 @@ function drawPlayerInner(skin, now) {
 }
 
 // ============================================================
+// SKIN PREVIEW CANVAS — standalone drawing (no global ctx/player deps)
+// ============================================================
+
+function _ha(hex, alpha) {
+  const rv = parseInt(hex.slice(1, 3), 16);
+  const gv = parseInt(hex.slice(3, 5), 16);
+  const bv = parseInt(hex.slice(5, 7), 16);
+  return 'rgba(' + rv + ',' + gv + ',' + bv + ',' + alpha.toFixed(3) + ')';
+}
+
+function _drawStarPath(pCtx, x, y, outerR, innerR, pts) {
+  const step = Math.PI / pts;
+  pCtx.beginPath();
+  for (let i = 0; i < pts * 2; i++) {
+    const radius = i % 2 === 0 ? outerR : innerR;
+    const angle  = i * step - Math.PI / 2;
+    if (i === 0) pCtx.moveTo(x + Math.cos(angle) * radius, y + Math.sin(angle) * radius);
+    else         pCtx.lineTo(x + Math.cos(angle) * radius, y + Math.sin(angle) * radius);
+  }
+  pCtx.closePath();
+}
+
+function drawSkinPreviewAt(pCtx, skin, cx, cy, r, now) {
+  pCtx.save();
+
+  // ── Outer effect ───────────────────────────────────────────
+  if (skin.effect === 'pulse') {
+    const pulse = 0.4 + 0.6 * Math.sin(now / 340);
+    pCtx.beginPath();
+    pCtx.arc(cx, cy, r + 7 + pulse * 4, 0, Math.PI * 2);
+    pCtx.strokeStyle  = skin.glow;
+    pCtx.lineWidth    = 2;
+    pCtx.globalAlpha  = 0.25 + pulse * 0.35;
+    pCtx.shadowColor  = skin.glow;
+    pCtx.shadowBlur   = 10;
+    pCtx.stroke();
+    pCtx.globalAlpha  = 1;
+    pCtx.shadowBlur   = 0;
+  } else if (skin.effect === 'flicker' || skin.effect === 'inferno') {
+    const f = 0.5 + 0.5 * Math.sin(now / 90 + 1.3);
+    pCtx.beginPath();
+    pCtx.arc(cx, cy, r + 5 + f * 4, 0, Math.PI * 2);
+    pCtx.strokeStyle  = skin.glow;
+    pCtx.lineWidth    = 2.5;
+    pCtx.globalAlpha  = 0.35 + f * 0.35;
+    pCtx.shadowColor  = skin.glow;
+    pCtx.shadowBlur   = 12;
+    pCtx.stroke();
+    pCtx.globalAlpha  = 1;
+    pCtx.shadowBlur   = 0;
+  } else if (skin.effect === 'shimmer') {
+    pCtx.beginPath();
+    pCtx.arc(cx, cy, r + 6, 0, Math.PI * 2);
+    pCtx.strokeStyle  = skin.glow;
+    pCtx.lineWidth    = 1.5;
+    pCtx.globalAlpha  = 0.30;
+    pCtx.shadowColor  = skin.glow;
+    pCtx.shadowBlur   = 16;
+    pCtx.stroke();
+    pCtx.globalAlpha  = 1;
+    pCtx.shadowBlur   = 0;
+  } else if (skin.effect === 'electric') {
+    const fast = 0.5 + 0.5 * Math.sin(now / 120);
+    pCtx.beginPath();
+    pCtx.arc(cx, cy, r + 4 + fast * 3, 0, Math.PI * 2);
+    pCtx.strokeStyle  = skin.glow;
+    pCtx.lineWidth    = 1.5;
+    pCtx.globalAlpha  = 0.40 + fast * 0.30;
+    pCtx.shadowColor  = skin.glow;
+    pCtx.shadowBlur   = 14;
+    pCtx.stroke();
+    pCtx.globalAlpha  = 1;
+    pCtx.shadowBlur   = 0;
+  } else if (skin.effect === 'prism') {
+    const hue   = (now / 20) % 360;
+    const pulse = 0.4 + 0.6 * Math.sin(now / 500);
+    pCtx.beginPath();
+    pCtx.arc(cx, cy, r + 6 + pulse * 3, 0, Math.PI * 2);
+    pCtx.strokeStyle  = 'hsl(' + hue + ',100%,65%)';
+    pCtx.lineWidth    = 2;
+    pCtx.globalAlpha  = 0.50 + pulse * 0.30;
+    pCtx.shadowColor  = 'hsl(' + hue + ',100%,65%)';
+    pCtx.shadowBlur   = 14;
+    pCtx.stroke();
+    pCtx.globalAlpha  = 1;
+    pCtx.shadowBlur   = 0;
+  } else if (skin.effect === 'galaxy') {
+    const pulse = 0.45 + 0.55 * Math.sin(now / 700);
+    const rg    = r + 12 + pulse * 7;
+    const ag    = pCtx.createRadialGradient(cx, cy, r * 0.6, cx, cy, rg);
+    ag.addColorStop(0, _ha(skin.glow, 0.50 * pulse));
+    ag.addColorStop(1, _ha(skin.glow, 0));
+    pCtx.beginPath();
+    pCtx.arc(cx, cy, rg, 0, Math.PI * 2);
+    pCtx.fillStyle = ag;
+    pCtx.fill();
+    for (let j = 0; j < 5; j++) {
+      const angle = now / 900 + j * (Math.PI * 2 / 5);
+      const ox = cx + Math.cos(angle) * (r + 15);
+      const oy = cy + Math.sin(angle) * (r + 15);
+      pCtx.beginPath();
+      pCtx.arc(ox, oy, 1.8, 0, Math.PI * 2);
+      pCtx.fillStyle  = skin.color1;
+      pCtx.globalAlpha = 0.55 + 0.45 * Math.sin(now / 300 + j);
+      pCtx.shadowColor = skin.glow;
+      pCtx.shadowBlur  = 6;
+      pCtx.fill();
+      pCtx.shadowBlur  = 0;
+      pCtx.globalAlpha = 1;
+    }
+  } else if (skin.effect === 'void') {
+    const pulse = 0.45 + 0.55 * Math.sin(now / 380);
+    const rg    = r + 14 + pulse * 8;
+    const ag    = pCtx.createRadialGradient(cx, cy, 0, cx, cy, rg);
+    ag.addColorStop(0,   'rgba(0,0,0,0.40)');
+    ag.addColorStop(0.4, _ha(skin.glow, 0.25 * pulse));
+    ag.addColorStop(1,   _ha(skin.glow, 0));
+    pCtx.beginPath();
+    pCtx.arc(cx, cy, rg, 0, Math.PI * 2);
+    pCtx.fillStyle = ag;
+    pCtx.fill();
+  }
+
+  // ── Glow / shadow setup ────────────────────────────────────
+  let shadowBlur = 20;
+  let c1 = skin.color1, c2 = skin.color2;
+  if (skin.effect === 'flicker') {
+    const f = 0.6 + 0.4 * Math.sin(now / 70 + 2.1);
+    shadowBlur = 16 + f * 18;
+    c2 = f > 0.75 ? '#f97316' : skin.color2;
+  } else if (skin.effect === 'shimmer')  { shadowBlur = 18 + 8  * Math.sin(now / 600); }
+    else if (skin.effect === 'pulse')    { shadowBlur = 18 + 14 * Math.sin(now / 340); }
+    else if (skin.effect === 'electric') { shadowBlur = 20 + 20 * (0.5 + 0.5 * Math.sin(now / 180)); }
+    else if (skin.effect === 'inferno')  {
+      const fi = 0.5 + 0.5 * Math.sin(now / 65);
+      shadowBlur = 22 + 16 * fi;
+      c2 = fi > 0.70 ? '#fbbf24' : fi > 0.40 ? '#f97316' : skin.color2;
+    } else if (skin.effect === 'prism') {
+      const hue = (now / 20) % 360;
+      shadowBlur = 18 + 8 * Math.sin(now / 500);
+      c1 = 'hsl(' + hue + ',80%,90%)';
+      c2 = 'hsl(' + ((hue + 120) % 360) + ',100%,60%)';
+    } else if (skin.effect === 'galaxy') { shadowBlur = 24 + 14 * Math.sin(now / 700); }
+      else if (skin.effect === 'void')   { shadowBlur = 30 + 12 * Math.sin(now / 380); }
+
+  // ── Body ──────────────────────────────────────────────────
+  if (skin.shape === 'star') {
+    const g = pCtx.createRadialGradient(cx - 5, cy - 5, 2, cx, cy, r);
+    g.addColorStop(0, c1);
+    g.addColorStop(1, c2);
+    pCtx.shadowColor = skin.glow;
+    pCtx.shadowBlur  = shadowBlur;
+    _drawStarPath(pCtx, cx, cy, r, r * 0.44, 5);
+    pCtx.fillStyle = g;
+    pCtx.fill();
+    pCtx.shadowBlur = 0;
+    drawSkinPreviewInner(pCtx, skin, cx, cy, r, now);
+    pCtx.strokeStyle = c1;
+    pCtx.lineWidth   = 1.5;
+    _drawStarPath(pCtx, cx, cy, r, r * 0.44, 5);
+    pCtx.stroke();
+  } else {
+    const g = pCtx.createRadialGradient(cx - 7, cy - 7, 2, cx, cy, r);
+    g.addColorStop(0, c1);
+    g.addColorStop(1, c2);
+    pCtx.beginPath();
+    pCtx.arc(cx, cy, r, 0, Math.PI * 2);
+    pCtx.fillStyle   = g;
+    pCtx.shadowColor = skin.glow;
+    pCtx.shadowBlur  = shadowBlur;
+    pCtx.fill();
+    pCtx.shadowBlur  = 0;
+    drawSkinPreviewInner(pCtx, skin, cx, cy, r, now);
+    pCtx.strokeStyle = c1;
+    pCtx.lineWidth   = 2;
+    pCtx.beginPath();
+    pCtx.arc(cx, cy, r, 0, Math.PI * 2);
+    pCtx.stroke();
+  }
+
+  pCtx.restore();
+}
+
+function drawSkinPreviewInner(pCtx, skin, cx, cy, r, now) {
+  pCtx.save();
+  pCtx.beginPath();
+  pCtx.arc(cx, cy, r - 1, 0, Math.PI * 2);
+  pCtx.clip();
+
+  if (skin.effect === 'shimmer') {
+    const t  = (now / 2000) % 1;
+    const sx = cx - r * 1.6 + t * r * 3.2;
+    const sg = pCtx.createLinearGradient(sx - 10, 0, sx + 10, 0);
+    sg.addColorStop(0,   'rgba(255,255,255,0)');
+    sg.addColorStop(0.5, 'rgba(255,255,255,0.24)');
+    sg.addColorStop(1,   'rgba(255,255,255,0)');
+    pCtx.fillStyle = sg;
+    pCtx.fillRect(cx - r, cy - r, r * 2, r * 2);
+  } else if (skin.effect === 'pulse') {
+    for (let i = 0; i < 2; i++) {
+      const phase = ((now / 900) + i * 0.5) % 1;
+      const pr    = phase * r * 0.88;
+      pCtx.beginPath();
+      pCtx.arc(cx, cy, pr, 0, Math.PI * 2);
+      pCtx.strokeStyle = _ha(skin.glow, (1 - phase) * 0.42);
+      pCtx.lineWidth   = 1.8;
+      pCtx.stroke();
+    }
+  } else if (skin.effect === 'flicker') {
+    const bx = cx + Math.sin(now / 300) * r * 0.30;
+    const by = cy + Math.cos(now / 250) * r * 0.24;
+    const lg = pCtx.createRadialGradient(bx, by, 0, bx, by, r * 0.90);
+    lg.addColorStop(0,    'rgba(253,224,71,0.48)');
+    lg.addColorStop(0.38, 'rgba(249,115,22,0.28)');
+    lg.addColorStop(0.72, 'rgba(220,38,38,0.10)');
+    lg.addColorStop(1,    'rgba(220,38,38,0)');
+    pCtx.fillStyle = lg;
+    pCtx.fillRect(cx - r, cy - r, r * 2, r * 2);
+  } else if (skin.effect === 'electric') {
+    const flash = Math.max(0, Math.sin(now / 130) - 0.45) / 0.55;
+    const eg    = pCtx.createRadialGradient(cx, cy, 0, cx, cy, r);
+    eg.addColorStop(0,   _ha('#e0f2fe', 0.14 + flash * 0.38));
+    eg.addColorStop(0.5, _ha('#38bdf8', 0.05 + flash * 0.12));
+    eg.addColorStop(1,   'rgba(56,189,248,0)');
+    pCtx.fillStyle = eg;
+    pCtx.fillRect(cx - r, cy - r, r * 2, r * 2);
+  } else if (skin.effect === 'inferno') {
+    const fx = cx + Math.sin(now / 280 + 0.5) * r * 0.28;
+    const fy = cy + Math.cos(now / 210) * r * 0.22;
+    const ig = pCtx.createRadialGradient(fx, fy, 0, fx, fy, r * 0.84);
+    ig.addColorStop(0,    'rgba(254,240,138,0.52)');
+    ig.addColorStop(0.33, 'rgba(249,115,22,0.32)');
+    ig.addColorStop(0.68, 'rgba(220,38,38,0.12)');
+    ig.addColorStop(1,    'rgba(220,38,38,0)');
+    pCtx.fillStyle = ig;
+    pCtx.fillRect(cx - r, cy - r, r * 2, r * 2);
+  } else if (skin.effect === 'prism') {
+    const a   = now / 1100;
+    const hue = (now / 15) % 360;
+    const pg  = pCtx.createLinearGradient(
+      cx + Math.cos(a) * r, cy + Math.sin(a) * r,
+      cx - Math.cos(a) * r, cy - Math.sin(a) * r);
+    pg.addColorStop(0,   'hsla(' + hue + ',100%,72%,0.30)');
+    pg.addColorStop(0.5, 'hsla(' + ((hue + 90) % 360) + ',100%,72%,0.06)');
+    pg.addColorStop(1,   'hsla(' + ((hue + 180) % 360) + ',100%,72%,0.30)');
+    pCtx.fillStyle = pg;
+    pCtx.fillRect(cx - r, cy - r, r * 2, r * 2);
+  } else if (skin.effect === 'void') {
+    const va = now / 1400;
+    const vx = cx + Math.cos(va) * r * 0.28;
+    const vy = cy + Math.sin(va) * r * 0.28;
+    const vg = pCtx.createRadialGradient(vx, vy, 0, cx, cy, r * 0.80);
+    vg.addColorStop(0,    'rgba(0,0,0,0.72)');
+    vg.addColorStop(0.38, 'rgba(59,7,100,0.40)');
+    vg.addColorStop(0.72, 'rgba(107,33,168,0.14)');
+    vg.addColorStop(1,    'rgba(107,33,168,0)');
+    pCtx.fillStyle = vg;
+    pCtx.fillRect(cx - r, cy - r, r * 2, r * 2);
+  } else if (skin.effect === 'galaxy') {
+    const ng = pCtx.createRadialGradient(cx, cy, 0, cx, cy, r * 0.75);
+    ng.addColorStop(0,   'rgba(129,140,248,0.18)');
+    ng.addColorStop(0.6, 'rgba(99,102,241,0.06)');
+    ng.addColorStop(1,   'rgba(99,102,241,0)');
+    pCtx.fillStyle = ng;
+    pCtx.fillRect(cx - r, cy - r, r * 2, r * 2);
+    for (let i = 0; i < 8; i++) {
+      const angle = (i / 8) * Math.PI * 2 + now / 5000;
+      const dist  = (0.18 + (i % 4) * 0.16) * r;
+      const gx    = cx + Math.cos(angle) * dist;
+      const gy    = cy + Math.sin(angle) * dist;
+      pCtx.beginPath();
+      pCtx.arc(gx, gy, 1.0, 0, Math.PI * 2);
+      pCtx.fillStyle = _ha('#c4b5fd', 0.38 + 0.42 * Math.sin(now / (160 + i * 65) + i * 1.3));
+      pCtx.fill();
+    }
+  }
+
+  pCtx.restore();
+}
+
+// ============================================================
 // SECTION 9: OBSTACLE SYSTEM
 // ============================================================
 // Types: 0=NORMAL (straight), 2=BIG (large+slow)
@@ -2902,11 +3342,12 @@ function spawnObstacle() {
   const isCamping = _samePlayerLaneWaves >= CAMPING_WAVE_LIMIT;
   const shieldPlayerLane = !isCamping && _playerLaneShieldStreak < MAX_PLAYER_LANE_SHIELD;
   const _laneW      = canvas.width / NUM_LANES;
-  const spawnSafeR  = player.radius + (shieldPlayerLane ? 26 : (isCamping ? 6 : 10));
+  const flowTargeting = getFlowTargetingBonus();
+  const spawnSafeR  = Math.max(4, player.radius + (shieldPlayerLane ? 26 : (isCamping ? 6 : 10)) - flowTargeting * 18);
   const _candidates = getPressuredLaneOrder(_playerLane, !shieldPlayerLane);
   let pickedLane = _candidates[0] ?? Math.floor(Math.random() * NUM_LANES);
   let ox = _spawnLanes[pickedLane];
-  const pressureBias = isCamping ? 0.92 : 0.72;
+  const pressureBias = Math.min(0.96, (isCamping ? 0.92 : 0.72) + flowTargeting);
   for (const _ci of _candidates) {
     const _cx = getTargetedLaneX(_spawnLanes[_ci], _laneW, player.x, pressureBias);
     if (Math.abs(_cx - player.x) >= spawnSafeR) { ox = _cx; pickedLane = _ci; break; }
@@ -2919,8 +3360,12 @@ function spawnObstacle() {
 
   // Behaviors: mutually exclusive — 13% sway on straight blocks, 9% pulse on straight/big
   const behRoll = Math.random();
-  const doSway  = behRoll < 0.13 && type === 0;
-  const doPulse = behRoll >= 0.13 && behRoll < 0.22 && (type === 0 || type === 2);
+  const extraMoveChance = getFlowMovingChance();
+  const swayChance = 0.13 + extraMoveChance;
+  const pulseChance = 0.09 + extraMoveChance * 0.6;
+  const doSway  = behRoll < swayChance && type === 0;
+  const doPulse = behRoll >= swayChance && behRoll < swayChance + pulseChance && (type === 0 || type === 2);
+  const trickType = pickObstacleTrick(type, isForbiddenSpawn, !doSway);
 
   obstacles.push({
     x: ox - w / 2, y: -h - 12, w, h, vy, baseVy: vy, type,
@@ -2939,6 +3384,10 @@ function spawnObstacle() {
     pulseTime:  0,
     baseW: w, baseH: h,
     cy: -h / 2 - 12, // tracked center-Y for pulse height scaling
+    trickType,
+    trickTriggered: false,
+    trickTimer: 0,
+    trickVx: 0,
   });
 
   // Path safety check: if the new block would leave no viable corridor at the player row,
@@ -2969,12 +3418,13 @@ function spawnWave() {
 
   const beforeLen = obstacles.length;
   const isCamping = _samePlayerLaneWaves >= CAMPING_WAVE_LIMIT;
-  const wavePressure = isCamping ? 0.85 : 0.65;
+  const flowTargeting = getFlowTargetingBonus();
+  const wavePressure = Math.min(0.95, (isCamping ? 0.85 : 0.65) + flowTargeting);
   for (const laneIdx of blocked) {
     if (obstacles.length >= MAX_OBSTACLES) break;
     const cx = Math.max(4, Math.min(cw - 4, getTargetedLaneX(lanes[laneIdx], lw, player.x, wavePressure)));
     // Never spawn inside player safe radius
-    if (Math.abs(cx - player.x) < player.radius + (_samePlayerLaneWaves >= CAMPING_WAVE_LIMIT ? 10 : 18)) continue;
+    if (Math.abs(cx - player.x) < Math.max(6, player.radius + (_samePlayerLaneWaves >= CAMPING_WAVE_LIMIT ? 10 : 18) - flowTargeting * 14)) continue;
 
     // Block size variety — mix of small darts, medium, tall bullets, wide fills, rare large
     let w, h, wType;
@@ -3013,8 +3463,10 @@ function spawnWave() {
 
     // Sway only on single-lane waves; pulse on any
     const behRoll = Math.random();
-    const doSway  = behRoll < 0.10 && blocked.length === 1;
-    const doPulse = behRoll >= 0.10 && behRoll < 0.18;
+    const extraMoveChance = getFlowMovingChance();
+    const doSway  = behRoll < (0.10 + extraMoveChance) && blocked.length === 1;
+    const doPulse = behRoll >= (0.10 + extraMoveChance) && behRoll < (0.18 + extraMoveChance * 0.65);
+    const trickType = pickObstacleTrick(wType, postGrace, !doSway);
 
     obstacles.push({
       x: cx - w / 2, y: -h - 12, w, h,
@@ -3032,6 +3484,10 @@ function spawnWave() {
       pulseTime:  0,
       baseW: w, baseH: h,
       cy: -h / 2 - 12,
+      trickType,
+      trickTriggered: false,
+      trickTimer: 0,
+      trickVx: 0,
     });
   }
 
@@ -3069,7 +3525,7 @@ function observePlayerLaneForSpawn(playerLane) {
 }
 
 function currentRequiredClearGap() {
-  return Math.max(MIN_CLEAR_GAP - difficultyBumps * 4, 56);
+  return Math.max(MIN_CLEAR_GAP - difficultyBumps * 4 - getFlowGapTighten(), 50);
 }
 
 function getLanePressureScore(laneIdx, playerLane) {
@@ -3276,6 +3732,24 @@ function updateObstacles(dt) {
       ob.y = ob.cy - ob.h / 2;
     }
 
+    if (ob.trickType === 'surge' && !ob.trickTriggered && isDangerous(ob) && ob.y + ob.h * 0.5 > player.y - 180) {
+      ob.trickTriggered = true;
+      ob.baseVy *= 1.22 + getFlowIntensity() * 0.16;
+      ob.vy = activePowerupKey === 'SLOW' ? ob.baseVy * 0.4 : ob.baseVy;
+    }
+    if (ob.trickType === 'juke' && !ob.trickTriggered && isDangerous(ob) && Math.abs((ob.y + ob.h * 0.5) - player.y) < 160) {
+      ob.trickTriggered = true;
+      ob.trickTimer = 0.25;
+      const toPlayer = Math.sign(player.x - (ob.x + ob.w / 2)) || (Math.random() < 0.5 ? -1 : 1);
+      ob.trickVx = toPlayer * (70 + getFlowIntensity() * 35);
+    }
+    if (ob.trickTimer > 0) {
+      ob.trickTimer -= dt;
+      ob.x += ob.trickVx * dt;
+      ob.x = Math.max(0, Math.min(canvas.width - ob.w, ob.x));
+      ob.originX = ob.x + ob.w / 2;
+    }
+
     // Near-miss: record the forbiddenIndex active at the moment of the close pass.
     // Storing the index (not a boolean) means the award at exit is independent of
     // whatever forbiddenIndex happens to be current then — prevents both false-positives
@@ -3285,8 +3759,12 @@ function updateObstacles(dt) {
       ob.nearMissIdx = forbiddenIndex;
     }
 
+    if (ob.nearMissIdx >= 0 && ob.y > player.y + player.radius + 14) {
+      awardNearMiss(ob);
+      ob.nearMissIdx = -2;
+    }
+
     if (ob.y > canvas.height + Math.max(OBSTACLE_CLEANUP_MARGIN, ob.h * 1.25)) {
-      if (ob.nearMissIdx >= 0) awardNearMiss(ob);
       obstacles.splice(i, 1);
     }
   }
@@ -3402,18 +3880,89 @@ function drawObstacle(ob) {
 // SECTION 10b: COIN PICKUP SYSTEM
 // ============================================================
 
-function spawnCoinItem() {
-  const sz = 26; // larger — clearly visible on screen
-  coinItems.push({
-    x: sz + Math.random() * (canvas.width - sz * 2),
-    y: -sz - 12,
-    size: sz,
-    vy: 95 + Math.random() * 30, // slightly slower so player has time to react
-    value: 1 + Math.floor(Math.random() * 2), // 1–2 coins
+function findRiskyCoinLane() {
+  if (!obstacles.length) return -1;
+  const laneW = canvas.width / NUM_LANES;
+  // Use active dangerous blocks that are entering or occupying the top/mid play space.
+  const candidates = obstacles.filter(ob => {
+    if (!isDangerous(ob)) return false;
+    if (ob.y + ob.h < -40) return false;
+    if (ob.y > canvas.height * 0.58) return false;
+    return true;
   });
+  if (!candidates.length) return -1;
+
+  // Prefer the block closest to the player's vertical region for readable risk/reward decisions.
+  let pick = candidates[0];
+  let best = Math.abs((pick.y + pick.h * 0.5) - player.y);
+  for (let i = 1; i < candidates.length; i++) {
+    const ob = candidates[i];
+    const d = Math.abs((ob.y + ob.h * 0.5) - player.y);
+    if (d < best) { best = d; pick = ob; }
+  }
+
+  const centerLane = Math.max(0, Math.min(NUM_LANES - 1, Math.floor((pick.x + pick.w * 0.5) / laneW)));
+  // Place coins near danger (adjacent lane) rather than directly inside the block lane.
+  if (centerLane <= 0) return 1;
+  if (centerLane >= NUM_LANES - 1) return NUM_LANES - 2;
+  return centerLane + (Math.random() < 0.5 ? -1 : 1);
 }
 
+// spawnCoinColumn — spawns a vertical column of 4-6 coins at a lane-aligned X position.
+// Coins are spaced 64px apart so players can collect them in a satisfying sequence.
+// Lane selection is biased toward the player's current lane (reward movement) or adjacent.
+function spawnCoinColumn() {
+  const lanes  = getLaneCenters();
+  const pLane  = getPlayerLane();
+  const roll   = Math.random();
+
+  const riskyLane = findRiskyCoinLane();
+
+  let laneIdx;
+  if (riskyLane >= 0 && roll < 0.22) {
+    // Occasionally align a column near dangerous blocks to create risk-vs-reward choices.
+    laneIdx = riskyLane;
+  } else if (roll < 0.57) {
+    // Player's current lane — reward being in flow with the coins
+    laneIdx = pLane;
+  } else if (roll < 0.82) {
+    // Adjacent lane — encourage lateral movement
+    const dir = Math.random() < 0.5 ? -1 : 1;
+    laneIdx = Math.max(0, Math.min(NUM_LANES - 1, pLane + dir));
+  } else {
+    // Any lane — occasional stretch across the screen
+    laneIdx = Math.floor(Math.random() * NUM_LANES);
+  }
+
+  const cx      = lanes[laneIdx];
+  const sz      = 22;
+  const spacing = 64;   // px between each coin center vertically
+  const count   = 4 + Math.floor(Math.random() * 3); // 4, 5, or 6 coins
+  const speed   = 100 + Math.random() * 22;           // all coins same speed → stay in column
+  const colId   = Date.now();                          // group ID for streak attribution
+
+  for (let i = 0; i < count; i++) {
+    coinItems.push({
+      x:     cx + (Math.random() - 0.5) * 6,  // tiny jitter for organic feel
+      y:     -sz - 10 - i * spacing,           // staggered above screen
+      size:  sz,
+      vy:    speed,
+      value: 1,
+      colId,
+    });
+  }
+}
+
+// Kept for compatibility — delegates to column spawner
+function spawnCoinItem() { spawnCoinColumn(); }
+
 function updateCoinItems(dt) {
+  // Tick down streak timer — if too long since last pickup, break the streak
+  if (coinStreakTimer > 0) {
+    coinStreakTimer -= dt;
+    if (coinStreakTimer <= 0) coinStreakCount = 0;
+  }
+
   for (let i = coinItems.length - 1; i >= 0; i--) {
     const c = coinItems[i];
     c.y += c.vy * dt;
@@ -3422,18 +3971,56 @@ function updateCoinItems(dt) {
     const dist = Math.sqrt(dx * dx + dy * dy);
     if (dist < player.radius + c.size / 2 + 8) {
       AudioManager.playSound('coin');
-      awardCoins(c.value);
-      // Floating text at coin position (not player) for clear attribution
-      addFloating(c.x, c.y - 20, '+' + c.value, '#fde047', 20, true);
-      coinPickupFlashTimer = 1; // brief gold screen pulse
-      // Ring burst for satisfying pickup feel
+      applyFlowDelta(FLOW_CONFIG.coinGainPerCoin * c.value, 'coin');
+      const earnedCoins = awardCoins(c.value, false, 'pickup');
+      coinsFromPickupsThisRun += earnedCoins;
+
+      // Streak tracking
+      coinStreakCount++;
+      coinStreakTimer = 0.65; // window to extend the streak
+      let streakBonus = 0;
+      if (coinStreakCount === 3) {
+        streakBonus = awardCoins(2, false, 'pickup');
+        coinsFromPickupsThisRun += streakBonus;
+        addFloating(c.x, c.y - 48, '\xd73 Streak! +' + streakBonus, '#fde047', 21, true);
+      } else if (coinStreakCount === 5) {
+        streakBonus = awardCoins(3, false, 'pickup');
+        coinsFromPickupsThisRun += streakBonus;
+        addFloating(c.x, c.y - 48, '\xd75 Streak! +' + streakBonus, '#fb923c', 23, true);
+      } else if (coinStreakCount === 8) {
+        streakBonus = awardCoins(5, false, 'pickup');
+        coinsFromPickupsThisRun += streakBonus;
+        addFloating(c.x, c.y - 48, '\xd78 Streak! +' + streakBonus, '#c084fc', 26, true);
+        triggerShake(2, 0.08);
+      } else if (coinStreakCount > 8 && coinStreakCount % 4 === 0) {
+        streakBonus = awardCoins(4, false, 'pickup');
+        coinsFromPickupsThisRun += streakBonus;
+        addFloating(c.x, c.y - 48, '\xd7' + coinStreakCount + '! +' + streakBonus, '#e879f9', 24, true);
+      }
+
+      // Floating text at coin position for clear attribution
+      addFloating(c.x, c.y - 20, '+' + earnedCoins, '#fde047', 20, true);
+      coinPickupFlashTimer = 1;
+
+      // Update mini goal progress for coin collection
+      if (runMiniGoal && !runMiniGoal.done && runMiniGoal.stat === 'pickupCoins') {
+        runMiniGoal.progress = coinsFromPickupsThisRun;
+        if (runMiniGoal.progress >= runMiniGoal.goal) completeMiniGoal();
+        else updateMiniGoalHUD();
+      }
+
+      // Ring burst + particles
       ringBursts.push({ x: c.x, y: c.y, r: c.size * 0.4, maxR: c.size * 3.5, color: '#fbbf24', alpha: 0.9, speed: 200 });
       ringBursts.push({ x: c.x, y: c.y, r: 0,            maxR: c.size * 2.2, color: '#fff',    alpha: 0.5, speed: 280 });
       spawnParticles(c.x, c.y, '#fde047', settings.reducedMotion ? 5 : 14);
       coinItems.splice(i, 1);
       continue;
     }
-    if (c.y > canvas.height + 20) coinItems.splice(i, 1);
+    if (c.y > canvas.height + 20) {
+      // Coin missed — if this was the last coin of a column, streak window shortens
+      if (coinStreakTimer > 0) coinStreakTimer = Math.min(coinStreakTimer, 0.25);
+      coinItems.splice(i, 1);
+    }
   }
 }
 
@@ -3493,6 +4080,72 @@ function drawCoinItem(c) {
   ctx.stroke();
 
   ctx.restore();
+}
+
+// ============================================================
+// SECTION 9B: MINI RUN GOAL SYSTEM
+// ============================================================
+
+function pickMiniGoal() {
+  // Pick a random goal that isn't trivially already done at run start
+  const def = MINI_GOAL_DEFS[Math.floor(Math.random() * MINI_GOAL_DEFS.length)];
+  runMiniGoal = { ...def, progress: 0, done: false };
+}
+
+function getMiniGoalProgress() {
+  if (!runMiniGoal) return 0;
+  switch (runMiniGoal.stat) {
+    case 'pickupCoins': return coinsFromPickupsThisRun;
+    case 'nearMisses':  return missionRun.nearMissesThisRun;
+    case 'score':       return Math.floor(score);
+    case 'seconds':     return Math.max(0, Math.floor((performance.now() - gameStartTime - pausedDuration) / 1000));
+    case 'combo':       return combo;
+    default:            return 0;
+  }
+}
+
+function updateMiniGoalHUD() {
+  const bar      = document.getElementById('run-goal-bar');
+  const iconEl   = document.getElementById('run-goal-icon');
+  const labelEl  = document.getElementById('run-goal-label');
+  const fillEl   = document.getElementById('run-goal-fill');
+  const pctEl    = document.getElementById('run-goal-pct');
+  if (!bar) return;
+  if (!runMiniGoal || currentState !== STATE.PLAYING) { bar.hidden = true; return; }
+  bar.hidden = false;
+  if (iconEl)  iconEl.textContent  = runMiniGoal.icon;
+  if (labelEl) labelEl.textContent = runMiniGoal.label;
+  const pct = Math.min(1, runMiniGoal.progress / runMiniGoal.goal);
+  if (fillEl)  fillEl.style.width  = (pct * 100).toFixed(1) + '%';
+  if (pctEl)   pctEl.textContent   = runMiniGoal.done ? '\u2713' : Math.round(pct * 100) + '%';
+  bar.classList.toggle('run-goal-done', !!runMiniGoal.done);
+}
+
+function tickMiniGoal() {
+  if (!runMiniGoal || runMiniGoal.done || currentState !== STATE.PLAYING) return;
+  const prog = getMiniGoalProgress();
+  if (prog !== runMiniGoal.progress) {
+    runMiniGoal.progress = prog;
+    updateMiniGoalHUD();
+    if (runMiniGoal.progress >= runMiniGoal.goal) completeMiniGoal();
+  }
+}
+
+function completeMiniGoal() {
+  if (!runMiniGoal || runMiniGoal.done) return;
+  runMiniGoal.done = true;
+  const reward = runMiniGoal.reward;
+  const bonus  = awardCoins(reward, false, 'pickup');
+  coinsFromPickupsThisRun += bonus;
+  // Celebration popup at centre of screen
+  addFloating(canvas.width / 2, canvas.height / 2 - 80,
+    '\u2713 Goal: ' + runMiniGoal.label, '#34d399', 22);
+  addFloating(canvas.width / 2, canvas.height / 2 - 55,
+    '+' + bonus + ' bonus coins!', '#fde047', 20, true);
+  spawnParticles(canvas.width / 2, canvas.height / 2 - 70, '#34d399', settings.reducedMotion ? 6 : 18);
+  triggerShake(3, 0.14);
+  AudioManager.playSound('nearMiss');
+  updateMiniGoalHUD();
 }
 
 // ============================================================
@@ -3844,24 +4497,14 @@ function changeForbiddenColor() {
   // If Double Danger is active and second color now matches the new primary, re-pick
   if (ddPhase === 'active' && dd2ndIndex === forbiddenIndex) dd2ndIndex = pickDD2ndIndex();
 
-  combo++;
-  if (combo > maxCombo) maxCombo = combo;
+  const prevCombo = combo;
+  applyFlowDelta(FLOW_CONFIG.colorShiftGain, 'color-shift');
   const bonus = combo * COMBO_BONUS_PER;
-  addScore(bonus, false);
+  addScore(bonus, false, false);
   if (combo > 1) {
-    addFloating(player.x, player.y - 65, 'x' + combo + '  +' + bonus, '#f59e0b');
-    AudioManager.playSound('combo', combo);
-    comboPulseTimer = 1; // trigger screen pulse
+    addFloating(player.x, player.y - 65, (combo > prevCombo ? 'FLOW x' : 'x') + combo + '  +' + bonus, '#f59e0b');
   } else {
     addFloating(player.x, player.y - 65, '+' + bonus, '#f59e0b');
-  }
-
-  // Combo milestones
-  for (const threshold of COMBO_MILESTONES) {
-    if (combo >= threshold && !_comboMilestonesHit.has(threshold)) {
-      _comboMilestonesHit.add(threshold);
-      triggerMilestone('x' + threshold + ' COMBO', '#f97316');
-    }
   }
   updateComboDisplay();
 
@@ -3869,7 +4512,7 @@ function changeForbiddenColor() {
   warningActive  = false;
   hideNextColorPreview();
   setHudWarning(0);
-  updateTimerBar(0, forbiddenInterval);
+  updateTimerBar(0, getActiveForbiddenInterval());
   updateForbiddenDisplay();
   colorChangeGrace = 0.25; // 0.25 s invincibility window on color change
   // rebalanceAfterColorChange() disabled — blocks keep their spawn color
@@ -3880,13 +4523,15 @@ function changeForbiddenColor() {
 
 function tickForbiddenTimer(dt) {
   forbiddenTimer += dt;
-  const remaining = Math.max(0, forbiddenInterval - forbiddenTimer);
+  const activeInterval = getActiveForbiddenInterval();
+  const warningWindow = Math.min(WARNING_DURATION, activeInterval * 0.45);
+  const remaining = Math.max(0, activeInterval - forbiddenTimer);
 
   // Update countdown bar
-  updateTimerBar(forbiddenTimer, forbiddenInterval);
+  updateTimerBar(forbiddenTimer, activeInterval);
 
   // Start warning phase
-  if (!warningActive && remaining <= WARNING_DURATION) {
+  if (!warningActive && remaining <= warningWindow) {
     warningActive    = true;
     nextForbiddenIdx = pickNextForbidden();
     showNextColorPreview(nextForbiddenIdx);
@@ -3896,11 +4541,11 @@ function tickForbiddenTimer(dt) {
 
   // Update HUD warning level (compressed 0.8 s window)
   if (warningActive) {
-    if (remaining <= 0.3) setHudWarning(2);
+    if (remaining <= Math.min(0.3, warningWindow * 0.4)) setHudWarning(2);
     else                  setHudWarning(1);
   }
 
-  if (forbiddenTimer >= forbiddenInterval) changeForbiddenColor();
+  if (forbiddenTimer >= activeInterval) changeForbiddenColor();
 }
 
 // ============================================================
@@ -3931,9 +4576,10 @@ function checkCollisions() {
     if (player.hasShield) {
       player.hasShield = false;
       if (activePowerupKey === 'SHIELD') { activePowerupKey = null; updatePowerupDisplay(); }
+      applyFlowDelta(-FLOW_CONFIG.shieldHitPenalty, 'shield-hit');
       obstacles.splice(i, 1);
       spawnParticles(ob.x + ob.w / 2, ob.y + ob.h / 2, GAME_COLORS[ob.colorIndex].hex, 16);
-      addFloating(player.x, player.y - 55, 'Blocked', '#facc15');
+      addFloating(player.x, player.y - 55, 'Blocked • Flow Down', '#facc15');
       triggerShake(6, 0.22);
       if (navigator.vibrate) navigator.vibrate(50);
       Announce.say('Shield absorbed a hit.');
@@ -3948,20 +4594,25 @@ function checkCollisions() {
 // SECTION 15: SCORING
 // ============================================================
 
-function addScore(pts, useBoost) {
-  const mult = (useBoost !== false && activePowerupKey === 'BOOST') ? 2 : 1;
-  score += pts * mult;
+function addScore(pts, useBoost, useFlow) {
+  if (tryMode.active) return;
+  const boostMult = (useBoost !== false && activePowerupKey === 'BOOST') ? 2 : 1;
+  const flowMult  = useFlow !== false ? getFlowScoreMultiplier() : 1;
+  score += pts * boostMult * flowMult;
   // Throttle DOM update — only every ~100ms to avoid layout thrash
 }
 
 let _lastHudUpdate = 0;
 function maybeUpdateHud(ts) {
-  if (ts - _lastHudUpdate > 100) { updateHUD(); _lastHudUpdate = ts; }
+  if (ts - _lastHudUpdate > 100) {
+    updateHUD();
+    updateComboDisplay();
+    _lastHudUpdate = ts;
+  }
 }
 
 function tickScoreOverTime(dt) {
-  // ~5 pts/s base; combo gently scales it up (combo 10 → ~7.5 pts/s)
-  const rate = 5 * (1 + combo * 0.05);
+  const rate = 5.2;
   addScore(rate * dt);
 
   // Score milestones
@@ -3987,12 +4638,16 @@ function awardNearMiss(ob) {
   if (nearMissCooldownTimer > 0) return; // global spam guard — 300 ms between near misses
   nearMissCooldownTimer = 0.30;
   nearMissGlowTimer     = 1; // flash player glow bright
+  applyFlowDelta(FLOW_CONFIG.nearMissGain, 'near-miss');
   AudioManager.playSound('nearMiss');
   missionRun.nearMissesThisRun++;
-  // Larger, distinct text — snaps attention without cluttering
-  addFloating(ob.x + ob.w / 2, ob.y - 18, 'CLOSE CALL  +' + NEAR_MISS_BONUS, '#34d399', 19);
+  const cx = ob.x + ob.w / 2;
+  const cy = ob.y + ob.h / 2;
+  const closeCallCoins = awardCoins(FLOW_CONFIG.closeCallCoins, false, 'close-call');
+  addFloating(cx, ob.y - 18, 'Close Call', '#34d399', 20);
+  addFloating(cx, ob.y - 38, '+' + closeCallCoins, '#fde047', 16, true);
   // Small particle burst at the miss point
-  spawnParticles(ob.x + ob.w / 2, ob.y + ob.h / 2, '#34d399', settings.reducedMotion ? 4 : 10);
+  spawnParticles(cx, cy, '#34d399', settings.reducedMotion ? 4 : 10);
   // Gentle shake — confirms the danger without being disorienting
   triggerShake(3.5, 0.18);
   addScore(NEAR_MISS_BONUS);
@@ -4223,10 +4878,30 @@ function tickDifficulty(dt) {
   if (difficultyTimer < DIFF_SCALE_EVERY) return;
   difficultyTimer = 0;
   difficultyBumps++;
+
+  // Notify the player that difficulty increased — makes skill progress feel real
+  if (difficultyBumps > 0 && !settings.reducedMotion) {
+    const msgs = ['\u26a1 Speed Up!', '\u26a1 Faster!', '\ud83d\udd25 Intensity!', '\u26a1 Max Speed!'];
+    const msg  = msgs[Math.min(difficultyBumps - 1, msgs.length - 1)];
+    addFloating(canvas.width / 2, canvas.height / 3, msg, '#f97316', 20);
+  }
+
+  // Performance-reactive scaling: skilled play (combo + near misses + score) ramps intensity faster.
+  const perfCombo = Math.max(0, maxCombo - 4) * 0.018;
+  const perfMiss  = Math.min(missionRun.nearMissesThisRun, 10) * 0.012;
+  const perfScore = Math.min(score / 18000, 0.28);
+  const perfMult  = Math.min(1.45, 1 + perfCombo + perfMiss + perfScore);
+
   const prevMultiplier = speedMultiplier;
-  speedMultiplier   = Math.min(1.0 + difficultyBumps * 0.18, 3.1);
-  spawnRate         = Math.max(GAME_CONFIG.spawnRate * Math.pow(0.78, difficultyBumps), 0.105);
-  forbiddenInterval = Math.max(GAME_CONFIG.forbiddenInterval - difficultyBumps * 0.28, 1.6);
+  speedMultiplier   = Math.min((1.0 + difficultyBumps * 0.18) * perfMult, 3.25);
+  spawnRate         = Math.max(
+    GAME_CONFIG.spawnRate * Math.pow(0.78, difficultyBumps) * (1 - (perfMult - 1) * 0.16),
+    0.095
+  );
+  forbiddenInterval = Math.max(
+    GAME_CONFIG.forbiddenInterval - difficultyBumps * 0.28 - (perfMult - 1) * 0.20,
+    1.45
+  );
   // Rescale existing on-screen obstacles so the speed-up is felt immediately,
   // not only on newly spawned ones. Preserves per-type relative speeds.
   if (speedMultiplier > prevMultiplier) {
@@ -4332,6 +5007,26 @@ function drawBackground() {
       ctx.fillStyle = rg;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
+
+    const flowIntensity = getFlowIntensity();
+    if (flowIntensity > 0.02) {
+      const fg = ctx.createRadialGradient(
+        player.x || canvas.width / 2, player.y || canvas.height * 0.7, 0,
+        player.x || canvas.width / 2, player.y || canvas.height * 0.7, Math.max(canvas.width, canvas.height) * 0.72
+      );
+      fg.addColorStop(0, 'rgba(251,191,36,' + (0.04 + flowIntensity * 0.08).toFixed(3) + ')');
+      fg.addColorStop(0.6, 'rgba(168,85,247,' + (flowIntensity * 0.06).toFixed(3) + ')');
+      fg.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = fg;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+    if (flowState.campPressure > 0.01) {
+      const cg = ctx.createRadialGradient(player.x, player.y, 0, player.x, player.y, canvas.width * 0.45);
+      cg.addColorStop(0, 'rgba(239,68,68,' + (flowState.campPressure * 0.08).toFixed(3) + ')');
+      cg.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = cg;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
   }
 }
 
@@ -4404,7 +5099,16 @@ function gameLoop(ts) {
   lastFrameTime = ts;
   graceTimer   += dt;
 
+  // Try mode countdown
+  if (tryMode.active) {
+    tryMode.timer -= dt;
+    const cdEl = document.getElementById('try-mode-countdown');
+    if (cdEl) cdEl.textContent = Math.max(0, Math.ceil(tryMode.timer)) + 's';
+    if (tryMode.timer <= 0) { endTrySkin(); return; }
+  }
+
   updatePlayer(dt);
+  tickFlowSystem(dt);
   tickShake(dt);
   if (colorChangeGrace > 0) colorChangeGrace -= dt;
   if (nearMissCooldownTimer > 0) nearMissCooldownTimer -= dt;
@@ -4421,6 +5125,7 @@ function gameLoop(ts) {
   tickRings(dt);
   tickPanicWave(dt);
   tickDoubleDanger(dt);
+  tickMiniGoal();
   Music.tick(dt);
   maybeUpdateHud(ts);
 
@@ -4435,7 +5140,7 @@ function gameLoop(ts) {
   }
 
   spawnTimer += dt;
-  if (spawnTimer >= panicSpawnRate()) {
+  if (spawnTimer >= getActiveSpawnInterval()) {
     spawnTimer = 0;
     const r = Math.random();
     if (r < currentClusterChance()) spawnWave();
@@ -4471,8 +5176,11 @@ function startGame() {
   _comboMilestonesHit = new Set();
   playerTrail = [];
   spawnTimer = 0; powerupTimer = 0; coinItemTimer = 0; difficultyTimer = 0; difficultyBumps = 0;
+  coinStreakCount = 0; coinStreakTimer = 0; coinsFromPickupsThisRun = 0;
   // Reset per-run mission counters (cumulative stat handled separately in evaluateMissions)
   missionRun = { seconds: 0, score: 0, colorChanges: 0, powerupsThisRun: 0, nearMissesThisRun: 0, panicWavesSurvived: 0, maxCombo: 0 };
+  // Pick a fresh mini goal for this run
+  pickMiniGoal();
   // Apply any pending mission bonus
   if (pendingMissionBonus > 0) {
     const bonus = pendingMissionBonus;
@@ -4489,6 +5197,7 @@ function startGame() {
   nearMissGlowTimer    = 0;
   coinPickupFlashTimer = 0;
   comboPulseTimer = 0;
+  resetFlowState(0, 0);
   shakeX = shakeY = shakeTimer = 0;
   panicTimer    = 0;
   panicPhase    = 'cooldown';
@@ -4524,7 +5233,7 @@ function startGame() {
   updateHUD();
   updateForbiddenDisplay();
   hideNextColorPreview();
-  updateTimerBar(0, forbiddenInterval);
+  updateTimerBar(0, getActiveForbiddenInterval());
   setHudWarning(0);
   updateComboDisplay();
   updatePowerupDisplay();
@@ -4532,6 +5241,8 @@ function startGame() {
   setTimeout(() => {
     resizeCanvas();
     initPlayer();
+    resetFlowState(player.x, player.y);
+    updateComboDisplay();
     // Pre-fill obstacles so there's immediate on-screen pressure
     const preCount = 24;
     for (let _i = 0; _i < preCount; _i++) {
@@ -4550,6 +5261,7 @@ function startGame() {
     pausedDuration   = 0;
     pauseStartTime   = 0;
     lastFrameTime    = performance.now();
+    updateMiniGoalHUD(); // show mini goal bar immediately when game starts
     const c = GAME_COLORS[forbiddenIndex];
     Announce.say('Game started. Forbidden color: ' + c.name + '.');
     Music.start();
@@ -4597,6 +5309,7 @@ function pickDeathMessage(score, combo, colorChanges) {
 }
 
 function triggerGameOver() {
+  if (tryMode.active) { endTrySkin(); return; }
   currentState = STATE.GAMEOVER;
   cancelAnimationFrame(rafHandle); rafHandle = null;
   clearAllInputs();
@@ -4654,6 +5367,46 @@ function triggerGameOver() {
     const goIcon = document.getElementById('gameover-icon');
     if (goIcon) goIcon.textContent = '';
     document.getElementById('new-best-badge').hidden      = !wasNewBest;
+
+    // ── Lifetime progress section in game-over ──
+    const lps = getLifetimeProgressState();
+    const goLifeTotal = document.getElementById('go-lifetime-total');
+    const goLifeFill  = document.getElementById('go-lifetime-fill');
+    const goLifeNext  = document.getElementById('go-lifetime-next');
+    if (goLifeTotal) goLifeTotal.textContent = formatNumber(lps.total);
+    if (goLifeFill)  {
+      goLifeFill.style.width = '0%';
+      // Animate the bar fill in
+      setTimeout(() => { goLifeFill.style.width = lps.pct + '%'; }, 200);
+    }
+    if (goLifeNext) {
+      if (lps.nextReward) {
+        const diff = lps.nextReward.milestone - lps.total;
+        goLifeNext.textContent = formatNumber(diff) + ' more \u2192 ' + lps.nextReward.label;
+      } else {
+        goLifeNext.textContent = 'All lifetime rewards unlocked!';
+      }
+    }
+
+    // ── Coin breakdown tooltip ──
+    const goCoinsBreak = document.getElementById('go-coins-breakdown');
+    if (goCoinsBreak) {
+      const fromPickups  = coinsFromPickupsThisRun;
+      const fromScore    = Math.floor(final / 1000);
+      const fromMisses   = Math.min(missionRun.nearMissesThisRun, 3);
+      const fromFlow     = Math.floor(maxCombo / 6);
+      const fromSurvival = Math.floor(elapsed / 60);
+      goCoinsBreak.innerHTML =
+        '<span>\ud83e\ude99 Pickups</span><span>' + fromPickups + '</span>' +
+        '<span>\ud83c\udfaf Score</span><span>' + fromScore + '</span>' +
+        '<span>\u26a1 Near-miss</span><span>' + fromMisses + '</span>' +
+        '<span>\ud83d\udd25 Combo</span><span>' + fromFlow + '</span>' +
+        '<span>\u23f1 Survival</span><span>' + fromSurvival + '</span>';
+    }
+
+    // Hide mini goal bar (game is over)
+    const runGoalBar = document.getElementById('run-goal-bar');
+    if (runGoalBar) runGoalBar.hidden = true;
 
     const deathMsg = document.getElementById('death-message');
     if (deathMsg) {

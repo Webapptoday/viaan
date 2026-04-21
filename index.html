@@ -213,12 +213,26 @@
           <p class="shop-coin-hint">Earn coins every run. Unlock skins and tune powerups.</p>
         </div>
         <h3 class="spanel-section-title" id="prog-skins-id">Skins</h3>
-        <div class="skin-carousel" id="skin-carousel">
-          <button class="skin-nav-btn" id="skin-prev" type="button" aria-label="Previous skin">&#8249;</button>
-          <div class="skin-stage" id="skin-stage" role="region" aria-live="polite" aria-label="Current skin"></div>
-          <button class="skin-nav-btn" id="skin-next" type="button" aria-label="Next skin">&#8250;</button>
+
+        <!-- Split layout: preview panel (left) + skin grid (right) -->
+        <div class="shop-skin-split">
+
+          <!-- Left: live preview panel -->
+          <div class="shop-preview-panel" id="shop-preview-panel">
+            <canvas id="skin-preview-canvas" width="160" height="160" aria-hidden="true"></canvas>
+            <div class="preview-skin-meta">
+              <span class="preview-skin-name" id="preview-skin-name">Classic</span>
+              <span class="preview-skin-rarity" id="preview-skin-rarity" data-rarity="common">common</span>
+            </div>
+            <div class="preview-actions" id="preview-actions"></div>
+          </div>
+
+          <!-- Right: scrollable skin grid -->
+          <div class="shop-skin-grid-panel">
+            <div class="shop-skin-grid" id="skin-stage" role="list" aria-label="Available skins"></div>
+          </div>
+
         </div>
-        <div class="skin-dots" id="skin-dots" aria-hidden="true"></div>
       </section>
 
       <section aria-labelledby="prog-powerups-id">
@@ -306,7 +320,19 @@
       <div class="hud-block hud-right">
         <span class="hud-label">Best</span>
         <span class="hud-value" id="best-display">0</span>
-        <span class="hud-combo" id="combo-display" aria-live="polite" hidden>×<span id="combo-val">1</span></span>
+        <div class="hud-combo" id="combo-display" aria-live="polite">
+          <div class="combo-main-row">
+            <span class="combo-kicker">Flow</span>
+            <span class="combo-main-value">×<span id="combo-val">0</span></span>
+          </div>
+          <div class="combo-meta-row">
+            <span id="combo-score-mult">Score x1.00</span>
+            <span id="combo-coin-bonus">Coins +0%</span>
+          </div>
+          <div class="combo-meter-track" aria-hidden="true">
+            <div class="combo-meter-fill" id="combo-meter-fill"></div>
+          </div>
+        </div>
       </div>
 
     </div><!-- /#hud -->
@@ -320,6 +346,23 @@
       <div id="powerup-duration-bar-wrap" hidden>
         <div id="powerup-duration-bar"></div>
       </div>
+    </div>
+
+    <!-- Try Mode banner -->
+    <!-- Mini run goal bar -->
+    <div id="run-goal-bar" class="run-goal-bar" hidden aria-live="polite" aria-label="Current run goal">
+      <span class="run-goal-icon" id="run-goal-icon" aria-hidden="true"></span>
+      <span class="run-goal-label" id="run-goal-label">Goal</span>
+      <div class="run-goal-track" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+        <div class="run-goal-fill" id="run-goal-fill"></div>
+      </div>
+      <span class="run-goal-pct" id="run-goal-pct">0%</span>
+    </div>
+
+    <!-- Try Mode banner -->
+    <div id="try-mode-banner" hidden aria-live="polite">
+      <span class="try-mode-label">TRY MODE</span>
+      <span id="try-mode-countdown" class="try-mode-cd">8s</span>
     </div>
 
     <!-- Main game canvas -->
@@ -378,6 +421,20 @@
             <span><span class="coin-icon coin-sm" aria-hidden="true"></span> Coins</span>
             <span id="gameover-coins" class="gameover-coins-val">0</span>
           </div>
+        </div>
+        <!-- Coin sources breakdown -->
+        <div class="go-coins-breakdown" id="go-coins-breakdown"></div>
+
+        <!-- Lifetime progress toward next skin unlock -->
+        <div class="go-lifetime-section" id="go-lifetime-section">
+          <div class="go-lifetime-header">
+            <span class="go-lifetime-label">Lifetime</span>
+            <span class="go-lifetime-score" id="go-lifetime-total">0</span>
+          </div>
+          <div class="go-lifetime-track" role="progressbar" aria-label="Next unlock progress">
+            <div class="go-lifetime-fill" id="go-lifetime-fill"></div>
+          </div>
+          <p class="go-lifetime-next" id="go-lifetime-next">&hellip;</p>
         </div>
         <div class="new-best-badge" id="new-best-badge" hidden>New Record</div>
         <div class="overlay-btns">
