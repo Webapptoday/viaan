@@ -1175,8 +1175,8 @@ kbd {
 .skin-btn {
   display: flex; flex-direction: column; align-items: center;
   gap: 6px; padding: 12px 8px 10px;
-  background: linear-gradient(160deg, rgba(255,255,255,.065) 0%, rgba(124,58,237,.04) 100%);
-  border: 1px solid rgba(255,255,255,.1);
+  background: linear-gradient(160deg, rgba(38,24,72,.96) 0%, rgba(24,14,52,.96) 100%);
+  border: 1px solid rgba(255,255,255,.16);
   border-radius: var(--radius);
   color: var(--text); font-family: inherit;
   cursor: pointer;
@@ -1208,21 +1208,47 @@ kbd {
 }
 /* Unaffordable */
 .skin-btn.skin-unaffordable { opacity: .50; }
-/* Legendary featured card */
+/* Rarity-based card borders & glow backgrounds */
+.skin-btn[data-rarity="rare"]:not(.skin-locked) {
+  border-color: rgba(56,189,248,.48);
+  background: radial-gradient(ellipse at 50% 28%, rgba(56,189,248,.22) 0%, transparent 55%),
+              linear-gradient(160deg, rgba(10,48,72,.97) 0%, rgba(18,12,46,.97) 100%);
+  box-shadow: 0 2px 14px rgba(56,189,248,.18);
+}
+.skin-btn[data-rarity="rare"]:not(.skin-locked):hover {
+  border-color: rgba(56,189,248,.8);
+  box-shadow: 0 6px 26px rgba(56,189,248,.38);
+}
+.skin-btn[data-rarity="epic"]:not(.skin-locked) {
+  border-color: rgba(251,191,36,.48);
+  background: radial-gradient(ellipse at 50% 28%, rgba(251,191,36,.22) 0%, transparent 55%),
+              linear-gradient(160deg, rgba(58,36,6,.97) 0%, rgba(24,14,52,.97) 100%);
+  box-shadow: 0 2px 14px rgba(251,191,36,.18);
+}
+.skin-btn[data-rarity="epic"]:not(.skin-locked):hover {
+  border-color: rgba(251,191,36,.8);
+  box-shadow: 0 6px 26px rgba(251,191,36,.38);
+}
 .skin-btn[data-rarity="legendary"]:not(.skin-locked) {
-  border-color: rgba(129,140,248,.52);
-  background: linear-gradient(160deg, rgba(99,102,241,.13) 0%, rgba(49,46,129,.10) 100%);
-  box-shadow: 0 2px 14px rgba(99,102,241,.18);
+  border-color: rgba(192,132,252,.58);
+  background: radial-gradient(ellipse at 50% 28%, rgba(192,132,252,.3) 0%, transparent 55%),
+              linear-gradient(160deg, rgba(56,18,96,.97) 0%, rgba(34,10,72,.97) 100%);
+  box-shadow: 0 2px 18px rgba(168,85,247,.3), inset 0 1px 0 rgba(255,255,255,.08);
+  animation: legendaryCardPulse 2.8s ease-in-out infinite;
 }
 .skin-btn[data-rarity="legendary"]:not(.skin-locked):hover {
-  border-color: rgba(165,180,252,.72);
-  box-shadow: 0 6px 22px rgba(99,102,241,.36);
+  border-color: rgba(216,180,254,.9);
+  box-shadow: 0 8px 32px rgba(168,85,247,.55), inset 0 1px 0 rgba(255,255,255,.12);
+}
+@keyframes legendaryCardPulse {
+  0%,100% { box-shadow: 0 2px 18px rgba(168,85,247,.3); }
+  50%     { box-shadow: 0 4px 32px rgba(168,85,247,.6), 0 0 60px rgba(168,85,247,.12); }
 }
 
 .skin-preview {
   width: 40px; height: 40px; border-radius: 50%; display: block; flex-shrink: 0;
   background: radial-gradient(circle at 33% 33%, var(--skin-c1, #c084fc), var(--skin-c2, #a855f7));
-  box-shadow: 0 0 12px var(--skin-c2, #a855f7);
+  box-shadow: 0 0 16px var(--skin-c2, #a855f7), 0 0 32px rgba(168,85,247,.2), 0 0 4px rgba(255,255,255,.12);
   position: relative;
 }
 .skin-btn.skin-locked .skin-preview { filter: grayscale(1) brightness(.40); box-shadow: none; animation: none !important; }
@@ -1404,17 +1430,17 @@ kbd {
 }
 
 .skin-rarity {
-  font-size: .60rem; font-weight: 800; letter-spacing: .08em;
-  text-transform: uppercase; padding: 2px 6px; border-radius: 5px;
+  font-size: .68rem; font-weight: 800; letter-spacing: .07em;
+  text-transform: uppercase; padding: 3px 8px; border-radius: 6px;
   line-height: 1.5;
 }
-.skin-rarity[data-rarity="common"]    { background: rgba(255,255,255,.10); color: #9ca3af; }
-.skin-rarity[data-rarity="rare"]      { background: rgba(56,189,248,.18);  color: #38bdf8; }
-.skin-rarity[data-rarity="epic"]      { background: rgba(234,179,8,.18);   color: #fbbf24; }
-.skin-rarity[data-rarity="legendary"] { background: rgba(168,85,247,.22);  color: #c084fc; text-shadow: 0 0 8px #a855f7; }
+.skin-rarity[data-rarity="common"]    { background: rgba(255,255,255,.14); color: #d1d5db; border: 1px solid rgba(255,255,255,.22); }
+.skin-rarity[data-rarity="rare"]      { background: rgba(56,189,248,.22);  color: #7dd3fc; border: 1px solid rgba(56,189,248,.38); }
+.skin-rarity[data-rarity="epic"]      { background: rgba(251,191,36,.22);  color: #fde68a; border: 1px solid rgba(251,191,36,.40); }
+.skin-rarity[data-rarity="legendary"] { background: rgba(192,132,252,.26); color: #e9d5ff; border: 1px solid rgba(192,132,252,.48); text-shadow: 0 0 10px rgba(168,85,247,.9); }
 
-.skin-name     { font-size: .78rem; font-weight: 700; text-align: center; color: #e2e8f0; }
-.skin-progress { font-size: .67rem; color: #8ca0b4; text-align: center; }
+.skin-name     { font-size: .80rem; font-weight: 700; text-align: center; color: #ffffff; }
+.skin-progress { font-size: .68rem; color: #c8d8e8; text-align: center; }
 .skin-btn.skin-selected .skin-progress { color: var(--accent-light); font-weight: 700; }
 .skin-btn.skin-coin-card:not(.skin-locked) .skin-progress { color: #fde68a; font-weight: 700; }
 
@@ -2376,7 +2402,7 @@ kbd {
   max-width: 100%;
   max-height: 100%;
   border-radius: 0;
-  background: #07041a;
+  background: #0c0820;
   overflow: hidden;
   position: relative;
 }
@@ -2564,7 +2590,7 @@ kbd {
 
 .shop-panel-hint {
   font-size: .87rem;
-  color: #9db4c8;
+  color: #c8d8e8;
   margin: 0 0 28px;
   line-height: 1.6;
   max-width: 620px;
@@ -2576,7 +2602,7 @@ kbd {
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 2.5px;
-  color: #7a8fa0;
+  color: #a0b8cc;
   margin: 0 0 20px;
   padding: 0 0 11px 14px;
   border-left: 3px solid var(--accent);
@@ -2661,8 +2687,8 @@ kbd {
   width: 100%;
   padding: 20px 10px 16px;
   gap: 10px;
-  background: linear-gradient(160deg, rgba(255,255,255,.068) 0%, rgba(124,58,237,.048) 100%);
-  border: 1px solid rgba(255,255,255,.1);
+  background: linear-gradient(160deg, rgba(42,26,80,.96) 0%, rgba(28,16,56,.96) 100%);
+  border: 1px solid rgba(255,255,255,.16);
   transition: all .2s cubic-bezier(.34,1.56,.64,1);
 }
 
@@ -2674,8 +2700,8 @@ kbd {
 }
 
 .skin-grid .skin-btn .skin-preview {
-  width: 56px;
-  height: 56px;
+  width: 62px;
+  height: 62px;
 }
 
 .skin-grid-lock-icon {
@@ -2739,8 +2765,8 @@ kbd {
 }
 
 .skin-grid-lock-label {
-  font-size: .64rem;
-  color: #64748b;
+  font-size: .66rem;
+  color: #94a3b8;
   font-weight: 700;
   text-align: center;
 }
