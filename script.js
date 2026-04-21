@@ -4756,8 +4756,7 @@ function drawPanicBanner() {
   const tw  = 200;
   const th  = 38;
   ctx.fillStyle = 'rgba(20,0,0,0.68)';
-  ctx.beginPath();
-  ctx.roundRect(cx - tw / 2, cy - th / 2, tw, th, 8);
+  pathRoundRect(ctx, cx - tw / 2, cy - th / 2, tw, th, 8);
   ctx.fill();
 
   // Bold label
@@ -4857,8 +4856,7 @@ function drawDoubleDangerBanner() {
   const tw = 242;
   const th = 38;
   ctx.fillStyle = 'rgba(30,15,0,0.72)';
-  ctx.beginPath();
-  ctx.roundRect(cx - tw / 2, cy - th / 2, tw, th, 8);
+  pathRoundRect(ctx, cx - tw / 2, cy - th / 2, tw, th, 8);
   ctx.fill();
 
   // Label
@@ -5095,69 +5093,82 @@ function render(ts) {
 
 function gameLoop(ts) {
   if (currentState !== STATE.PLAYING) return;
-  const dt = Math.min((ts - lastFrameTime) / 1000, 0.05);
-  lastFrameTime = ts;
-  graceTimer   += dt;
+  try {
+    const dt = Math.min((ts - lastFrameTime) / 1000, 0.05);
+    lastFrameTime = ts;
+    graceTimer   += dt;
 
-  // Try mode countdown
-  if (tryMode.active) {
-    tryMode.timer -= dt;
-    const cdEl = document.getElementById('try-mode-countdown');
-    if (cdEl) cdEl.textContent = Math.max(0, Math.ceil(tryMode.timer)) + 's';
-    if (tryMode.timer <= 0) { endTrySkin(); return; }
-  }
+    // Try mode countdown
+    if (tryMode.active) {
+      tryMode.timer -= dt;
+      const cdEl = document.getElementById('try-mode-countdown');
+      if (cdEl) cdEl.textContent = Math.max(0, Math.ceil(tryMode.timer)) + 's';
+      if (tryMode.timer <= 0) { endTrySkin(); return; }
+    }
 
-  updatePlayer(dt);
-  tickFlowSystem(dt);
-  tickShake(dt);
-  if (colorChangeGrace > 0) colorChangeGrace -= dt;
-  if (nearMissCooldownTimer > 0) nearMissCooldownTimer -= dt;
-  if (nearMissGlowTimer    > 0) nearMissGlowTimer     = Math.max(0, nearMissGlowTimer - dt / 0.30);
-  if (coinPickupFlashTimer > 0) coinPickupFlashTimer  = Math.max(0, coinPickupFlashTimer - dt / 0.25);
-  if (comboPulseTimer > 0) comboPulseTimer = Math.max(0, comboPulseTimer - dt / 0.35);
-  tickForbiddenTimer(dt);
-  tickDifficulty(dt);
-  tickActivePowerup(dt);
-  tickScoreOverTime(dt);
-  tickParticles(dt);
-  tickFloating(dt);
-  tickMilestoneBanner(dt);
-  tickRings(dt);
-  tickPanicWave(dt);
-  tickDoubleDanger(dt);
-  tickMiniGoal();
-  Music.tick(dt);
-  maybeUpdateHud(ts);
+    updatePlayer(dt);
+    tickFlowSystem(dt);
+    tickShake(dt);
+    if (colorChangeGrace > 0) colorChangeGrace -= dt;
+    if (nearMissCooldownTimer > 0) nearMissCooldownTimer -= dt;
+    if (nearMissGlowTimer    > 0) nearMissGlowTimer     = Math.max(0, nearMissGlowTimer - dt / 0.30);
+    if (coinPickupFlashTimer > 0) coinPickupFlashTimer  = Math.max(0, coinPickupFlashTimer - dt / 0.25);
+    if (comboPulseTimer > 0) comboPulseTimer = Math.max(0, comboPulseTimer - dt / 0.35);
+    tickForbiddenTimer(dt);
+    tickDifficulty(dt);
+    tickActivePowerup(dt);
+    tickScoreOverTime(dt);
+    tickParticles(dt);
+    tickFloating(dt);
+    tickMilestoneBanner(dt);
+    tickRings(dt);
+    tickPanicWave(dt);
+    tickDoubleDanger(dt);
+    tickMiniGoal();
+    Music.tick(dt);
+    maybeUpdateHud(ts);
 
-  // Survival time milestones
-  const elapsed = (performance.now() - gameStartTime - pausedDuration) / 1000;
-  for (const t of TIME_MILESTONES) {
-    if (elapsed >= t && !_timeMilestonesHit.has(t)) {
-      _timeMilestonesHit.add(t);
-      const label = t >= 60 ? Math.floor(t / 60) + 'm Survived' : t + 's Survived';
-      triggerMilestone(label, '#a78bfa');
+    // Survival time milestones
+    const elapsed = (performance.now() - gameStartTime - pausedDuration) / 1000;
+    for (const t of TIME_MILESTONES) {
+      if (elapsed >= t && !_timeMilestonesHit.has(t)) {
+        _timeMilestonesHit.add(t);
+        const label = t >= 60 ? Math.floor(t / 60) + 'm Survived' : t + 's Survived';
+        triggerMilestone(label, '#a78bfa');
+      }
+    }
+
+    spawnTimer += dt;
+    if (spawnTimer >= getActiveSpawnInterval()) {
+      spawnTimer = 0;
+      const r = Math.random();
+      if (r < currentClusterChance()) spawnWave();
+      else                    spawnObstacle();
+    }
+
+    powerupTimer += dt;
+    if (powerupTimer >= POWERUP_INTERVAL) { powerupTimer = 0; spawnPowerup(); }
+
+    coinItemTimer += dt;
+    if (coinItemTimer >= COIN_ITEM_INTERVAL) { coinItemTimer = 0; spawnCoinItem(); }
+
+    updateObstacles(dt);
+    updatePowerups(dt);
+    updateCoinItems(dt);
+    checkCollisions();
+    render(ts);
+  } catch (err) {
+    // Keep the loop alive and surface the root cause in console instead of freezing to black.
+    console.error('[ForbiddenColor] gameLoop runtime error', err);
+    try {
+      if (ctx && canvas) {
+        drawBackground();
+        drawPlayer();
+      }
+    } catch (_err) {
+      // Ignore nested fallback errors.
     }
   }
-
-  spawnTimer += dt;
-  if (spawnTimer >= getActiveSpawnInterval()) {
-    spawnTimer = 0;
-    const r = Math.random();
-    if (r < currentClusterChance()) spawnWave();
-    else                    spawnObstacle();
-  }
-
-  powerupTimer += dt;
-  if (powerupTimer >= POWERUP_INTERVAL) { powerupTimer = 0; spawnPowerup(); }
-
-  coinItemTimer += dt;
-  if (coinItemTimer >= COIN_ITEM_INTERVAL) { coinItemTimer = 0; spawnCoinItem(); }
-
-  updateObstacles(dt);
-  updatePowerups(dt);
-  updateCoinItems(dt);
-  checkCollisions();
-  render(ts);
 
   rafHandle = requestAnimationFrame(gameLoop);
 }
