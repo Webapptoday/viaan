@@ -190,95 +190,136 @@
 
 
   <!-- ============================================================
-       SHOP MODAL — Skins + Stats + Challenges
+       SHOP — FULL-SCREEN
   ============================================================ -->
-  <div id="modal-progress" class="modal" role="dialog" aria-modal="true"
+  <div id="modal-progress" class="modal shop-overlay" role="dialog" aria-modal="true"
        aria-labelledby="progress-panel-title" hidden>
-    <div class="modal-box settings-panel">
+    <div class="shop-fullscreen">
 
-      <!-- Header -->
-      <div class="spanel-header">
-        <h2 id="progress-panel-title">Shop</h2>
-        <button class="btn-close" id="btn-progress-close" aria-label="Close shop">✕</button>
-      </div>
+      <!-- ── Top navigation bar ── -->
+      <div class="shop-topbar">
+        <div class="shop-topbar-left">
+          <h2 class="shop-title" id="progress-panel-title">Shop</h2>
+        </div>
 
-      <!-- ── SKINS ── -->
-      <section aria-labelledby="prog-skins-id">
-        <div class="shop-coin-header">
+        <!-- Tab navigation -->
+        <nav class="shop-tabs" role="tablist" aria-label="Shop sections">
+          <button class="shop-tab-btn shop-tab-active" role="tab"
+                  aria-selected="true" aria-controls="shop-panel-skins"
+                  data-tab="skins" type="button">
+            <span class="shop-tab-icon" aria-hidden="true">✦</span> Skins
+          </button>
+          <button class="shop-tab-btn" role="tab"
+                  aria-selected="false" aria-controls="shop-panel-upgrades"
+                  data-tab="upgrades" type="button">
+            <span class="shop-tab-icon" aria-hidden="true">⚡</span> Powerups
+          </button>
+          <button class="shop-tab-btn" role="tab"
+                  aria-selected="false" aria-controls="shop-panel-challenges"
+                  data-tab="challenges" type="button">
+            <span class="shop-tab-icon" aria-hidden="true">🏆</span> Challenges
+          </button>
+          <button class="shop-tab-btn" role="tab"
+                  aria-selected="false" aria-controls="shop-panel-lifetime"
+                  data-tab="lifetime" type="button">
+            <span class="shop-tab-icon" aria-hidden="true">📈</span> Progress
+          </button>
+        </nav>
+
+        <!-- Coin balance + close -->
+        <div class="shop-topbar-right">
           <div class="shop-coin-pill">
             <span class="coin-icon" aria-hidden="true"></span>
             <span class="coins-value" id="progress-coins">0</span>
           </div>
-          <p class="shop-coin-hint">Earn coins every run. Unlock skins and tune powerups.</p>
+          <button class="btn-close shop-close-btn" id="btn-progress-close" aria-label="Close shop">✕</button>
         </div>
-        <h3 class="spanel-section-title" id="prog-skins-id">Skins</h3>
+      </div>
 
-        <!-- Split layout: preview panel (left) + skin grid (right) -->
-        <div class="shop-skin-split">
+      <!-- ── Scrollable panel body ── -->
+      <div class="shop-body">
 
-          <!-- Left: live preview panel -->
-          <div class="shop-preview-panel" id="shop-preview-panel">
-            <canvas id="skin-preview-canvas" width="160" height="160" aria-hidden="true"></canvas>
-            <div class="preview-skin-meta">
-              <span class="preview-skin-name" id="preview-skin-name">Classic</span>
-              <span class="preview-skin-rarity" id="preview-skin-rarity" data-rarity="common">common</span>
+        <!-- ── SKINS PANEL ── -->
+        <div id="shop-panel-skins" class="shop-panel shop-panel-active"
+             role="tabpanel" aria-labelledby="shop-tab-skins">
+
+          <p class="shop-panel-hint">Earn coins every run. Unlock skins and tune your look.</p>
+
+          <!-- Full-width skin layout: preview left, grid right -->
+          <div class="shop-skin-split">
+            <!-- Left: animated preview -->
+            <div class="shop-preview-panel" id="shop-preview-panel">
+              <canvas id="skin-preview-canvas" width="160" height="160" aria-hidden="true"></canvas>
+              <div class="preview-skin-meta">
+                <span class="preview-skin-name" id="preview-skin-name">Classic</span>
+                <span class="preview-skin-rarity" id="preview-skin-rarity" data-rarity="common">common</span>
+              </div>
+              <div class="preview-actions" id="preview-actions"></div>
             </div>
-            <div class="preview-actions" id="preview-actions"></div>
-          </div>
 
-          <!-- Right: scrollable skin grid -->
-          <div class="shop-skin-grid-panel">
-            <div class="shop-skin-grid" id="skin-stage" role="list" aria-label="Available skins"></div>
+            <!-- Right: full skin grid -->
+            <div class="shop-skin-grid-panel">
+              <div class="skin-grid" id="skin-stage" role="list" aria-label="Available skins"></div>
+            </div>
           </div>
-
         </div>
-      </section>
 
-      <section aria-labelledby="prog-powerups-id">
-        <h3 class="spanel-section-title" id="prog-powerups-id">Powerup Upgrades</h3>
-        <p class="skins-hint">Small duration boosts only. Max 3 levels per powerup.</p>
-        <div id="powerup-upgrades-list" class="powerup-upgrades-list" aria-label="Powerup upgrades"></div>
-      </section>
+        <!-- ── POWERUPS PANEL ── -->
+        <div id="shop-panel-upgrades" class="shop-panel"
+             role="tabpanel" aria-labelledby="shop-tab-upgrades" hidden>
 
-      <section aria-labelledby="prog-lifetime-id">
-        <h3 class="spanel-section-title" id="prog-lifetime-id">Lifetime Progress</h3>
-        <div class="lifetime-progress-panel" aria-label="Lifetime score progression and rewards">
-          <div class="lifetime-progress-top">
-            <span class="lifetime-progress-label">Lifetime Score</span>
-            <span class="lifetime-progress-value" id="lifetime-score-value">0</span>
+          <p class="shop-panel-hint">Boost powerup durations. Max 3 levels each. Upgrades persist forever.</p>
+          <div id="powerup-upgrades-list" class="powerup-upgrades-list" aria-label="Powerup upgrades"></div>
+        </div>
+
+        <!-- ── CHALLENGES PANEL ── -->
+        <div id="shop-panel-challenges" class="shop-panel"
+             role="tabpanel" aria-labelledby="shop-tab-challenges" hidden>
+
+          <p class="shop-panel-hint">Complete challenges for bonus coins. Progress saves automatically.</p>
+          <div id="missions-list" class="missions-list" aria-label="Active challenges"></div>
+
+          <div id="missions-completed-section" hidden class="shop-stats-section">
+            <h3 class="shop-panel-heading">Completed</h3>
+            <div id="missions-completed-list" class="missions-list" aria-label="Completed challenges"></div>
           </div>
-          <div class="lifetime-track" aria-hidden="true">
-            <div class="lifetime-fill" id="lifetime-progress-bar"></div>
+
+          <!-- Stats section inside challenges tab -->
+          <div class="shop-stats-section">
+            <h3 class="shop-panel-heading">Your Stats</h3>
+            <div id="stats-grid" class="stats-grid" aria-label="Lifetime game statistics"></div>
           </div>
-          <p class="lifetime-next-target" id="lifetime-next-target">Next unlock at 2,500 Lifetime Score</p>
-          <p class="lifetime-progress-detail" id="lifetime-progress-detail">0 / 2,500 • Aurora Skin</p>
+        </div>
+
+        <!-- ── LIFETIME PROGRESS PANEL ── -->
+        <div id="shop-panel-lifetime" class="shop-panel"
+             role="tabpanel" aria-labelledby="shop-tab-lifetime" hidden>
+
+          <p class="shop-panel-hint">Earn lifetime score every run. Hit milestones to unlock exclusive skins.</p>
+
+          <div class="lifetime-progress-panel">
+            <div class="lifetime-progress-top">
+              <span class="lifetime-progress-label">Lifetime Score</span>
+              <span class="lifetime-progress-value" id="lifetime-score-value">0</span>
+            </div>
+            <div class="lifetime-track" aria-hidden="true">
+              <div class="lifetime-fill" id="lifetime-progress-bar"></div>
+            </div>
+            <p class="lifetime-next-target" id="lifetime-next-target">Next unlock at 2,500 Lifetime Score</p>
+            <p class="lifetime-progress-detail" id="lifetime-progress-detail">0 / 2,500 • Aurora Skin</p>
+          </div>
+
           <div id="lifetime-rewards-list" class="lifetime-rewards-list" aria-label="Lifetime milestone rewards"></div>
         </div>
-      </section>
 
-      <!-- ── STATS ── -->
-      <section aria-labelledby="prog-stats-id">
-        <h3 class="spanel-section-title" id="prog-stats-id">Stats</h3>
-        <div id="stats-grid" class="stats-grid" aria-label="Lifetime game statistics"></div>
-      </section>
+      </div><!-- /.shop-body -->
 
-      <!-- ── CHALLENGES ── -->
-      <section aria-labelledby="prog-challenges-id">
-        <h3 class="spanel-section-title" id="prog-challenges-id">Challenges</h3>
-        <p class="skins-hint">Progress saves automatically.</p>
-        <div id="missions-list" class="missions-list" aria-label="Active challenges"></div>
+      <!-- Bottom close bar -->
+      <div class="shop-footer">
+        <button class="btn btn-secondary" id="btn-progress-close-bottom">✕ Close</button>
+      </div>
 
-        <!-- Completed challenges -->
-        <div id="missions-completed-section" hidden>
-          <h4 class="spanel-section-title missions-completed-heading">Completed Challenges</h4>
-          <div id="missions-completed-list" class="missions-list" aria-label="Completed challenges"></div>
-        </div>
-      </section>
-
-      <!-- Bottom close -->
-      <button class="btn btn-primary" id="btn-progress-close-bottom">Done</button>
-
-    </div><!-- /.settings-panel -->
+    </div><!-- /.shop-fullscreen -->
   </div><!-- /#modal-progress -->
 
 

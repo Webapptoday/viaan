@@ -1,5 +1,5 @@
-/* ============================================================
-   FORBIDDEN COLOR — Stylesheet v2
+﻿/* ============================================================
+   FORBIDDEN COLOR â€” Stylesheet v2
    ============================================================ */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=Space+Grotesk:wght@700;800&display=swap');
@@ -63,7 +63,7 @@ body.reduced-motion *, body.reduced-motion *::before, body.reduced-motion *::aft
 /* ---- Base ---- */
 html {
   height: 100%;
-  background: #06061a; /* solid fallback — always visible beneath body */
+  background: #06061a; /* solid fallback â€” always visible beneath body */
 }
 body {
   height: 100%;
@@ -80,7 +80,7 @@ body {
   50%       { background-color: #1e0848; }   /* clearly visible deep purple */
 }
 
-/* Radial glow — breathes slowly, centered behind all content */
+/* Radial glow â€” breathes slowly, centered behind all content */
 body::before {
   content: '';
   position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -118,7 +118,7 @@ body::before {
   position: fixed; inset: 0;
   display: flex; flex-direction: column;
   overflow-y: auto; overflow-x: hidden;
-  z-index: 3; /* above canvas (2) and blobs (1) — home-screen is transparent so both show through */
+  z-index: 3; /* above canvas (2) and blobs (1) â€” home-screen is transparent so both show through */
 }
 
 #game-screen:not([hidden]) {
@@ -139,7 +139,7 @@ body::before {
   z-index: 2; /* above blobs (1), below home-screen UI (3) */
 }
 
-/* Gameplay preview canvas — ghost player + blocks, blurred behind UI */
+/* Gameplay preview canvas â€” ghost player + blocks, blurred behind UI */
 #home-preview-canvas {
   position: absolute; inset: 0;
   width: 100%; height: 100%;
@@ -156,7 +156,7 @@ body::before {
   z-index: 1; /* above body::before (0), below canvas blocks (2) */
 }
 
-/* Faint star-particles layer — two pseudo-elements, different speeds & densities */
+/* Faint star-particles layer â€” two pseudo-elements, different speeds & densities */
 .home-blobs::before,
 .home-blobs::after {
   content: '';
@@ -205,7 +205,7 @@ body::before {
   to   { transform: translate(36px, 28px) scale(1.1); }
 }
 
-/* ── Home screen entrance animations ──────────────────────────── */
+/* â”€â”€ Home screen entrance animations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 @keyframes homeEnter {
   from { opacity: 0; transform: translateY(14px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -415,7 +415,7 @@ body::before {
   box-shadow: inset 0 1px 2px rgba(0,0,0,.15);
 }
 
-/* Small coin variant — inline with text */
+/* Small coin variant â€” inline with text */
 .coin-sm {
   width: 14px; height: 14px;
   animation: none;
@@ -433,7 +433,7 @@ body::before {
 }
 .home-coins.coin-earn .coin-icon { animation: coinEarn .35s ease, coinGlow 2.8s ease-in-out infinite .35s; }
 
-/* ── Daily Challenge card ─────────────────────────────────── */
+/* â”€â”€ Daily Challenge card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .daily-challenge-card {
   background: linear-gradient(135deg, rgba(124,58,237,.18) 0%, rgba(236,72,153,.10) 100%);
   border: 1px solid rgba(168,85,247,.38);
@@ -528,7 +528,7 @@ body::before {
   margin-bottom: 14px;
 }
 
-/* Home actions — radial glow behind buttons */
+/* Home actions â€” radial glow behind buttons */
 .home-actions {
   display: flex; flex-direction: column; gap: 9px;
   position: relative;
@@ -568,7 +568,7 @@ body::before {
   /* Ripple layer */
   isolation: isolate;
 }
-/* Ripple pseudo-element — scales out on :active */
+/* Ripple pseudo-element â€” scales out on :active */
 .btn::after {
   content: '';
   position: absolute; inset: 0;
@@ -615,7 +615,7 @@ body::before {
 .btn-large { font-size: 1.12rem; padding: 15px 28px; min-height: 56px; }
 .btn-sm    { font-size: .88rem;  padding: 10px 14px; min-height: 44px; }
 
-/* ── Start Game button — hero CTA ────────────────────────────── */
+/* â”€â”€ Start Game button â€” hero CTA â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 #btn-start {
   font-size: 1.22rem;
   padding: 18px 36px;
@@ -636,7 +636,7 @@ body::before {
   50%       { box-shadow: 0 8px 36px rgba(124,58,237,.75), 0 0 72px rgba(168,85,247,.36); }
 }
 
-/* Secondary buttons in home-actions — clean and restrained */
+/* Secondary buttons in home-actions â€” clean and restrained */
 .home-actions .btn-secondary {
   font-size: .94rem;
   min-height: 46px;
@@ -956,7 +956,7 @@ kbd {
   margin-bottom: 12px; line-height: 1.5;
 }
 
-/* ── Split preview + grid layout ───────────────────────── */
+/* â”€â”€ Split preview + grid layout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .shop-skin-split {
   display: flex;
   gap: 12px;
@@ -1061,10 +1061,10 @@ kbd {
   gap: 7px;
 }
 
-/* Dot indicators (hidden — grid replaces carousel dots) */
+/* Dot indicators (hidden â€” grid replaces carousel dots) */
 .skin-dots { display: none; }
 
-/* ── Try Mode in-game banner ─────────────────────────────── */
+/* â”€â”€ Try Mode in-game banner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 #try-mode-banner {
   position: absolute;
   top: 12px;
@@ -1147,7 +1147,7 @@ kbd {
 }
 .skin-btn.skin-locked .skin-preview { filter: grayscale(1) brightness(.40); box-shadow: none; animation: none !important; }
 
-/* ── Rarity / effect preview animations ───────────────────── */
+/* â”€â”€ Rarity / effect preview animations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 @keyframes skinPulse {
   0%, 100% { box-shadow: 0 0 8px 1px var(--skin-c2, #06b6d4); }
   50%       { box-shadow: 0 0 20px 5px var(--skin-c2, #06b6d4); }
@@ -1213,11 +1213,11 @@ kbd {
 .skin-btn:not(.skin-locked)[data-skin="inferno"]  .skin-preview { animation: skinInferno  1.0s ease-in-out infinite; }
 .skin-btn:not(.skin-locked)[data-skin="prism"]    .skin-preview { animation: skinPrism    2.4s linear     infinite; }
 
-/* ── Inner-effect previews on skin cards ─────────────────────────
+/* â”€â”€ Inner-effect previews on skin cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
    .skin-preview gets overflow:hidden so ::before stays within the circle */
 .skin-btn:not(.skin-locked) .skin-preview { overflow: hidden; }
 
-/* Shimmer streak — Ice, Gold */
+/* Shimmer streak â€” Ice, Gold */
 @keyframes previewShimmer {
   0%   { transform: translateX(-140%) skewX(-12deg); }
   100% { transform: translateX(260%)  skewX(-12deg); }
@@ -1230,7 +1230,7 @@ kbd {
   animation: previewShimmer 2.4s ease-in-out infinite;
 }
 
-/* Expanding pulse ring — Neon */
+/* Expanding pulse ring â€” Neon */
 @keyframes previewPulseRing {
   0%   { transform: scale(.08); opacity: .50; }
   100% { transform: scale(.95); opacity: 0;   }
@@ -1243,7 +1243,7 @@ kbd {
   animation: previewPulseRing 1.1s ease-out infinite;
 }
 
-/* Drifting magma blob — Lava, Crimson */
+/* Drifting magma blob â€” Lava, Crimson */
 @keyframes previewLavaBlob {
   0%   { transform: translate(-18%,-14%); }
   33%  { transform: translate( 16%, 10%); }
@@ -1258,7 +1258,7 @@ kbd {
   animation: previewLavaBlob 2.5s ease-in-out infinite;
 }
 
-/* Electric center flash — Electric */
+/* Electric center flash â€” Electric */
 @keyframes previewElectricFlash {
   0%,60%,100% { opacity: 0;    transform: scale(.35); }
   65%         { opacity: .55;  transform: scale(1.0); }
@@ -1271,7 +1271,7 @@ kbd {
   animation: previewElectricFlash 0.9s ease-in-out infinite;
 }
 
-/* Orbiting hot-spot — Inferno */
+/* Orbiting hot-spot â€” Inferno */
 @keyframes previewInferno {
   0%   { transform: translate(-22%,-18%); }
   25%  { transform: translate( 18%,-12%); }
@@ -1286,7 +1286,7 @@ kbd {
   animation: previewInferno 2.2s ease-in-out infinite;
 }
 
-/* Rotating rainbow split — Prism */
+/* Rotating rainbow split â€” Prism */
 @keyframes previewPrismRotate {
   0%   { transform: rotate(0deg);   filter: hue-rotate(0deg); }
   100% { transform: rotate(360deg); filter: hue-rotate(360deg); }
@@ -1298,7 +1298,7 @@ kbd {
   animation: previewPrismRotate 2.4s linear infinite;
 }
 
-/* Dark vortex — Void */
+/* Dark vortex â€” Void */
 @keyframes previewVoid {
   0%   { transform: translate(-22%,-18%) scale(.60); opacity: .80; }
   50%  { transform: translate( 18%, 16%) scale(.68); opacity: .60; }
@@ -1311,7 +1311,7 @@ kbd {
   animation: previewVoid 2.4s ease-in-out infinite;
 }
 
-/* Nebula drift — Galaxy */
+/* Nebula drift â€” Galaxy */
 @keyframes previewGalaxy {
   0%,100% { transform: translate(-14%,-11%) scale(.78); opacity: .72; }
   50%     { transform: translate( 14%, 10%) scale(.82); opacity: .88; }
@@ -1477,7 +1477,7 @@ kbd {
 .skin-coin-tag.coin-tag-affordable { color: #fde68a; background: rgba(234,179,8,.28); }
 
 /* ============================================================
-   GAME SCREEN — HUD
+   GAME SCREEN â€” HUD
    ============================================================ */
 #hud {
   display: flex; align-items: stretch;
@@ -1714,7 +1714,7 @@ kbd {
   min-height: 0; touch-action: none; cursor: none; outline: none;
 }
 
-/* ── Forbidden color change: border flash overlay ──────────── */
+/* â”€â”€ Forbidden color change: border flash overlay â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 #color-flash-overlay {
   position: absolute; inset: 0;
   pointer-events: none;
@@ -1741,7 +1741,7 @@ kbd {
 }
 
 /* ============================================================
-   TOUCH CONTROLS — floating pause button (mobile only)
+   TOUCH CONTROLS â€” floating pause button (mobile only)
    ============================================================ */
 #touch-controls {
   position: absolute;
@@ -1778,7 +1778,7 @@ kbd {
 /* ============================================================
    GAME OVERLAYS (pause, game over)
    ============================================================ */
-/* ── Mini Run Goal Bar ──────────────────────────────────── */
+/* â”€â”€ Mini Run Goal Bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 #run-goal-bar {
   position: absolute;
   bottom: 6px; left: 50%; transform: translateX(-50%);
@@ -1812,7 +1812,7 @@ kbd {
 #run-goal-bar.run-goal-done .run-goal-fill { background: #34d399; width: 100% !important; }
 .run-goal-pct { font-size: .68rem; font-variant-numeric: tabular-nums; min-width: 26px; text-align: right; }
 
-/* ── Game Over: Coin Breakdown ─────────────────────────────── */
+/* â”€â”€ Game Over: Coin Breakdown â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .go-coins-breakdown {
   display: grid; grid-template-columns: 1fr auto;
   gap: 3px 10px;
@@ -1827,7 +1827,7 @@ kbd {
 .go-coins-breakdown:empty { display: none; }
 .go-coins-breakdown span:nth-child(even) { text-align: right; font-weight: 700; color: var(--gold); }
 
-/* ── Game Over: Lifetime Progress ──────────────────────────── */
+/* â”€â”€ Game Over: Lifetime Progress â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .go-lifetime-section {
   display: flex; flex-direction: column; gap: 5px;
   padding: 10px 12px;
@@ -1861,7 +1861,7 @@ kbd {
   margin: 0; text-align: center;
 }
 
-/* ── Game Overlay (below) ─────────────────────────────────── */
+/* â”€â”€ Game Overlay (below) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .game-overlay {
   position: absolute; inset: 0;
   background: rgba(0,0,0,.86);
@@ -1982,7 +1982,7 @@ kbd {
 }
 
 /* ============================================================
-   RESPONSIVE — shorter screens (reduce HUD height)
+   RESPONSIVE â€” shorter screens (reduce HUD height)
    ============================================================ */
 @media (max-height: 620px) {
   :root { --hud-h: 52px; }
@@ -2251,363 +2251,387 @@ kbd {
   opacity: 1; transform: translateX(-50%) translateY(0);
 }
 
-  /* ============================================================
-     SHOP — FULL-SCREEN OVERLAY
-     ============================================================ */
+/* ============================================================
+   SHOP â€” FULL-SCREEN OVERLAY
+   ============================================================ */
 
-  /* The shop overlay stretches edge-to-edge — no centering, no padding */
-  .shop-overlay {
-    padding: 0 !important;
-    align-items: stretch !important;
-    justify-content: stretch !important;
-  }
+/* Override modal centering/padding so the shop fills the full screen */
+.shop-overlay {
+  padding: 0 !important;
+  align-items: stretch !important;
+  justify-content: stretch !important;
+}
 
-  /* Full-screen flex container inside the overlay */
-  .shop-fullscreen {
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-    height: 100%;
-    max-width: 100%;
-    max-height: 100%;
-    border-radius: 0;
-    background: #0a0614;
-    overflow: hidden;
-  }
+/* Root flex column â€” fills 100% of the viewport */
+.shop-fullscreen {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  border-radius: 0;
+  background: linear-gradient(160deg, #090614 0%, #0d0a1f 100%);
+  overflow: hidden;
+}
 
-  /* ── Top navigation bar ── */
-  .shop-topbar {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 0 20px;
-    height: 60px;
-    flex-shrink: 0;
-    background: rgba(10,6,20,.95);
-    border-bottom: 1px solid rgba(255,255,255,.08);
-    backdrop-filter: blur(12px);
-    z-index: 10;
-  }
+/* â”€â”€ Top bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.shop-topbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 0 24px;
+  height: 64px;
+  flex-shrink: 0;
+  background: rgba(8,5,18,.97);
+  border-bottom: 1px solid rgba(168,85,247,.18);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  z-index: 10;
+}
 
-  .shop-topbar-left {
-    flex-shrink: 0;
-    min-width: 80px;
-  }
+.shop-topbar-left { flex-shrink: 0; min-width: 90px; }
 
-  .shop-title {
-    font-size: 1.1rem;
-    font-weight: 900;
-    letter-spacing: -.5px;
-    color: var(--text);
-    margin: 0;
-    white-space: nowrap;
-  }
+.shop-title {
+  font-size: 1.1rem;
+  font-weight: 900;
+  letter-spacing: -.5px;
+  background: linear-gradient(90deg, #e9d5ff, #c084fc);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0;
+  white-space: nowrap;
+}
 
-  /* ── Tab navigation ── */
-  .shop-tabs {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    flex: 1;
-    justify-content: center;
-  }
+/* â”€â”€ Tab bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.shop-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  justify-content: center;
+}
 
-  .shop-tab-btn {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    padding: 8px 18px;
-    border: none;
-    border-radius: 999px;
-    background: transparent;
-    color: var(--text-muted);
-    font-family: inherit;
-    font-size: .84rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: background .16s, color .16s, box-shadow .16s;
-    white-space: nowrap;
-    position: relative;
-  }
+.shop-tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 20px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: .83rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .16s, color .16s, border-color .16s, box-shadow .16s;
+  white-space: nowrap;
+  position: relative;
+}
 
-  .shop-tab-btn::after {
-    content: '';
-    position: absolute;
-    bottom: -1px;
-    left: 50%;
-    transform: translateX(-50%) scaleX(0);
-    width: 80%;
-    height: 2px;
-    background: var(--accent-light);
-    border-radius: 2px;
-    transition: transform .2s cubic-bezier(.34,1.56,.64,1);
-  }
+.shop-tab-btn:hover {
+  background: rgba(255,255,255,.06);
+  color: var(--text);
+}
 
-  .shop-tab-btn:hover {
-    background: rgba(255,255,255,.06);
-    color: var(--text);
-  }
+.shop-tab-btn.shop-tab-active {
+  background: rgba(168,85,247,.22);
+  color: #e9d5ff;
+  border-color: rgba(168,85,247,.45);
+  box-shadow: 0 0 14px rgba(168,85,247,.28);
+}
 
-  .shop-tab-btn.shop-tab-active {
-    background: rgba(168,85,247,.18);
-    color: #e9d5ff;
-    box-shadow: 0 0 0 1px rgba(168,85,247,.35);
-  }
+.shop-tab-btn:focus-visible {
+  outline: 3px solid var(--accent-light);
+  outline-offset: 2px;
+}
 
-  .shop-tab-btn.shop-tab-active::after {
-    transform: translateX(-50%) scaleX(1);
-  }
+.shop-tab-icon { font-size: .92rem; line-height: 1; }
 
-  .shop-tab-btn:focus-visible {
-    outline: 3px solid var(--accent-light);
-    outline-offset: 2px;
-  }
+/* â”€â”€ Top-right: coins + close â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.shop-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  min-width: 90px;
+  justify-content: flex-end;
+}
 
-  .shop-tab-icon {
-    font-size: 1rem;
-    line-height: 1;
-  }
+/* Override the generic coin pill for the shop topbar version */
+.shop-topbar-right .shop-coin-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, rgba(251,191,36,.18), rgba(251,191,36,.07));
+  border: 1px solid rgba(251,191,36,.42);
+  border-radius: 999px;
+  padding: 6px 14px 6px 9px;
+}
+.shop-topbar-right .shop-coin-pill .coin-icon  { width: 20px; height: 20px; }
+.shop-topbar-right .shop-coin-pill .coins-value { font-size: .93rem; font-weight: 800; }
 
-  /* ── Top-right: coin + close ── */
-  .shop-topbar-right {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    flex-shrink: 0;
-    min-width: 80px;
-    justify-content: flex-end;
-  }
+.shop-close-btn { width: 38px; height: 38px; flex-shrink: 0; }
 
-  .shop-coin-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    background: linear-gradient(135deg, rgba(251,191,36,.18), rgba(251,191,36,.07));
-    border: 1px solid rgba(251,191,36,.42);
-    border-radius: 999px;
-    padding: 6px 14px 6px 9px;
-    flex-shrink: 0;
-  }
+/* â”€â”€ Scrollable body â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.shop-body {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(168,85,247,.3) transparent;
+}
+.shop-body::-webkit-scrollbar { width: 5px; }
+.shop-body::-webkit-scrollbar-track { background: transparent; }
+.shop-body::-webkit-scrollbar-thumb { background: rgba(168,85,247,.3); border-radius: 3px; }
 
-  .shop-coin-pill .coin-icon { width: 20px; height: 20px; }
-  .shop-coin-pill .coins-value { font-size: .95rem; font-weight: 800; }
+/* â”€â”€ Panels â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.shop-panel {
+  display: none;
+  padding: 32px 28px 56px;
+  max-width: 1100px;
+  margin: 0 auto;
+  width: 100%;
+  animation: shopPanelIn .2s ease both;
+}
 
-  .shop-close-btn {
-    width: 38px;
-    height: 38px;
-    flex-shrink: 0;
-  }
+.shop-panel.shop-panel-active { display: block; }
+.shop-panel[hidden]            { display: none !important; }
 
-  /* ── Scrollable body ── */
-  .shop-body {
-    flex: 1;
-    overflow-y: auto;
-    overflow-x: hidden;
-    -webkit-overflow-scrolling: touch;
-  }
+@keyframes shopPanelIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
 
-  /* ── Panels ── */
-  .shop-panel {
-    display: none;
-    padding: 28px 24px 40px;
-    min-height: 100%;
-    animation: shopPanelIn .22s ease both;
-  }
+.shop-panel-hint {
+  font-size: .82rem;
+  color: var(--text-muted);
+  margin: 0 0 22px;
+  line-height: 1.55;
+  max-width: 560px;
+}
 
-  .shop-panel.shop-panel-active {
-    display: block;
-  }
+.shop-panel-heading {
+  font-size: .63rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: rgba(148,163,184,.5);
+  margin: 0 0 14px;
+  padding-left: 9px;
+  border-left: 2px solid var(--accent);
+  display: flex;
+  align-items: center;
+}
 
-  .shop-panel[hidden] {
-    display: none !important;
-  }
+.shop-stats-section  { margin-top: 44px; }
+.shop-lifetime-section { margin-top: 44px; }
 
-  @keyframes shopPanelIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
+/* â”€â”€ Footer close bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.shop-footer {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 24px 16px;
+  border-top: 1px solid rgba(255,255,255,.06);
+  background: rgba(8,5,18,.85);
+}
+.shop-footer .btn { min-width: 140px; justify-content: center; }
 
-  .shop-panel-heading {
-    font-size: .65rem;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    color: rgba(148,163,184,.55);
-    margin: 0 0 16px;
-    padding-left: 9px;
-    border-left: 2px solid var(--accent);
-    display: flex;
-    align-items: center;
-  }
+/* â”€â”€ Skin section â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* Reuse existing .shop-skin-split, .shop-preview-panel, .skin-grid etc.
+   Just tweak dimensions for full-screen */
 
-  .shop-panel-hint {
-    font-size: .78rem;
-    color: var(--text-muted);
-    margin: -8px 0 18px;
-    line-height: 1.5;
-  }
+.shop-panel .shop-skin-split {
+  align-items: flex-start;
+  gap: 20px;
+}
 
-  .shop-lifetime-section {
-    margin-top: 36px;
-  }
+.shop-panel .shop-preview-panel {
+  width: 200px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 16px;
+}
 
-  .shop-stats-section {
-    margin-top: 36px;
-  }
+#skin-preview-canvas {
+  width: 160px;
+  height: 160px;
+}
 
-  /* ── Skin grid ── */
-  .skin-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
-    gap: 12px;
-  }
+/* Override grid panel max-height â€” in full screen, let it breathe */
+.shop-panel .shop-skin-grid-panel {
+  max-height: none;
+  flex: 1;
+}
 
-  /* Skin grid cards reuse .skin-btn base but override sizing */
-  .skin-grid .skin-btn {
-    width: 100%;
-    padding: 16px 10px 14px;
-    gap: 8px;
-    cursor: pointer;
-    user-select: none;
-  }
+/* Skin grid: 3 columns base, more on wide screens */
+.skin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 12px;
+}
 
-  .skin-grid .skin-btn .skin-preview {
-    width: 52px;
-    height: 52px;
-  }
+/* Skin grid cards */
+.skin-grid .skin-btn {
+  width: 100%;
+  padding: 18px 10px 14px;
+  gap: 9px;
+}
 
-  /* Lock overlay on locked grid cards */
-  .skin-grid .skin-btn.skin-locked {
-    position: relative;
-  }
+.skin-grid .skin-btn .skin-preview {
+  width: 54px;
+  height: 54px;
+}
 
-  .skin-grid-lock-icon {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    font-size: .75rem;
-    line-height: 1;
-    opacity: .7;
-  }
+.skin-grid-lock-icon {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: .75rem;
+  opacity: .7;
+}
 
-  .skin-grid-status {
-    font-size: .68rem;
-    font-weight: 800;
-    padding: 3px 8px;
-    border-radius: 999px;
-    letter-spacing: .04em;
-    text-transform: uppercase;
-    margin-top: 2px;
-  }
+.skin-grid-status {
+  font-size: .67rem;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 999px;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  margin-top: 2px;
+}
 
-  .skin-grid-status.skin-grid-equipped {
-    background: rgba(168,85,247,.25);
-    color: #e9d5ff;
-    box-shadow: 0 0 8px rgba(168,85,247,.3);
-  }
+.skin-grid-status.skin-grid-equipped {
+  background: rgba(168,85,247,.25);
+  color: #e9d5ff;
+  box-shadow: 0 0 8px rgba(168,85,247,.3);
+}
 
-  .skin-grid-status.skin-grid-owned {
-    background: rgba(74,222,128,.15);
-    color: #86efac;
-  }
+.skin-grid-status.skin-grid-owned {
+  background: rgba(74,222,128,.15);
+  color: #86efac;
+}
 
-  .skin-grid-cost {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-size: .72rem;
-    font-weight: 800;
-    color: #fbbf24;
-    background: rgba(234,179,8,.14);
-    border-radius: 999px;
-    padding: 3px 9px;
-    margin-top: 2px;
-  }
+.skin-grid-cost {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: .71rem;
+  font-weight: 800;
+  color: #fbbf24;
+  background: rgba(234,179,8,.14);
+  border-radius: 999px;
+  padding: 3px 9px;
+  margin-top: 2px;
+}
 
-  .skin-grid-cost.skin-grid-unaffordable {
-    color: var(--text-muted);
-    background: rgba(255,255,255,.06);
-  }
+.skin-grid-cost.skin-grid-unaffordable {
+  color: var(--text-muted);
+  background: rgba(255,255,255,.06);
+}
 
-  .skin-grid-lock-info {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    width: 100%;
-    margin-top: 3px;
-  }
+.skin-grid-lock-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  margin-top: 3px;
+}
 
-  .skin-grid-lock-label {
-    font-size: .64rem;
-    color: var(--text-muted);
-    font-weight: 700;
-    text-align: center;
-    display: flex;
-    align-items: center;
-    gap: 3px;
-  }
+.skin-grid-lock-label {
+  font-size: .64rem;
+  color: var(--text-muted);
+  font-weight: 700;
+  text-align: center;
+}
 
-  .skin-grid .skin-bar-track {
-    width: 100%;
-  }
+.skin-grid .skin-bar-track { width: 100%; }
 
-  /* Upgrades panel: wider cards on large screens */
-  #shop-panel-upgrades .powerup-upgrades-list {
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    max-width: 900px;
-  }
+/* â”€â”€ Upgrades panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+#shop-panel-upgrades .powerup-upgrades-list {
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+  margin-top: 0;
+}
 
-  /* Challenges panel: constrained max width for readability */
-  #shop-panel-challenges .missions-list {
-    max-width: 640px;
-  }
+#shop-panel-upgrades .powerup-upgrade-card {
+  padding: 18px;
+  gap: 14px;
+}
 
-  #shop-panel-challenges .shop-stats-section {
-    max-width: 480px;
-  }
+#shop-panel-upgrades .powerup-upgrade-icon {
+  width: 44px;
+  height: 44px;
+  font-size: 1.3rem;
+}
 
-  /* ── Responsive ── */
-  @media (max-width: 600px) {
-    .shop-topbar {
-      padding: 0 12px;
-      height: 54px;
-      gap: 8px;
-    }
-    .shop-title {
-      font-size: .9rem;
-    }
-    .shop-tab-btn {
-      padding: 7px 12px;
-      font-size: .78rem;
-      gap: 5px;
-    }
-    .shop-tab-icon { display: none; }
-    .shop-panel {
-      padding: 20px 14px 36px;
-    }
-    .skin-grid {
-      grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-      gap: 9px;
-    }
-    .shop-coin-pill .coins-value { font-size: .85rem; }
-  }
+/* â”€â”€ Challenges panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+#shop-panel-challenges .missions-list {
+  max-width: 720px;
+}
 
-  @media (max-width: 400px) {
-    .shop-tab-btn { padding: 6px 9px; font-size: .72rem; }
-    .skin-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
-    .shop-topbar-left { display: none; }
-  }
+#shop-panel-challenges .shop-stats-section {
+  max-width: 560px;
+}
 
-  @media (min-width: 900px) {
-    .skin-grid {
-      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-      gap: 14px;
-    }
-    .shop-panel {
-      padding: 32px 40px 60px;
-    }
-    .shop-topbar {
-      padding: 0 32px;
-    }
-  }
+/* â”€â”€ Lifetime panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+#shop-panel-lifetime .lifetime-progress-panel {
+  max-width: 640px;
+  padding: 24px;
+  margin-bottom: 28px;
+}
+
+#shop-panel-lifetime .lifetime-rewards-list {
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+  margin-top: 0;
+}
+
+#shop-panel-lifetime .lifetime-reward-card {
+  padding: 18px;
+}
+
+/* â”€â”€ Responsive â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+@media (max-width: 640px) {
+  .shop-topbar { padding: 0 12px; height: 56px; gap: 8px; }
+  .shop-title  { font-size: .92rem; }
+  .shop-tab-btn { padding: 6px 11px; font-size: .76rem; gap: 4px; }
+  .shop-tab-icon { display: none; }
+  .shop-panel { padding: 20px 14px 48px; }
+  .skin-grid  { grid-template-columns: repeat(auto-fill, minmax(108px, 1fr)); gap: 9px; }
+  .shop-panel .shop-preview-panel { width: 150px; }
+  #skin-preview-canvas { width: 128px; height: 128px; }
+  .shop-topbar-left { display: none; }
+  .shop-topbar-right .shop-coin-pill .coins-value { font-size: .82rem; }
+}
+
+@media (max-width: 420px) {
+  .shop-tab-btn { padding: 6px 8px; font-size: .72rem; }
+  .skin-grid    { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .shop-panel .shop-skin-split { flex-direction: column; }
+  .shop-panel .shop-preview-panel { width: 100%; position: static; flex-direction: row; gap: 14px; padding: 12px; }
+  #skin-preview-canvas { width: 100px; height: 100px; flex-shrink: 0; }
+  .preview-skin-meta { align-items: flex-start; }
+  .preview-actions { flex-direction: row; flex-wrap: wrap; }
+  .preview-actions .btn { flex: 1; min-width: 80px; }
+  .shop-panel .shop-skin-grid-panel { flex: none; width: 100%; }
+}
+
+@media (min-width: 900px) {
+  .skin-grid { grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 14px; }
+  .shop-panel { padding: 36px 48px 72px; }
+  .shop-topbar { padding: 0 40px; }
+  .shop-panel .shop-preview-panel { width: 220px; }
+  #skin-preview-canvas { width: 180px; height: 180px; }
+}
+
+@media (min-width: 1280px) {
+  .skin-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 16px; }
+  .shop-panel { padding: 40px 64px 80px; }
+}

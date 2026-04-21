@@ -5735,6 +5735,7 @@ function init() {
     renderLifetimeProgressUI();
     updateSkinsUI();
     updatePowerupUpgradeUI();
+    updateMissionUI();
     showModal('modal-progress');
   });
 
@@ -5784,8 +5785,9 @@ function init() {
         panel.classList.toggle('shop-panel-active', isTarget);
       });
       if (target === 'skins')      { updateSkinsUI(); }
-      if (target === 'upgrades')   { updatePowerupUpgradeUI(); renderLifetimeProgressUI(); }
-      if (target === 'challenges') { renderStatsUI(); }
+      if (target === 'upgrades')   { updatePowerupUpgradeUI(); }
+      if (target === 'challenges') { renderStatsUI(); updateMissionUI(); }
+      if (target === 'lifetime')   { renderLifetimeProgressUI(); }
       Audio.uiClick();
     });
   });
