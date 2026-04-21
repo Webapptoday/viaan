@@ -2118,7 +2118,9 @@ function isSkinAvailable(skin) {
 
 function getSkin() {
   const skin = SKIN_DEFS.find(s => s.id === settings.selectedSkin);
-  if (!skin || !isSkinAvailable(skin)) return SKIN_DEFS[0];
+  if (!skin) return SKIN_DEFS[0];
+  if (tryMode.active) return skin; // bypass ownership check during try mode
+  if (!isSkinAvailable(skin)) return SKIN_DEFS[0];
   return skin;
 }
 
