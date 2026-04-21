@@ -5746,6 +5746,27 @@ function init() {
   document.getElementById('btn-progress-close').addEventListener('click', () => {
     hideModal('modal-progress'); document.getElementById('btn-progress').focus();
   });
+  document.getElementById('btn-progress-close-bottom').addEventListener('click', () => {
+    hideModal('modal-progress'); document.getElementById('btn-progress').focus();
+  });
+
+  // ── Game screen controls ──────────────────────────────────
+  document.getElementById('btn-resume').addEventListener('click', () => { Audio.uiClick(); resumeGame(); });
+  document.getElementById('btn-home-from-pause').addEventListener('click', () => { Audio.uiClick(); returnHome(); });
+  document.getElementById('btn-restart').addEventListener('click', () => { Audio.uiClick(); restartGame(); });
+  document.getElementById('btn-home-from-gameover').addEventListener('click', () => { Audio.uiClick(); returnHome(); });
+  document.getElementById('touch-pause').addEventListener('click', () => { Audio.uiClick(); pauseGame(); });
+
+  // Share / Copy Score button
+  document.getElementById('btn-share-score').addEventListener('click', () => {
+    const scoreVal = document.getElementById('btn-share-score').dataset.score || '0';
+    const text = 'I scored ' + scoreVal + ' in Forbidden Color! Can you beat it? 🎮';
+    navigator.clipboard.writeText(text).then(() => {
+      const copied = document.getElementById('share-copied');
+      if (copied) { copied.hidden = false; setTimeout(() => { copied.hidden = true; }, 2500); }
+    }).catch(() => {});
+    Audio.uiClick();
+  });
 
   // Shop tab switching
   document.querySelectorAll('.shop-tab-btn').forEach(btn => {
