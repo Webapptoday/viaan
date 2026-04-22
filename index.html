@@ -268,7 +268,11 @@
         <div id="shop-panel-upgrades" class="shop-panel"
              role="tabpanel" aria-labelledby="shop-tab-upgrades" hidden>
 
-          <p class="shop-panel-hint">Boost powerup durations. Max 3 levels each. Upgrades persist forever.</p>
+          <div class="pup-tab-header">
+            <h3 class="pup-tab-title">Powerups</h3>
+            <p class="pup-tab-subtitle">Upgrade permanent boosts to improve every run.</p>
+          </div>
+          <div id="pup-summary" class="pup-summary" aria-live="polite"></div>
           <div id="powerup-upgrades-list" class="powerup-upgrades-list" aria-label="Powerup upgrades"></div>
         </div>
 
@@ -654,6 +658,6 @@
   <!-- Coin reward float toast -->
   <div id="coin-reward-toast" class="coin-reward-toast" hidden aria-live="polite"></div>
 
-  <script src="script.js?v=41"></script>
+  <script src="script.js?v=42"></script>
 </body>
 </html>

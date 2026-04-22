@@ -888,31 +888,75 @@ function updatePowerupUpgradeUI() {
   if (!list) return;
   normalizePowerupUpgradeState();
 
+  const DESC = {
+    SHIELD: 'Protects you from one forbidden color hit per run.',
+    SMALL:  'Shrinks your ball to slip through tighter gaps.',
+    SLOW:   'Slows all tiles for a brief window of control.',
+  };
+  const ACC_RGB = {
+    '#facc15': '250,204,21',
+    '#34d399': '52,211,153',
+    '#38bdf8': '56,189,248',
+    '#fb923c': '251,146,60',
+    '#e879f9': '232,121,249',
+  };
   const coinSpan = '<span class="coin-icon coin-sm" aria-hidden="true"></span>';
+
+  // Update summary strip
+  const summary = document.getElementById('pup-summary');
+  if (summary) {
+    const totalLevels = POWERUP_UPGRADE_KEYS.reduce((s, k) => s + getPowerupUpgradeLevel(k), 0);
+    const maxTotal = POWERUP_UPGRADE_KEYS.reduce((s, k) => s + POWERUP_UPGRADE_DEFS[k].maxLevel, 0);
+    summary.innerHTML =
+      '<div class="pup-sum-stat"><span class="pup-sum-val">' + POWERUP_UPGRADE_KEYS.length + '</span><span class="pup-sum-lbl">Powerups</span></div>' +
+      '<div class="pup-sum-divider"></div>' +
+      '<div class="pup-sum-stat"><span class="pup-sum-val">' + totalLevels + ' / ' + maxTotal + '</span><span class="pup-sum-lbl">Levels Owned</span></div>' +
+      '<div class="pup-sum-divider"></div>' +
+      '<span class="pup-sum-note">⚡ Max level 3 each</span>';
+  }
+
   list.innerHTML = POWERUP_UPGRADE_KEYS.map(key => {
     const def = POWERUP_DEFS[key];
     const upDef = POWERUP_UPGRADE_DEFS[key];
     const level = getPowerupUpgradeLevel(key);
-    const nextLevel = level + 1;
     const isMaxed = level >= upDef.maxLevel;
-    const currentDuration = getPowerupDuration(key);
-    const nextDuration = def.duration + Math.min(nextLevel, upDef.maxLevel) * upDef.bonusPerLevel;
+    const nextLevel = Math.min(level + 1, upDef.maxLevel);
+    const currentDur = getPowerupDuration(key);
+    const nextDur = def.duration + nextLevel * upDef.bonusPerLevel;
     const nextCost = isMaxed ? 0 : upDef.costs[level];
     const canAfford = !isMaxed && settings.coins >= nextCost;
-    const buttonHtml = isMaxed
-      ? '<button class="btn btn-secondary powerup-upgrade-btn" type="button" disabled>Maxed</button>'
-      : '<button class="btn ' + (canAfford ? 'btn-primary' : 'btn-secondary') + ' powerup-upgrade-btn" type="button" data-upgrade-key="' + key + '"' + (canAfford ? '' : ' disabled') + '>Upgrade ' + coinSpan + ' ' + nextCost + '</button>';
+    const accRgb = ACC_RGB[def.color] || '139,92,246';
+    const desc = DESC[key] || '';
 
-    return '<article class="powerup-upgrade-card" data-powerup-key="' + key + '">' +
-      '<div class="powerup-upgrade-head">' +
-        '<span class="powerup-upgrade-icon" style="color:' + def.color + '">' + def.icon + '</span>' +
-        '<div class="powerup-upgrade-copy">' +
-          '<h4 class="powerup-upgrade-name">' + def.label + '</h4>' +
-          '<p class="powerup-upgrade-meta">Level ' + level + ' / ' + upDef.maxLevel + ' • Current ' + formatSeconds(currentDuration) + '</p>' +
+    const segs = Array.from({ length: upDef.maxLevel }, (_, i) =>
+      '<div class="pup-seg' + (i < level ? ' pup-seg-on' : '') + '"></div>'
+    ).join('');
+
+    const action = isMaxed
+      ? '<div class="pup-max-badge">✦ MAX</div>'
+      : '<button class="pup-btn ' + (canAfford ? 'pup-btn-afford' : 'pup-btn-cant') + '" type="button"' +
+        ' data-upgrade-key="' + key + '"' + (!canAfford ? ' disabled' : '') + '>' +
+        coinSpan + '<span>' + nextCost.toLocaleString() + '</span></button>';
+
+    return '<article class="pup-card" data-powerup-key="' + key + '" data-maxed="' + isMaxed + '"' +
+      ' style="--pup-acc:' + def.color + ';--pup-acc-rgb:' + accRgb + '">' +
+      '<div class="pup-zone-icon"><div class="pup-icon-ring">' + def.icon + '</div></div>' +
+      '<div class="pup-zone-info">' +
+        '<div class="pup-name-row">' +
+          '<span class="pup-name">' + def.label + '</span>' +
+          '<span class="pup-level-tag">Lv ' + level + ' / ' + upDef.maxLevel + '</span>' +
+        '</div>' +
+        '<p class="pup-desc">' + desc + '</p>' +
+        '<div class="pup-stats-row">' +
+          '<div class="pup-stat"><span class="pup-stat-l">Now</span><span class="pup-stat-v">' + formatSeconds(currentDur) + '</span></div>' +
+          '<span class="pup-stat-sep">→</span>' +
+          '<div class="pup-stat pup-stat-next"><span class="pup-stat-l">Next</span><span class="pup-stat-v">' + formatSeconds(nextDur) + '</span></div>' +
         '</div>' +
       '</div>' +
-      '<p class="powerup-upgrade-effect">' + (isMaxed ? 'Duration bonus capped at +' + formatSeconds(level * upDef.bonusPerLevel) : 'Next level: ' + formatSeconds(nextDuration) + ' total duration') + '</p>' +
-      buttonHtml +
+      '<div class="pup-zone-action">' +
+        '<div class="pup-segs">' + segs + '</div>' +
+        action +
+      '</div>' +
     '</article>';
   }).join('');
 }
