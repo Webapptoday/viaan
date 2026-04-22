@@ -2769,11 +2769,23 @@ kbd {
 .shop-body {
   flex: 1; overflow-y: auto; overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
-  scrollbar-width: thin; scrollbar-color: rgba(139,92,246,.55) transparent;
+  scrollbar-width: thin; scrollbar-color: rgba(139,92,246,.7) rgba(255,255,255,.06);
 }
-.shop-body::-webkit-scrollbar { width: 5px; }
-.shop-body::-webkit-scrollbar-track { background: transparent; }
-.shop-body::-webkit-scrollbar-thumb { background: rgba(139,92,246,.55); border-radius: 3px; }
+.shop-body::-webkit-scrollbar { width: 8px; }
+.shop-body::-webkit-scrollbar-track {
+  background: rgba(255,255,255,.05);
+  border-radius: 8px;
+  margin: 6px 0;
+}
+.shop-body::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #8b5cf6, #6d28d9);
+  border-radius: 8px;
+  border: 2px solid rgba(0,0,0,.35);
+  min-height: 48px;
+}
+.shop-body::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #a78bfa, #7c3aed);
+}
 
 /* â”€â”€ Panels â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .shop-panel {
@@ -2863,7 +2875,7 @@ kbd {
 }
 .preview-btn-disabled { opacity: .5; }
 
-.shop-panel .shop-skin-grid-panel { max-height: none; flex: 1; min-width: 0; }
+.shop-panel .shop-skin-grid-panel { max-height: none; overflow: visible; flex: 1; min-width: 0; }
 
 /* â”€â”€ Skin grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .skin-grid {
