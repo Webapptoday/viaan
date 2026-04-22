@@ -304,24 +304,17 @@
         </div>
 
         <!-- ── LIFETIME PROGRESS PANEL ── -->
-        <div id="shop-panel-lifetime" class="shop-panel"
+        <div id="shop-panel-lifetime" class="shop-panel lp-panel"
              role="tabpanel" aria-labelledby="shop-tab-lifetime" hidden>
 
-          <p class="shop-panel-hint">Earn lifetime score every run. Hit milestones to unlock exclusive skins.</p>
+          <!-- Header — rendered by renderLifetimeProgressUI() -->
+          <div class="lp-header" id="lp-header"></div>
 
-          <div class="lifetime-progress-panel">
-            <div class="lifetime-progress-top">
-              <span class="lifetime-progress-label">Lifetime Score</span>
-              <span class="lifetime-progress-value" id="lifetime-score-value">0</span>
-            </div>
-            <div class="lifetime-track" aria-hidden="true">
-              <div class="lifetime-fill" id="lifetime-progress-bar"></div>
-            </div>
-            <p class="lifetime-next-target" id="lifetime-next-target">Next unlock at 2,500 Lifetime Score</p>
-            <p class="lifetime-progress-detail" id="lifetime-progress-detail">0 / 2,500 • Aurora Skin</p>
+          <!-- Horizontal reward road -->
+          <div class="lp-road-wrap">
+            <div id="lifetime-rewards-list" class="lp-road" aria-label="Lifetime milestone rewards" role="list"></div>
           </div>
 
-          <div id="lifetime-rewards-list" class="lifetime-rewards-list" aria-label="Lifetime milestone rewards"></div>
         </div>
 
       </div><!-- /.shop-body -->
@@ -666,6 +659,6 @@
   <!-- Coin reward float toast -->
   <div id="coin-reward-toast" class="coin-reward-toast" hidden aria-live="polite"></div>
 
-  <script src="script.js?v=43"></script>
+  <script src="script.js?v=44"></script>
 </body>
 </html>

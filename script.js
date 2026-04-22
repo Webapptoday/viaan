@@ -57,9 +57,24 @@ const SKIN_DEFS = [
   { id: 'eclipse',  name: 'Eclipse',  unlock: 0, lifetimeUnlock: 25000, rarity: 'legendary', effect: 'void', color1: '#f5f3ff', color2: '#111827', glow: '#a78bfa', shape: 'star', trail: true  },
 ];
 const LIFETIME_REWARD_DEFS = [
-  { id: 'aurora', milestone: 2500, label: 'Aurora Skin', description: 'A cool neon shimmer skin.', type: 'skin' },
-  { id: 'afterglow', milestone: 10000, label: 'Afterglow Skin', description: 'A saturated sunset prism skin.', type: 'skin' },
-  { id: 'eclipse', milestone: 25000, label: 'Eclipse Skin', description: 'A dark legendary cosmic skin.', type: 'skin' },
+  // ── Common ──────────────────────────────────────────────────────────────────
+  { id: 'lt_coins_500',   milestone: 500,    label: '100 Coins',      type: 'coins',  coins: 100,  rarity: 'common',    icon: '🪙', description: 'A starter coin bundle to kick off your journey.' },
+  { id: 'lt_coins_1500',  milestone: 1500,   label: '200 Coins',      type: 'coins',  coins: 200,  rarity: 'common',    icon: '🪙', description: 'Keep playing — the coins stack up.' },
+  // ── Rare ────────────────────────────────────────────────────────────────────
+  { id: 'aurora',         milestone: 2500,   label: 'Aurora Skin',    type: 'skin',   rarity: 'rare',      icon: '✨', description: 'A shimmering neon-teal skin for the dedicated.' },
+  { id: 'lt_coins_4k',    milestone: 4000,   label: '350 Coins',      type: 'coins',  coins: 350,  rarity: 'rare',      icon: '🪙', description: 'A rare coin reward for dedicated players.' },
+  { id: 'lt_badge_5k',    milestone: 5000,   label: 'Trailblazer',    type: 'badge',               rarity: 'rare',      icon: '⚡', description: 'Awarded to those who push past the score ceiling.' },
+  { id: 'lt_coins_7500',  milestone: 7500,   label: '500 Coins',      type: 'coins',  coins: 500,  rarity: 'rare',      icon: '🪙', description: 'Half a thousand coins — impressive.' },
+  // ── Epic ────────────────────────────────────────────────────────────────────
+  { id: 'afterglow',      milestone: 10000,  label: 'Afterglow Skin', type: 'skin',   rarity: 'epic',      icon: '🌅', description: 'A saturated sunset prism skin for elite players.' },
+  { id: 'lt_coins_15k',   milestone: 15000,  label: '750 Coins',      type: 'coins',  coins: 750,  rarity: 'epic',      icon: '🪙', description: 'An epic hoard of coins.' },
+  { id: 'lt_badge_20k',   milestone: 20000,  label: 'Veteran',        type: 'badge',               rarity: 'epic',      icon: '🏆', description: 'A mark of true dedication and skill.' },
+  // ── Legendary ───────────────────────────────────────────────────────────────
+  { id: 'eclipse',        milestone: 25000,  label: 'Eclipse Skin',   type: 'skin',   rarity: 'legendary', icon: '🌑', description: 'A dark legendary cosmic skin.' },
+  { id: 'lt_coins_35k',   milestone: 35000,  label: '1,000 Coins',    type: 'coins',  coins: 1000, rarity: 'legendary', icon: '🪙', description: 'A legendary coin vault.' },
+  { id: 'lt_badge_50k',   milestone: 50000,  label: 'Legend',         type: 'badge',               rarity: 'legendary', icon: '👑', description: 'Only legends reach this summit.' },
+  { id: 'lt_coins_75k',   milestone: 75000,  label: '2,000 Coins',    type: 'coins',  coins: 2000, rarity: 'legendary', icon: '🪙', description: 'A massive coin fortune.' },
+  { id: 'lt_mythic',      milestone: 100000, label: 'Mythic',         type: 'badge',               rarity: 'legendary', icon: '🔱', description: 'The pinnacle of Forbidden Color mastery.' },
 ];
 
 const STATE = { HOME: 'home', PLAYING: 'playing', PAUSED: 'paused', GAMEOVER: 'gameover' };
@@ -822,6 +837,9 @@ function unlockLifetimeRewards(prevScore, newScore) {
   normalizeLifetimeRewardState();
   const unlocked = [];
   LIFETIME_REWARD_DEFS.forEach(reward => {
+    // Only auto-unlock skin rewards — coin/badge rewards require explicit player claim.
+    // Skins must be immediately available as a playable asset when the score threshold is crossed.
+    if (reward.type !== 'skin') return;
     if (prevScore < reward.milestone && newScore >= reward.milestone && !settings.lifetimeRewards.includes(reward.id)) {
       settings.lifetimeRewards.push(reward.id);
       unlocked.push(reward.id);
@@ -831,51 +849,159 @@ function unlockLifetimeRewards(prevScore, newScore) {
   return unlocked;
 }
 
+function claimLifetimeReward(id) {
+  const reward = LIFETIME_REWARD_DEFS.find(r => r.id === id);
+  if (!reward) return;
+  if (isLifetimeRewardUnlocked(id)) return;              // already claimed
+  if (reward.type === 'skin') return;                    // skins auto-unlock on score threshold
+  const total = Math.floor(settings.lifetimeScore || 0);
+  if (total < reward.milestone) return;                  // not yet earned
+
+  settings.lifetimeRewards.push(id);
+  normalizeLifetimeRewardState();
+
+  if (reward.type === 'coins' && reward.coins) {
+    settings.coins = (settings.coins || 0) + reward.coins;
+    updateCoinUI(true);
+    _showCoinRewardToast(reward.coins);
+  }
+
+  saveSettings();
+  Audio.uiClick();
+  renderLifetimeProgressUI();
+}
+
 function renderLifetimeProgressUI() {
   normalizeLifetimeRewardState();
-  const progress = getLifetimeProgressState();
-  const totalText = formatNumber(progress.total);
-  const nextText = progress.nextReward
-    ? 'Next unlock at ' + formatNumber(progress.nextReward.milestone) + ' Lifetime Score'
-    : 'All lifetime rewards unlocked';
-  const detailText = progress.nextReward
-    ? formatNumber(progress.total) + ' / ' + formatNumber(progress.nextReward.milestone) + ' • ' + progress.nextReward.label
+  const progress   = getLifetimeProgressState();
+  const total      = progress.total;
+  const nextReward = progress.nextReward;
+
+  // ── Home screen elements ─────────────────────────────────────────
+  const homeScore  = document.getElementById('home-lifetime-score');
+  const homeBar    = document.getElementById('home-lifetime-bar');
+  const homeNext   = document.getElementById('home-lifetime-next');
+  const homeDetail = document.getElementById('home-lifetime-detail');
+  if (homeScore)  homeScore.textContent  = formatNumber(total);
+  if (homeBar)    homeBar.style.width    = progress.pct + '%';
+  if (homeNext)   homeNext.textContent   = nextReward
+    ? 'Next unlock at ' + formatNumber(nextReward.milestone) + ' Lifetime Score'
+    : 'All lifetime rewards unlocked!';
+  if (homeDetail) homeDetail.textContent = nextReward
+    ? formatNumber(total) + ' / ' + formatNumber(nextReward.milestone) + ' • ' + nextReward.label
     : 'Every milestone reward claimed';
 
-  const homeScore = document.getElementById('home-lifetime-score');
-  const homeBar = document.getElementById('home-lifetime-bar');
-  const homeNext = document.getElementById('home-lifetime-next');
-  const homeDetail = document.getElementById('home-lifetime-detail');
-  const shopScore = document.getElementById('lifetime-score-value');
-  const shopBar = document.getElementById('lifetime-progress-bar');
-  const shopNext = document.getElementById('lifetime-next-target');
-  const shopDetail = document.getElementById('lifetime-progress-detail');
-  const rewardList = document.getElementById('lifetime-rewards-list');
+  // ── Shop panel ───────────────────────────────────────────────────
+  const headerEl = document.getElementById('lp-header');
+  const road     = document.getElementById('lifetime-rewards-list');
+  if (!headerEl || !road) return;
 
-  if (homeScore) homeScore.textContent = totalText;
-  if (homeBar) homeBar.style.width = progress.pct + '%';
-  if (homeNext) homeNext.textContent = nextText;
-  if (homeDetail) homeDetail.textContent = detailText;
-  if (shopScore) shopScore.textContent = totalText;
-  if (shopBar) shopBar.style.width = progress.pct + '%';
-  if (shopNext) shopNext.textContent = nextText;
-  if (shopDetail) shopDetail.textContent = detailText;
-
-  if (rewardList) {
-    rewardList.innerHTML = LIFETIME_REWARD_DEFS.map(reward => {
-      const unlocked = isLifetimeRewardUnlocked(reward.id);
-      return '<article class="lifetime-reward-card' + (unlocked ? ' reward-unlocked' : '') + '">' +
-        '<div class="lifetime-reward-top">' +
-          '<div>' +
-            '<h4 class="lifetime-reward-name">' + reward.label + '</h4>' +
-            '<p class="lifetime-reward-desc">' + reward.description + '</p>' +
+  // Header
+  const pct = progress.pct;
+  headerEl.innerHTML =
+    '<div class="lp-header-row">' +
+      '<div class="lp-score-block">' +
+        '<div class="lp-score-lbl">LIFETIME SCORE</div>' +
+        '<div class="lp-score-val" id="lifetime-score-value">' + formatNumber(total) + '</div>' +
+      '</div>' +
+      '<div class="lp-bar-block">' +
+        '<div class="lp-bar-title" id="lifetime-next-target">' + (nextReward
+          ? 'Next: ' + nextReward.label + ' at ' + formatNumber(nextReward.milestone)
+          : '🎉 All rewards unlocked!') + '</div>' +
+        '<div class="lp-bar-row">' +
+          '<div class="lp-bar-track">' +
+            '<div class="lp-bar-fill" id="lifetime-progress-bar" style="width:' + pct + '%"></div>' +
           '</div>' +
-          '<span class="lifetime-reward-milestone">' + formatNumber(reward.milestone) + '</span>' +
+          '<span class="lp-bar-pct">' + pct + '%</span>' +
         '</div>' +
-        '<p class="lifetime-reward-status">' + (unlocked ? 'Unlocked' : 'Locked until ' + formatNumber(reward.milestone)) + '</p>' +
-      '</article>';
-    }).join('');
+        '<div class="lp-bar-sub" id="lifetime-progress-detail">' + (nextReward
+          ? formatNumber(total) + ' / ' + formatNumber(nextReward.milestone)
+          : 'Every milestone reward claimed') + '</div>' +
+      '</div>' +
+    '</div>' +
+    '<p class="lp-tagline">Earn lifetime score across all runs to unlock exclusive rewards</p>';
+
+  // Reward Road
+  const GLOW = { common: '#94a3b8', rare: '#38bdf8', epic: '#a855f7', legendary: '#fbbf24' };
+  const RLBL = { common: 'COMMON',  rare: 'RARE',    epic: 'EPIC',    legendary: 'LEGENDARY' };
+  const firstUnclaimed = LIFETIME_REWARD_DEFS.find(r => !isLifetimeRewardUnlocked(r.id));
+
+  road.innerHTML = LIFETIME_REWARD_DEFS.map((reward, i) => {
+    const claimed   = isLifetimeRewardUnlocked(reward.id);
+    const earned    = total >= reward.milestone;
+    // Skins auto-unlock via unlockLifetimeRewards; coins/badges need explicit claim
+    const claimable = !claimed && earned && reward.type !== 'skin';
+    const isCurrent = reward.id === (firstUnclaimed && firstUnclaimed.id);
+    const isFirst   = i === 0;
+    const isLast    = i === LIFETIME_REWARD_DEFS.length - 1;
+    const glowHex   = GLOW[reward.rarity];
+    const remaining = Math.max(0, reward.milestone - total);
+
+    let stateClass = claimed ? 'lp-claimed' : claimable ? 'lp-claimable' : 'lp-locked';
+    if (isCurrent && !claimed) stateClass += ' lp-current';
+
+    const lineBefore = (claimed || claimable) ? ' lp-line-filled' : '';
+    const lineAfter  = claimed ? ' lp-line-filled' : '';
+
+    let actionHtml;
+    if (claimed) {
+      actionHtml = '<span class="lp-s-claimed">✓ ' + (reward.type === 'skin' ? 'Unlocked' : 'Claimed') + '</span>';
+    } else if (claimable) {
+      const coinPart = reward.type === 'coins' && reward.coins
+        ? ' +' + reward.coins + ' <span class="coin-icon lp-coin-xs" aria-hidden="true"></span>' : '';
+      actionHtml = '<button class="lp-claim-btn" data-id="' + reward.id + '" aria-label="Claim ' + reward.label + '">Claim' + coinPart + '</button>';
+    } else if (reward.type === 'skin' && earned) {
+      actionHtml = '<span class="lp-s-claimed">✓ Unlocked</span>';
+    } else {
+      actionHtml = '<span class="lp-s-locked">Need ' + formatNumber(remaining) + '</span>';
+    }
+
+    return '<div class="lp-node ' + stateClass + ' lp-r-' + reward.rarity + '"' +
+               ' style="--glow:' + glowHex + '"' +
+               ' data-id="' + reward.id + '"' +
+               ' role="listitem"' +
+               ' tabindex="0"' +
+               ' aria-label="' + reward.label + ', ' + reward.rarity + ', ' + formatNumber(reward.milestone) + ' pts, ' + (claimed ? 'claimed' : claimable ? 'claimable' : 'locked') + '">' +
+      '<div class="lp-conn">' +
+        '<div class="lp-line lp-line-before' + (isFirst ? ' lp-line-edge' : lineBefore) + '"></div>' +
+        '<div class="lp-dot">' +
+          '<span class="lp-dot-icon">' + reward.icon + '</span>' +
+          (claimed ? '<div class="lp-dot-check">✓</div>' : '') +
+        '</div>' +
+        '<div class="lp-line lp-line-after' + (isLast ? ' lp-line-edge' : lineAfter) + '"></div>' +
+      '</div>' +
+      '<div class="lp-tile">' +
+        '<div class="lp-tile-rarity">' + RLBL[reward.rarity] + '</div>' +
+        '<div class="lp-tile-name">' + reward.label + '</div>' +
+        '<div class="lp-tile-score">' + formatNumber(reward.milestone) + ' pts</div>' +
+        '<div class="lp-tile-desc">' + reward.description + '</div>' +
+        '<div class="lp-tile-action">' + actionHtml + '</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+
+  // Event delegation — one listener, no accumulation
+  if (!road._lpDelegated) {
+    road._lpDelegated = true;
+    road.addEventListener('click', e => {
+      const btn = e.target.closest('.lp-claim-btn');
+      if (btn) claimLifetimeReward(btn.dataset.id);
+    });
+    road.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        const btn = (e.target.closest('.lp-claim-btn')) ||
+                    (e.target.closest('.lp-node') && e.target.closest('.lp-node').querySelector('.lp-claim-btn'));
+        if (btn) claimLifetimeReward(btn.dataset.id);
+      }
+    });
   }
+
+  // Scroll the current target node into center view after layout is done
+  requestAnimationFrame(() => {
+    const cur = road.querySelector('.lp-current');
+    if (cur) cur.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+  });
 }
 
 function normalizePowerupUpgradeState() {
