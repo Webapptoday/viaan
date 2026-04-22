@@ -541,42 +541,111 @@
 
   <!-- Rewarded Ad Modal -->
   <div id="rad-overlay" class="rad-overlay" hidden aria-hidden="true">
-    <div id="rad-modal" class="rad-modal" role="dialog" aria-modal="true" aria-labelledby="rad-title">
+    <div id="rad-modal" class="rad-modal" role="dialog" aria-modal="true"
+         aria-labelledby="rad-title" data-state="idle">
+
+      <!-- Ambient glow blobs (pure CSS decoration) -->
+      <div class="rad-glow rad-glow-1" aria-hidden="true"></div>
+      <div class="rad-glow rad-glow-2" aria-hidden="true"></div>
+
+      <!-- ── Header ──────────────────────────────────────── -->
       <div class="rad-header">
-        <span class="rad-title" id="rad-title">Reward Video</span>
-        <button id="rad-close" class="rad-close-btn" aria-label="Close" disabled>✕</button>
+        <div class="rad-header-text">
+          <span class="rad-title" id="rad-title">Reward Video</span>
+          <span class="rad-subtitle">Watch to earn coins</span>
+        </div>
+        <div class="rad-reward-chip" aria-hidden="true">
+          +100&nbsp;<span class="coin-icon coin-sm"></span>
+        </div>
+        <button id="rad-close" class="rad-close-btn" aria-label="Close">✕</button>
       </div>
+
+      <!-- ── Video / Ad area ─────────────────────────────── -->
       <div class="rad-video-wrap">
         <video id="rad-video" class="rad-video"
                src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4"
-               playsinline muted
-               preload="metadata">
+               playsinline muted preload="metadata">
         </video>
-        <!-- Fallback shown when video fails to load -->
-        <div id="rad-fallback" class="rad-fallback" hidden>
-          <div class="rad-fallback-icon">🎬</div>
-          <p class="rad-fallback-label">Loading ad…</p>
-          <div class="rad-fallback-bar-track">
-            <div id="rad-fallback-fill" class="rad-fallback-fill"></div>
+
+        <!-- Fallback mock ad panel (shown when video can't load) -->
+        <div id="rad-fallback" class="rad-fallback" hidden aria-hidden="true">
+          <div class="rad-fb-orbs" aria-hidden="true">
+            <span class="rad-fb-orb rad-fb-orb-1"></span>
+            <span class="rad-fb-orb rad-fb-orb-2"></span>
+            <span class="rad-fb-orb rad-fb-orb-3"></span>
+            <span class="rad-fb-orb rad-fb-orb-4"></span>
           </div>
-          <p id="rad-fallback-secs" class="rad-fallback-secs">15s</p>
+          <div class="rad-fb-ad-tag">AD</div>
+          <div class="rad-fb-body">
+            <div class="rad-fb-logo-ring" aria-hidden="true"></div>
+            <span class="rad-fb-game-title">Forbidden Color</span>
+            <p class="rad-fb-tagline">How long can you survive?</p>
+            <div class="rad-fb-stars" aria-hidden="true">★★★★★</div>
+            <span class="rad-fb-badge">Top Game</span>
+          </div>
+          <div class="rad-fb-footer">
+            <div class="rad-fb-bar-track">
+              <div id="rad-fb-fill" class="rad-fb-fill"></div>
+            </div>
+            <span id="rad-fb-secs" class="rad-fb-secs">15s</span>
+          </div>
         </div>
-        <!-- Overlay shown on completion -->
-        <div id="rad-complete-overlay" class="rad-complete-overlay" hidden>
-          <div class="rad-complete-icon">🎉</div>
+
+        <!-- Idle start overlay (shown before video begins) -->
+        <div id="rad-idle-overlay" class="rad-idle-overlay" aria-label="Press start to begin the video">
+          <div class="rad-idle-reward-badge" aria-hidden="true">
+            <span class="rad-idle-badge-icon">🪙</span>
+            <span class="rad-idle-badge-text">+100 Coins</span>
+          </div>
+          <button id="rad-start" class="rad-start-btn">
+            <span class="rad-start-icon" aria-hidden="true">▶</span>
+            Start Video
+          </button>
+          <p class="rad-idle-hint">Finish the full video to claim your reward</p>
+        </div>
+
+        <!-- Completion overlay -->
+        <div id="rad-complete-overlay" class="rad-complete-overlay" hidden aria-hidden="true">
+          <div class="rad-complete-sparks" aria-hidden="true">
+            <span class="rad-spark rad-spark-1">✦</span>
+            <span class="rad-spark rad-spark-2">✦</span>
+            <span class="rad-spark rad-spark-3">★</span>
+            <span class="rad-spark rad-spark-4">✦</span>
+            <span class="rad-spark rad-spark-5">★</span>
+            <span class="rad-spark rad-spark-6">✦</span>
+          </div>
+          <div class="rad-complete-ring" aria-hidden="true">
+            <span class="rad-complete-check">✓</span>
+          </div>
           <p class="rad-complete-text">Video Complete!</p>
         </div>
       </div>
-      <div class="rad-progress-row">
-        <div class="rad-progress-track">
+
+      <!-- ── Progress section ────────────────────────────── -->
+      <div class="rad-progress-section">
+        <div class="rad-progress-track"
+             role="progressbar" aria-label="Video progress"
+             aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
           <div id="rad-progress-fill" class="rad-progress-fill"></div>
         </div>
-        <span id="rad-timer-label" class="rad-timer-label">Watch to earn coins</span>
+        <div class="rad-progress-info">
+          <span id="rad-status-text" class="rad-status-text">Reward unlocks when the video finishes</span>
+          <span id="rad-timer-label" class="rad-timer-label">0:15</span>
+        </div>
       </div>
+
+      <!-- ── Footer (state-driven via CSS) ──────────────── -->
       <div class="rad-footer">
-        <p id="rad-watching-msg" class="rad-watching-msg">Watch the full video to earn <strong><span class="coin-icon coin-sm" aria-hidden="true"></span> 100 coins</strong></p>
-        <button id="rad-claim" class="btn btn-primary rad-claim-btn" hidden>
-          <span class="coin-icon coin-sm" aria-hidden="true"></span> Claim 100 Coins
+        <div class="rad-footer-idle">
+          <p class="rad-helper-text">Finish the video to claim your reward.</p>
+        </div>
+        <div class="rad-footer-playing" aria-live="polite">
+          <span class="rad-playing-dot" aria-hidden="true"></span>
+          <span class="rad-playing-text">Playing &mdash; reward unlocks at the end</span>
+        </div>
+        <button id="rad-claim" class="rad-claim-btn" aria-label="Claim 100 coins reward">
+          <span class="coin-icon coin-sm" aria-hidden="true"></span>
+          Claim 100 Coins
         </button>
       </div>
     </div>
@@ -585,6 +654,6 @@
   <!-- Coin reward float toast -->
   <div id="coin-reward-toast" class="coin-reward-toast" hidden aria-live="polite"></div>
 
-  <script src="script.js?v=40"></script>
+  <script src="script.js?v=41"></script>
 </body>
 </html>

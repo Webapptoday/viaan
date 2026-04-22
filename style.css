@@ -2878,172 +2878,500 @@ kbd {
   box-shadow: 0 3px 18px rgba(251,191,36,.3) !important;
 }
 
+
 /* ============================================================
-   REWARDED AD MODAL
+   REWARDED AD MODAL â€” PREMIUM REDESIGN
    ============================================================ */
+
+/* â”€â”€ Overlay backdrop â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .rad-overlay {
   position: fixed; inset: 0; z-index: 12000;
-  background: rgba(0,0,0,.88);
-  backdrop-filter: blur(10px) saturate(1.2);
+  background: rgba(2, 0, 14, .92);
+  backdrop-filter: blur(14px) saturate(1.4);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
   display: flex; align-items: center; justify-content: center;
-  animation: radOverlayIn .2s ease both;
+  padding: 16px;
+  opacity: 0; animation: radOverlayIn .22s ease forwards;
 }
 @keyframes radOverlayIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+  to { opacity: 1; }
 }
+
+/* â”€â”€ Modal card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .rad-modal {
-  width: min(500px, 95vw);
-  background: linear-gradient(160deg, #14082e 0%, #0a0420 100%);
-  border: 1.5px solid rgba(139,92,246,.55);
-  border-radius: 22px;
-  box-shadow: 0 20px 80px rgba(0,0,0,.9), 0 0 60px rgba(109,40,217,.25),
-              inset 0 1px 0 rgba(255,255,255,.1);
+  position: relative;
+  width: min(560px, 100%);
+  background: linear-gradient(170deg, #160836 0%, #0d0528 45%, #080320 100%);
+  border: 1.5px solid rgba(139, 92, 246, .55);
+  border-radius: 26px;
+  box-shadow:
+    0 30px 100px rgba(0,0,0,.95),
+    0 0 0 1px rgba(255,255,255,.055),
+    0 0 80px rgba(109,40,217,.18);
   overflow: hidden;
-  animation: radModalIn .28s cubic-bezier(.16,1,.3,1) both;
+  transform: scale(.9) translateY(32px);
+  animation: radModalIn .32s cubic-bezier(.16,1,.3,1) .06s forwards;
 }
 @keyframes radModalIn {
-  from { opacity: 0; transform: scale(.92) translateY(24px); }
-  to   { opacity: 1; transform: scale(1)   translateY(0);    }
+  to { transform: scale(1) translateY(0); opacity: 1; }
 }
+
+/* Ambient glow blobs */
+.rad-glow {
+  position: absolute; border-radius: 50%;
+  pointer-events: none; z-index: 0;
+}
+.rad-glow-1 {
+  width: 320px; height: 200px;
+  top: -80px; left: -60px;
+  background: radial-gradient(ellipse, rgba(124,58,237,.28) 0%, transparent 70%);
+}
+.rad-glow-2 {
+  width: 260px; height: 200px;
+  bottom: -80px; right: -40px;
+  background: radial-gradient(ellipse, rgba(236,72,153,.18) 0%, transparent 70%);
+}
+.rad-modal > *:not(.rad-glow) { position: relative; z-index: 1; }
+
+/* â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .rad-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 16px 20px 14px;
-  background: rgba(255,255,255,.04);
-  border-bottom: 1px solid rgba(139,92,246,.28);
+  display: flex; align-items: center; gap: 12px;
+  padding: 18px 22px 16px;
+  background: rgba(255,255,255,.038);
+  border-bottom: 1px solid rgba(139,92,246,.25);
+}
+.rad-header-text {
+  flex: 1; display: flex; flex-direction: column; gap: 2px;
 }
 .rad-title {
-  font-size: 1rem; font-weight: 900; color: #e9d5ff; letter-spacing: .5px;
+  font-size: 1.05rem; font-weight: 900; color: #ede9fe;
+  letter-spacing: .3px; line-height: 1;
 }
+.rad-subtitle {
+  font-size: .74rem; font-weight: 600;
+  color: #9ca3af; letter-spacing: .02em;
+}
+
+/* Gold reward chip */
+.rad-reward-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: linear-gradient(135deg, rgba(251,191,36,.3), rgba(245,158,11,.18));
+  border: 1.5px solid rgba(251,191,36,.7);
+  border-radius: 999px; padding: 6px 14px;
+  font-size: .9rem; font-weight: 900; color: #fef08a;
+  letter-spacing: .02em;
+  box-shadow: 0 0 18px rgba(251,191,36,.3),
+              inset 0 1px 0 rgba(255,255,255,.18);
+  text-shadow: 0 0 14px rgba(251,191,36,.65);
+  animation: chipGlow 2s ease-in-out infinite;
+}
+.rad-reward-chip .coin-icon { width: 18px; height: 18px; animation: none; }
+@keyframes chipGlow {
+  0%,100% { box-shadow: 0 0 18px rgba(251,191,36,.3); }
+  50%     { box-shadow: 0 0 32px rgba(251,191,36,.55), 0 0 60px rgba(251,191,36,.12); }
+}
+
+/* Close button */
 .rad-close-btn {
-  width: 32px; height: 32px; border-radius: 50%;
+  width: 34px; height: 34px; flex-shrink: 0; border-radius: 50%;
   background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14);
-  color: #d4d4d4; font-size: .9rem; cursor: pointer;
+  color: #cbd5e1; font-size: .88rem; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  transition: all .15s; line-height: 1;
+  transition: background .15s, border-color .15s, color .15s, transform .15s;
+  line-height: 1;
 }
 .rad-close-btn:hover:not(:disabled) {
-  background: rgba(239,68,68,.28); border-color: rgba(239,68,68,.55); color: #fca5a5;
+  background: rgba(239,68,68,.26); border-color: rgba(239,68,68,.5); color: #fca5a5;
+  transform: scale(1.08);
 }
-.rad-close-btn:disabled { opacity: .3; cursor: not-allowed; }
+.rad-close-btn:disabled { opacity: .28; cursor: not-allowed; }
 
+/* â”€â”€ Video / Ad area â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .rad-video-wrap {
-  position: relative; width: 100%;
-  aspect-ratio: 16/9; background: #000;
-  overflow: hidden;
+  position: relative; width: 100%; aspect-ratio: 16/9;
+  background: #000; overflow: hidden;
 }
 .rad-video {
   width: 100%; height: 100%; object-fit: cover; display: block;
 }
+
+/* â”€â”€ Fallback mock ad panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .rad-fallback {
   position: absolute; inset: 0;
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 12px;
-  background: linear-gradient(135deg, #0e0428 0%, #100832 100%);
+  background: linear-gradient(145deg, #080228 0%, #0f0640 50%, #080228 100%);
+  overflow: hidden;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
 }
-.rad-fallback-icon { font-size: 3.5rem; }
-.rad-fallback-label { font-size: .9rem; color: #9ca3af; font-weight: 600; margin: 0; }
-.rad-fallback-bar-track {
-  width: 70%; max-width: 260px; height: 8px;
-  background: rgba(255,255,255,.1); border-radius: 999px; overflow: hidden;
+/* Animated background orbs */
+.rad-fb-orbs { position: absolute; inset: 0; pointer-events: none; }
+.rad-fb-orb {
+  position: absolute; border-radius: 50%;
+  opacity: .55;
 }
-.rad-fallback-fill {
-  height: 100%; background: linear-gradient(90deg, #7c3aed, #a855f7, #c084fc);
-  border-radius: 999px;
-  transition: width 1s linear;
-  box-shadow: 0 0 12px rgba(168,85,247,.6);
+.rad-fb-orb-1 {
+  width: 180px; height: 180px; top: -60px; left: -40px;
+  background: radial-gradient(circle, rgba(124,58,237,.6), transparent 70%);
+  animation: radFbOrb 6s ease-in-out infinite;
 }
-.rad-fallback-secs { font-size: .82rem; color: #6b7280; margin: 0; }
-
-.rad-complete-overlay {
-  position: absolute; inset: 0;
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center; gap: 10px;
-  background: rgba(0,0,0,.72);
-  backdrop-filter: blur(4px);
-  animation: radCompleteIn .35s ease both;
+.rad-fb-orb-2 {
+  width: 140px; height: 140px; bottom: -50px; right: -30px;
+  background: radial-gradient(circle, rgba(236,72,153,.5), transparent 70%);
+  animation: radFbOrb 5s ease-in-out infinite 1.2s reverse;
 }
-@keyframes radCompleteIn {
-  from { opacity: 0; transform: scale(.9); }
-  to   { opacity: 1; transform: scale(1); }
+.rad-fb-orb-3 {
+  width: 100px; height: 100px; top: 40%; left: 60%;
+  background: radial-gradient(circle, rgba(56,189,248,.45), transparent 70%);
+  animation: radFbOrb 7s ease-in-out infinite .6s;
 }
-.rad-complete-icon { font-size: 3.5rem; }
-.rad-complete-text {
-  font-size: 1.4rem; font-weight: 900; color: #a78bfa;
-  text-shadow: 0 0 24px rgba(168,85,247,.8);
-  margin: 0;
+.rad-fb-orb-4 {
+  width: 80px; height: 80px; top: 20%; left: 20%;
+  background: radial-gradient(circle, rgba(251,191,36,.35), transparent 70%);
+  animation: radFbOrb 4.5s ease-in-out infinite 2s reverse;
 }
-
-.rad-progress-row {
-  display: flex; align-items: center; gap: 14px;
-  padding: 14px 20px 10px;
+@keyframes radFbOrb {
+  0%,100% { transform: translate(0,0) scale(1); }
+  33%     { transform: translate(14px,-18px) scale(1.1); }
+  66%     { transform: translate(-10px, 12px) scale(.9); }
 }
-.rad-progress-track {
-  flex: 1; height: 6px; background: rgba(255,255,255,.1);
+/* Ad tag */
+.rad-fb-ad-tag {
+  position: absolute; top: 10px; right: 12px;
+  font-size: .62rem; font-weight: 800; letter-spacing: 1.5px;
+  color: #94a3b8; background: rgba(0,0,0,.5);
+  border: 1px solid rgba(148,163,184,.3);
+  border-radius: 5px; padding: 2px 7px; z-index: 2;
+}
+/* Main content */
+.rad-fb-body {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 8px; z-index: 2; text-align: center; padding: 0 24px;
+}
+.rad-fb-logo-ring {
+  width: 64px; height: 64px; border-radius: 50%; margin-bottom: 4px;
+  background: radial-gradient(circle at 38% 35%, #e879f9, #7c3aed 55%, #312e81);
+  box-shadow: 0 0 32px rgba(168,85,247,.7), 0 0 8px rgba(255,255,255,.2);
+  animation: fbLogoSpin 3s ease-in-out infinite;
+}
+@keyframes fbLogoSpin {
+  0%,100% { box-shadow: 0 0 32px rgba(168,85,247,.7); transform: scale(1); }
+  50%     { box-shadow: 0 0 48px rgba(168,85,247,.9), 0 0 80px rgba(168,85,247,.2); transform: scale(1.06); }
+}
+.rad-fb-game-title {
+  font-size: 1.4rem; font-weight: 900; color: #f5f3ff;
+  text-shadow: 0 0 20px rgba(168,85,247,.8);
+  letter-spacing: -.5px;
+}
+.rad-fb-tagline {
+  font-size: .82rem; color: #c4b5fd; font-weight: 600; margin: 0;
+}
+.rad-fb-stars {
+  color: #fbbf24; font-size: 1rem; letter-spacing: 2px;
+  text-shadow: 0 0 10px rgba(251,191,36,.6);
+}
+.rad-fb-badge {
+  font-size: .68rem; font-weight: 800; text-transform: uppercase;
+  letter-spacing: 1.5px; color: #fde68a;
+  background: linear-gradient(135deg, rgba(251,191,36,.25), rgba(245,158,11,.15));
+  border: 1px solid rgba(251,191,36,.5); border-radius: 999px;
+  padding: 4px 12px;
+}
+/* Fallback progress at bottom */
+.rad-fb-footer {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 16px 12px;
+  background: linear-gradient(0deg, rgba(0,0,0,.7) 0%, transparent 100%);
+  z-index: 2;
+}
+.rad-fb-bar-track {
+  flex: 1; height: 4px; background: rgba(255,255,255,.14);
   border-radius: 999px; overflow: hidden;
 }
-.rad-progress-fill {
+.rad-fb-fill {
   height: 100%;
-  background: linear-gradient(90deg, #7c3aed, #a855f7, #38bdf8);
+  background: linear-gradient(90deg, #7c3aed, #a855f7, #e879f9);
   border-radius: 999px;
-  transition: width .4s linear;
-  box-shadow: 0 0 10px rgba(168,85,247,.5);
+  box-shadow: 0 0 8px rgba(168,85,247,.55);
 }
-.rad-timer-label {
-  font-size: .75rem; color: #9ca3af; font-weight: 700;
-  white-space: nowrap; flex-shrink: 0; min-width: 90px; text-align: right;
+.rad-fb-secs {
+  font-size: .72rem; color: #9ca3af; font-weight: 700;
+  white-space: nowrap; min-width: 26px; text-align: right;
 }
 
+/* â”€â”€ Idle overlay (shown before start) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.rad-idle-overlay {
+  position: absolute; inset: 0; z-index: 10;
+  background: rgba(5, 0, 24, .78);
+  backdrop-filter: blur(2px);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 18px;
+  transition: opacity .3s;
+}
+/* Hide idle overlay when playing/completed/etc. */
+.rad-modal:not([data-state="idle"]) .rad-idle-overlay {
+  opacity: 0; pointer-events: none;
+}
+.rad-idle-reward-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: linear-gradient(135deg, rgba(251,191,36,.28), rgba(245,158,11,.16));
+  border: 2px solid rgba(251,191,36,.72);
+  border-radius: 999px; padding: 8px 22px;
+  font-size: 1.1rem; font-weight: 900; color: #fef08a;
+  box-shadow: 0 0 28px rgba(251,191,36,.35);
+  animation: idleBadgeFloat 2.2s ease-in-out infinite;
+}
+@keyframes idleBadgeFloat {
+  0%,100% { transform: translateY(0); }
+  50%     { transform: translateY(-4px); }
+}
+.rad-idle-badge-icon { font-size: 1.4rem; }
+.rad-idle-badge-text { letter-spacing: .02em; }
+
+/* Start button */
+.rad-start-btn {
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 16px 36px; border-radius: 16px; border: none; cursor: pointer;
+  background: linear-gradient(135deg, #6d28d9 0%, #8b5cf6 55%, #a78bfa 100%);
+  color: #ffffff; font-family: inherit;
+  font-size: 1.1rem; font-weight: 900; letter-spacing: .02em;
+  box-shadow: 0 6px 32px rgba(109,40,217,.6), 0 0 50px rgba(139,92,246,.22),
+              inset 0 1px 0 rgba(255,255,255,.28);
+  transition: transform .18s, box-shadow .18s;
+  text-shadow: 0 1px 4px rgba(0,0,0,.4);
+}
+.rad-start-btn:hover {
+  transform: translateY(-3px) scale(1.04);
+  box-shadow: 0 10px 44px rgba(109,40,217,.75), 0 0 60px rgba(139,92,246,.3),
+              inset 0 1px 0 rgba(255,255,255,.3);
+}
+.rad-start-btn:active { transform: translateY(-1px) scale(1.01); }
+.rad-start-icon { font-size: 1.2rem; }
+.rad-idle-hint {
+  font-size: .76rem; color: #94a3b8; font-weight: 600;
+  margin: 0; text-align: center; max-width: 240px; line-height: 1.5;
+}
+
+/* â”€â”€ Completion overlay â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.rad-complete-overlay {
+  position: absolute; inset: 0; z-index: 12;
+  background: rgba(0,0,0,.68);
+  backdrop-filter: blur(6px);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 12px;
+  animation: radCompleteIn .4s cubic-bezier(.16,1,.3,1) both;
+}
+@keyframes radCompleteIn {
+  from { opacity: 0; transform: scale(.88); }
+  to   { opacity: 1; transform: scale(1); }
+}
+.rad-complete-sparks {
+  position: absolute; inset: 0; pointer-events: none;
+}
+.rad-spark {
+  position: absolute; font-size: 1.2rem; color: #fbbf24;
+  animation: sparkFly 1.4s ease-out forwards;
+  opacity: 0;
+}
+.rad-spark-1 { top: 25%; left: 18%; animation-delay: .05s; }
+.rad-spark-2 { top: 18%; left: 75%; animation-delay: .15s; }
+.rad-spark-3 { top: 60%; left: 12%; animation-delay: .22s; color: #e879f9; }
+.rad-spark-4 { top: 70%; left: 80%; animation-delay: .08s; }
+.rad-spark-5 { top: 35%; left: 86%; animation-delay: .28s; color: #38bdf8; }
+.rad-spark-6 { top: 72%; left: 45%; animation-delay: .18s; }
+@keyframes sparkFly {
+  0%  { opacity: 0; transform: scale(.3) rotate(0deg); }
+  30% { opacity: 1; }
+  100%{ opacity: 0; transform: scale(1.6) rotate(180deg) translateY(-20px); }
+}
+.rad-complete-ring {
+  width: 80px; height: 80px; border-radius: 50%;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 0 40px rgba(34,197,94,.65), 0 0 80px rgba(34,197,94,.18);
+  animation: ringPop .5s cubic-bezier(.16,1,.3,1) both;
+}
+@keyframes ringPop {
+  from { transform: scale(.4); opacity: 0; }
+  to   { transform: scale(1);  opacity: 1; }
+}
+.rad-complete-check {
+  font-size: 2.2rem; color: #ffffff; font-weight: 900;
+  text-shadow: 0 2px 8px rgba(0,0,0,.4); line-height: 1;
+}
+.rad-complete-text {
+  font-size: 1.5rem; font-weight: 900; color: #ffffff; margin: 0;
+  text-shadow: 0 0 24px rgba(255,255,255,.5);
+  animation: completeTxtIn .4s ease .2s both;
+}
+@keyframes completeTxtIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* â”€â”€ Progress section â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+.rad-progress-section {
+  padding: 16px 22px 12px;
+  border-top: 1px solid rgba(255,255,255,.06);
+}
+.rad-progress-track {
+  height: 8px; border-radius: 999px;
+  background: rgba(255,255,255,.1);
+  overflow: hidden;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,.4);
+}
+.rad-progress-fill {
+  height: 100%; border-radius: 999px;
+  background: linear-gradient(90deg, #6d28d9 0%, #a855f7 50%, #38bdf8 100%);
+  box-shadow: 0 0 10px rgba(168,85,247,.6);
+  transition: width .45s linear;
+  position: relative; overflow: hidden;
+}
+/* Shimmer on playing progress bar */
+.rad-modal[data-state="playing"] .rad-progress-fill::after {
+  content: '';
+  position: absolute; top: 0; bottom: 0; left: -50%;
+  width: 50%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.35), transparent);
+  animation: progShimmer 1.6s linear infinite;
+}
+@keyframes progShimmer {
+  from { left: -50%; }
+  to   { left: 150%; }
+}
+.rad-progress-info {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 8px;
+}
+.rad-status-text {
+  font-size: .74rem; font-weight: 600; color: #94a3b8;
+  line-height: 1.4;
+}
+.rad-timer-label {
+  font-size: .78rem; font-weight: 800; color: #c4b5fd;
+  letter-spacing: .5px; white-space: nowrap; flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+/* Highlight timer when complete */
+.rad-modal[data-state="completed"] .rad-timer-label { color: #86efac; }
+
+/* â”€â”€ Footer (state-driven) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 .rad-footer {
-  padding: 10px 20px 22px;
+  padding: 14px 22px 22px;
   display: flex; flex-direction: column; align-items: center; gap: 10px;
+}
+
+/* Idle footer: helper text */
+.rad-footer-idle {
+  display: none; /* shown via state */
   text-align: center;
 }
-.rad-watching-msg {
-  font-size: .84rem; color: #b0c8e0; margin: 0; line-height: 1.5;
+.rad-modal[data-state="idle"] .rad-footer-idle { display: block; }
+.rad-helper-text {
+  font-size: .82rem; color: #94a3b8; margin: 0; line-height: 1.5;
 }
+
+/* Playing footer: animated dot + text */
+.rad-footer-playing {
+  display: none;
+  align-items: center; gap: 10px;
+}
+.rad-modal[data-state="playing"] .rad-footer-playing { display: flex; }
+.rad-playing-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #a855f7;
+  box-shadow: 0 0 8px #a855f7;
+  animation: playingPulse 1.2s ease-in-out infinite;
+}
+@keyframes playingPulse {
+  0%,100% { opacity: 1; transform: scale(1); }
+  50%     { opacity: .45; transform: scale(.7); }
+}
+.rad-playing-text {
+  font-size: .8rem; color: #c4b5fd; font-weight: 600;
+}
+
+/* Claim button â€” hidden by default, shown when completed */
 .rad-claim-btn {
-  background: linear-gradient(135deg, #f59e0b, #fbbf24) !important;
-  color: #1c1208 !important; font-weight: 900 !important;
-  font-size: 1rem !important; padding: 14px 36px !important;
-  border-radius: 14px !important;
-  box-shadow: 0 4px 28px rgba(251,191,36,.55),
-              0 0 50px rgba(251,191,36,.18) !important;
-  animation: claimPulse 1.2s ease-in-out infinite;
+  display: none; /* shown by state */
+  align-items: center; justify-content: center; gap: 10px;
+  width: 100%; max-width: 320px; padding: 17px 28px;
+  border: none; border-radius: 16px; cursor: pointer;
+  background: linear-gradient(135deg, #d97706 0%, #f59e0b 40%, #fbbf24 70%, #f59e0b 100%);
+  background-size: 200% auto;
+  color: #1c1005; font-family: inherit;
+  font-size: 1.12rem; font-weight: 900; letter-spacing: .01em;
+  box-shadow: 0 6px 36px rgba(251,191,36,.6), 0 0 60px rgba(251,191,36,.18),
+              inset 0 1px 0 rgba(255,255,255,.45);
+  text-shadow: 0 1px 2px rgba(255,255,255,.2);
+  animation: claimPulse 1.3s ease-in-out infinite;
+  transition: transform .18s, box-shadow .18s;
 }
+.rad-modal[data-state="completed"] .rad-claim-btn { display: flex; }
+.rad-claim-btn:hover {
+  transform: translateY(-3px) scale(1.03);
+  animation-play-state: paused;
+  box-shadow: 0 10px 48px rgba(251,191,36,.8), 0 0 80px rgba(251,191,36,.22),
+              inset 0 1px 0 rgba(255,255,255,.5);
+}
+.rad-claim-btn:active { transform: translateY(-1px) scale(1.01); }
+.rad-claim-btn .coin-icon { width: 22px; height: 22px; animation: none; flex-shrink: 0; }
 @keyframes claimPulse {
-  0%,100% { box-shadow: 0 4px 28px rgba(251,191,36,.55); }
-  50%     { box-shadow: 0 6px 40px rgba(251,191,36,.9), 0 0 60px rgba(251,191,36,.22); }
+  0%,100% { box-shadow: 0 6px 36px rgba(251,191,36,.6); background-position: 0% center; }
+  50%     { box-shadow: 0 8px 50px rgba(251,191,36,.9), 0 0 80px rgba(251,191,36,.2); background-position: 100% center; }
+}
+
+/* â”€â”€ Responsive â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+@media (max-width: 480px) {
+  .rad-modal { border-radius: 20px; }
+  .rad-header { padding: 14px 16px 12px; }
+  .rad-reward-chip { padding: 5px 12px; font-size: .82rem; }
+  .rad-progress-section { padding: 14px 16px 10px; }
+  .rad-footer { padding: 12px 16px 18px; }
+  .rad-claim-btn { font-size: 1rem; padding: 15px 20px; }
+  .rad-start-btn { padding: 14px 28px; font-size: 1rem; }
 }
 
 /* ============================================================
    COIN REWARD TOAST
    ============================================================ */
 .coin-reward-toast {
-  position: fixed; top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
+  position: fixed;
+  /* Positioned near top-center of viewport, near the coin display */
+  top: 88px; left: 50%; transform: translateX(-50%);
   z-index: 13000;
-  background: linear-gradient(135deg, rgba(50,28,4,.96), rgba(92,60,4,.96));
-  border: 2px solid rgba(251,191,36,.8);
+  background: linear-gradient(135deg, rgba(40,20,2,.97), rgba(80,48,4,.97));
+  border: 2px solid rgba(251,191,36,.85);
   border-radius: 999px;
-  padding: 14px 32px;
-  font-size: 1.5rem; font-weight: 900; color: #fef08a;
-  box-shadow: 0 8px 48px rgba(251,191,36,.55), 0 0 80px rgba(251,191,36,.15);
-  display: flex; align-items: center; gap: 10px;
-  text-shadow: 0 0 18px rgba(251,191,36,.8);
+  padding: 12px 28px;
+  font-size: 1.3rem; font-weight: 900; color: #fef08a;
+  box-shadow: 0 8px 48px rgba(251,191,36,.6),
+              0 0 100px rgba(251,191,36,.18),
+              inset 0 1px 0 rgba(255,255,255,.18);
+  display: flex; align-items: center; gap: 8px;
+  text-shadow: 0 0 16px rgba(251,191,36,.9);
   pointer-events: none;
-  opacity: 0; transition: opacity .3s;
+  opacity: 0; white-space: nowrap;
 }
+.coin-reward-toast .coin-icon { width: 22px; height: 22px; animation: none; }
 .coin-reward-toast.crt-show {
-  opacity: 1;
-  animation: crtBounceIn .45s cubic-bezier(.16,1,.3,1) both,
-             crtFadeOut .4s ease 1.8s both;
+  animation: crtIn .4s cubic-bezier(.16,1,.3,1) both,
+             crtOut .45s ease 2s both;
 }
-@keyframes crtBounceIn {
-  from { transform: translate(-50%,-50%) scale(.6); opacity: 0; }
-  to   { transform: translate(-50%,-50%) scale(1);  opacity: 1; }
+@keyframes crtIn {
+  from { opacity: 0; transform: translateX(-50%) scale(.6) translateY(-14px); }
+  to   { opacity: 1; transform: translateX(-50%) scale(1)  translateY(0); }
 }
-@keyframes crtFadeOut {
-  from { opacity: 1; transform: translate(-50%,-50%) scale(1); }
-  to   { opacity: 0; transform: translate(-50%,-60%) scale(.95); }
+@keyframes crtOut {
+  from { opacity: 1; transform: translateX(-50%) scale(1)  translateY(0); }
+  to   { opacity: 0; transform: translateX(-50%) scale(.9) translateY(-10px); }
+}
+
+/* Cancelled toast variant */
+.coin-reward-toast.crt-cancelled {
+  background: linear-gradient(135deg, rgba(30,8,2,.97), rgba(60,20,4,.97));
+  border-color: rgba(239,68,68,.65);
+  color: #fca5a5;
+  box-shadow: 0 8px 40px rgba(239,68,68,.35), inset 0 1px 0 rgba(255,255,255,.1);
+  text-shadow: 0 0 12px rgba(239,68,68,.6);
+  font-size: 1rem; padding: 12px 22px; border-radius: 16px;
 }

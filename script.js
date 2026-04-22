@@ -2488,128 +2488,203 @@ function _closeNoCoinDialog() {
 }
 
 // ── Rewarded Ad System ─────────────────────────────────────
-// Swap _RewardedAd.show() implementation for a real ad SDK later.
+// Replace _RewardedAd.show() with a real ad SDK call to integrate a provider.
+// State machine: 'idle' → 'playing' → 'completed' → 'rewarded' | 'cancelled'
 const _RewardedAd = (() => {
-  const AD_DURATION   = 15;   // fallback countdown seconds
-  const COIN_REWARD   = 100;
-  const VIDEO_SRC     = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4';
+  const AD_DURATION  = 15;   // fallback countdown seconds
+  const COIN_REWARD  = 100;
 
+  let _state        = 'idle';
   let _onReward     = null;
-  let _fallbackTimer = null;
-  let _fallbackElapsed = 0;
+  let _rewardGiven  = false;
+  let _fbTimer      = null;
+  let _fbElapsed    = 0;
+  let _dom          = null;
 
-  function show(onReward) {
-    _onReward = onReward;
-    const overlay  = document.getElementById('rad-overlay');
-    const modal    = document.getElementById('rad-modal');
-    const video    = document.getElementById('rad-video');
-    const fallback = document.getElementById('rad-fallback');
-    const closeBtn = document.getElementById('rad-close');
-    const claimBtn = document.getElementById('rad-claim');
-    const watchMsg = document.getElementById('rad-watching-msg');
-    const progFill = document.getElementById('rad-progress-fill');
-    const timerLbl = document.getElementById('rad-timer-label');
-    const compOverlay = document.getElementById('rad-complete-overlay');
-    const fbFill   = document.getElementById('rad-fallback-fill');
-    const fbSecs   = document.getElementById('rad-fallback-secs');
-
-    // Reset state
-    closeBtn.disabled = true;
-    claimBtn.hidden   = true;
-    watchMsg.hidden   = false;
-    compOverlay.hidden = true;
-    progFill.style.width = '0%';
-    timerLbl.textContent = 'Watch to earn coins';
-    fallback.hidden  = true;
-    video.style.display = '';
-
-    overlay.hidden = false; overlay.setAttribute('aria-hidden', 'false');
-    modal.setAttribute('aria-hidden', 'false');
-
-    // Attempt to play real video
-    video.currentTime = 0;
-    const playPromise = video.play();
-    if (playPromise !== undefined) {
-      playPromise.catch(() => { _startFallback(); });
-    }
-
-    video.onerror = () => _startFallback();
-    video.onloadedmetadata = () => { fallback.hidden = true; video.style.display = ''; };
-
-    video.ontimeupdate = () => {
-      const dur = video.duration || AD_DURATION;
-      const pct = Math.min(100, (video.currentTime / dur) * 100);
-      progFill.style.width = pct + '%';
-      const left = Math.max(0, Math.ceil(dur - video.currentTime));
-      timerLbl.textContent = left > 0 ? left + 's remaining' : 'Almost done…';
+  function _D() {
+    if (_dom) return _dom;
+    _dom = {
+      overlay:    document.getElementById('rad-overlay'),
+      modal:      document.getElementById('rad-modal'),
+      video:      document.getElementById('rad-video'),
+      fallback:   document.getElementById('rad-fallback'),
+      fbFill:     document.getElementById('rad-fb-fill'),
+      fbSecs:     document.getElementById('rad-fb-secs'),
+      idleOvl:    document.getElementById('rad-idle-overlay'),
+      startBtn:   document.getElementById('rad-start'),
+      compOvl:    document.getElementById('rad-complete-overlay'),
+      progFill:   document.getElementById('rad-progress-fill'),
+      progTrack:  document.querySelector('.rad-progress-track'),
+      timerLbl:   document.getElementById('rad-timer-label'),
+      statusTxt:  document.getElementById('rad-status-text'),
+      closeBtn:   document.getElementById('rad-close'),
+      claimBtn:   document.getElementById('rad-claim'),
     };
+    return _dom;
+  }
 
-    video.onended = () => _onVideoComplete();
+  function _setState(s) {
+    _state = s;
+    const d = _D();
+    if (d.modal) d.modal.dataset.state = s;
+  }
 
-    // If video src fails immediately, start fallback after brief delay
+  function _fmt(secs) {
+    const s = Math.max(0, Math.floor(secs));
+    return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+  }
+
+  function _setProgress(pct, secsLeft) {
+    const d = _D();
+    const p = Math.min(100, Math.max(0, pct));
+    d.progFill.style.width = p + '%';
+    if (d.progTrack) d.progTrack.setAttribute('aria-valuenow', Math.round(p));
+    d.timerLbl.textContent = _fmt(secsLeft);
+  }
+
+  function _onComplete() {
+    clearInterval(_fbTimer);
+    const d = _D();
+    _setProgress(100, 0);
+    d.statusTxt.textContent  = '✓ Video complete — claim your reward!';
+    d.compOvl.hidden         = false;
+    d.closeBtn.disabled      = false;
+    _setState('completed');
+    try { if (navigator.vibrate) navigator.vibrate([40, 25, 70]); } catch (_) {}
+    requestAnimationFrame(() => requestAnimationFrame(() => d.claimBtn.focus()));
+  }
+
+  function _startFallback() {
+    const d = _D();
+    d.video.style.display = 'none';
+    try { d.video.pause(); } catch (_) {}
+    d.fallback.hidden = false;
+    _fbElapsed = 0;
+    d.fbFill.style.transition = 'none';
+    d.fbFill.style.width = '0%';
+    if (d.fbSecs) d.fbSecs.textContent = AD_DURATION + 's';
+    clearInterval(_fbTimer);
+    requestAnimationFrame(() => { d.fbFill.style.transition = 'width 1s linear'; });
+
+    _fbTimer = setInterval(() => {
+      _fbElapsed++;
+      const pct = Math.min(100, (_fbElapsed / AD_DURATION) * 100);
+      d.fbFill.style.width = pct + '%';
+      _setProgress(pct, Math.max(0, AD_DURATION - _fbElapsed));
+      if (d.fbSecs) d.fbSecs.textContent = Math.max(0, AD_DURATION - _fbElapsed) + 's';
+      if (_fbElapsed >= AD_DURATION) { clearInterval(_fbTimer); _onComplete(); }
+    }, 1000);
+  }
+
+  function _startPlayback() {
+    const d = _D();
+    _setState('playing');
+    d.closeBtn.disabled = true;
+    d.statusTxt.textContent = 'Reward unlocks when the video finishes';
+
+    d.video.ontimeupdate = () => {
+      if (_state !== 'playing') return;
+      const dur = d.video.duration || AD_DURATION;
+      _setProgress((d.video.currentTime / dur) * 100, dur - d.video.currentTime);
+    };
+    d.video.onended = () => { if (_state === 'playing') _onComplete(); };
+    d.video.onerror = () => { if (_state === 'playing') _startFallback(); };
+
+    d.video.currentTime = 0;
+    const p = d.video.play();
+    if (p !== undefined) p.catch(() => _startFallback());
+
+    // Hard fallback if video never loads data
     setTimeout(() => {
-      if (video.readyState === 0 && fallback.hidden) {
+      if (_state === 'playing' && d.video.readyState < 2 && d.fallback.hidden) {
         _startFallback();
       }
-    }, 2000);
+    }, 3000);
+  }
 
-    function _startFallback() {
-      video.style.display = 'none';
-      video.pause();
-      fallback.hidden = false;
-      fbFill.style.transition = 'none';
-      fbFill.style.width = '0%';
-      _fallbackElapsed = 0;
-      clearInterval(_fallbackTimer);
-      _fallbackTimer = setInterval(() => {
-        _fallbackElapsed++;
-        const pct = (_fallbackElapsed / AD_DURATION) * 100;
-        fbFill.style.width = pct + '%';
-        progFill.style.width = pct + '%';
-        const left = Math.max(0, AD_DURATION - _fallbackElapsed);
-        timerLbl.textContent = left > 0 ? left + 's remaining' : 'Almost done…';
-        if (fbSecs) fbSecs.textContent = left + 's';
-        if (_fallbackElapsed >= AD_DURATION) {
-          clearInterval(_fallbackTimer);
-          _onVideoComplete();
-        }
-      }, 1000);
-    }
+  function show(onReward) {
+    _onReward    = onReward;
+    _rewardGiven = false;
+    clearInterval(_fbTimer);
+    const d = _D();
 
-    function _onVideoComplete() {
-      clearInterval(_fallbackTimer);
-      progFill.style.width = '100%';
-      timerLbl.textContent = '✓ Complete!';
-      compOverlay.hidden = false;
-      watchMsg.hidden    = true;
-      claimBtn.hidden    = false;
-      closeBtn.disabled  = false;
-      claimBtn.focus();
-    }
+    // Reset video
+    try { d.video.pause(); d.video.currentTime = 0; } catch (_) {}
+    d.video.style.display   = '';
+    d.video.ontimeupdate    = null;
+    d.video.onended         = null;
+    d.video.onerror         = null;
 
-    claimBtn.onclick = () => {
-      close();
-      if (_onReward) { _onReward(COIN_REWARD); _onReward = null; }
+    // Reset overlays
+    d.fallback.hidden   = true;
+    d.compOvl.hidden    = true;
+    d.closeBtn.disabled = false;
+    d.fbFill.style.width = '0%';
+    if (d.fbSecs) d.fbSecs.textContent = AD_DURATION + 's';
+
+    // Reset progress
+    d.progFill.style.width   = '0%';
+    d.timerLbl.textContent   = _fmt(AD_DURATION);
+    d.statusTxt.textContent  = 'Reward unlocks when the video finishes';
+
+    _setState('idle');
+    d.overlay.hidden = false;
+    d.overlay.setAttribute('aria-hidden', 'false');
+    requestAnimationFrame(() => requestAnimationFrame(() => d.startBtn.focus()));
+
+    // Start button
+    d.startBtn.onclick = () => {
+      if (_state !== 'idle') return;
+      _startPlayback();
     };
 
-    closeBtn.onclick = () => {
-      // Only closeable after completion (button stays disabled until then)
-      close();
+    // Claim (one-shot guard)
+    d.claimBtn.onclick = () => {
+      if (_rewardGiven || _state !== 'completed') return;
+      _rewardGiven = true;
+      _setState('rewarded');
+      const cb = _onReward; _onReward = null;
+      // Brief delay so the completion state is visible before closing
+      setTimeout(() => { close(); if (cb) cb(COIN_REWARD); }, 480);
     };
 
-    // Click on overlay backdrop (outside modal) = cancel only if reward already claimed
-    overlay.onclick = (e) => {
-      if (e.target === overlay && !closeBtn.disabled) close();
+    // Close
+    d.closeBtn.onclick = () => {
+      if (_state === 'playing') { _cancel(); }
+      else if (_state !== 'rewarded') { close(); }
+    };
+
+    // Backdrop cancel
+    d.overlay.onclick = (e) => {
+      if (e.target !== d.overlay) return;
+      if (_state === 'playing') { _cancel(); }
+      else if (_state !== 'rewarded') { close(); }
     };
   }
 
+  function _cancel() {
+    clearInterval(_fbTimer);
+    const d = _D();
+    try { d.video.pause(); } catch (_) {}
+    _setState('cancelled');
+    close();
+    _showCancelToast();
+  }
+
   function close() {
-    clearInterval(_fallbackTimer);
-    const overlay = document.getElementById('rad-overlay');
-    const video   = document.getElementById('rad-video');
-    if (video) { video.pause(); video.ontimeupdate = null; video.onended = null; video.onerror = null; }
-    if (overlay) { overlay.hidden = true; overlay.setAttribute('aria-hidden', 'true'); }
-    _onReward = null;
+    clearInterval(_fbTimer);
+    const d = _D();
+    if (d.video) {
+      try { d.video.pause(); } catch (_) {}
+      d.video.ontimeupdate = null;
+      d.video.onended      = null;
+      d.video.onerror      = null;
+    }
+    if (d.overlay) {
+      d.overlay.hidden = true;
+      d.overlay.setAttribute('aria-hidden', 'true');
+    }
+    if (_state !== 'rewarded') _onReward = null;
   }
 
   return { show, close, COIN_REWARD };
@@ -2619,16 +2694,31 @@ function _showCoinRewardToast(amount) {
   const toast = document.getElementById('coin-reward-toast');
   if (!toast) return;
   const coinSpan = '<span class="coin-icon coin-sm" aria-hidden="true"></span>';
-  toast.innerHTML = '+' + amount + ' ' + coinSpan + ' Coins!';
+  toast.innerHTML = '+' + amount + '\u202f' + coinSpan + '\u202fCoins!';
+  toast.className = 'coin-reward-toast';
   toast.hidden = false;
-  toast.classList.remove('crt-show');
   void toast.offsetWidth;
   toast.classList.add('crt-show');
   clearTimeout(toast._t);
   toast._t = setTimeout(() => {
     toast.classList.remove('crt-show');
     setTimeout(() => { toast.hidden = true; }, 500);
-  }, 2200);
+  }, 2400);
+}
+
+function _showCancelToast() {
+  const toast = document.getElementById('coin-reward-toast');
+  if (!toast) return;
+  toast.innerHTML = '⚠\ufe0f Reward cancelled &mdash; finish the video to earn coins';
+  toast.className = 'coin-reward-toast crt-cancelled';
+  toast.hidden = false;
+  void toast.offsetWidth;
+  toast.classList.add('crt-show');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => {
+    toast.classList.remove('crt-show');
+    setTimeout(() => { toast.hidden = true; toast.className = 'coin-reward-toast'; }, 500);
+  }, 3200);
 }
 
 function _initRewardedAdButtons() {
