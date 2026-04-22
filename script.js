@@ -2210,10 +2210,12 @@ function selectSkinForPreview(skinId) {
     primaryHTML = '<button class="btn btn-primary preview-equip-btn" data-skin="' + skin.id + '">Equip</button>';
   } else if (isLifetime) {
     primaryHTML = '<button class="btn btn-secondary preview-btn-disabled" disabled>🔒 ' + formatNumber(skin.lifetimeUnlock) + '</button>';
-  } else if (isCoinSkin && canAfford) {
-    primaryHTML = '<button class="btn btn-primary preview-buy-btn" data-skin="' + skin.id + '">Buy ' + coinSpan + ' ' + skin.coinCost + '</button>';
   } else if (isCoinSkin) {
-    primaryHTML = '<button class="btn btn-secondary preview-btn-disabled" disabled>' + coinSpan + ' ' + skin.coinCost + '</button>';
+    // Always show an enabled Buy button — if unaffordable it triggers the video flow
+    const label = canAfford
+      ? 'Buy ' + coinSpan + ' ' + skin.coinCost
+      : coinSpan + ' ' + skin.coinCost + ' &nbsp;<span class="preview-buy-video-hint">Watch ad</span>';
+    primaryHTML = '<button class="btn btn-primary preview-buy-btn' + (canAfford ? '' : ' preview-buy-needcoins') + '" data-skin="' + skin.id + '">' + label + '</button>';
   }
 
   const tryHTML = '<button class="btn btn-try preview-try-btn" data-skin="' + skin.id + '">▶ Try</button>';
@@ -2231,7 +2233,14 @@ function selectSkinForPreview(skinId) {
   }
   const buyBtn = actionsEl.querySelector('.preview-buy-btn');
   if (buyBtn) {
-    buyBtn.addEventListener('click', () => { showBuyConfirm(skin.id); Audio.uiClick(); });
+    buyBtn.addEventListener('click', () => {
+      if (settings.coins >= skin.coinCost) {
+        showBuyConfirm(skin.id);
+      } else {
+        showCantAffordFlow(skin.id);
+      }
+      Audio.uiClick();
+    });
   }
   actionsEl.querySelectorAll('.preview-try-btn').forEach(btn => {
     btn.addEventListener('click', () => startTrySkin(skin.id));
@@ -2272,7 +2281,6 @@ function updateSkinsUI() {
       locked   ? 'skin-locked'    : '',
       selected ? 'skin-selected'  : '',
       isCoinSkin && !available ? 'skin-coin-card' : '',
-      isCoinSkin && !available && !canAfford ? 'skin-unaffordable' : '',
     ].filter(Boolean).join(' ');
 
     return '<div class="' + cardClasses + '" data-skin="' + skin.id + '" data-rarity="' + skin.rarity + '" role="listitem" tabindex="0">' +
@@ -2290,20 +2298,16 @@ function updateSkinsUI() {
     card.addEventListener('click', () => {
       const skin = SKIN_DEFS.find(s => s.id === skinId);
       if (!skin) return;
+      // Always update preview on click
       selectSkinForPreview(skinId);
-      if (isSkinAvailable(skin)) {
-        if (settings.selectedSkin !== skinId) {
-          settings.selectedSkin = skinId;
-          saveSettings();
-          updateSkinsUI();
-          renderLifetimeProgressUI();
-          Audio.uiClick();
-        }
-      } else if (skin.coinCost && settings.coins >= skin.coinCost) {
-        showBuyConfirm(skinId);
-      } else {
-        Audio.uiClick();
+      // If already owned, also equip immediately on card click
+      if (isSkinAvailable(skin) && settings.selectedSkin !== skinId) {
+        settings.selectedSkin = skinId;
+        saveSettings();
+        updateSkinsUI();
+        renderLifetimeProgressUI();
       }
+      Audio.uiClick();
     });
     card.addEventListener('keydown', e => {
       if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); card.click(); }
@@ -2445,6 +2449,215 @@ function _closeBuyDialog() {
   const dialog  = document.getElementById('skin-buy-dialog');
   if (overlay) { overlay.hidden = true; overlay.setAttribute('aria-hidden', 'true'); }
   if (dialog)  { dialog.hidden  = true; }
+}
+
+// ── Can't-afford flow: prompt to watch rewarded video ─────
+let _cantAffordSkinId = null;
+
+function showCantAffordFlow(skinId) {
+  const skin = SKIN_DEFS.find(s => s.id === skinId);
+  if (!skin) return;
+  _cantAffordSkinId = skinId;
+  const need = skin.coinCost - settings.coins;
+
+  const overlay    = document.getElementById('nocoins-overlay');
+  const dialog     = document.getElementById('nocoins-dialog');
+  const title      = document.getElementById('ncd-title');
+  const balanceEl  = document.getElementById('ncd-balance');
+  const needEl     = document.getElementById('ncd-need');
+
+  if (title)    title.textContent   = 'Not enough coins for ' + skin.name;
+  if (balanceEl) balanceEl.textContent = settings.coins;
+  if (needEl)   {
+    const coinSpan = '<span class="coin-icon coin-sm" aria-hidden="true"></span>';
+    needEl.innerHTML = 'You need ' + coinSpan + ' ' + need + ' more. Watch a video to earn 100 coins!';
+  }
+
+  if (overlay) { overlay.hidden = false; overlay.setAttribute('aria-hidden', 'false'); }
+  if (dialog)  { dialog.hidden  = false; }
+  const watchBtn = document.getElementById('ncd-watch');
+  if (watchBtn) watchBtn.focus();
+  Audio.uiClick();
+}
+
+function _closeNoCoinDialog() {
+  const overlay = document.getElementById('nocoins-overlay');
+  const dialog  = document.getElementById('nocoins-dialog');
+  if (overlay) { overlay.hidden = true; overlay.setAttribute('aria-hidden', 'true'); }
+  if (dialog)  { dialog.hidden  = true; }
+}
+
+// ── Rewarded Ad System ─────────────────────────────────────
+// Swap _RewardedAd.show() implementation for a real ad SDK later.
+const _RewardedAd = (() => {
+  const AD_DURATION   = 15;   // fallback countdown seconds
+  const COIN_REWARD   = 100;
+  const VIDEO_SRC     = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4';
+
+  let _onReward     = null;
+  let _fallbackTimer = null;
+  let _fallbackElapsed = 0;
+
+  function show(onReward) {
+    _onReward = onReward;
+    const overlay  = document.getElementById('rad-overlay');
+    const modal    = document.getElementById('rad-modal');
+    const video    = document.getElementById('rad-video');
+    const fallback = document.getElementById('rad-fallback');
+    const closeBtn = document.getElementById('rad-close');
+    const claimBtn = document.getElementById('rad-claim');
+    const watchMsg = document.getElementById('rad-watching-msg');
+    const progFill = document.getElementById('rad-progress-fill');
+    const timerLbl = document.getElementById('rad-timer-label');
+    const compOverlay = document.getElementById('rad-complete-overlay');
+    const fbFill   = document.getElementById('rad-fallback-fill');
+    const fbSecs   = document.getElementById('rad-fallback-secs');
+
+    // Reset state
+    closeBtn.disabled = true;
+    claimBtn.hidden   = true;
+    watchMsg.hidden   = false;
+    compOverlay.hidden = true;
+    progFill.style.width = '0%';
+    timerLbl.textContent = 'Watch to earn coins';
+    fallback.hidden  = true;
+    video.style.display = '';
+
+    overlay.hidden = false; overlay.setAttribute('aria-hidden', 'false');
+    modal.setAttribute('aria-hidden', 'false');
+
+    // Attempt to play real video
+    video.currentTime = 0;
+    const playPromise = video.play();
+    if (playPromise !== undefined) {
+      playPromise.catch(() => { _startFallback(); });
+    }
+
+    video.onerror = () => _startFallback();
+    video.onloadedmetadata = () => { fallback.hidden = true; video.style.display = ''; };
+
+    video.ontimeupdate = () => {
+      const dur = video.duration || AD_DURATION;
+      const pct = Math.min(100, (video.currentTime / dur) * 100);
+      progFill.style.width = pct + '%';
+      const left = Math.max(0, Math.ceil(dur - video.currentTime));
+      timerLbl.textContent = left > 0 ? left + 's remaining' : 'Almost done…';
+    };
+
+    video.onended = () => _onVideoComplete();
+
+    // If video src fails immediately, start fallback after brief delay
+    setTimeout(() => {
+      if (video.readyState === 0 && fallback.hidden) {
+        _startFallback();
+      }
+    }, 2000);
+
+    function _startFallback() {
+      video.style.display = 'none';
+      video.pause();
+      fallback.hidden = false;
+      fbFill.style.transition = 'none';
+      fbFill.style.width = '0%';
+      _fallbackElapsed = 0;
+      clearInterval(_fallbackTimer);
+      _fallbackTimer = setInterval(() => {
+        _fallbackElapsed++;
+        const pct = (_fallbackElapsed / AD_DURATION) * 100;
+        fbFill.style.width = pct + '%';
+        progFill.style.width = pct + '%';
+        const left = Math.max(0, AD_DURATION - _fallbackElapsed);
+        timerLbl.textContent = left > 0 ? left + 's remaining' : 'Almost done…';
+        if (fbSecs) fbSecs.textContent = left + 's';
+        if (_fallbackElapsed >= AD_DURATION) {
+          clearInterval(_fallbackTimer);
+          _onVideoComplete();
+        }
+      }, 1000);
+    }
+
+    function _onVideoComplete() {
+      clearInterval(_fallbackTimer);
+      progFill.style.width = '100%';
+      timerLbl.textContent = '✓ Complete!';
+      compOverlay.hidden = false;
+      watchMsg.hidden    = true;
+      claimBtn.hidden    = false;
+      closeBtn.disabled  = false;
+      claimBtn.focus();
+    }
+
+    claimBtn.onclick = () => {
+      close();
+      if (_onReward) { _onReward(COIN_REWARD); _onReward = null; }
+    };
+
+    closeBtn.onclick = () => {
+      // Only closeable after completion (button stays disabled until then)
+      close();
+    };
+
+    // Click on overlay backdrop (outside modal) = cancel only if reward already claimed
+    overlay.onclick = (e) => {
+      if (e.target === overlay && !closeBtn.disabled) close();
+    };
+  }
+
+  function close() {
+    clearInterval(_fallbackTimer);
+    const overlay = document.getElementById('rad-overlay');
+    const video   = document.getElementById('rad-video');
+    if (video) { video.pause(); video.ontimeupdate = null; video.onended = null; video.onerror = null; }
+    if (overlay) { overlay.hidden = true; overlay.setAttribute('aria-hidden', 'true'); }
+    _onReward = null;
+  }
+
+  return { show, close, COIN_REWARD };
+})();
+
+function _showCoinRewardToast(amount) {
+  const toast = document.getElementById('coin-reward-toast');
+  if (!toast) return;
+  const coinSpan = '<span class="coin-icon coin-sm" aria-hidden="true"></span>';
+  toast.innerHTML = '+' + amount + ' ' + coinSpan + ' Coins!';
+  toast.hidden = false;
+  toast.classList.remove('crt-show');
+  void toast.offsetWidth;
+  toast.classList.add('crt-show');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => {
+    toast.classList.remove('crt-show');
+    setTimeout(() => { toast.hidden = true; }, 500);
+  }, 2200);
+}
+
+function _initRewardedAdButtons() {
+  const ncdCancel = document.getElementById('ncd-cancel');
+  const ncdWatch  = document.getElementById('ncd-watch');
+  const ncdOverlay = document.getElementById('nocoins-overlay');
+  if (ncdCancel) ncdCancel.addEventListener('click', () => { _cantAffordSkinId = null; _closeNoCoinDialog(); Audio.uiClick(); });
+  if (ncdOverlay) ncdOverlay.addEventListener('click', (e) => { if (e.target === ncdOverlay) { _cantAffordSkinId = null; _closeNoCoinDialog(); } });
+  if (ncdWatch) ncdWatch.addEventListener('click', () => {
+    const skinId = _cantAffordSkinId;
+    _closeNoCoinDialog();
+    _RewardedAd.show((coinsEarned) => {
+      // Award coins
+      settings.coins += coinsEarned;
+      saveSettings();
+      updateCoinUI(true);
+      _showCoinRewardToast(coinsEarned);
+      // Refresh preview panel in case player now has enough
+      if (skinId) selectSkinForPreview(skinId);
+      updateSkinsUI();
+      // Auto-open buy dialog if they can now afford it
+      if (skinId) {
+        const skin = SKIN_DEFS.find(s => s.id === skinId);
+        if (skin && skin.coinCost && settings.coins >= skin.coinCost && !isSkinAvailable(skin)) {
+          setTimeout(() => showBuyConfirm(skinId), 400);
+        }
+      }
+    });
+  });
 }
 
 function checkSkinUnlocks(prevBest, newBest) {
@@ -5825,6 +6038,9 @@ function init() {
   document.getElementById('skin-buy-dialog').addEventListener('keydown', e => {
     if (e.key === 'Escape') { e.preventDefault(); cancelBuyConfirm(); }
   });
+
+  // Rewarded ad + nocoins flow
+  _initRewardedAdButtons();
 
   // Canvas touch-drag: direct finger-follow control (replaces simple preventDefault)
   canvas.addEventListener('touchstart',  onCanvasTouchStart, { passive: false });
