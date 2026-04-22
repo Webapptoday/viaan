@@ -91,11 +91,11 @@ body::before {
       rgba(124,58,237,.38) 0%,
       rgba(236,72,153,.16) 55%,
       transparent 100%);
-  animation: bgGlow 12s ease-in-out infinite;
+  animation: bgGlow 20s ease-in-out infinite;
 }
 @keyframes bgGlow {
   0%, 100% { opacity: .4;  transform: scale(1);    }
-  50%       { opacity: 1;   transform: scale(1.28); }
+  50%       { opacity: 1;   transform: scale(1.12); }
 }
 
 /* ---- Screen reader only ---- */
@@ -146,7 +146,7 @@ body::before {
   pointer-events: none;
   z-index: 1;       /* below .home-inner (z-index:2) inside #home-screen stacking context */
   opacity: 0.40;
-  filter: blur(5px);
+  /* filter: blur(5px) removed — full GPU filter pass every frame is expensive */
 }
 
 /* Decorative animated blobs */
@@ -193,7 +193,7 @@ body::before {
 }
 .blob {
   position: absolute; border-radius: 50%;
-  filter: blur(80px); opacity: 0.16;
+  filter: blur(32px); opacity: 0.14;
   animation: blobDrift 20s ease-in-out infinite alternate;
 }
 .blob-1 { width: 380px; height: 380px; background: var(--accent);       top: -60px;  left: -100px; animation-duration: 22s; }
@@ -696,7 +696,7 @@ kbd {
   background: rgba(0,0,0,.82);
   display: flex; align-items: center; justify-content: center;
   z-index: 200; padding: 20px;
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(6px);
 }
 .modal[hidden] { display: none !important; }
 
@@ -1589,6 +1589,12 @@ kbd {
 .skin-btn[data-skin="electric"] .skin-preview { animation: skinElectric 0.9s ease-in-out infinite; }
 .skin-btn[data-skin="inferno"]  .skin-preview { animation: skinInferno  1.0s ease-in-out infinite; }
 .skin-btn[data-skin="prism"]    .skin-preview { animation: skinPrism    2.4s linear     infinite; }
+
+/* Pause skin preview animations for cards not hovered or selected —
+   avoids 11+ simultaneous box-shadow/filter animations burning GPU */
+.skin-btn:not(.skin-selected):not(:hover) .skin-preview {
+  animation-play-state: paused;
+}
 
 /* â”€â”€ Inner-effect previews on skin cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
    .skin-preview gets overflow:hidden so ::before stays within the circle */
@@ -2692,7 +2698,7 @@ kbd {
   padding: 0 36px; height: 72px; flex-shrink: 0;
   background: linear-gradient(90deg, rgba(8,2,22,.98) 0%, rgba(14,4,36,.98) 100%);
   border-bottom: 1px solid rgba(139,92,246,.38);
-  backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
   box-shadow: 0 4px 36px rgba(0,0,0,.7), inset 0 -1px 0 rgba(139,92,246,.15);
   z-index: 10;
 }
@@ -2821,7 +2827,7 @@ kbd {
   flex-shrink: 0; display: flex; align-items: center; justify-content: center;
   padding: 14px 24px 18px;
   border-top: 1px solid rgba(255,255,255,.08);
-  background: rgba(8,2,22,.95); backdrop-filter: blur(16px);
+  background: rgba(8,2,22,.97); backdrop-filter: blur(6px);
 }
 .shop-footer .btn { min-width: 160px; justify-content: center; }
 
@@ -3169,8 +3175,8 @@ kbd {
 .rad-overlay {
   position: fixed; inset: 0; z-index: 12000;
   background: rgba(2, 0, 14, .92);
-  backdrop-filter: blur(14px) saturate(1.4);
-  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   display: flex; align-items: center; justify-content: center;
   padding: 16px;
   opacity: 0; animation: radOverlayIn .22s ease forwards;
@@ -3657,3 +3663,21 @@ kbd {
   text-shadow: 0 0 12px rgba(239,68,68,.6);
   font-size: 1rem; padding: 12px 22px; border-radius: 16px;
 }
+
+/* ── Low Performance Mode ─────────────────────────────────────────────────
+   Applied via body.perf-low when settings.perfMode === 'low'.
+   Strips expensive GPU operations: backdrop-filter, large blurs, animations. */
+body.perf-low .blob                { filter: blur(16px) !important; animation: none !important; }
+body.perf-low body::before,
+body.perf-low::before              { animation: none !important; }
+body.perf-low .shop-topbar         { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+body.perf-low .shop-footer         { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+body.perf-low .modal               { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+body.perf-low .rad-overlay         { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+body.perf-low .skin-preview        { animation: none !important; }
+body.perf-low .coin-icon           { animation: none !important; }
+body.perf-low #btn-start           { animation: none !important; }
+body.perf-low .pup-seg-on          { animation: none !important; }
+body.perf-low .rad-reward-chip     { animation: none !important; }
+body.perf-low .home-blobs::before,
+body.perf-low .home-blobs::after   { animation: none !important; }

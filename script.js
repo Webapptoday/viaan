@@ -477,6 +477,7 @@ let settings = {
   reducedMotion:  false,
   highContrast:   false,
   colorblind:     false,
+  perfMode:       'high', // 'high' | 'low' — Low reduces particles, glow, and animations
   bestScore:      0,
   lifetimeScore:  0,
   selectedSkin:   'classic',
@@ -702,6 +703,7 @@ function loadSettings() {
     if (typeof s.reducedMotion === 'boolean') settings.reducedMotion = s.reducedMotion;
     if (typeof s.highContrast  === 'boolean') settings.highContrast  = s.highContrast;
     if (typeof s.colorblind    === 'boolean') settings.colorblind    = s.colorblind;
+    if (s.perfMode === 'low' || s.perfMode === 'high') settings.perfMode = s.perfMode;
     // Migrate old colorMode string format
     if (s.colorMode === 'high-contrast') settings.highContrast = true;
     if (s.colorMode === 'colorblind')    settings.colorblind   = true;
@@ -736,6 +738,8 @@ function applyColorMode() {
   document.body.classList.toggle('mode-high-contrast', !!settings.highContrast);
   document.body.classList.toggle('mode-colorblind',    !!settings.colorblind);
   document.body.classList.toggle('reduced-motion',     !!settings.reducedMotion);
+  // perf-low: strips backdrop-filters, pauses most CSS animations, reduces blob blur
+  document.body.classList.toggle('perf-low',           settings.perfMode === 'low');
 }
 
 function applySettingsToUI() {
@@ -743,12 +747,34 @@ function applySettingsToUI() {
   const rmEl    = document.getElementById('reduced-motion-toggle');
   const hcEl    = document.getElementById('high-contrast-toggle');
   const cbEl    = document.getElementById('colorblind-toggle');
+  const pmEl    = document.getElementById('perf-mode-toggle');
   const hsEl    = document.getElementById('home-highscore');
   if (soundEl) soundEl.checked = settings.sound;
   if (rmEl)    rmEl.checked    = settings.reducedMotion;
   if (hcEl)    hcEl.checked    = settings.highContrast;
   if (cbEl)    cbEl.checked    = settings.colorblind;
+  if (pmEl)    pmEl.checked    = settings.perfMode === 'low';
   if (hsEl)    hsEl.textContent = settings.bestScore;
+
+  // Wire change listeners once (idempotent guard via _settingsWired flag)
+  if (!applySettingsToUI._wired) {
+    applySettingsToUI._wired = true;
+    if (soundEl) soundEl.addEventListener('change', () => {
+      settings.sound = soundEl.checked; saveSettings();
+    });
+    if (rmEl) rmEl.addEventListener('change', () => {
+      settings.reducedMotion = rmEl.checked; saveSettings(); applyColorMode();
+    });
+    if (hcEl) hcEl.addEventListener('change', () => {
+      settings.highContrast = hcEl.checked; saveSettings(); applyColorMode();
+    });
+    if (cbEl) cbEl.addEventListener('change', () => {
+      settings.colorblind = cbEl.checked; saveSettings(); applyColorMode();
+    });
+    if (pmEl) pmEl.addEventListener('change', () => {
+      settings.perfMode = pmEl.checked ? 'low' : 'high'; saveSettings(); applyColorMode();
+    });
+  }
   updateSkinsUI();
   updateCoinUI();
   renderLifetimeProgressUI();
@@ -2136,7 +2162,13 @@ function showModal(id) {
   const m = document.getElementById(id);
   if (!m) return;
   m.hidden = false;
-  if (id === 'modal-progress') startShopPreviewLoop();
+  if (id === 'modal-progress') {
+    // Pause home bg loops while shop is open — they're hidden anyway and
+    // running them alongside the preview loop wastes CPU/GPU unnecessarily.
+    HomeBg.stop();
+    HomePreview.stop();
+    startShopPreviewLoop();
+  }
   requestAnimationFrame(() => {
     const first = m.querySelector('button,[href],input,select,[tabindex]:not([tabindex="-1"])');
     if (first) first.focus();
@@ -2146,7 +2178,14 @@ function showModal(id) {
 function hideModal(id) {
   const m = document.getElementById(id);
   if (m) m.hidden = true;
-  if (id === 'modal-progress') stopShopPreviewLoop();
+  if (id === 'modal-progress') {
+    stopShopPreviewLoop();
+    // Restart home bg loops only if we're on the home screen
+    if (currentState === STATE.HOME) {
+      HomeBg.start();
+      HomePreview.start();
+    }
+  }
 }
 
 // ============================================================
@@ -2296,6 +2335,18 @@ function updateSkinsUI() {
   if (!grid) return;
   const coinSpan = '<span class="coin-icon coin-sm" aria-hidden="true"></span>';
 
+  // Rebuild DOM only when necessary — track a content hash to avoid redundant innerHTML sets
+  const _skinHash = JSON.stringify(SKIN_DEFS.map(s => ({
+    id: s.id, owned: isSkinAvailable(s), sel: settings.selectedSkin === s.id,
+    coins: settings.coins, lt: settings.lifetimeScore,
+  })));
+  if (grid._lastSkinHash === _skinHash) {
+    // State unchanged — skip expensive innerHTML rebuild, just update preview
+    selectSkinForPreview(_shopPreviewSkinId || settings.selectedSkin);
+    return;
+  }
+  grid._lastSkinHash = _skinHash;
+
   grid.innerHTML = SKIN_DEFS.map(skin => {
     const isCoinSkin     = !!skin.coinCost;
     const isLifetimeSkin = !!skin.lifetimeUnlock;
@@ -2336,27 +2387,30 @@ function updateSkinsUI() {
       '</div>';
   }).join('');
 
-  // Wire click and keyboard handlers on each card
-  grid.querySelectorAll('.skin-btn').forEach(card => {
-    const skinId = card.dataset.skin;
-    card.addEventListener('click', () => {
+  // Event delegation: one listener on the grid instead of N listeners on N cards.
+  // This avoids accumulating duplicate listeners on every updateSkinsUI() call.
+  if (!grid._delegated) {
+    grid._delegated = true;
+    grid.addEventListener('click', e => {
+      const card = e.target.closest('.skin-btn');
+      if (!card) return;
+      const skinId = card.dataset.skin;
       const skin = SKIN_DEFS.find(s => s.id === skinId);
       if (!skin) return;
-      // Always update preview on click
       selectSkinForPreview(skinId);
-      // If already owned, also equip immediately on card click
       if (isSkinAvailable(skin) && settings.selectedSkin !== skinId) {
         settings.selectedSkin = skinId;
         saveSettings();
+        grid._lastSkinHash = null; // invalidate hash so next call rebuilds
         updateSkinsUI();
         renderLifetimeProgressUI();
       }
       Audio.uiClick();
     });
-    card.addEventListener('keydown', e => {
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); card.click(); }
+    grid.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.target.closest('.skin-btn')?.click(); }
     });
-  });
+  }
 
   // Update preview panel for current or previously hovered skin
   selectSkinForPreview(_shopPreviewSkinId || settings.selectedSkin);
@@ -2874,8 +2928,11 @@ function drawTrail() {
     ctx.beginPath();
     ctx.arc(pt.x, pt.y, radius, 0, Math.PI * 2);
     ctx.fillStyle   = tc;
+    // Halve trail glow in low-perf mode — shadowBlur is one of the most expensive canvas ops
     ctx.shadowColor = tc;
-    ctx.shadowBlur  = skin.rarity === 'legendary' ? 20 : skin.rarity === 'epic' ? 14 : skin.rarity === 'rare' ? 8 : 4;
+    ctx.shadowBlur  = settings.perfMode === 'low'
+      ? (skin.rarity === 'legendary' ? 8 : 3)
+      : (skin.rarity === 'legendary' ? 14 : skin.rarity === 'epic' ? 8 : skin.rarity === 'rare' ? 5 : 3);
     ctx.fill();
     ctx.restore();
   });
@@ -4192,7 +4249,8 @@ function drawObstacle(ob) {
     const flicker   = 0.5 + 0.5 * Math.sin(Date.now() / 100); // fast flicker
     ctx.globalAlpha = 0.55 + 0.35 * warnProg;
     ctx.shadowColor = hex;
-    ctx.shadowBlur  = 6 + 20 * warnProg + 8 * flicker;
+    // Reduced warning glow to cut GPU load — still clearly visible
+    ctx.shadowBlur  = settings.perfMode === 'low' ? 4 + 6 * warnProg : 4 + 12 * warnProg + 5 * flicker;
     ctx.fill();
     ctx.globalAlpha = 1;
     ctx.shadowBlur  = 0;
@@ -4203,7 +4261,8 @@ function drawObstacle(ob) {
     ctx.stroke();
   } else {
     // ── Forbidden (dangerous) block — full brightness ─────────────────────────
-    const pulse = 18 + 14 * (0.5 + 0.5 * Math.sin(Date.now() / 200));
+    // Forbidden block glow — capped to reduce GPU cost
+    const pulse = settings.perfMode === 'low' ? 10 : 14 + 8 * (0.5 + 0.5 * Math.sin(Date.now() / 200));
     ctx.shadowColor = hex;
     ctx.shadowBlur  = pulse;
     ctx.fill();
@@ -4632,7 +4691,11 @@ function drawPowerup(p) {
 // ============================================================
 
 function spawnParticles(x, y, color, count) {
-  const n = settings.reducedMotion ? Math.max(2, Math.ceil((count || 8) * 0.35)) : (count || 8);
+  // perf-low: 25% of normal; reducedMotion: 35% of normal
+  const base = count || 8;
+  const n = settings.reducedMotion ? Math.max(1, Math.ceil(base * 0.35))
+          : settings.perfMode === 'low' ? Math.max(2, Math.ceil(base * 0.25))
+          : base;
   for (let i = 0; i < n; i++) {
     const ang = (Math.PI * 2 * i) / n + Math.random() * 0.9;
     const spd = 60 + Math.random() * 110;
@@ -4658,15 +4721,19 @@ function tickParticles(dt) {
 }
 
 function drawParticles() {
+  // Skip particles that have drifted offscreen — no save/restore overhead per particle
+  const W = canvas.width + 24, H = canvas.height + 24;
+  ctx.save();
   particles.forEach(p => {
-    ctx.save();
+    if (p.x < -24 || p.x > W || p.y < -24 || p.y > H) return;
     ctx.globalAlpha = Math.max(0, p.life);
     ctx.beginPath();
     ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
     ctx.fillStyle = p.color;
     ctx.fill();
-    ctx.restore();
   });
+  ctx.globalAlpha = 1;
+  ctx.restore();
 }
 
 // ============================================================
