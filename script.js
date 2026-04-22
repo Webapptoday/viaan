@@ -1087,7 +1087,7 @@ function updatePowerupUpgradeUI() {
     const action = isMaxed
       ? '<div class="pup-max-badge">✦ MAX</div>'
       : '<button class="pup-btn ' + (canAfford ? 'pup-btn-afford' : 'pup-btn-cant') + '" type="button"' +
-        ' data-upgrade-key="' + key + '"' + (!canAfford ? ' disabled' : '') + '>' +
+        ' data-upgrade-key="' + key + '">' +
         coinSpan + '<span>' + nextCost.toLocaleString() + '</span></button>';
 
     return '<article class="pup-card" data-powerup-key="' + key + '" data-maxed="' + isMaxed + '"' +
@@ -2677,6 +2677,7 @@ function _closeBuyDialog() {
 
 // ── Can't-afford flow: prompt to watch rewarded video ─────
 let _cantAffordSkinId = null;
+let _cantAffordPowerupKey = null;
 
 function showCantAffordFlow(skinId) {
   const skin = SKIN_DEFS.find(s => s.id === skinId);
@@ -2709,6 +2710,36 @@ function _closeNoCoinDialog() {
   const dialog  = document.getElementById('nocoins-dialog');
   if (overlay) { overlay.hidden = true; overlay.setAttribute('aria-hidden', 'true'); }
   if (dialog)  { dialog.hidden  = true; }
+}
+
+function showCantAffordPowerupFlow(key) {
+  const upDef = POWERUP_UPGRADE_DEFS[key];
+  const def   = POWERUP_DEFS[key];
+  if (!upDef || !def) return;
+  normalizePowerupUpgradeState();
+  const level = getPowerupUpgradeLevel(key);
+  if (level >= upDef.maxLevel) return;
+  _cantAffordPowerupKey = key;
+  _cantAffordSkinId     = null;
+  const cost  = upDef.costs[level];
+  const need  = cost - (settings.coins || 0);
+  const coinSpan = '<span class="coin-icon coin-sm" aria-hidden="true"></span>';
+
+  const overlay    = document.getElementById('nocoins-overlay');
+  const dialog     = document.getElementById('nocoins-dialog');
+  const title      = document.getElementById('ncd-title');
+  const balanceEl  = document.getElementById('ncd-balance');
+  const needEl     = document.getElementById('ncd-need');
+
+  if (title)     title.textContent  = 'Not enough coins to upgrade ' + def.label;
+  if (balanceEl) balanceEl.textContent = settings.coins;
+  if (needEl)    needEl.innerHTML   = 'You need ' + coinSpan + '\u202f' + need + ' more coins. Watch a short video to earn 100 coins!';
+
+  if (overlay) { overlay.hidden = false; overlay.setAttribute('aria-hidden', 'false'); }
+  if (dialog)  { dialog.hidden  = false; }
+  const watchBtn = document.getElementById('ncd-watch');
+  if (watchBtn) watchBtn.focus();
+  Audio.uiClick();
 }
 
 // ── Rewarded Ad System ─────────────────────────────────────
@@ -2949,10 +2980,13 @@ function _initRewardedAdButtons() {
   const ncdCancel = document.getElementById('ncd-cancel');
   const ncdWatch  = document.getElementById('ncd-watch');
   const ncdOverlay = document.getElementById('nocoins-overlay');
-  if (ncdCancel) ncdCancel.addEventListener('click', () => { _cantAffordSkinId = null; _closeNoCoinDialog(); Audio.uiClick(); });
-  if (ncdOverlay) ncdOverlay.addEventListener('click', (e) => { if (e.target === ncdOverlay) { _cantAffordSkinId = null; _closeNoCoinDialog(); } });
+  if (ncdCancel) ncdCancel.addEventListener('click', () => { _cantAffordSkinId = null; _cantAffordPowerupKey = null; _closeNoCoinDialog(); Audio.uiClick(); });
+  if (ncdOverlay) ncdOverlay.addEventListener('click', (e) => { if (e.target === ncdOverlay) { _cantAffordSkinId = null; _cantAffordPowerupKey = null; _closeNoCoinDialog(); } });
   if (ncdWatch) ncdWatch.addEventListener('click', () => {
     const skinId = _cantAffordSkinId;
+    const pupKey = _cantAffordPowerupKey;
+    _cantAffordSkinId     = null;
+    _cantAffordPowerupKey = null;
     _closeNoCoinDialog();
     _RewardedAd.show((coinsEarned) => {
       // Award coins
@@ -2960,11 +2994,20 @@ function _initRewardedAdButtons() {
       saveSettings();
       updateCoinUI(true);
       _showCoinRewardToast(coinsEarned);
-      // Refresh preview panel in case player now has enough
-      if (skinId) selectSkinForPreview(skinId);
-      updateSkinsUI();
-      // Auto-open buy dialog if they can now afford it
+      // Powerup path
+      if (pupKey) {
+        updatePowerupUpgradeUI();
+        // Auto-upgrade if player can now afford it
+        const upDef = POWERUP_UPGRADE_DEFS[pupKey];
+        const lvl   = getPowerupUpgradeLevel(pupKey);
+        if (upDef && lvl < upDef.maxLevel && settings.coins >= upDef.costs[lvl]) {
+          setTimeout(() => buyPowerupUpgrade(pupKey), 420);
+        }
+      }
+      // Skin path
       if (skinId) {
+        selectSkinForPreview(skinId);
+        updateSkinsUI();
         const skin = SKIN_DEFS.find(s => s.id === skinId);
         if (skin && skin.coinCost && settings.coins >= skin.coinCost && !isSkinAvailable(skin)) {
           setTimeout(() => showBuyConfirm(skinId), 400);
@@ -6350,7 +6393,18 @@ function init() {
     powerupUpgradeList.addEventListener('click', e => {
       const btn = e.target.closest('[data-upgrade-key]');
       if (!btn) return;
-      buyPowerupUpgrade(btn.dataset.upgradeKey);
+      const key   = btn.dataset.upgradeKey;
+      const upDef = POWERUP_UPGRADE_DEFS[key];
+      if (!upDef) return;
+      normalizePowerupUpgradeState();
+      const level = getPowerupUpgradeLevel(key);
+      if (level >= upDef.maxLevel) return;
+      const cost  = upDef.costs[level];
+      if ((settings.coins || 0) >= cost) {
+        buyPowerupUpgrade(key);
+      } else {
+        showCantAffordPowerupFlow(key);
+      }
     });
   }
 
