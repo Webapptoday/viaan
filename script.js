@@ -2269,11 +2269,9 @@ function updateSkinsUI() {
       '</div>';
   }).join('');
 
-  // Wire click, hover, and keyboard handlers on each card
+  // Wire click and keyboard handlers on each card
   grid.querySelectorAll('.skin-btn').forEach(card => {
     const skinId = card.dataset.skin;
-    card.addEventListener('mouseenter', () => selectSkinForPreview(skinId));
-    card.addEventListener('focus',      () => selectSkinForPreview(skinId));
     card.addEventListener('click', () => {
       const skin = SKIN_DEFS.find(s => s.id === skinId);
       if (!skin) return;
