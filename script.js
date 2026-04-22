@@ -2149,16 +2149,32 @@ function startShopPreviewLoop() {
   if (_shopPreviewRaf) return;
   function tick() {
     _shopPreviewRaf = requestAnimationFrame(tick);
-    const previewCanvas = document.getElementById('skin-preview-canvas');
-    if (!previewCanvas) return;
-    const skinId = _shopPreviewSkinId || settings.selectedSkin;
-    const skin   = SKIN_DEFS.find(s => s.id === skinId) || SKIN_DEFS[0];
-    const pCtx   = previewCanvas.getContext('2d');
-    const W = previewCanvas.width, H = previewCanvas.height;
-    pCtx.clearRect(0, 0, W, H);
     const now = performance.now();
-    const bob = Math.sin(now / 900) * 4;
-    drawSkinPreviewAt(pCtx, skin, W / 2, H / 2 + bob, 28, now);
+
+    // Main large preview
+    const previewCanvas = document.getElementById('skin-preview-canvas');
+    if (previewCanvas) {
+      const skinId = _shopPreviewSkinId || settings.selectedSkin;
+      const skin   = SKIN_DEFS.find(s => s.id === skinId) || SKIN_DEFS[0];
+      const pCtx   = previewCanvas.getContext('2d');
+      const W = previewCanvas.width, H = previewCanvas.height;
+      pCtx.clearRect(0, 0, W, H);
+      const bob = Math.sin(now / 900) * 4;
+      drawSkinPreviewAt(pCtx, skin, W / 2, H / 2 + bob, 44, now);
+    }
+
+    // Mini per-card skin canvases in the grid
+    document.querySelectorAll('.skin-canvas-mini').forEach(canvas => {
+      const skinId = canvas.dataset.skin;
+      const skin = SKIN_DEFS.find(s => s.id === skinId);
+      if (!skin) return;
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const locked = canvas.closest('.skin-btn') && canvas.closest('.skin-btn').classList.contains('skin-locked');
+      if (locked) ctx.globalAlpha = 0.45;
+      drawSkinPreviewAt(ctx, skin, canvas.width / 2, canvas.height / 2, 30, now);
+      if (locked) ctx.globalAlpha = 1;
+    });
   }
   _shopPreviewRaf = requestAnimationFrame(tick);
 }
@@ -2262,7 +2278,7 @@ function updateSkinsUI() {
 
     return '<div class="' + cardClasses + '" data-skin="' + skin.id + '" data-rarity="' + skin.rarity + '" role="listitem" tabindex="0">' +
       (locked ? '<span class="skin-grid-lock-icon" aria-hidden="true">🔒</span>' : '') +
-      '<span class="skin-preview" style="--skin-c1:' + skin.color1 + ';--skin-c2:' + skin.color2 + '" aria-hidden="true"></span>' +
+      '<canvas class="skin-preview skin-canvas-mini" width="80" height="80" data-skin="' + skin.id + '" aria-hidden="true"></canvas>' +
       '<span class="skin-rarity" data-rarity="' + skin.rarity + '">' + skin.rarity + '</span>' +
       '<span class="skin-name">' + skin.name + '</span>' +
       statusHTML +

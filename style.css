@@ -1251,7 +1251,7 @@ kbd {
   box-shadow: 0 0 16px var(--skin-c2, #a855f7), 0 0 32px rgba(168,85,247,.2), 0 0 4px rgba(255,255,255,.12);
   position: relative;
 }
-.skin-btn.skin-locked .skin-preview { filter: grayscale(1) brightness(.40); box-shadow: none; animation: none !important; }
+.skin-btn.skin-locked .skin-preview { opacity: 0.4; box-shadow: none; animation: none !important; }
 
 /* â”€â”€ Rarity / effect preview animations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 @keyframes skinPulse {
