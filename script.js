@@ -684,21 +684,19 @@ function loadSettings() {
     const raw = localStorage.getItem('forbiddenColor_settings');
     if (!raw) return;
     const s = JSON.parse(raw);
+    let _migrated = false;
     if ((s.economyVersion || 0) < ECONOMY_VERSION) {
-      // Economy/score reset — clear coins and best score once
-      settings.economyVersion = ECONOMY_VERSION;
-      settings.coins = 0;
-      settings.bestScore = 0;
-      saveSettings();
-      return;
+      // Economy was rebalanced — reset coins only, preserve everything else
+      s.coins = 0;
+      s.economyVersion = ECONOMY_VERSION;
+      _migrated = true;
     }
     if ((s.skinVersion || 0) < SKIN_VERSION) {
       // Skin shop converted to coin-only — reset purchased skins once
-      settings.skinVersion = SKIN_VERSION;
-      settings.purchasedSkins = [];
-      settings.selectedSkin = 'classic';
-      saveSettings();
-      return;
+      s.purchasedSkins = [];
+      s.selectedSkin = 'classic';
+      s.skinVersion = SKIN_VERSION;
+      _migrated = true;
     }
     if (typeof s.sound         === 'boolean') settings.sound         = s.sound;
     if (typeof s.reducedMotion === 'boolean') settings.reducedMotion = s.reducedMotion;
@@ -726,6 +724,7 @@ function loadSettings() {
     }
     normalizePowerupUpgradeState();
     normalizeLifetimeRewardState();
+    if (_migrated) saveSettings();
   } catch (_) {}
 }
 
