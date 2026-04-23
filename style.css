@@ -1,5 +1,5 @@
-﻿/* ============================================================
-   FORBIDDEN COLOR â€” Stylesheet v2
+/* ============================================================
+   FORBIDDEN COLOR - Stylesheet v2
    ============================================================ */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=Space+Grotesk:wght@700;800&display=swap');
@@ -63,7 +63,7 @@ body.reduced-motion *, body.reduced-motion *::before, body.reduced-motion *::aft
 /* ---- Base ---- */
 html {
   height: 100%;
-  background: #06061a; /* solid fallback â€” always visible beneath body */
+  background: #06061a; /* solid fallback - always visible beneath body */
 }
 body {
   height: 100%;
@@ -80,7 +80,7 @@ body {
   50%       { background-color: #1e0848; }   /* clearly visible deep purple */
 }
 
-/* Radial glow â€” breathes slowly, centered behind all content */
+/* Radial glow - breathes slowly, centered behind all content */
 body::before {
   content: '';
   position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -118,7 +118,7 @@ body::before {
   position: fixed; inset: 0;
   display: flex; flex-direction: column;
   overflow-y: auto; overflow-x: hidden;
-  z-index: 3; /* above canvas (2) and blobs (1) â€” home-screen is transparent so both show through */
+  z-index: 3; /* above canvas (2) and blobs (1) - home-screen is transparent so both show through */
 }
 
 #game-screen:not([hidden]) {
@@ -139,7 +139,7 @@ body::before {
   z-index: 2; /* above blobs (1), below home-screen UI (3) */
 }
 
-/* Gameplay preview canvas â€” ghost player + blocks, blurred behind UI */
+/* Gameplay preview canvas - ghost player + blocks, blurred behind UI */
 #home-preview-canvas {
   position: absolute; inset: 0;
   width: 100%; height: 100%;
@@ -156,7 +156,7 @@ body::before {
   z-index: 1; /* above body::before (0), below canvas blocks (2) */
 }
 
-/* Faint star-particles layer â€” two pseudo-elements, different speeds & densities */
+/* Faint star-particles layer - two pseudo-elements, different speeds & densities */
 .home-blobs::before,
 .home-blobs::after {
   content: '';
@@ -205,7 +205,7 @@ body::before {
   to   { transform: translate(36px, 28px) scale(1.1); }
 }
 
-/* â”€â”€ Home screen entrance animations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* -- Home screen entrance animations ---------------------------- */
 @keyframes homeEnter {
   from { opacity: 0; transform: translateY(14px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -415,7 +415,7 @@ body::before {
   box-shadow: inset 0 1px 2px rgba(0,0,0,.15);
 }
 
-/* Small coin variant â€” inline with text */
+/* Small coin variant - inline with text */
 .coin-sm {
   width: 14px; height: 14px;
   animation: none;
@@ -433,7 +433,7 @@ body::before {
 }
 .home-coins.coin-earn .coin-icon { animation: coinEarn .35s ease, coinGlow 2.8s ease-in-out infinite .35s; }
 
-/* â”€â”€ Daily Challenge card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* -- Daily Challenge card ----------------------------------- */
 .daily-challenge-card {
   background: linear-gradient(135deg, rgba(124,58,237,.18) 0%, rgba(236,72,153,.10) 100%);
   border: 1px solid rgba(168,85,247,.38);
@@ -528,7 +528,7 @@ body::before {
   margin-bottom: 14px;
 }
 
-/* Home actions â€” radial glow behind buttons */
+/* Home actions - radial glow behind buttons */
 .home-actions {
   display: flex; flex-direction: column; gap: 9px;
   position: relative;
@@ -568,7 +568,7 @@ body::before {
   /* Ripple layer */
   isolation: isolate;
 }
-/* Ripple pseudo-element â€” scales out on :active */
+/* Ripple pseudo-element - scales out on :active */
 .btn::after {
   content: '';
   position: absolute; inset: 0;
@@ -615,7 +615,7 @@ body::before {
 .btn-large { font-size: 1.12rem; padding: 15px 28px; min-height: 56px; }
 .btn-sm    { font-size: .88rem;  padding: 10px 14px; min-height: 44px; }
 
-/* â”€â”€ Start Game button â€” hero CTA â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* -- Start Game button - hero CTA ------------------------------ */
 #btn-start {
   font-size: 1.22rem;
   padding: 18px 36px;
@@ -636,7 +636,7 @@ body::before {
   50%       { box-shadow: 0 8px 36px rgba(124,58,237,.75), 0 0 72px rgba(168,85,247,.36); }
 }
 
-/* Secondary buttons in home-actions â€” clean and restrained */
+/* Secondary buttons in home-actions - clean and restrained */
 .home-actions .btn-secondary {
   font-size: .94rem;
   min-height: 46px;
@@ -1422,7 +1422,7 @@ body.perf-low       .lp-dot { animation: none !important; }
   margin-bottom: 12px; line-height: 1.5;
 }
 
-/* â”€â”€ Split preview + grid layout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* -- Split preview + grid layout ------------------------- */
 .shop-skin-split {
   display: flex;
   gap: 12px;
@@ -1528,10 +1528,10 @@ body.perf-low       .lp-dot { animation: none !important; }
   gap: 7px;
 }
 
-/* Dot indicators (hidden â€” grid replaces carousel dots) */
+/* Dot indicators (hidden - grid replaces carousel dots) */
 .skin-dots { display: none; }
 
-/* â”€â”€ Try Mode in-game banner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* -- Try Mode in-game banner ------------------------------- */
 #try-mode-banner {
   position: absolute;
   top: 12px;
@@ -1639,7 +1639,7 @@ body.perf-low       .lp-dot { animation: none !important; }
 .skin-btn.skin-locked { cursor: pointer; }
 .skin-btn.skin-locked .skin-preview { opacity: 0.72; filter: saturate(0.7); }
 
-/* â”€â”€ Rarity / effect preview animations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* -- Rarity / effect preview animations --------------------- */
 @keyframes skinPulse {
   0%, 100% { box-shadow: 0 0 8px 1px var(--skin-c2, #06b6d4); }
   50%       { box-shadow: 0 0 20px 5px var(--skin-c2, #06b6d4); }
@@ -1711,11 +1711,11 @@ body.perf-low       .lp-dot { animation: none !important; }
   animation-play-state: paused;
 }
 
-/* â”€â”€ Inner-effect previews on skin cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+/* -- Inner-effect previews on skin cards -------------------------
    .skin-preview gets overflow:hidden so ::before stays within the circle */
 .skin-btn .skin-preview { overflow: hidden; }
 
-/* Shimmer streak â€” Ice, Gold */
+/* Shimmer streak - Ice, Gold */
 @keyframes previewShimmer {
   0%   { transform: translateX(-140%) skewX(-12deg); }
   100% { transform: translateX(260%)  skewX(-12deg); }
@@ -1728,7 +1728,7 @@ body.perf-low       .lp-dot { animation: none !important; }
   animation: previewShimmer 2.4s ease-in-out infinite;
 }
 
-/* Expanding pulse ring â€” Neon */
+/* Expanding pulse ring - Neon */
 @keyframes previewPulseRing {
   0%   { transform: scale(.08); opacity: .50; }
   100% { transform: scale(.95); opacity: 0;   }
@@ -1741,7 +1741,7 @@ body.perf-low       .lp-dot { animation: none !important; }
   animation: previewPulseRing 1.1s ease-out infinite;
 }
 
-/* Drifting magma blob â€” Lava, Crimson */
+/* Drifting magma blob - Lava, Crimson */
 @keyframes previewLavaBlob {
   0%   { transform: translate(-18%,-14%); }
   33%  { transform: translate( 16%, 10%); }
@@ -1756,7 +1756,7 @@ body.perf-low       .lp-dot { animation: none !important; }
   animation: previewLavaBlob 2.5s ease-in-out infinite;
 }
 
-/* Electric center flash â€” Electric */
+/* Electric center flash - Electric */
 @keyframes previewElectricFlash {
   0%,60%,100% { opacity: 0;    transform: scale(.35); }
   65%         { opacity: .55;  transform: scale(1.0); }
@@ -1769,7 +1769,7 @@ body.perf-low       .lp-dot { animation: none !important; }
   animation: previewElectricFlash 0.9s ease-in-out infinite;
 }
 
-/* Orbiting hot-spot â€” Inferno */
+/* Orbiting hot-spot - Inferno */
 @keyframes previewInferno {
   0%   { transform: translate(-22%,-18%); }
   25%  { transform: translate( 18%,-12%); }
@@ -1784,7 +1784,7 @@ body.perf-low       .lp-dot { animation: none !important; }
   animation: previewInferno 2.2s ease-in-out infinite;
 }
 
-/* Rotating rainbow split â€” Prism */
+/* Rotating rainbow split - Prism */
 @keyframes previewPrismRotate {
   0%   { transform: rotate(0deg);   filter: hue-rotate(0deg); }
   100% { transform: rotate(360deg); filter: hue-rotate(360deg); }
@@ -1796,7 +1796,7 @@ body.perf-low       .lp-dot { animation: none !important; }
   animation: previewPrismRotate 2.4s linear infinite;
 }
 
-/* Dark vortex â€” Void */
+/* Dark vortex - Void */
 @keyframes previewVoid {
   0%   { transform: translate(-22%,-18%) scale(.60); opacity: .80; }
   50%  { transform: translate( 18%, 16%) scale(.68); opacity: .60; }
@@ -1809,7 +1809,7 @@ body.perf-low       .lp-dot { animation: none !important; }
   animation: previewVoid 2.4s ease-in-out infinite;
 }
 
-/* Nebula drift â€” Galaxy */
+/* Nebula drift - Galaxy */
 @keyframes previewGalaxy {
   0%,100% { transform: translate(-14%,-11%) scale(.78); opacity: .72; }
   50%     { transform: translate( 14%, 10%) scale(.82); opacity: .88; }
@@ -1975,7 +1975,7 @@ body.perf-low       .lp-dot { animation: none !important; }
 .skin-coin-tag.coin-tag-affordable { color: #fde68a; background: rgba(234,179,8,.28); }
 
 /* ============================================================
-   GAME SCREEN â€” HUD
+   GAME SCREEN - HUD
    ============================================================ */
 #hud {
   display: flex; align-items: stretch;
@@ -2212,7 +2212,7 @@ body.perf-low       .lp-dot { animation: none !important; }
   min-height: 0; touch-action: none; cursor: none; outline: none;
 }
 
-/* â”€â”€ Forbidden color change: border flash overlay â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* -- Forbidden color change: border flash overlay ------------ */
 #color-flash-overlay {
   position: absolute; inset: 0;
   pointer-events: none;
@@ -2239,7 +2239,7 @@ body.perf-low       .lp-dot { animation: none !important; }
 }
 
 /* ============================================================
-   TOUCH CONTROLS â€” floating pause button (mobile only)
+   TOUCH CONTROLS - floating pause button (mobile only)
    ============================================================ */
 #touch-controls {
   position: absolute;
@@ -2276,7 +2276,7 @@ body.perf-low       .lp-dot { animation: none !important; }
 /* ============================================================
    GAME OVERLAYS (pause, game over)
    ============================================================ */
-/* â”€â”€ Mini Run Goal Bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* -- Mini Run Goal Bar ------------------------------------ */
 #run-goal-bar {
   position: absolute;
   bottom: 6px; left: 50%; transform: translateX(-50%);
@@ -2310,7 +2310,7 @@ body.perf-low       .lp-dot { animation: none !important; }
 #run-goal-bar.run-goal-done .run-goal-fill { background: #34d399; width: 100% !important; }
 .run-goal-pct { font-size: .68rem; font-variant-numeric: tabular-nums; min-width: 26px; text-align: right; }
 
-/* â”€â”€ Game Over: Coin Breakdown â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* -- Game Over: Coin Breakdown ------------------------------- */
 .go-coins-breakdown {
   display: grid; grid-template-columns: 1fr auto;
   gap: 3px 10px;
@@ -2325,7 +2325,7 @@ body.perf-low       .lp-dot { animation: none !important; }
 .go-coins-breakdown:empty { display: none; }
 .go-coins-breakdown span:nth-child(even) { text-align: right; font-weight: 700; color: var(--gold); }
 
-/* â”€â”€ Game Over: Lifetime Progress â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* -- Game Over: Lifetime Progress ---------------------------- */
 .go-lifetime-section {
   display: flex; flex-direction: column; gap: 5px;
   padding: 10px 12px;
@@ -2359,7 +2359,7 @@ body.perf-low       .lp-dot { animation: none !important; }
   margin: 0; text-align: center;
 }
 
-/* â”€â”€ Game Overlay (below) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* -- Game Overlay (below) ----------------------------------- */
 .game-overlay {
   position: absolute; inset: 0;
   background: rgba(0,0,0,.86);
@@ -2480,7 +2480,7 @@ body.perf-low       .lp-dot { animation: none !important; }
 }
 
 /* ============================================================
-   RESPONSIVE â€” shorter screens (reduce HUD height)
+   RESPONSIVE - shorter screens (reduce HUD height)
    ============================================================ */
 @media (max-height: 620px) {
   :root { --hud-h: 52px; }
@@ -2807,7 +2807,7 @@ body.perf-low       .lp-dot { animation: none !important; }
 }
 .shop-topbar, .shop-body, .shop-footer { position: relative; z-index: 1; }
 
-/* â”€â”€ Top bar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* -- Top bar ----------------------------------------------- */
 .shop-topbar {
   display: flex; align-items: center; gap: 14px;
   padding: 0 36px; height: 72px; flex-shrink: 0;
@@ -2826,7 +2826,7 @@ body.perf-low       .lp-dot { animation: none !important; }
   filter: drop-shadow(0 0 18px rgba(168,85,247,.55));
 }
 
-/* â”€â”€ Tabs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* -- Tabs -------------------------------------------------- */
 .shop-tabs {
   display: flex; align-items: center; gap: 6px;
   flex: 1; justify-content: center;
@@ -2857,7 +2857,7 @@ body.perf-low       .lp-dot { animation: none !important; }
 .shop-tab-btn:focus-visible { outline: 3px solid var(--accent-light); outline-offset: 3px; }
 .shop-tab-icon { font-size: 1rem; line-height: 1; }
 
-/* â”€â”€ Top-right â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* -- Top-right --------------------------------------------- */
 .shop-topbar-right {
   display: flex; align-items: center; gap: 12px;
   flex-shrink: 0; min-width: 110px; justify-content: flex-end;
@@ -2886,7 +2886,7 @@ body.perf-low       .lp-dot { animation: none !important; }
   color: #fca5a5; transform: scale(1.08);
 }
 
-/* â”€â”€ Body â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* -- Body -------------------------------------------------- */
 .shop-body {
   flex: 1; overflow-y: auto; overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
@@ -2908,7 +2908,7 @@ body.perf-low       .lp-dot { animation: none !important; }
   background: linear-gradient(180deg, #a78bfa, #7c3aed);
 }
 
-/* â”€â”€ Panels â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* -- Panels ------------------------------------------------ */
 .shop-panel {
   display: none; padding: 36px 40px 80px;
   max-width: 1400px; margin: 0 auto; width: 100%;
@@ -2937,7 +2937,7 @@ body.perf-low       .lp-dot { animation: none !important; }
 .shop-stats-section    { margin-top: 56px; }
 .shop-lifetime-section { margin-top: 56px; }
 
-/* â”€â”€ Footer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* -- Footer ------------------------------------------------ */
 .shop-footer {
   flex-shrink: 0; display: flex; align-items: center; justify-content: center;
   padding: 14px 24px 18px;
@@ -2998,7 +2998,7 @@ body.perf-low       .lp-dot { animation: none !important; }
 
 .shop-panel .shop-skin-grid-panel { max-height: none; overflow: visible; flex: 1; min-width: 0; }
 
-/* â”€â”€ Skin grid â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* -- Skin grid --------------------------------------------- */
 .skin-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(138px, 1fr));
@@ -3144,7 +3144,7 @@ body.perf-low       .lp-dot { animation: none !important; }
 #shop-panel-challenges .stat-value { color: #ffffff; font-size: 1.1rem; }
 
 
-/* â”€â”€ Responsive â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* -- Responsive -------------------------------------------- */
 @media (max-width: 640px) {
   .shop-topbar { padding: 0 16px; height: 60px; gap: 8px; }
   .shop-title  { font-size: 1.1rem; }
@@ -3244,10 +3244,10 @@ body.perf-low       .lp-dot { animation: none !important; }
 
 
 /* ============================================================
-   REWARDED AD MODAL â€” PREMIUM REDESIGN
+   REWARDED AD MODAL - PREMIUM REDESIGN
    ============================================================ */
 
-/* â”€â”€ Overlay backdrop â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* -- Overlay backdrop --------------------------------------- */
 .rad-overlay {
   position: fixed; inset: 0; z-index: 12000;
   background: rgba(2, 0, 14, .92);
@@ -3261,7 +3261,7 @@ body.perf-low       .lp-dot { animation: none !important; }
   to { opacity: 1; }
 }
 
-/* â”€â”€ Modal card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* -- Modal card --------------------------------------------- */
 .rad-modal {
   position: relative;
   width: min(560px, 100%);
@@ -3297,7 +3297,7 @@ body.perf-low       .lp-dot { animation: none !important; }
 }
 .rad-modal > *:not(.rad-glow) { position: relative; z-index: 1; }
 
-/* â”€â”€ Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* -- Header ------------------------------------------------- */
 .rad-header {
   display: flex; align-items: center; gap: 12px;
   padding: 18px 22px 16px;
@@ -3350,7 +3350,7 @@ body.perf-low       .lp-dot { animation: none !important; }
 }
 .rad-close-btn:disabled { opacity: .28; cursor: not-allowed; }
 
-/* â”€â”€ Video / Ad area â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* -- Video / Ad area ---------------------------------------- */
 .rad-video-wrap {
   position: relative; width: 100%; aspect-ratio: 16/9;
   background: #000; overflow: hidden;
@@ -3359,7 +3359,7 @@ body.perf-low       .lp-dot { animation: none !important; }
   width: 100%; height: 100%; object-fit: cover; display: block;
 }
 
-/* â”€â”€ Fallback mock ad panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* -- Fallback mock ad panel --------------------------------- */
 .rad-fallback {
   position: absolute; inset: 0;
   background: linear-gradient(145deg, #080228 0%, #0f0640 50%, #080228 100%);
@@ -3462,7 +3462,7 @@ body.perf-low       .lp-dot { animation: none !important; }
   white-space: nowrap; min-width: 26px; text-align: right;
 }
 
-/* â”€â”€ Idle overlay (shown before start) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* -- Idle overlay (shown before start) --------------------- */
 .rad-idle-overlay {
   position: absolute; inset: 0; z-index: 10;
   background: rgba(5, 0, 24, .78);
@@ -3515,7 +3515,7 @@ body.perf-low       .lp-dot { animation: none !important; }
   margin: 0; text-align: center; max-width: 240px; line-height: 1.5;
 }
 
-/* â”€â”€ Completion overlay â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* -- Completion overlay ------------------------------------- */
 .rad-complete-overlay {
   position: absolute; inset: 0; z-index: 12;
   background: rgba(0,0,0,.68);
@@ -3572,7 +3572,7 @@ body.perf-low       .lp-dot { animation: none !important; }
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* â”€â”€ Progress section â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* -- Progress section --------------------------------------- */
 .rad-progress-section {
   padding: 16px 22px 12px;
   border-top: 1px solid rgba(255,255,255,.06);
@@ -3618,7 +3618,7 @@ body.perf-low       .lp-dot { animation: none !important; }
 /* Highlight timer when complete */
 .rad-modal[data-state="completed"] .rad-timer-label { color: #86efac; }
 
-/* â”€â”€ Footer (state-driven) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* -- Footer (state-driven) ---------------------------------- */
 .rad-footer {
   padding: 14px 22px 22px;
   display: flex; flex-direction: column; align-items: center; gap: 10px;
@@ -3654,7 +3654,7 @@ body.perf-low       .lp-dot { animation: none !important; }
   font-size: .8rem; color: #c4b5fd; font-weight: 600;
 }
 
-/* Claim button â€” hidden by default, shown when completed */
+/* Claim button - hidden by default, shown when completed */
 .rad-claim-btn {
   display: none; /* shown by state */
   align-items: center; justify-content: center; gap: 10px;
@@ -3684,7 +3684,7 @@ body.perf-low       .lp-dot { animation: none !important; }
   50%     { box-shadow: 0 8px 50px rgba(251,191,36,.9), 0 0 80px rgba(251,191,36,.2); background-position: 100% center; }
 }
 
-/* â”€â”€ Responsive â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* -- Responsive --------------------------------------------- */
 @media (max-width: 480px) {
   .rad-modal { border-radius: 20px; }
   .rad-header { padding: 14px 16px 12px; }

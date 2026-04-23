@@ -1,5 +1,5 @@
-﻿// ============================================================
-// FORBIDDEN COLOR â€” Game Logic v2
+// ============================================================
+// FORBIDDEN COLOR - Game Logic v2
 // ============================================================
 'use strict';
 
@@ -32,7 +32,7 @@ const POWERUP_UPGRADE_DEFS = {
 };
 const POWERUP_UPGRADE_KEYS = Object.keys(POWERUP_UPGRADE_DEFS);
 
-// Single built-in difficulty â€” ramps automatically via tickDifficulty()
+// Single built-in difficulty - ramps automatically via tickDifficulty()
 const GAME_CONFIG = { playerSpeed: 255, spawnRate: 1.10, forbiddenInterval: 3.0, baseSpeed: 210 };
 
 // ============================================================
@@ -101,41 +101,41 @@ const PATTERN_LIBRARY = [
   { id:'TARGETED',    phaseWeights:[ 0, 1, 3, 6, 8] },  // Direct pressure on player zone
 ];
 
-// Player skins â€” unlock thresholds are bestScore requirements (bestScore never decreases)
+// Player skins - unlock thresholds are bestScore requirements (bestScore never decreases)
 const SKIN_DEFS = [
-  // â”€â”€ Common â”€â”€
+  // -- Common --
   { id: 'classic', name: 'Classic', unlock:    0, rarity: 'common', effect: 'none',    color1: '#ffffff', color2: '#c084fc', glow: '#a855f7', shape: 'circle', trail: false },
   { id: 'neon',    name: 'Neon',    unlock: 0, coinCost:  75, rarity: 'common', effect: 'pulse',   color1: '#ccfdf2', color2: '#06b6d4', glow: '#06b6d4', shape: 'circle', trail: true  },
-  // â”€â”€ Rare â”€â”€
+  // -- Rare --
   { id: 'ice',     name: 'Ice',     unlock: 0, coinCost: 150, rarity: 'rare',   effect: 'shimmer', color1: '#e0f2fe', color2: '#38bdf8', glow: '#7dd3fc', shape: 'circle', trail: true  },
   { id: 'lava',    name: 'Lava',    unlock: 0, coinCost: 175, rarity: 'rare',   effect: 'flicker', color1: '#fef08a', color2: '#ef4444', glow: '#f97316', shape: 'circle', trail: true  },
   { id: 'crimson',  name: 'Crimson',  unlock: 0, coinCost: 200, rarity: 'rare',      effect: 'flicker',  color1: '#ffe4e1', color2: '#dc2626', glow: '#ef4444', shape: 'circle', trail: true  },
   { id: 'aurora',   name: 'Aurora',   unlock: 0, lifetimeUnlock: 2500, rarity: 'rare', effect: 'shimmer', color1: '#d1fae5', color2: '#0ea5e9', glow: '#22d3ee', shape: 'circle', trail: true  },
-  // â”€â”€ Epic â”€â”€
+  // -- Epic --
   { id: 'gold',    name: 'Gold',    unlock: 0, coinCost: 300, rarity: 'epic',   effect: 'shimmer', color1: '#fefce8', color2: '#eab308', glow: '#fbbf24', shape: 'star',   trail: false },
   { id: 'void',     name: 'Void',     unlock: 0, coinCost: 425, rarity: 'epic',      effect: 'void',     color1: '#ddd6fe', color2: '#3b0764', glow: '#c084fc', shape: 'star',   trail: true  },
   { id: 'electric', name: 'Electric', unlock: 0, coinCost: 350, rarity: 'epic',      effect: 'electric', color1: '#e0f2fe', color2: '#0284c7', glow: '#38bdf8', shape: 'circle', trail: true  },
   { id: 'inferno',  name: 'Inferno',  unlock: 0, coinCost: 350, rarity: 'epic',      effect: 'inferno',  color1: '#fffbeb', color2: '#dc2626', glow: '#f97316', shape: 'circle', trail: true  },
   { id: 'prism',    name: 'Prism',    unlock: 0, coinCost: 350, rarity: 'epic',      effect: 'prism',    color1: '#ffffff', color2: '#a855f7', glow: '#e879f9', shape: 'circle', trail: true  },
   { id: 'afterglow', name: 'Afterglow', unlock: 0, lifetimeUnlock: 10000, rarity: 'epic', effect: 'prism', color1: '#fef3c7', color2: '#f472b6', glow: '#fb7185', shape: 'circle', trail: true  },
-  // â”€â”€ Legendary â”€â”€
+  // -- Legendary --
   { id: 'galaxy',   name: 'Galaxy',   unlock: 0, coinCost: 550, rarity: 'legendary', effect: 'galaxy',   color1: '#c4b5fd', color2: '#1e1b4b', glow: '#818cf8', shape: 'star',   trail: true  },
   { id: 'eclipse',  name: 'Eclipse',  unlock: 0, lifetimeUnlock: 25000, rarity: 'legendary', effect: 'void', color1: '#f5f3ff', color2: '#111827', glow: '#a78bfa', shape: 'star', trail: true  },
 ];
 const LIFETIME_REWARD_DEFS = [
-  // â”€â”€ Common â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // -- Common ------------------------------------------------------------------
   { id: 'lt_coins_500',   milestone: 500,    label: '100 Coins',      type: 'coins',  coins: 100,  rarity: 'common',    icon: '', description: 'A starter coin bundle to kick off your journey.' },
-  { id: 'lt_coins_1500',  milestone: 1500,   label: '200 Coins',      type: 'coins',  coins: 200,  rarity: 'common',    icon: '', description: 'Keep playing â€” the coins stack up.' },
-  // â”€â”€ Rare â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  { id: 'lt_coins_1500',  milestone: 1500,   label: '200 Coins',      type: 'coins',  coins: 200,  rarity: 'common',    icon: '', description: 'Keep playing - the coins stack up.' },
+  // -- Rare --------------------------------------------------------------------
   { id: 'aurora',         milestone: 2500,   label: 'Aurora Skin',    type: 'skin',   rarity: 'rare',      icon: '', description: 'A shimmering neon-teal skin for the dedicated.' },
   { id: 'lt_coins_4k',    milestone: 4000,   label: '350 Coins',      type: 'coins',  coins: 350,  rarity: 'rare',      icon: '', description: 'A rare coin reward for dedicated players.' },
   { id: 'lt_badge_5k',    milestone: 5000,   label: 'Trailblazer',    type: 'badge',               rarity: 'rare',      icon: '', description: 'Awarded to those who push past the score ceiling.' },
-  { id: 'lt_coins_7500',  milestone: 7500,   label: '500 Coins',      type: 'coins',  coins: 500,  rarity: 'rare',      icon: '', description: 'Half a thousand coins â€” impressive.' },
-  // â”€â”€ Epic â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  { id: 'lt_coins_7500',  milestone: 7500,   label: '500 Coins',      type: 'coins',  coins: 500,  rarity: 'rare',      icon: '', description: 'Half a thousand coins - impressive.' },
+  // -- Epic --------------------------------------------------------------------
   { id: 'afterglow',      milestone: 10000,  label: 'Afterglow Skin', type: 'skin',   rarity: 'epic',      icon: '', description: 'A saturated sunset prism skin for elite players.' },
   { id: 'lt_coins_15k',   milestone: 15000,  label: '750 Coins',      type: 'coins',  coins: 750,  rarity: 'epic',      icon: '', description: 'An epic hoard of coins.' },
   { id: 'lt_badge_20k',   milestone: 20000,  label: 'Veteran',        type: 'badge',               rarity: 'epic',      icon: '', description: 'A mark of true dedication and skill.' },
-  // â”€â”€ Legendary â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // -- Legendary ---------------------------------------------------------------
   { id: 'eclipse',        milestone: 25000,  label: 'Eclipse Skin',   type: 'skin',   rarity: 'legendary', icon: '', description: 'A dark legendary cosmic skin.' },
   { id: 'lt_coins_35k',   milestone: 35000,  label: '1,000 Coins',    type: 'coins',  coins: 1000, rarity: 'legendary', icon: '', description: 'A legendary coin vault.' },
   { id: 'lt_badge_50k',   milestone: 50000,  label: 'Legend',         type: 'badge',               rarity: 'legendary', icon: '', description: 'Only legends reach this summit.' },
@@ -145,25 +145,25 @@ const LIFETIME_REWARD_DEFS = [
 
 const STATE = { HOME: 'home', PLAYING: 'playing', PAUSED: 'paused', GAMEOVER: 'gameover' };
 
-const WARNING_DURATION    = 0.8;  // short flash warning â€” just enough to react
+const WARNING_DURATION    = 0.8;  // short flash warning - just enough to react
 const NEAR_MISS_DIST      = 65;   // px (from player center to nearest rect edge)
 const NEAR_MISS_BONUS     = 40;
-const COMBO_BONUS_PER         = 25;   // pts per combo level on each color change (combox25: 25, 50, 75â€¦)
+const COMBO_BONUS_PER         = 25;   // pts per combo level on each color change (combox25: 25, 50, 75...)
 const POWERUP_COLLECT_BONUS   = 50;   // flat pts for picking up any power-up
 const POWERUP_INTERVAL    = 15;   // s between powerup spawns (more frequent to compensate)
 const COIN_ITEM_INTERVAL  = 8.5;  // s between coin column spawns (columns have 4-6 coins each)
 const DIFF_SCALE_EVERY    = 6;    // s between difficulty bumps
-const MAX_OBSTACLES       = 48;   // increased from 40 â€” blocks persist longer now, need more capacity
+const MAX_OBSTACLES       = 48;   // increased from 40 - blocks persist longer now, need more capacity
 const GRACE_PERIOD        = 0.20; // reduced -- game pressures player earlier
-const FORBIDDEN_MIN_RATIO = 0.65; // keep at least 65% of active obstacles forbidden â€” keeps screen readable
+const FORBIDDEN_MIN_RATIO = 0.65; // keep at least 65% of active obstacles forbidden - keeps screen readable
 const CLUSTER_CHANCE      = 0.55; // structured wave patterns fire on most spawn ticks
-const MIN_CLEAR_GAP       = 72;   // slightly reduced from 76 â€” tighter corridors increase urgency
+const MIN_CLEAR_GAP       = 72;   // slightly reduced from 76 - tighter corridors increase urgency
 const NUM_LANES           = 6;    // play area divided into this many columns for controlled, fair spawning
 const CAMPING_WAVE_LIMIT  = 2;    // consecutive spawn waves in same player lane before anti-camp kicks in
 const MAX_SAFE_LANE_STREAK = 2;   // hard cap for repeating the exact same safe lane
 const MAX_PLAYER_LANE_SHIELD = 0; // single spawns no longer avoid player lane (full pressure)
 const OBSTACLE_CLEANUP_MARGIN = 110; // blocks removed shortly after leaving screen (frees cap for new threats)
-// Wall / narrow-lane patterns removed â€” challenge comes from spawn rate and color cycling.
+// Wall / narrow-lane patterns removed - challenge comes from spawn rate and color cycling.
 
 const FLOW_CONFIG = {
   maxCombo: 36,
@@ -201,7 +201,7 @@ const FLOW_CONFIG = {
   closeCallCoins: 1,
 };
 
-// â”€â”€ Mini run goals shown in HUD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- Mini run goals shown in HUD ------------------------------
 const MINI_GOAL_DEFS = [
   { id: 'coins5',    label: 'Collect 5 coins',   icon: '', stat: 'pickupCoins', goal: 5,    reward: 4 },
   { id: 'miss2',     label: 'Near-miss x2',       icon: '', stat: 'nearMisses',  goal: 2,    reward: 4 },
@@ -224,7 +224,7 @@ const MINI_GOAL_DEFS = [
 //   rewardLabel, repeatable (can be re-earned after reset).
 // ============================================================
 const MISSION_DEFS = [
-  // â”€â”€ Easy â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // -- Easy ----------------------------------------------
   {
     id: 'survive45',    difficulty: 'easy',
     label: 'Survivor I',
@@ -249,7 +249,7 @@ const MISSION_DEFS = [
     description: 'Play Forbidden Color 3 days in a row.',
     stat: 'streak',     goal: 3,    coinReward: 10,
   },
-  // â”€â”€ Medium â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // -- Medium ------------------------------------------
   {
     id: 'survive180',   difficulty: 'medium',
     label: 'Survivor II',
@@ -280,7 +280,7 @@ const MISSION_DEFS = [
     description: 'Play Forbidden Color 7 days in a row.',
     stat: 'streak',     goal: 7,    coinReward: 20,
   },
-  // â”€â”€ Hard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // -- Hard ----------------------------------------------
   {
     id: 'survive360',   difficulty: 'hard',
     label: 'Ironclad',
@@ -330,7 +330,7 @@ let pendingMissionBonus = 0;
 let skinCarouselIdx = 0;       // index of the currently shown skin in the carousel
 let skinCarouselAnimating = false; // true while a slide animation is in progress
 
-// â”€â”€ Daily streak tracking â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- Daily streak tracking ----------------------------------------------
 function todayDateStr() {
   const d = new Date();
   return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
@@ -537,7 +537,7 @@ function updateMissionUI() {
           '</span>' +
         '</div>' +
         '<p class="mission-desc">' + m.description + '</p>' +
-        '<p class="mission-claimed-label">âœ“ Claimed</p>';
+        '<p class="mission-claimed-label">OK Claimed</p>';
       doneList.appendChild(item);
     });
   }
@@ -558,7 +558,7 @@ let settings = {
   reducedMotion:  false,
   highContrast:   false,
   colorblind:     false,
-  perfMode:       'high', // 'high' | 'low' â€” Low reduces particles, glow, and animations
+  perfMode:       'high', // 'high' | 'low' - Low reduces particles, glow, and animations
   bestScore:      0,
   lifetimeScore:  0,
   selectedSkin:   'classic',
@@ -577,7 +577,7 @@ let score         = 0;
 let combo         = 0;
 let maxCombo      = 0;
 let gameStartTime = 0;
-let pausedDuration  = 0; // total ms spent paused â€” excluded from all elapsed calculations
+let pausedDuration  = 0; // total ms spent paused - excluded from all elapsed calculations
 let pauseStartTime  = 0; // performance.now() at the moment pause began
 let graceTimer    = 0;
 let lastFrameTime = 0;
@@ -589,7 +589,7 @@ let coinItems     = []; // collectable gold coin pickups
 let floatingTexts = [];
 let ringBursts    = []; // expanding ring effects for powerup pickups
 
-// Milestone banner â€” one large centre-screen announcement at a time
+// Milestone banner - one large centre-screen announcement at a time
 let milestoneBanner = null; // { text, color, timer, totalTime, scale }
 let _scoreMilestonesHit = new Set();
 let _timeMilestonesHit  = new Set();
@@ -618,18 +618,18 @@ let activePowerupTimer = 0;
 let activePowerupTotal = 0;
 let playerRadiusTarget = 24; // lerp target for smooth SMALL powerup shrink/restore
 
-let colorChangeGrace   = 0; // s remaining â€” brief invincibility on forbidden color change
+let colorChangeGrace   = 0; // s remaining - brief invincibility on forbidden color change
 
 let nearMissCooldownTimer = 0; // global cooldown (s) to prevent near-miss spam from multiple simultaneous blocks
-let nearMissGlowTimer    = 0; // 0â†’1 â€” boosts player glow briefly on near miss
-let coinPickupFlashTimer = 0; // 0â†’1 â€” brief gold screen pulse on coin collect
+let nearMissGlowTimer    = 0; // 0->1 - boosts player glow briefly on near miss
+let coinPickupFlashTimer = 0; // 0->1 - brief gold screen pulse on coin collect
 
-// â”€â”€ Coin streak & run tracking â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- Coin streak & run tracking -------------------------------
 let coinStreakCount         = 0;   // consecutive coins collected without gap
 let coinStreakTimer         = 0;   // countdown (s) until streak resets
 let coinsFromPickupsThisRun = 0;  // coins earned from in-run pickups
 
-// â”€â”€ Mini run goal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- Mini run goal --------------------------------------------
 let runMiniGoal = null; // { ...def, progress: 0, done: false }
 
 let shakeX = 0, shakeY = 0, shakeTimer = 0;
@@ -638,8 +638,8 @@ let shakeX = 0, shakeY = 0, shakeTimer = 0;
 let panicCooldown  = 18;   // s until first wave (starts after grace)
 let panicTimer     = 0;   // counts up during cooldown / down during wave / down during announce
 let panicPhase     = 'cooldown'; // 'cooldown' | 'announce' | 'wave'
-let panicDuration  = 0;   // chosen length of current wave (2â€“4 s)
-let comboPulseTimer = 0;  // 0â†’1 flash on combo increase, decays over ~0.35s
+let panicDuration  = 0;   // chosen length of current wave (2-4 s)
+let comboPulseTimer = 0;  // 0->1 flash on combo increase, decays over ~0.35s
 let flowState = {
   meter: 0,
   idleTime: 0,
@@ -653,7 +653,7 @@ let flowState = {
   displayCombo: -1,
 };
 
-// â”€â”€ Try Mode & Shop Preview â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- Try Mode & Shop Preview ----------------------------------
 const tryMode = { active: false, timer: 0, duration: 8, originalSkin: null };
 let _shopPreviewRaf      = null;
 let _shopPreviewSkinId   = null;
@@ -661,17 +661,17 @@ let _shopPreviewSkinId   = null;
 // Double Danger state
 let ddPhase        = 'idle';  // 'idle' | 'announce' | 'active'
 let ddTimer        = 0;
-let ddCooldown     = 35;      // first event ~35â€“53 s in
+let ddCooldown     = 35;      // first event ~35-53 s in
 let ddDuration     = 0;
 let dd2ndIndex     = -1;      // second forbidden color (-1 = none)
 let ddBlockTimer   = 0;       // s remaining before DD can fire (post-panic buffer)
 let panicBlockFromDD = 0;     // s remaining before panic wave can fire (post-DD buffer)
 
-// Roaming safe-gap state â€” the open corridor wanders across the screen over time.
+// Roaming safe-gap state - the open corridor wanders across the screen over time.
 // Resets on startGame. Drives pickSafeLane() so the player must keep repositioning.
 let _safeLaneDrift   = 2;   // which lane the open gap is currently biased toward
-let _lastSafeLane    = -1;  // the safe lane chosen last wave â€” prevents same column repeat
-let _wavesUntilDrift = 3;   // countdown: when 0, _safeLaneDrift shifts Â±1
+let _lastSafeLane    = -1;  // the safe lane chosen last wave - prevents same column repeat
+let _wavesUntilDrift = 3;   // countdown: when 0, _safeLaneDrift shifts +/-1
 let _safeLaneStreak  = 0;   // consecutive waves that picked the same safe lane
 let _lastPlayerLaneSeen = -1; // player lane at previous spawn wave
 let _samePlayerLaneWaves = 0; // consecutive spawn waves player stayed in same lane
@@ -684,7 +684,7 @@ const PANIC_COOLDOWN_VAR  = 5; // randomised extra: 8-13 s gap
 
 const DD_MIN_PLAYTIME   = 18;   // earliest Double Danger can fire (s into run)
 const DD_COOLDOWN_BASE  = 30;   // s between DD events
-const DD_COOLDOWN_VAR   = 18;   // randomised range: 30â€“48 s
+const DD_COOLDOWN_VAR   = 18;   // randomised range: 30-48 s
 const DD_ANNOUNCE       = 0.75; // warning banner duration (s)
 const EVENT_POST_BUFFER = 5.0;  // buffer between any two special events (s)
 
@@ -698,7 +698,7 @@ let canvas, ctx, rafHandle = null;
 // SECTION 3: SETTINGS & LOCAL STORAGE
 // ============================================================
 
-// â”€â”€ Lifetime stats â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- Lifetime stats ---------------------------------------
 let gameStats = {
   totalRuns:         0,
   bestScore:         0,  // mirror of settings.bestScore for convenience
@@ -776,14 +776,14 @@ function loadSettings() {
     if (typeof s.economyVersion === 'number') settings.economyVersion = s.economyVersion;
     if (typeof s.skinVersion    === 'number') settings.skinVersion    = s.skinVersion;
     if (settings.economyVersion < ECONOMY_VERSION) {
-      // Economy was rebalanced â€” reset coins only, preserve everything else
+      // Economy was rebalanced - reset coins only, preserve everything else
       s.coins = 0;
       s.economyVersion = ECONOMY_VERSION;
       settings.economyVersion = ECONOMY_VERSION;  // persisted via saveSettings()
       _migrated = true;
     }
     if (settings.skinVersion < SKIN_VERSION) {
-      // Skin shop converted to coin-only â€” reset purchased skins once
+      // Skin shop converted to coin-only - reset purchased skins once
       s.purchasedSkins = [];
       s.selectedSkin = 'classic';
       s.skinVersion = SKIN_VERSION;
@@ -913,7 +913,7 @@ function unlockLifetimeRewards(prevScore, newScore) {
   normalizeLifetimeRewardState();
   const unlocked = [];
   LIFETIME_REWARD_DEFS.forEach(reward => {
-    // Only auto-unlock skin rewards â€” coin/badge rewards require explicit player claim.
+    // Only auto-unlock skin rewards - coin/badge rewards require explicit player claim.
     // Skins must be immediately available as a playable asset when the score threshold is crossed.
     if (reward.type !== 'skin') return;
     if (prevScore < reward.milestone && newScore >= reward.milestone && !settings.lifetimeRewards.includes(reward.id)) {
@@ -953,7 +953,7 @@ function renderLifetimeProgressUI() {
   const total      = progress.total;
   const nextReward = progress.nextReward;
 
-  // â”€â”€ Home screen elements â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // -- Home screen elements -----------------------------------------
   const homeScore  = document.getElementById('home-lifetime-score');
   const homeBar    = document.getElementById('home-lifetime-bar');
   const homeNext   = document.getElementById('home-lifetime-next');
@@ -967,7 +967,7 @@ function renderLifetimeProgressUI() {
     ? formatNumber(total) + ' / ' + formatNumber(nextReward.milestone) + ' - ' + nextReward.label
     : 'Every milestone reward claimed';
 
-  // â”€â”€ Shop panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // -- Shop panel ---------------------------------------------------
   const headerEl = document.getElementById('lp-header');
   const road     = document.getElementById('lifetime-rewards-list');
   if (!headerEl || !road) return;
@@ -1042,7 +1042,7 @@ function renderLifetimeProgressUI() {
         '<div class="lp-line lp-line-before' + (isFirst ? ' lp-line-edge' : lineBefore) + '"></div>' +
         '<div class="lp-dot">' +
           '<span class="lp-dot-icon">' + reward.icon + '</span>' +
-          (claimed ? '<div class="lp-dot-check">✓</div>' : '') +
+          (claimed ? '<div class="lp-dot-check">Done</div>' : '') +
         '</div>' +
         '<div class="lp-line lp-line-after' + (isLast ? ' lp-line-edge' : lineAfter) + '"></div>' +
       '</div>' +
@@ -1056,7 +1056,7 @@ function renderLifetimeProgressUI() {
     '</div>';
   }).join('');
 
-  // Event delegation â€” one listener, no accumulation
+  // Event delegation - one listener, no accumulation
   if (!road._lpDelegated) {
     road._lpDelegated = true;
     road.addEventListener('click', e => {
@@ -1161,7 +1161,7 @@ function updatePowerupUpgradeUI() {
     ).join('');
 
     const action = isMaxed
-      ? '<div class="pup-max-badge">âœ¦ MAX</div>'
+      ? '<div class="pup-max-badge">MAX</div>'
       : '<button class="pup-btn ' + (canAfford ? 'pup-btn-afford' : 'pup-btn-cant') + '" type="button"' +
         ' data-upgrade-key="' + key + '">' +
         coinSpan + '<span>' + nextCost.toLocaleString() + '</span></button>';
@@ -1177,7 +1177,7 @@ function updatePowerupUpgradeUI() {
         '<p class="pup-desc">' + desc + '</p>' +
         '<div class="pup-stats-row">' +
           '<div class="pup-stat"><span class="pup-stat-l">Now</span><span class="pup-stat-v">' + formatSeconds(currentDur) + '</span></div>' +
-          '<span class="pup-stat-sep">â†’</span>' +
+          '<span class="pup-stat-sep">-></span>' +
           '<div class="pup-stat pup-stat-next"><span class="pup-stat-l">Next</span><span class="pup-stat-v">' + formatSeconds(nextDur) + '</span></div>' +
         '</div>' +
       '</div>' +
@@ -1249,7 +1249,7 @@ const Audio = (() => {
   return {
     init()    { ctx_(); },
     getCtx()  { return _actx; }, // shared by Music engine
-    // Called on first user gesture â€” creates and resumes AudioContext on iOS/Android
+    // Called on first user gesture - creates and resumes AudioContext on iOS/Android
     unlock() {
       if (_actx && _actx.state !== 'suspended') return; // already running
       ctx_(); // create if needed + call resume
@@ -1563,8 +1563,8 @@ const Music = (() => {
       }
     },
 
-    // Called every frame from gameLoop â€” lerps intensity gain
-    // threshold levels: combo>=3 â†’ 0.3, combo>=5 â†’ 0.6, panic â†’ 1.0
+    // Called every frame from gameLoop - lerps intensity gain
+    // threshold levels: combo>=3 -> 0.3, combo>=5 -> 0.6, panic -> 1.0
     tick(dt) {
       if (!_isPlaying || !_actx || !_intGain) return;
       if (panicPhase === 'wave') {
@@ -1582,15 +1582,15 @@ const Music = (() => {
       _intGain.gain.setValueAtTime(_intCurrent * 0.42, _actx.currentTime);
     },
 
-    // Directly set intensity level (0â€“1) â€” used by AudioManager
+    // Directly set intensity level (0-1) - used by AudioManager
     setIntensity(level) {
       if (!_actx || !_intGain) return;
       _intTarget  = Math.max(0, Math.min(1, level));
     },
 
-    // Called from tickDifficulty â€” speeds up BPM with speedMultiplier
+    // Called from tickDifficulty - speeds up BPM with speedMultiplier
     setTempo(multiplier) {
-      // 1.0x â†’ 130 BPM, 2.8x â†’ 150 BPM
+      // 1.0x -> 130 BPM, 2.8x -> 150 BPM
       _bpm = Math.round(130 + ((multiplier - 1.0) / 1.8) * 20);
       _bpm = Math.min(Math.max(_bpm, 130), 150);
     },
@@ -1626,7 +1626,7 @@ const AudioManager = (() => {
       fn(...args);
     },
 
-    // Set music intensity level (0â€“1). Called externally; Music.tick also drives it each frame.
+    // Set music intensity level (0-1). Called externally; Music.tick also drives it each frame.
     setMusicIntensity(level) { Music.setIntensity(level); },
 
     // Stop music immediately (called on death)
@@ -1795,7 +1795,7 @@ const HomePreview = (() => {
     const W = pCanvas.width, H = pCanvas.height;
     pCtx.clearRect(0, 0, W, H);
 
-    // â”€â”€ Cycle forbidden color â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- Cycle forbidden color ----------------------------------
     forbiddenT -= dt;
     if (forbiddenT <= 0) {
       const cur  = COLORS.indexOf(forbidden);
@@ -1805,7 +1805,7 @@ const HomePreview = (() => {
       forbiddenT = 4 + Math.random() * 3;
     }
 
-    // â”€â”€ Spawn blocks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- Spawn blocks -------------------------------------------
     spawnT -= dt;
     if (spawnT <= 0) {
       const w = 24 + Math.random() * 28;
@@ -1820,13 +1820,13 @@ const HomePreview = (() => {
       spawnT = 0.25 + Math.random() * 0.25;
     }
 
-    // â”€â”€ Update blocks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- Update blocks ------------------------------------------
     for (let i = blocks.length - 1; i >= 0; i--) {
       blocks[i].y += blocks[i].vy * dt;
       if (blocks[i].y > H + 20) blocks.splice(i, 1);
     }
 
-    // â”€â”€ Move ghost: steer toward waypoint, dodge forbidden â”€â”€â”€â”€â”€
+    // -- Move ghost: steer toward waypoint, dodge forbidden -----
     wpTimer -= dt;
     if (wpTimer <= 0) pickWaypoint(W, H);
 
@@ -1852,7 +1852,7 @@ const HomePreview = (() => {
     ghost.x = Math.max(ghost.r, Math.min(W - ghost.r, ghost.x + gVx * dt));
     ghost.y = Math.max(ghost.r, Math.min(H - ghost.r, ghost.y + gVy * dt));
 
-    // â”€â”€ Draw blocks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- Draw blocks --------------------------------------------
     for (const b of blocks) {
       const isF = b.color === forbidden;
       pCtx.save();
@@ -1875,7 +1875,7 @@ const HomePreview = (() => {
       pCtx.restore();
     }
 
-    // â”€â”€ Draw ghost player â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- Draw ghost player --------------------------------------
     const grd = pCtx.createRadialGradient(ghost.x - 5, ghost.y - 5, 2, ghost.x, ghost.y, ghost.r);
     grd.addColorStop(0, '#ffffff');
     grd.addColorStop(1, '#a855f7');
@@ -1946,7 +1946,7 @@ const DailyChallenge = (() => {
 
   const STORAGE_KEY = 'forbiddenColor_dailyChallenge';
 
-  // Deterministic seeded pick: date string â†’ numeric seed â†’ index
+  // Deterministic seeded pick: date string -> numeric seed -> index
   function todayKey() {
     const d = new Date();
     return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
@@ -2016,7 +2016,7 @@ const DailyChallenge = (() => {
     renderUI();
   }
 
-  // Claim the reward â€” called from claim button click
+  // Claim the reward - called from claim button click
   function claim() {
     if (!_state || !_state.completed || _state.claimed) return;
     _state.claimed = true;
@@ -2366,7 +2366,7 @@ function showModal(id) {
   if (!m) return;
   m.hidden = false;
   if (id === 'modal-progress') {
-    // Pause home bg loops while shop is open â€” they're hidden anyway and
+    // Pause home bg loops while shop is open - they're hidden anyway and
     // running them alongside the preview loop wastes CPU/GPU unnecessarily.
     HomeBg.stop();
     HomePreview.stop();
@@ -2429,7 +2429,7 @@ function updateCoinUI(animate) {
   }
 }
 
-// â”€â”€ Shop Preview Loop â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- Shop Preview Loop --------------------------------------
 function startShopPreviewLoop() {
   if (_shopPreviewRaf) return;
   function tick() {
@@ -2471,7 +2471,7 @@ function stopShopPreviewLoop() {
   }
 }
 
-// â”€â”€ Select skin in preview panel (hover / click / open) â”€â”€â”€
+// -- Select skin in preview panel (hover / click / open) ---
 function selectSkinForPreview(skinId) {
   _shopPreviewSkinId = skinId;
   const skin       = SKIN_DEFS.find(s => s.id === skinId) || SKIN_DEFS[0];
@@ -2491,20 +2491,20 @@ function selectSkinForPreview(skinId) {
 
   let primaryHTML = '';
   if (selected) {
-    primaryHTML = '<button class="btn btn-secondary preview-btn-disabled" disabled>âœ“ Equipped</button>';
+    primaryHTML = '<button class="btn btn-secondary preview-btn-disabled" disabled>OK Equipped</button>';
   } else if (available) {
     primaryHTML = '<button class="btn btn-primary preview-equip-btn" data-skin="' + skin.id + '">Equip</button>';
   } else if (isLifetime) {
     primaryHTML = '<button class="btn btn-secondary preview-btn-disabled" disabled>\uD83D\uDD12 ' + formatNumber(skin.lifetimeUnlock) + '</button>';
   } else if (isCoinSkin) {
-    // Always show an enabled Buy button â€” if unaffordable it triggers the video flow
+    // Always show an enabled Buy button - if unaffordable it triggers the video flow
     const label = canAfford
       ? 'Buy ' + coinSpan + ' ' + skin.coinCost
       : coinSpan + ' ' + skin.coinCost + ' &nbsp;<span class="preview-buy-video-hint">Watch ad</span>';
     primaryHTML = '<button class="btn btn-primary preview-buy-btn' + (canAfford ? '' : ' preview-buy-needcoins') + '" data-skin="' + skin.id + '">' + label + '</button>';
   }
 
-  const tryHTML = '<button class="btn btn-try preview-try-btn" data-skin="' + skin.id + '">â–¶ Try</button>';
+  const tryHTML = '<button class="btn btn-try preview-try-btn" data-skin="' + skin.id + '">Try</button>';
   actionsEl.innerHTML = primaryHTML + tryHTML;
 
   const equipBtn = actionsEl.querySelector('.preview-equip-btn');
@@ -2538,13 +2538,13 @@ function updateSkinsUI() {
   if (!grid) return;
   const coinSpan = '<span class="coin-icon coin-sm" aria-hidden="true"></span>';
 
-  // Rebuild DOM only when necessary â€” track a content hash to avoid redundant innerHTML sets
+  // Rebuild DOM only when necessary - track a content hash to avoid redundant innerHTML sets
   const _skinHash = JSON.stringify(SKIN_DEFS.map(s => ({
     id: s.id, owned: isSkinAvailable(s), sel: settings.selectedSkin === s.id,
     coins: settings.coins, lt: settings.lifetimeScore,
   })));
   if (grid._lastSkinHash === _skinHash) {
-    // State unchanged â€” skip expensive innerHTML rebuild, just update preview
+    // State unchanged - skip expensive innerHTML rebuild, just update preview
     selectSkinForPreview(_shopPreviewSkinId || settings.selectedSkin);
     return;
   }
@@ -2566,7 +2566,7 @@ function updateSkinsUI() {
     } else if (isLifetimeSkin) {
       const pct = Math.min(100, Math.round(((settings.lifetimeScore || 0) / skin.lifetimeUnlock) * 100));
       statusHTML = '<div class="skin-grid-lock-info">' +
-        '<span class="skin-grid-lock-label">ðŸ•’ ' + formatNumber(skin.lifetimeUnlock) + '</span>' +
+        '<span class="skin-grid-lock-label">' + formatNumber(skin.lifetimeUnlock) + '</span>' +
         '<div class="skin-bar-track"><div class="skin-bar-fill" style="width:' + pct + '%"></div></div>' +
         '</div>';
     } else if (isCoinSkin) {
@@ -2619,11 +2619,11 @@ function updateSkinsUI() {
   selectSkinForPreview(_shopPreviewSkinId || settings.selectedSkin);
 }
 
-// â”€â”€ Try Mode â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- Try Mode ----------------------------------------------
 function startTrySkin(skinId) {
   if (tryMode.active) return;
   tryMode.originalSkin  = settings.selectedSkin;
-  settings.selectedSkin = skinId; // temporary â€” NOT saved to localStorage
+  settings.selectedSkin = skinId; // temporary - NOT saved to localStorage
   tryMode.active = true;
   tryMode.timer  = tryMode.duration;
   stopShopPreviewLoop();
@@ -2752,7 +2752,7 @@ function _closeBuyDialog() {
   if (dialog)  { dialog.hidden  = true; }
 }
 
-// â”€â”€ Can't-afford flow: prompt to watch rewarded video â”€â”€â”€â”€â”€
+// -- Can't-afford flow: prompt to watch rewarded video -----
 let _cantAffordSkinId = null;
 let _cantAffordPowerupKey = null;
 
@@ -2819,9 +2819,9 @@ function showCantAffordPowerupFlow(key) {
   Audio.uiClick();
 }
 
-// â”€â”€ Rewarded Ad System â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- Rewarded Ad System -------------------------------------
 // Replace _RewardedAd.show() with a real ad SDK call to integrate a provider.
-// State machine: 'idle' â†’ 'playing' â†’ 'completed' â†’ 'rewarded' | 'cancelled'
+// State machine: 'idle' -> 'playing' -> 'completed' -> 'rewarded' | 'cancelled'
 const _RewardedAd = (() => {
   const AD_DURATION  = 15;   // fallback countdown seconds
   const COIN_REWARD  = 100;
@@ -2878,7 +2878,7 @@ const _RewardedAd = (() => {
     clearInterval(_fbTimer);
     const d = _D();
     _setProgress(100, 0);
-    d.statusTxt.textContent  = 'âœ“ Video complete â€” claim your reward!';
+    d.statusTxt.textContent  = 'OK Video complete - claim your reward!';
     d.compOvl.hidden         = false;
     d.closeBtn.disabled      = false;
     _setState('completed');
@@ -3041,7 +3041,7 @@ function _showCoinRewardToast(amount) {
 function _showCancelToast() {
   const toast = document.getElementById('coin-reward-toast');
   if (!toast) return;
-  toast.innerHTML = 'âš \ufe0f Reward cancelled &mdash; finish the video to earn coins';
+  toast.innerHTML = '\ufe0f Reward cancelled &mdash; finish the video to earn coins';
   toast.className = 'coin-reward-toast crt-cancelled';
   toast.hidden = false;
   void toast.offsetWidth;
@@ -3155,11 +3155,11 @@ function drawTrail() {
       alpha  = t * 0.32;
       radius = Math.max(2, player.radius * t * 0.50);
     } else if (skin.effect === 'flicker') {
-      // Lava/Crimson: hot embers â€” small, bright, random flicker
+      // Lava/Crimson: hot embers - small, bright, random flicker
       alpha  = t * (0.28 + 0.14 * Math.sin(now / 80 + i * 0.9));
       radius = Math.max(1.5, player.radius * t * 0.45);
     } else if (skin.effect === 'shimmer') {
-      // Ice/Gold: icy sparkle â€” tapered and bright
+      // Ice/Gold: icy sparkle - tapered and bright
       alpha  = t * 0.35;
       radius = Math.max(1.5, player.radius * t * 0.48);
     } else if (skin.effect === 'pulse') {
@@ -3174,7 +3174,7 @@ function drawTrail() {
     ctx.beginPath();
     ctx.arc(pt.x, pt.y, radius, 0, Math.PI * 2);
     ctx.fillStyle   = tc;
-    // Halve trail glow in low-perf mode â€” shadowBlur is one of the most expensive canvas ops
+    // Halve trail glow in low-perf mode - shadowBlur is one of the most expensive canvas ops
     ctx.shadowColor = tc;
     ctx.shadowBlur  = settings.perfMode === 'low'
       ? (skin.rarity === 'legendary' ? 8 : 3)
@@ -3184,10 +3184,10 @@ function drawTrail() {
   });
 }
 
-// â”€â”€ Movement physics constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Accel: reach max speed in ~6 frames @ 60 fps â€” responsive but not instant.
-// Friction: velocity decays to ~10% in ~0.2s â€” snappy stop, no long slide.
-const PLAYER_ACCEL   = 2200; // px/sÂ² â€” how fast velocity builds
+// -- Movement physics constants ---------------------------------------
+// Accel: reach max speed in ~6 frames @ 60 fps - responsive but not instant.
+// Friction: velocity decays to ~10% in ~0.2s - snappy stop, no long slide.
+const PLAYER_ACCEL   = 2200; // px/s^2 - how fast velocity builds
 const PLAYER_FRICTION = 18;  // exponential decay factor (per-frame: 1-(1-e^-k*dt))
 
 // ============================================================
@@ -3210,12 +3210,12 @@ function clampPlayer() {
 }
 
 function updatePlayer(dt) {
-  // Trail â€” record before moving so the ghost lags visually behind the player.
-  // Always record (all skins) â€” trail is drawn only for skins that opt-in via trail:true.
+  // Trail - record before moving so the ghost lags visually behind the player.
+  // Always record (all skins) - trail is drawn only for skins that opt-in via trail:true.
   playerTrail.push({ x: player.x, y: player.y });
   if (playerTrail.length > 14) playerTrail.shift();
 
-  // â”€â”€ Gather input direction â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // -- Gather input direction --------------------------------------------------
   const l = keys.left  || touchDirs.left;
   const r = keys.right || touchDirs.right;
   const u = keys.up    || touchDirs.up;
@@ -3232,10 +3232,10 @@ function updatePlayer(dt) {
     const tdx  = touchTarget.x - player.x;
     const tdy  = touchTarget.y - player.y;
     const dist = Math.hypot(tdx, tdy);
-    if (dist > 10) {          // 10 px dead-zone â€” ignore micro-jitter
+    if (dist > 10) {          // 10 px dead-zone - ignore micro-jitter
       inputX = tdx / dist;
       inputY = tdy / dist;
-      // Scale input 0â†’1 over 12â€“60 px so near-finger movement is gentler
+      // Scale input 0->1 over 12-60 px so near-finger movement is gentler
       const proximity = Math.min(1, (dist - 10) / 50);
       inputX *= proximity;
       inputY *= proximity;
@@ -3244,7 +3244,7 @@ function updatePlayer(dt) {
     }
   }
 
-  // â”€â”€ Velocity physics â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // -- Velocity physics ----------------------------------------------------
   const maxSpd = player.speed;
   const hasInput = inputX !== 0 || inputY !== 0;
 
@@ -3253,7 +3253,7 @@ function updatePlayer(dt) {
     player.vx += inputX * PLAYER_ACCEL * dt;
     player.vy += inputY * PLAYER_ACCEL * dt;
   } else {
-    // Friction decay â€” exponential so it always converges cleanly to zero
+    // Friction decay - exponential so it always converges cleanly to zero
     const decay = Math.exp(-PLAYER_FRICTION * dt);
     player.vx *= decay;
     player.vy *= decay;
@@ -3272,7 +3272,7 @@ function updatePlayer(dt) {
   player.x += player.vx * dt;
   player.y += player.vy * dt;
 
-  // Smooth radius lerp â€” used by SMALL powerup (approx 80 px/s transition)
+  // Smooth radius lerp - used by SMALL powerup (approx 80 px/s transition)
   if (Math.abs(player.radius - playerRadiusTarget) > 0.3) {
     player.radius += (playerRadiusTarget - player.radius) * Math.min(1, dt * 14);
   } else {
@@ -3287,7 +3287,7 @@ function drawPlayer() {
   const now  = performance.now();
   ctx.save();
 
-  // â”€â”€ Per-skin outer effect (drawn behind the player) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // -- Per-skin outer effect (drawn behind the player) --------------------
   if (skin.effect === 'aura') {
     // Void / Galaxy: pulsing coloured halo
     const pulse = 0.45 + 0.55 * Math.sin(now / 420);
@@ -3423,7 +3423,7 @@ function drawPlayer() {
     ctx.fill();
   }
 
-  // â”€â”€ Color-change grace ring â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // -- Color-change grace ring -------------------------------------
   if (colorChangeGrace > 0) {
     const t = colorChangeGrace / 0.25;
     ctx.beginPath();
@@ -3435,7 +3435,7 @@ function drawPlayer() {
     ctx.globalAlpha = 1;
   }
 
-  // â”€â”€ Small Mode ring â€” cyan pulsing ring shows shrunk state â”€â”€â”€â”€
+  // -- Small Mode ring - cyan pulsing ring shows shrunk state ----
   if (activePowerupKey === 'SMALL') {
     const pulse = 0.5 + 0.5 * Math.sin(now / 160);
     ctx.beginPath();
@@ -3450,7 +3450,7 @@ function drawPlayer() {
     ctx.shadowBlur  = 0;
   }
 
-  // â”€â”€ Shield ring â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // -- Shield ring -----------------------------------------------
   if (player.hasShield) {
     const pulse = 0.5 + 0.5 * Math.sin(now / 200);
     ctx.beginPath();
@@ -3462,8 +3462,8 @@ function drawPlayer() {
     ctx.globalAlpha = 1;
   }
 
-  // â”€â”€ Body â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  // Glow intensity by rarity / effect â€” boosted by combo
+  // -- Body ----------------------------------------------------
+  // Glow intensity by rarity / effect - boosted by combo
   const comboGlowBoost = Math.min(combo * 3, 30); // up to +30px glow at combo 10
   const nearMissBoost  = nearMissGlowTimer > 0 ? 28 * nearMissGlowTimer : 0; // flare on near miss
   let shadowBlur = 20 + comboGlowBoost + nearMissBoost;
@@ -3539,7 +3539,7 @@ function hexAlpha(hex, alpha) {
   return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha.toFixed(3) + ')';
 }
 
-// â”€â”€ Inner skin effects: rendered INSIDE the player shape via canvas clip â”€â”€
+// -- Inner skin effects: rendered INSIDE the player shape via canvas clip --
 function drawPlayerInner(skin, now) {
   const pr = player.radius;
   const px = player.x, py = player.y;
@@ -3673,7 +3673,7 @@ function drawPlayerInner(skin, now) {
 }
 
 // ============================================================
-// SKIN PREVIEW CANVAS â€” standalone drawing (no global ctx/player deps)
+// SKIN PREVIEW CANVAS - standalone drawing (no global ctx/player deps)
 // ============================================================
 
 function _ha(hex, alpha) {
@@ -3698,7 +3698,7 @@ function _drawStarPath(pCtx, x, y, outerR, innerR, pts) {
 function drawSkinPreviewAt(pCtx, skin, cx, cy, r, now) {
   pCtx.save();
 
-  // â”€â”€ Outer effect â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // -- Outer effect -------------------------------------------
   if (skin.effect === 'pulse') {
     const pulse = 0.4 + 0.6 * Math.sin(now / 340);
     pCtx.beginPath();
@@ -3796,7 +3796,7 @@ function drawSkinPreviewAt(pCtx, skin, cx, cy, r, now) {
     pCtx.fill();
   }
 
-  // â”€â”€ Glow / shadow setup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // -- Glow / shadow setup ------------------------------------
   let shadowBlur = 20;
   let c1 = skin.color1, c2 = skin.color2;
   if (skin.effect === 'flicker') {
@@ -3818,7 +3818,7 @@ function drawSkinPreviewAt(pCtx, skin, cx, cy, r, now) {
     } else if (skin.effect === 'galaxy') { shadowBlur = 24 + 14 * Math.sin(now / 700); }
       else if (skin.effect === 'void')   { shadowBlur = 30 + 12 * Math.sin(now / 380); }
 
-  // â”€â”€ Body â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // -- Body --------------------------------------------------
   if (skin.shape === 'star') {
     const g = pCtx.createRadialGradient(cx - 5, cy - 5, 2, cx, cy, r);
     g.addColorStop(0, c1);
@@ -4009,14 +4009,14 @@ function spawnObstacle() {
   // Color: centralised logic handles grace, warning, panic, and Double Danger.
   let colorIndex = pickObstacleColorIndex();
 
-  // â”€â”€ Type selection â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // -- Type selection ------------------------------------------------
   // 0=straight square  2=big slow hazard
   // 3=bullet (tall thin, fast)  4=dart (tiny, superfast)
-  // Weights: 0â†’50% | 2â†’10% | 3â†’25% | 4â†’15%
+  // Weights: 0->50% | 2->10% | 3->25% | 4->15%
   // Type 2 is also hard-capped at 2 on-screen; surplus becomes type 0.
   const rnd  = Math.random();
   let   type = rnd < 0.50 ? 0 : (rnd < 0.60 ? 2 : (rnd < 0.85 ? 3 : 4));
-  // Cap big obstacles â€” if 2 already on screen, demote to type 0
+  // Cap big obstacles - if 2 already on screen, demote to type 0
   if (type === 2 && obstacles.filter(o => o.type === 2).length >= 2) type = 0;
   const base = GAME_CONFIG.baseSpeed * speedMultiplier * panicSpeedMult();
 
@@ -4031,7 +4031,7 @@ function spawnObstacle() {
 
   if (activePowerupKey === 'SLOW') vy *= 0.4;
 
-  // Spawn position â€” bias toward the player's lane and neighbors so staying still is punished.
+  // Spawn position - bias toward the player's lane and neighbors so staying still is punished.
   // INCREASED PRESSURE: Higher bias values mean blocks track player position more directly.
   const _spawnLanes = getLaneCenters();
   const _playerLane = getPlayerLane();
@@ -4057,7 +4057,7 @@ function spawnObstacle() {
 
   const isForbiddenSpawn = graceTimer >= GRACE_PERIOD;
 
-  // Behaviors: mutually exclusive â€” 13% sway on straight blocks, 9% pulse on straight/big
+  // Behaviors: mutually exclusive - 13% sway on straight blocks, 9% pulse on straight/big
   const behRoll = Math.random();
   const extraMoveChance = getFlowMovingChance();
   const swayChance = 0.13 + extraMoveChance;
@@ -4071,12 +4071,12 @@ function spawnObstacle() {
     colorIndex,
     originX: ox, nearMissIdx: -1,
     gravityPull: false,
-    // Side-to-side sway (slow sine sweep â€” only type 0, ~13%)
+    // Side-to-side sway (slow sine sweep - only type 0, ~13%)
     swayAmp:   doSway ? 25 + Math.random() * 22 : 0,
     swayFreq:  doSway ? 0.65 + Math.random() * 0.50 : 0,
     swayPhase: doSway ? Math.random() * Math.PI * 2 : 0,
     swayTime:  0,
-    // Size pulse (smooth grow/shrink â€” ~9%, not fast bullet types)
+    // Size pulse (smooth grow/shrink - ~9%, not fast bullet types)
     pulseAmp:   doPulse ? 0.17 : 0,
     pulseFreq:  doPulse ? 1.4 + Math.random() * 1.0 : 0,
     pulsePhase: doPulse ? Math.random() * Math.PI * 2 : 0,
@@ -4096,8 +4096,8 @@ function spawnObstacle() {
   }
 }
 
-// â”€â”€ Lane-based wave spawner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Spawns 2â€“4 blocks using a named lane pattern that always leaves open corridors.
+// -- Lane-based wave spawner --------------------------------------------------
+// Spawns 2-4 blocks using a named lane pattern that always leaves open corridors.
 // Replaces old random-X cluster patterns with a controlled, fair wave system.
 function spawnWave() {
   if (obstacles.length >= getPhaseMaxObstacles()) return;
@@ -4139,7 +4139,7 @@ function spawnWave() {
     const waveMinSafeR = Math.max(4, player.radius + (isPanic ? 2 : (isCamping ? 10 : 18)) - flowTargeting * 14);
     if (Math.abs(cx - player.x) < waveMinSafeR) continue;
 
-    // Block size variety â€” mix of small darts, medium, tall bullets, wide fills, rare large
+    // Block size variety - mix of small darts, medium, tall bullets, wide fills, rare large
     let w, h, wType;
     const szRoll = Math.random();
     if (szRoll < 0.22) {
@@ -4200,9 +4200,9 @@ function spawnWave() {
 }
 
 
-// Mutations removed: Speed Burst, Gravity Pull, Wall Pattern â€” all hurt gameplay clarity.
+// Mutations removed: Speed Burst, Gravity Pull, Wall Pattern - all hurt gameplay clarity.
 
-// â”€â”€ Lane-based spawn helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- Lane-based spawn helpers ------------------------------------------------------------------------
 
 // Returns an array of NUM_LANES center-X positions evenly spanning canvas width.
 function getLaneCenters() {
@@ -4210,7 +4210,7 @@ function getLaneCenters() {
   return Array.from({ length: NUM_LANES }, (_, i) => lw * (i + 0.5));
 }
 
-// Returns the lane index (0 â€“ NUM_LANES-1) that the player is currently inside.
+// Returns the lane index (0 - NUM_LANES-1) that the player is currently inside.
 function getPlayerLane() {
   const lw = canvas.width / NUM_LANES;
   return Math.max(0, Math.min(NUM_LANES - 1, Math.floor(player.x / lw)));
@@ -4346,7 +4346,7 @@ function pickSafeLane(playerLane) {
 // Builds the set of lane indices to BLOCK this wave.
 // \u2022 safeLane is always kept open.
 // \u2022 At low difficulty a neighbor of safeLane is also kept open (breathing room).
-// \u2022 Blocked lanes are sorted so the playerâ€™s side fills first â€” directional pressure.
+// \u2022 Blocked lanes are sorted so the player's side fills first - directional pressure.
 function pickBlockedLanes(safeLane, playerLane) {
   const b          = difficultyBumps;
   const maxBlocked = b < 1 ? 4 : (b < 4 ? 5 : NUM_LANES - 1);
@@ -4380,8 +4380,8 @@ function validateEscapeRoute(laneCenters, blockedIdxs, laneW) {
   return false;
 }
 
-// â”€â”€ Horizontal path guarantee â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Scans a horizontal band [scanY Â± BAND] for blocked columns.
+// -- Horizontal path guarantee -----------------------------------------------------------
+// Scans a horizontal band [scanY +/- BAND] for blocked columns.
 // Returns the widest unblocked gap (px). Used to cull spawns that would trap the player.
 function largestClearGap(scanY) {
   const BAND = 60; // px above/below to check
@@ -4415,7 +4415,7 @@ function updateObstacles(dt) {
   for (let i = obstacles.length - 1; i >= 0; i--) {
     const ob = obstacles[i];
 
-    // â”€â”€ Y advance â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- Y advance -------------------------------------------------------------
     // Pulse blocks track center-Y so height scaling stays anchored.
     if (ob.pulseAmp > 0) {
       ob.cy += ob.vy * dt;
@@ -4423,14 +4423,14 @@ function updateObstacles(dt) {
       ob.y += ob.vy * dt;
     }
 
-    // â”€â”€ Sway: smooth sine sweep leftâ€“right â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- Sway: smooth sine sweep left-right --------------------------------
     if (ob.swayAmp > 0) {
       ob.swayTime += dt;
       const sx = ob.originX + Math.sin(ob.swayTime * ob.swayFreq + ob.swayPhase) * ob.swayAmp;
       ob.x = Math.max(0, Math.min(canvas.width - ob.w, sx - ob.w / 2));
     }
 
-    // â”€â”€ Pulse: smooth grow/shrink around center â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- Pulse: smooth grow/shrink around center -----------------------------
     if (ob.pulseAmp > 0) {
       ob.pulseTime += dt;
       const raw   = 1 + ob.pulseAmp * Math.sin(ob.pulseTime * ob.pulseFreq + ob.pulsePhase);
@@ -4461,7 +4461,7 @@ function updateObstacles(dt) {
 
     // Near-miss: record the forbiddenIndex active at the moment of the close pass.
     // Storing the index (not a boolean) means the award at exit is independent of
-    // whatever forbiddenIndex happens to be current then â€” prevents both false-positives
+    // whatever forbiddenIndex happens to be current then - prevents both false-positives
     // from color cycling and false-negatives from color changing before the obstacle exits.
     if (ob.nearMissIdx < 0 && isDangerous(ob) && ob.y > -ob.h &&
         distCircleRect(player.x, player.y, player.radius, ob.x, ob.y, ob.w, ob.h) < NEAR_MISS_DIST) {
@@ -4499,7 +4499,7 @@ function drawHatchPattern(x, y, w, h, r) {
 function drawObstacle(ob) {
   const isForbidden = isDangerous(ob);
   // A block is in warning state if it matches the upcoming forbidden color and we're
-  // in the warning window â€” it is NOT dangerous yet but signals the player to dodge.
+  // in the warning window - it is NOT dangerous yet but signals the player to dodge.
   const isWarning   = !isForbidden && warningActive && nextForbiddenIdx >= 0
                       && ob.colorIndex === nextForbiddenIdx;
   const colorDef    = GAME_COLORS[ob.colorIndex];
@@ -4509,7 +4509,7 @@ function drawObstacle(ob) {
   ctx.save();
 
   if (!isForbidden && !isWarning) {
-    // â”€â”€ Neutral block â€” dim, passable, gives the field texture without threat â”€â”€
+    // -- Neutral block - dim, passable, gives the field texture without threat --
     // Sway blocks get a faint ghost offset so the player can read the sweep direction
     if (ob.swayAmp > 0) {
       const ghostOff = Math.sin((ob.swayTime - 0.18) * ob.swayFreq + ob.swayPhase) * ob.swayAmp;
@@ -4533,13 +4533,13 @@ function drawObstacle(ob) {
   ctx.fillStyle = hex;
 
   if (isWarning) {
-    // â”€â”€ Warning block â€” pulsing glow, not dangerous yet â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // -- Warning block - pulsing glow, not dangerous yet ----------------------
     const remaining = Math.max(0, forbiddenInterval - forbiddenTimer);
-    const warnProg  = Math.max(0, Math.min(1, 1 - remaining / WARNING_DURATION)); // 0â†’1
+    const warnProg  = Math.max(0, Math.min(1, 1 - remaining / WARNING_DURATION)); // 0->1
     const flicker   = 0.5 + 0.5 * Math.sin(Date.now() / 100); // fast flicker
     ctx.globalAlpha = 0.55 + 0.35 * warnProg;
     ctx.shadowColor = hex;
-    // Reduced warning glow to cut GPU load â€” still clearly visible
+    // Reduced warning glow to cut GPU load - still clearly visible
     ctx.shadowBlur  = settings.perfMode === 'low' ? 4 + 6 * warnProg : 4 + 12 * warnProg + 5 * flicker;
     ctx.fill();
     ctx.globalAlpha = 1;
@@ -4550,15 +4550,15 @@ function drawObstacle(ob) {
     ctx.lineWidth   = 2;
     ctx.stroke();
   } else {
-    // â”€â”€ Forbidden (dangerous) block â€” full brightness â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-    // Forbidden block glow â€” capped to reduce GPU cost
+    // -- Forbidden (dangerous) block - full brightness -------------------------
+    // Forbidden block glow - capped to reduce GPU cost
     const pulse = settings.perfMode === 'low' ? 10 : 14 + 8 * (0.5 + 0.5 * Math.sin(Date.now() / 200));
     ctx.shadowColor = hex;
     ctx.shadowBlur  = pulse;
     ctx.fill();
     ctx.shadowBlur  = 0;
 
-    // Strong white border â€” danger outline readable regardless of block color
+    // Strong white border - danger outline readable regardless of block color
     pathRoundRect(ctx, ob.x, ob.y, ob.w, ob.h, 8);
     ctx.strokeStyle = 'rgba(255,255,255,0.90)';
     ctx.lineWidth   = 3;
@@ -4567,7 +4567,7 @@ function drawObstacle(ob) {
     ctx.stroke();
     ctx.shadowBlur  = 0;
 
-    // Symbol â€” only in colorblind mode
+    // Symbol - only in colorblind mode
     const minDim = Math.min(ob.w, ob.h);
     if (settings.colorblind && minDim >= 20) {
       const fontSize = Math.max(10, Math.min(14, minDim * 0.38));
@@ -4619,7 +4619,7 @@ function findRiskyCoinLane() {
   return centerLane + (Math.random() < 0.5 ? -1 : 1);
 }
 
-// spawnCoinColumn â€” spawns a vertical column of 4-6 coins at a lane-aligned X position.
+// spawnCoinColumn - spawns a vertical column of 4-6 coins at a lane-aligned X position.
 // Coins are spaced 64px apart so players can collect them in a satisfying sequence.
 // Lane selection is biased toward the player's current lane (reward movement) or adjacent.
 function spawnCoinColumn() {
@@ -4634,14 +4634,14 @@ function spawnCoinColumn() {
     // Occasionally align a column near dangerous blocks to create risk-vs-reward choices.
     laneIdx = riskyLane;
   } else if (roll < 0.57) {
-    // Player's current lane â€” reward being in flow with the coins
+    // Player's current lane - reward being in flow with the coins
     laneIdx = pLane;
   } else if (roll < 0.82) {
-    // Adjacent lane â€” encourage lateral movement
+    // Adjacent lane - encourage lateral movement
     const dir = Math.random() < 0.5 ? -1 : 1;
     laneIdx = Math.max(0, Math.min(NUM_LANES - 1, pLane + dir));
   } else {
-    // Any lane â€” occasional stretch across the screen
+    // Any lane - occasional stretch across the screen
     laneIdx = Math.floor(Math.random() * NUM_LANES);
   }
 
@@ -4649,7 +4649,7 @@ function spawnCoinColumn() {
   const sz      = 22;
   const spacing = 64;   // px between each coin center vertically
   const count   = 4 + Math.floor(Math.random() * 3); // 4, 5, or 6 coins
-  const speed   = 100 + Math.random() * 22;           // all coins same speed â†’ stay in column
+  const speed   = 100 + Math.random() * 22;           // all coins same speed -> stay in column
   const colId   = Date.now();                          // group ID for streak attribution
 
   for (let i = 0; i < count; i++) {
@@ -4664,11 +4664,11 @@ function spawnCoinColumn() {
   }
 }
 
-// Kept for compatibility â€” delegates to column spawner
+// Kept for compatibility - delegates to column spawner
 function spawnCoinItem() { spawnCoinColumn(); }
 
 function updateCoinItems(dt) {
-  // Tick down streak timer â€” if too long since last pickup, break the streak
+  // Tick down streak timer - if too long since last pickup, break the streak
   if (coinStreakTimer > 0) {
     coinStreakTimer -= dt;
     if (coinStreakTimer <= 0) coinStreakCount = 0;
@@ -4728,7 +4728,7 @@ function updateCoinItems(dt) {
       continue;
     }
     if (c.y > canvas.height + 20) {
-      // Coin missed â€” if this was the last coin of a column, streak window shortens
+      // Coin missed - if this was the last coin of a column, streak window shortens
       if (coinStreakTimer > 0) coinStreakTimer = Math.min(coinStreakTimer, 0.25);
       coinItems.splice(i, 1);
     }
@@ -4744,7 +4744,7 @@ function drawCoinItem(c) {
 
   ctx.save();
 
-  // Outer halo â€” large, bright, unmissable
+  // Outer halo - large, bright, unmissable
   const haloR = r * 2.2;
   const halo  = ctx.createRadialGradient(c.x, c.y, r * 0.8, c.x, c.y, haloR);
   halo.addColorStop(0,   'rgba(253,224,71,0.40)');
@@ -4759,7 +4759,7 @@ function drawCoinItem(c) {
   ctx.shadowColor = '#fde047';
   ctx.shadowBlur  = 22 + 10 * Math.sin(t / 500 + c.x); // breathes
 
-  // Coin disc â€” brighter, high-saturation gold
+  // Coin disc - brighter, high-saturation gold
   const g = ctx.createRadialGradient(
     c.x - r * 0.38, c.y - r * 0.32, 0,
     c.x,             c.y,            r * pulse
@@ -4783,7 +4783,7 @@ function drawCoinItem(c) {
   ctx.lineWidth   = 2;
   ctx.stroke();
 
-  // Shine flare â€” small bright arc top-left
+  // Shine flare - small bright arc top-left
   ctx.beginPath();
   ctx.arc(c.x - r * 0.22, c.y - r * 0.26, r * 0.28, 0.8, 2.1);
   ctx.strokeStyle = 'rgba(255,255,255,0.70)';
@@ -4895,7 +4895,7 @@ function collectPowerup(p) {
   AudioManager.playSound('coin');
   Announce.say(p.label + ' activated.');
   spawnParticles(p.x, p.y, p.color, 14);
-  // Expanding ring burst â€” two rings at slightly different speeds
+  // Expanding ring burst - two rings at slightly different speeds
   if (!settings.reducedMotion) {
     ringBursts.push({ x: p.x, y: p.y, r: p.size * 0.5, maxR: p.size * 2.8, color: p.color, alpha: 0.9, speed: 160 });
     ringBursts.push({ x: p.x, y: p.y, r: p.size * 0.3, maxR: p.size * 2.2, color: '#fff',   alpha: 0.5, speed: 220 });
@@ -5011,7 +5011,7 @@ function tickParticles(dt) {
 }
 
 function drawParticles() {
-  // Skip particles that have drifted offscreen â€” no save/restore overhead per particle
+  // Skip particles that have drifted offscreen - no save/restore overhead per particle
   const W = canvas.width + 24, H = canvas.height + 24;
   ctx.save();
   particles.forEach(p => {
@@ -5030,7 +5030,7 @@ function drawParticles() {
 // SECTION 12: FLOATING TEXT
 // ============================================================
 
-// â”€â”€ Centre-screen milestone banner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- Centre-screen milestone banner ----------------------------
 const SCORE_MILESTONES = [500, 1000, 2000, 3500, 5000, 7500, 10000];
 const TIME_MILESTONES  = [30, 60, 120, 180];   // seconds into run
 const COMBO_MILESTONES = [5, 10, 20, 30];      // combo count
@@ -5192,7 +5192,7 @@ function rebalanceAfterColorChange() {
   if (nForbidden / total >= FORBIDDEN_MIN_RATIO) return;
 
   const target  = Math.ceil(total * FORBIDDEN_MIN_RATIO);
-  const deficit = Math.min(target - nForbidden, 4); // cap at 4 per change â€” stay fair
+  const deficit = Math.min(target - nForbidden, 4); // cap at 4 per change - stay fair
 
   // Only recolor obstacles in the upper 45 % of the canvas (far from the player).
   // Sort topmost-first so the most distant ones change first.
@@ -5234,7 +5234,7 @@ function changeForbiddenColor() {
   updateTimerBar(0, getActiveForbiddenInterval());
   updateForbiddenDisplay();
   colorChangeGrace = 0.25; // 0.25 s invincibility window on color change
-  // rebalanceAfterColorChange() disabled â€” blocks keep their spawn color
+  // rebalanceAfterColorChange() disabled - blocks keep their spawn color
   AudioManager.playSound('colorChange');
   flashForbiddenBorder(GAME_COLORS[forbiddenIndex].hex);
   Announce.say('Forbidden color is now ' + GAME_COLORS[forbiddenIndex].name + '!');
@@ -5255,7 +5255,7 @@ function tickForbiddenTimer(dt) {
     nextForbiddenIdx = pickNextForbidden();
     showNextColorPreview(nextForbiddenIdx);
     Audio.warning();
-    Announce.say('Warning: forbidden color changing to ' + GAME_COLORS[nextForbiddenIdx].name + ' â€” get ready!');
+    Announce.say('Warning: forbidden color changing to ' + GAME_COLORS[nextForbiddenIdx].name + ' - get ready!');
   }
 
   // Update HUD warning level (compressed 0.8 s window)
@@ -5290,7 +5290,7 @@ function checkCollisions() {
   for (let i = obstacles.length - 1; i >= 0; i--) {
     const ob = obstacles[i];
     if (distCircleRect(player.x, player.y, player.radius, ob.x, ob.y, ob.w, ob.h) >= player.radius) continue;
-    if (!isDangerous(ob)) continue; // safe color â€” re-checked against current forbiddenIndex
+    if (!isDangerous(ob)) continue; // safe color - re-checked against current forbiddenIndex
 
     if (player.hasShield) {
       player.hasShield = false;
@@ -5318,7 +5318,7 @@ function addScore(pts, useBoost, useFlow) {
   const boostMult = (useBoost !== false && activePowerupKey === 'BOOST') ? 2 : 1;
   const flowMult  = useFlow !== false ? getFlowScoreMultiplier() : 1;
   score += pts * boostMult * flowMult;
-  // Throttle DOM update â€” only every ~100ms to avoid layout thrash
+  // Throttle DOM update - only every ~100ms to avoid layout thrash
 }
 
 let _lastHudUpdate = 0;
@@ -5354,7 +5354,7 @@ function tickScoreOverTime(dt) {
 }
 
 function awardNearMiss(ob) {
-  if (nearMissCooldownTimer > 0) return; // global spam guard â€” 300 ms between near misses
+  if (nearMissCooldownTimer > 0) return; // global spam guard - 300 ms between near misses
   nearMissCooldownTimer = 0.30;
   nearMissGlowTimer     = 1; // flash player glow bright
   applyFlowDelta(FLOW_CONFIG.nearMissGain, 'near-miss');
@@ -5367,7 +5367,7 @@ function awardNearMiss(ob) {
   addFloating(cx, ob.y - 38, '+' + closeCallCoins, '#fde047', 16, true);
   // Small particle burst at the miss point
   spawnParticles(cx, cy, '#34d399', settings.reducedMotion ? 4 : 10);
-  // Gentle shake â€” confirms the danger without being disorienting
+  // Gentle shake - confirms the danger without being disorienting
   triggerShake(3.5, 0.18);
   addScore(NEAR_MISS_BONUS);
   if (navigator.vibrate) navigator.vibrate(25);
@@ -5377,8 +5377,8 @@ function awardNearMiss(ob) {
 // SECTION 16: DIFFICULTY SCALING
 // ============================================================
 
-// â”€â”€ Panic wave â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Lifecycle: cooldown â†’ announce (banner shown) â†’ wave (doubled spawn rate)
+// -- Panic wave ----------------------------------------------
+// Lifecycle: cooldown -> announce (banner shown) -> wave (doubled spawn rate)
 // The active spawn rate is read via panicSpawnRate() below.
 // No state is permanently altered; everything resets after each wave.
 function panicSpawnRate() {
@@ -5393,7 +5393,7 @@ function activeForbiddenRatio() {
   return Math.min(0.62 + difficultyBumps * 0.013, 0.74);
 }
 function currentClusterChance() {
-  // Phase-driven cluster chance â€” replaces old fixed-ramp difficultyBumps formula
+  // Phase-driven cluster chance - replaces old fixed-ramp difficultyBumps formula
   const elapsed = getElapsedPlayTime();
   const base    = lerpDiff(elapsed, 'cc');
   return Math.min(base + Math.min(graceTimer, 6) * 0.006, 0.76);
@@ -5410,7 +5410,7 @@ function tickPanicWave(dt) {
     if (panicTimer >= panicCooldown) {
       panicTimer    = 0;
       panicPhase    = 'announce';
-      panicDuration = 3.0 + Math.random() * 3.5; // 3-6.5 s -- longer, more impactful waves // 2â€“4 s
+      panicDuration = 3.0 + Math.random() * 3.5; // 3-6.5 s -- longer, more impactful waves // 2-4 s
       triggerShake(6, 0.3);
       // Red entrance flash via CSS overlay
       const _panicFlash = document.getElementById('color-flash-overlay');
@@ -5462,7 +5462,7 @@ function drawPanicBanner() {
   const cy  = canvas.height * 0.28;
   const pul = 1 + Math.sin(Date.now() / 80) * (isWave ? 0.04 : 0.01); // subtle pulse during wave
 
-  // Subtle red screen tint â€” wave only, soft fade-in/out matching banner alpha
+  // Subtle red screen tint - wave only, soft fade-in/out matching banner alpha
   if (isWave) {
     ctx.save();
     ctx.globalAlpha = alpha * 0.10;
@@ -5493,8 +5493,8 @@ function drawPanicBanner() {
   ctx.restore();
 }
 
-// â”€â”€ Double Danger â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Rare event: two colors become lethal simultaneously for 2â€“4 s.
+// -- Double Danger -----------------------------------------------------------
+// Rare event: two colors become lethal simultaneously for 2-4 s.
 // Cannot overlap with a Panic Wave; both directions get a 5 s post-event buffer.
 function pickDD2ndIndex() {
   let idx, attempts = 0;
@@ -5527,7 +5527,7 @@ function tickDoubleDanger(dt) {
     if (ddTimer >= DD_ANNOUNCE) {
       ddTimer    = 0;
       ddPhase    = 'active';
-      ddDuration = 4.0 + Math.random() * 4.0; // 4-8 s -- longer DD for real impact // 2â€“4 s
+      ddDuration = 4.0 + Math.random() * 4.0; // 4-8 s -- longer DD for real impact // 2-4 s
       Announce.say('Double Danger. Avoid ' + GAME_COLORS[forbiddenIndex].name + ' and ' + GAME_COLORS[dd2ndIndex].name + '.');
     }
 
@@ -5559,7 +5559,7 @@ function drawDoubleDangerBanner() {
   }
 
   const cx  = canvas.width / 2;
-  const cy  = canvas.height * 0.28;             // same position â€” events never overlap
+  const cy  = canvas.height * 0.28;             // same position - events never overlap
   const pul = 1 + Math.sin(Date.now() / 100) * (isActive ? 0.03 : 0.01);
 
   // Subtle amber tint during active phase
@@ -5704,7 +5704,7 @@ function tickShake(dt) {
   shakeY = (Math.random() - 0.5) * 9 * t;
 }
 
-// â”€â”€ Ring bursts (powerup pickup feedback) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// -- Ring bursts (powerup pickup feedback) -------------------
 function tickRings(dt) {
   for (let i = ringBursts.length - 1; i >= 0; i--) {
     const r = ringBursts[i];
@@ -5834,7 +5834,7 @@ function render(ts) {
   drawMilestoneBanner();
   drawPanicBanner();
   drawDoubleDangerBanner();
-  // Screen pulse on combo increase â€” brief white radial flash from center
+  // Screen pulse on combo increase - brief white radial flash from center
   if (comboPulseTimer > 0 && !settings.reducedMotion) {
     const easedPulse = comboPulseTimer * comboPulseTimer; // ease-out
     const pg = ctx.createRadialGradient(
@@ -5862,7 +5862,7 @@ function render(ts) {
   }
   // Combo vignette: red pulsing edge when combo >= 5
   if (combo >= 5 && !settings.reducedMotion) {
-    const intensity = Math.min(1, (combo - 4) / 8); // ramps from 0 at combo 5 â†’ full at combo 13
+    const intensity = Math.min(1, (combo - 4) / 8); // ramps from 0 at combo 5 -> full at combo 13
     const pulse     = 0.5 + 0.5 * Math.sin(ts / (220 - combo * 8)); // faster pulse at higher combo
     const alpha     = intensity * (0.22 + pulse * 0.16);
     const vg = ctx.createRadialGradient(
@@ -6025,7 +6025,7 @@ function startGame() {
   spawnRate         = GAME_CONFIG.spawnRate;
   forbiddenInterval = GAME_CONFIG.forbiddenInterval;
   speedMultiplier   = 1.0;
-  // Head-start timers â€” first coin ~3s in, first color change ~6s in
+  // Head-start timers - first coin ~3s in, first color change ~6s in
   forbiddenTimer    = GAME_CONFIG.forbiddenInterval - 4.2;
   coinItemTimer     = COIN_ITEM_INTERVAL - 3.0;
   forbiddenIndex    = Math.floor(Math.random() * GAME_COLORS.length);
@@ -6171,7 +6171,7 @@ function triggerGameOver() {
     if (goIcon) goIcon.textContent = '';
     document.getElementById('new-best-badge').hidden      = !wasNewBest;
 
-    // â”€â”€ Lifetime progress section in game-over â”€â”€
+    // -- Lifetime progress section in game-over --
     const lps = getLifetimeProgressState();
     const goLifeTotal = document.getElementById('go-lifetime-total');
     const goLifeFill  = document.getElementById('go-lifetime-fill');
@@ -6191,7 +6191,7 @@ function triggerGameOver() {
       }
     }
 
-    // â”€â”€ Coin breakdown tooltip â”€â”€
+    // -- Coin breakdown tooltip --
     const goCoinsBreak = document.getElementById('go-coins-breakdown');
     if (goCoinsBreak) {
       const fromPickups  = coinsFromPickupsThisRun;
@@ -6342,7 +6342,7 @@ function onKeyUp(e) {
   }
 }
 
-// Unified pointer-event touch handler â€” works for both mouse and touch
+// Unified pointer-event touch handler - works for both mouse and touch
 function bindTouchBtn(btn, dir) {
   function press(e) {
     e.preventDefault();
@@ -6495,7 +6495,7 @@ function init() {
     if (el) makeFocusTrap(el);
   });
 
-  // One-shot unlock for iOS/Android â€” AudioContext must be created inside a user gesture.
+  // One-shot unlock for iOS/Android - AudioContext must be created inside a user gesture.
   // We listen on both touchstart and pointerdown so it fires on the very first tap/click.
   const _unlockAudio = () => {
     Audio.unlock();
@@ -6543,7 +6543,7 @@ function init() {
     hideModal('modal-progress'); document.getElementById('btn-progress').focus();
   });
 
-  // â”€â”€ Game screen controls â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // -- Game screen controls ----------------------------------
   document.getElementById('btn-resume').addEventListener('click', () => { Audio.uiClick(); resumeGame(); });
   document.getElementById('btn-home-from-pause').addEventListener('click', () => { Audio.uiClick(); returnHome(); });
   document.getElementById('btn-restart').addEventListener('click', () => { Audio.uiClick(); restartGame(); });
@@ -6553,7 +6553,7 @@ function init() {
   // Share / Copy Score button
   document.getElementById('btn-share-score').addEventListener('click', () => {
     const scoreVal = document.getElementById('btn-share-score').dataset.score || '0';
-    const text = 'I scored ' + scoreVal + ' in Forbidden Color! Can you beat it? ðŸŽ®';
+    const text = 'I scored ' + scoreVal + ' in Forbidden Color! Can you beat it?';
     navigator.clipboard.writeText(text).then(() => {
       const copied = document.getElementById('share-copied');
       if (copied) { copied.hidden = false; setTimeout(() => { copied.hidden = true; }, 2500); }
@@ -6648,7 +6648,7 @@ const LeaderboardService = (() => {
   const MOCK_KEY      = 'forbiddenColor_mockLB';
   const MAX_LOCAL     = 20;
 
-  // â”€â”€ Fake player name pools â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // -- Fake player name pools --------------------------------
   const _adjectives = ['Neon','Void','Solar','Hyper','Pixel','Turbo','Ultra','Cyber','Dark','Blaze','Ghost','Storm','Prism','Lunar','Nova','Shock','Wave','Pulse','Rapid','Quantum'];
   const _nouns      = ['Fox','Byte','Dash','Grid','Hawk','Bolt','Edge','Flux','Glow','Haze','Jet','Lynx','Mist','Node','Orb','Peak','Quill','Rift','Surge','Trace'];
   const _suffixes   = ['42','99','7','X','Z','Pro','GG','1','777','404','00','XL','Jr','Sr','','','','','',''];
@@ -6669,7 +6669,7 @@ const LeaderboardService = (() => {
     };
   }
 
-  // â”€â”€ Player name â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // -- Player name ------------------------------------------
   let _playerName = null;
   function getPlayerName() {
     if (_playerName) return _playerName;
@@ -6693,7 +6693,7 @@ const LeaderboardService = (() => {
     return null; // valid
   }
 
-  // â”€â”€ Local leaderboard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // -- Local leaderboard ------------------------------------
   let _localScores = null;
   function _loadLocal() {
     if (_localScores) return;
@@ -6723,7 +6723,7 @@ const LeaderboardService = (() => {
     _saveLocal();
   }
 
-  // â”€â”€ Mock online leaderboard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // -- Mock online leaderboard ------------------------------
   // Generates stable, believable fake boards seeded from a constant.
   // Daily/Weekly boards shift slightly each day/week.
   let _mockData = null;
@@ -6784,8 +6784,8 @@ const LeaderboardService = (() => {
     return merged.slice(0, 50);
   }
 
-  // â”€â”€ Public API â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  // getLeaderboard(type) â†’ array of {name, score, isPlayer?, fake?}
+  // -- Public API ---------------------------------------------
+  // getLeaderboard(type) -> array of {name, score, isPlayer?, fake?}
   function getLeaderboard(type) {
     _loadLocal();
     _loadMock();
@@ -6814,14 +6814,14 @@ const LeaderboardService = (() => {
     return _mergePlayerIntoBoard(_mockData.alltime, pScore, pName);
   }
 
-  // getPlayerRank(type) â†’ 1-based rank, or null
+  // getPlayerRank(type) -> 1-based rank, or null
   function getPlayerRank(type) {
     const board = getLeaderboard(type);
     const idx   = board.findIndex(e => e.isPlayer);
     return idx === -1 ? null : idx + 1;
   }
 
-  // submitScore â€” call after every run
+  // submitScore - call after every run
   function submitScore(score, name) {
     if (!score || score <= 0) return;
     const n = name || getPlayerName() || 'You';
@@ -6829,7 +6829,7 @@ const LeaderboardService = (() => {
     // For mock online: the board auto-includes player best on getLeaderboard()
   }
 
-  // getRankSummary â€” returns a human-readable rank string for post-run
+  // getRankSummary - returns a human-readable rank string for post-run
   function getRankSummary(score) {
     if (!score || score <= 0) return null;
     const pName = getPlayerName() || 'You';
@@ -6862,11 +6862,11 @@ const LeaderboardService = (() => {
 const LeaderboardUI = (() => {
   let _activeTab = 'alltime';
   let _isOpen    = false;
-  const RANK_ICONS = { 1: '\uD83D\uDC51', 2: 'ðŸ¥ˆ', 3: 'ðŸ¥‰' };
+  const RANK_ICONS = { 1: '1st', 2: '2nd', 3: '3rd' };
 
   function _fmt(n) { return Math.floor(n || 0).toLocaleString(); }
 
-  // â”€â”€ Open / close â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // -- Open / close -----------------------------------------
   function open(tab) {
     const modal = document.getElementById('modal-leaderboard');
     if (!modal) return;
@@ -6886,7 +6886,7 @@ const LeaderboardUI = (() => {
     modal.setAttribute('aria-hidden', 'true');
   }
 
-  // â”€â”€ Your stats card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // -- Your stats card --------------------------------------
   function renderYourStats() {
     const el = document.getElementById('lb-your-stats');
     if (!el) return;
@@ -6900,11 +6900,11 @@ const LeaderboardUI = (() => {
     const pName   = LeaderboardService.getPlayerName();
 
     const stats = [
-      { val: best ? _fmt(best) : 'â€”',    lbl: 'Best Score' },
+      { val: best ? _fmt(best) : '-',    lbl: 'Best Score' },
       { val: runs || '0',                 lbl: 'Total Runs' },
-      { val: avg ? _fmt(avg) : 'â€”',       lbl: 'Avg Score' },
-      { val: rank ? '#' + rank : 'â€”',     lbl: 'Global Rank' },
-      { val: longest ? fmtTime(longest) : 'â€”', lbl: 'Best Time' },
+      { val: avg ? _fmt(avg) : '-',       lbl: 'Avg Score' },
+      { val: rank ? '#' + rank : '-',     lbl: 'Global Rank' },
+      { val: longest ? fmtTime(longest) : '-', lbl: 'Best Time' },
     ];
     el.innerHTML = stats.map(s =>
       '<div class="lb-stat-item">' +
@@ -6918,7 +6918,7 @@ const LeaderboardUI = (() => {
     if (nameEl) nameEl.textContent = pName || '(not set)';
   }
 
-  // â”€â”€ Tab switching â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // -- Tab switching -----------------------------------------
   function switchTab(tab) {
     _activeTab = tab;
     // Tab buttons
@@ -6935,7 +6935,7 @@ const LeaderboardUI = (() => {
     renderBoard(tab);
   }
 
-  // â”€â”€ Render a board â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // -- Render a board ----------------------------------------
   function renderBoard(type, highlightNew) {
     const container = document.getElementById('lb-rows-' + type);
     if (!container) return;
@@ -6944,7 +6944,7 @@ const LeaderboardUI = (() => {
     if (!entries || entries.length === 0) {
       container.innerHTML =
         '<div class="lb-empty">' +
-          '<span class="lb-empty-icon">ðŸŽ®</span>' +
+          '<span class="lb-empty-icon"></span>' +
           'No scores yet. Play a round to appear here!' +
         '</div>';
       return;
@@ -7011,7 +7011,7 @@ const LeaderboardUI = (() => {
     return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 
-  // â”€â”€ Post-run rank display â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // -- Post-run rank display ---------------------------------
   function showPostRunRank(score, wasNewBest) {
     // Submit the score
     LeaderboardService.submitScore(score, LeaderboardService.getPlayerName());
@@ -7050,7 +7050,7 @@ const LeaderboardUI = (() => {
     }, 3200);
   }
 
-  // â”€â”€ Player name dialog â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // -- Player name dialog -------------------------------------
   let _nameResolve = null;
   function promptPlayerName(callback) {
     const overlay = document.getElementById('name-overlay');
@@ -7090,7 +7090,7 @@ const LeaderboardUI = (() => {
     if (dialog)  dialog.hidden = true;
   }
 
-  // â”€â”€ Init / wire buttons â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // -- Init / wire buttons -----------------------------------
   function init() {
     // Open leaderboard from home screen
     const btnLb = document.getElementById('btn-leaderboard');
