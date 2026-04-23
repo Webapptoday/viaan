@@ -1,5 +1,5 @@
 // ============================================================
-// FORBIDDEN COLOR - Game Logic v2
+// SHIFTPANIC - Game Logic v2
 // ============================================================
 'use strict';
 
@@ -140,7 +140,7 @@ const LIFETIME_REWARD_DEFS = [
   { id: 'lt_coins_35k',   milestone: 35000,  label: '1,000 Coins',    type: 'coins',  coins: 1000, rarity: 'legendary', icon: '', description: 'A legendary coin vault.' },
   { id: 'lt_badge_50k',   milestone: 50000,  label: 'Legend',         type: 'badge',               rarity: 'legendary', icon: '', description: 'Only legends reach this summit.' },
   { id: 'lt_coins_75k',   milestone: 75000,  label: '2,000 Coins',    type: 'coins',  coins: 2000, rarity: 'legendary', icon: '', description: 'A massive coin fortune.' },
-  { id: 'lt_mythic',      milestone: 100000, label: 'Mythic',         type: 'badge',               rarity: 'legendary', icon: '', description: 'The pinnacle of Forbidden Color mastery.' },
+  { id: 'lt_mythic',      milestone: 100000, label: 'Mythic',         type: 'badge',               rarity: 'legendary', icon: '', description: 'The pinnacle of ShiftPanic mastery.' },
 ];
 
 const STATE = { HOME: 'home', PLAYING: 'playing', PAUSED: 'paused', GAMEOVER: 'gameover' };
@@ -246,7 +246,7 @@ const MISSION_DEFS = [
   {
     id: 'streak3',      difficulty: 'easy',
     label: 'On a Roll',
-    description: 'Play Forbidden Color 3 days in a row.',
+    description: 'Play ShiftPanic 3 days in a row.',
     stat: 'streak',     goal: 3,    coinReward: 10,
   },
   // -- Medium ------------------------------------------
@@ -277,7 +277,7 @@ const MISSION_DEFS = [
   {
     id: 'streak7',      difficulty: 'medium',
     label: 'Week Warrior',
-    description: 'Play Forbidden Color 7 days in a row.',
+    description: 'Play ShiftPanic 7 days in a row.',
     stat: 'streak',     goal: 7,    coinReward: 20,
   },
   // -- Hard ----------------------------------------------
@@ -314,7 +314,7 @@ const MISSION_DEFS = [
   {
     id: 'streak30',     difficulty: 'hard',
     label: 'Dedicated',
-    description: 'Play Forbidden Color 30 days in a row.',
+    description: 'Play ShiftPanic 30 days in a row.',
     stat: 'streak',     goal: 30,   coinReward: 40,
   },
 ];
@@ -6553,7 +6553,7 @@ function init() {
   // Share / Copy Score button
   document.getElementById('btn-share-score').addEventListener('click', () => {
     const scoreVal = document.getElementById('btn-share-score').dataset.score || '0';
-    const text = 'I scored ' + scoreVal + ' in Forbidden Color! Can you beat it?';
+    const text = 'I scored ' + scoreVal + ' in ShiftPanic! Can you beat it? shiftpanic.com';
     navigator.clipboard.writeText(text).then(() => {
       const copied = document.getElementById('share-copied');
       if (copied) { copied.hidden = false; setTimeout(() => { copied.hidden = true; }, 2500); }

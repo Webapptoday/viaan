@@ -1,5 +1,5 @@
 /* ============================================================
-   FORBIDDEN COLOR - Stylesheet v2
+   SHIFTPANIC - Stylesheet v2
    ============================================================ */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=Space+Grotesk:wght@700;800&display=swap');
@@ -252,7 +252,7 @@ body::before {
   font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif;
   font-size: clamp(2.6rem, 9vw, 4.2rem);
   font-weight: 800;
-  letter-spacing: -1.5px;
+  letter-spacing: 3px;
   background: linear-gradient(135deg, var(--accent-light) 0%, var(--accent2) 55%, #f472b6 100%);
   background-size: 200% auto;
   -webkit-background-clip: text;
@@ -2548,7 +2548,7 @@ body.perf-low       .lp-dot { animation: none !important; }
   .mission-item { padding: 9px 10px; }
   .mission-label { font-size: .82rem; }
   /* Game title on home: ensure it isn't cut */
-  .game-title { letter-spacing: -1.5px; }
+  .game-title { letter-spacing: 2px; }
   .game-subtitle { font-size: .88rem; margin-bottom: 10px; }
   .home-highscore { padding: 8px 16px; }
   .home-lifetime-card { padding: 12px 14px; }
