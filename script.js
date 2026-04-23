@@ -122,23 +122,23 @@ const SKIN_DEFS = [
 ];
 const LIFETIME_REWARD_DEFS = [
   // â”€â”€ Common â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  { id: 'lt_coins_500',   milestone: 500,    label: '100 Coins',      type: 'coins',  coins: 100,  rarity: 'common',    icon: 'ðŸª™', description: 'A starter coin bundle to kick off your journey.' },
-  { id: 'lt_coins_1500',  milestone: 1500,   label: '200 Coins',      type: 'coins',  coins: 200,  rarity: 'common',    icon: 'ðŸª™', description: 'Keep playing â€” the coins stack up.' },
+  { id: 'lt_coins_500',   milestone: 500,    label: '100 Coins',      type: 'coins',  coins: 100,  rarity: 'common',    icon: '\uD83E\uDE99', description: 'A starter coin bundle to kick off your journey.' },
+  { id: 'lt_coins_1500',  milestone: 1500,   label: '200 Coins',      type: 'coins',  coins: 200,  rarity: 'common',    icon: '\uD83E\uDE99', description: 'Keep playing â€” the coins stack up.' },
   // â”€â”€ Rare â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  { id: 'aurora',         milestone: 2500,   label: 'Aurora Skin',    type: 'skin',   rarity: 'rare',      icon: 'âœ¨', description: 'A shimmering neon-teal skin for the dedicated.' },
-  { id: 'lt_coins_4k',    milestone: 4000,   label: '350 Coins',      type: 'coins',  coins: 350,  rarity: 'rare',      icon: 'ðŸª™', description: 'A rare coin reward for dedicated players.' },
-  { id: 'lt_badge_5k',    milestone: 5000,   label: 'Trailblazer',    type: 'badge',               rarity: 'rare',      icon: 'âš¡', description: 'Awarded to those who push past the score ceiling.' },
-  { id: 'lt_coins_7500',  milestone: 7500,   label: '500 Coins',      type: 'coins',  coins: 500,  rarity: 'rare',      icon: 'ðŸª™', description: 'Half a thousand coins â€” impressive.' },
+  { id: 'aurora',         milestone: 2500,   label: 'Aurora Skin',    type: 'skin',   rarity: 'rare',      icon: '\u2728', description: 'A shimmering neon-teal skin for the dedicated.' },
+  { id: 'lt_coins_4k',    milestone: 4000,   label: '350 Coins',      type: 'coins',  coins: 350,  rarity: 'rare',      icon: '\uD83E\uDE99', description: 'A rare coin reward for dedicated players.' },
+  { id: 'lt_badge_5k',    milestone: 5000,   label: 'Trailblazer',    type: 'badge',               rarity: 'rare',      icon: '\u26a1', description: 'Awarded to those who push past the score ceiling.' },
+  { id: 'lt_coins_7500',  milestone: 7500,   label: '500 Coins',      type: 'coins',  coins: 500,  rarity: 'rare',      icon: '\uD83E\uDE99', description: 'Half a thousand coins â€” impressive.' },
   // â”€â”€ Epic â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  { id: 'afterglow',      milestone: 10000,  label: 'Afterglow Skin', type: 'skin',   rarity: 'epic',      icon: 'ðŸŒ…', description: 'A saturated sunset prism skin for elite players.' },
-  { id: 'lt_coins_15k',   milestone: 15000,  label: '750 Coins',      type: 'coins',  coins: 750,  rarity: 'epic',      icon: 'ðŸª™', description: 'An epic hoard of coins.' },
-  { id: 'lt_badge_20k',   milestone: 20000,  label: 'Veteran',        type: 'badge',               rarity: 'epic',      icon: 'ðŸ†', description: 'A mark of true dedication and skill.' },
+  { id: 'afterglow',      milestone: 10000,  label: 'Afterglow Skin', type: 'skin',   rarity: 'epic',      icon: '\uD83C\uDF05', description: 'A saturated sunset prism skin for elite players.' },
+  { id: 'lt_coins_15k',   milestone: 15000,  label: '750 Coins',      type: 'coins',  coins: 750,  rarity: 'epic',      icon: '\uD83E\uDE99', description: 'An epic hoard of coins.' },
+  { id: 'lt_badge_20k',   milestone: 20000,  label: 'Veteran',        type: 'badge',               rarity: 'epic',      icon: '\uD83C\uDFC6', description: 'A mark of true dedication and skill.' },
   // â”€â”€ Legendary â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  { id: 'eclipse',        milestone: 25000,  label: 'Eclipse Skin',   type: 'skin',   rarity: 'legendary', icon: 'ðŸŒ‘', description: 'A dark legendary cosmic skin.' },
-  { id: 'lt_coins_35k',   milestone: 35000,  label: '1,000 Coins',    type: 'coins',  coins: 1000, rarity: 'legendary', icon: 'ðŸª™', description: 'A legendary coin vault.' },
-  { id: 'lt_badge_50k',   milestone: 50000,  label: 'Legend',         type: 'badge',               rarity: 'legendary', icon: 'ðŸ‘‘', description: 'Only legends reach this summit.' },
-  { id: 'lt_coins_75k',   milestone: 75000,  label: '2,000 Coins',    type: 'coins',  coins: 2000, rarity: 'legendary', icon: 'ðŸª™', description: 'A massive coin fortune.' },
-  { id: 'lt_mythic',      milestone: 100000, label: 'Mythic',         type: 'badge',               rarity: 'legendary', icon: 'ðŸ”±', description: 'The pinnacle of Forbidden Color mastery.' },
+  { id: 'eclipse',        milestone: 25000,  label: 'Eclipse Skin',   type: 'skin',   rarity: 'legendary', icon: '\uD83C\uDF11', description: 'A dark legendary cosmic skin.' },
+  { id: 'lt_coins_35k',   milestone: 35000,  label: '1,000 Coins',    type: 'coins',  coins: 1000, rarity: 'legendary', icon: '\uD83E\uDE99', description: 'A legendary coin vault.' },
+  { id: 'lt_badge_50k',   milestone: 50000,  label: 'Legend',         type: 'badge',               rarity: 'legendary', icon: '\uD83D\uDC51', description: 'Only legends reach this summit.' },
+  { id: 'lt_coins_75k',   milestone: 75000,  label: '2,000 Coins',    type: 'coins',  coins: 2000, rarity: 'legendary', icon: '\uD83E\uDE99', description: 'A massive coin fortune.' },
+  { id: 'lt_mythic',      milestone: 100000, label: 'Mythic',         type: 'badge',               rarity: 'legendary', icon: '\uD83D\uDD31', description: 'The pinnacle of Forbidden Color mastery.' },
 ];
 
 const STATE = { HOME: 'home', PLAYING: 'playing', PAUSED: 'paused', GAMEOVER: 'gameover' };
@@ -146,7 +146,7 @@ const STATE = { HOME: 'home', PLAYING: 'playing', PAUSED: 'paused', GAMEOVER: 'g
 const WARNING_DURATION    = 0.8;  // short flash warning â€” just enough to react
 const NEAR_MISS_DIST      = 65;   // px (from player center to nearest rect edge)
 const NEAR_MISS_BONUS     = 40;
-const COMBO_BONUS_PER         = 25;   // pts per combo level on each color change (comboÃ—25: 25, 50, 75â€¦)
+const COMBO_BONUS_PER         = 25;   // pts per combo level on each color change (combo\u00d725: 25, 50, 75â€¦)
 const POWERUP_COLLECT_BONUS   = 50;   // flat pts for picking up any power-up
 const POWERUP_INTERVAL    = 15;   // s between powerup spawns (more frequent to compensate)
 const COIN_ITEM_INTERVAL  = 8.5;  // s between coin column spawns (columns have 4-6 coins each)
@@ -201,14 +201,14 @@ const FLOW_CONFIG = {
 
 // â”€â”€ Mini run goals shown in HUD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const MINI_GOAL_DEFS = [
-  { id: 'coins5',    label: 'Collect 5 coins',   icon: 'ðŸª™', stat: 'pickupCoins', goal: 5,    reward: 4 },
-  { id: 'miss2',     label: 'Near-miss Ã—2',       icon: 'âš¡', stat: 'nearMisses',  goal: 2,    reward: 4 },
-  { id: 'score2k',   label: 'Score 2,000',         icon: 'ðŸŽ¯', stat: 'score',       goal: 2000, reward: 5 },
-  { id: 'survive30', label: 'Survive 30s',          icon: 'â±', stat: 'seconds',     goal: 30,   reward: 4 },
-  { id: 'combo5',    label: '5Ã— combo',             icon: 'ðŸ”¥', stat: 'combo',       goal: 5,    reward: 5 },
-  { id: 'coins10',   label: 'Collect 10 coins',     icon: 'ðŸª™', stat: 'pickupCoins', goal: 10,   reward: 6 },
-  { id: 'miss5',     label: 'Near-miss Ã—5',         icon: 'âš¡', stat: 'nearMisses',  goal: 5,    reward: 6 },
-  { id: 'score5k',   label: 'Score 5,000',           icon: 'ðŸŽ¯', stat: 'score',       goal: 5000, reward: 7 },
+  { id: 'coins5',    label: 'Collect 5 coins',   icon: '\uD83E\uDE99', stat: 'pickupCoins', goal: 5,    reward: 4 },
+  { id: 'miss2',     label: 'Near-miss \u00d72',       icon: '\u26a1', stat: 'nearMisses',  goal: 2,    reward: 4 },
+  { id: 'score2k',   label: 'Score 2,000',         icon: '\uD83C\uDFAF', stat: 'score',       goal: 2000, reward: 5 },
+  { id: 'survive30', label: 'Survive 30s',          icon: '\u23f1', stat: 'seconds',     goal: 30,   reward: 4 },
+  { id: 'combo5',    label: '5\u00d7 combo',             icon: '\uD83D\uDD25', stat: 'combo',       goal: 5,    reward: 5 },
+  { id: 'coins10',   label: 'Collect 10 coins',     icon: '\uD83E\uDE99', stat: 'pickupCoins', goal: 10,   reward: 6 },
+  { id: 'miss5',     label: 'Near-miss \u00d75',         icon: '\u26a1', stat: 'nearMisses',  goal: 5,    reward: 6 },
+  { id: 'score5k',   label: 'Score 5,000',           icon: '\uD83C\uDFAF', stat: 'score',       goal: 5000, reward: 7 },
 ];
 
 // ============================================================
@@ -300,7 +300,7 @@ const MISSION_DEFS = [
   {
     id: 'combo20',      difficulty: 'hard',
     label: 'Combo King',
-    description: 'Reach a 20Ã— combo in a single run.',
+    description: 'Reach a 20\u00d7 combo in a single run.',
     stat: 'maxCombo',   goal: 20,   coinReward: 40,
   },
   {
@@ -435,7 +435,7 @@ function showMissionCompleteToast(m) {
   toast.setAttribute('role', 'status');
   toast.setAttribute('aria-live', 'polite');
   toast.className = 'mission-toast';
-  toast.innerHTML = 'ðŸŽ‰ <strong>' + m.label + '</strong> complete!<br><small>Open Shop to claim <strong>+' + (m.coinReward || 20) + ' coins</strong></small>';
+  toast.innerHTML = '\uD83C\uDF89 <strong>' + m.label + '</strong> complete!<br><small>Open Shop to claim <strong>+' + (m.coinReward || 20) + ' coins</strong></small>';
   document.body.appendChild(toast);
   setTimeout(() => { toast.classList.add('mission-toast-show'); }, 20);
   setTimeout(() => { toast.classList.remove('mission-toast-show'); setTimeout(() => toast.remove(), 400); }, 4500);
@@ -479,7 +479,7 @@ function buildMissionCard(m) {
   let footer;
   if (locked) {
     const unlockTier = m.difficulty === 'medium' ? 'Easy' : 'Medium';
-    footer = '<p class="mission-locked-label">ðŸ”’ Complete all ' + unlockTier + ' challenges to unlock</p>';
+    footer = '<p class="mission-locked-label">\uD83D\uDD12 Complete all ' + unlockTier + ' challenges to unlock</p>';
   } else if (done) {
     footer = '<button class="mission-claim-btn" data-claim-id="' + m.id + '" ' +
       'aria-label="Claim ' + coinAmt + ' coins for ' + m.label + '">' +
@@ -566,6 +566,9 @@ let settings = {
   powerupUpgrades: {},
   streakCount:    0,
   streakLastDate: '',
+  // Version guards: persisted so one-time migrations only fire once per version bump.
+  economyVersion: 2,  // keep in sync with ECONOMY_VERSION constant
+  skinVersion:    1,  // keep in sync with SKIN_VERSION constant
 };
 
 let score         = 0;
@@ -766,17 +769,23 @@ function loadSettings() {
     if (!raw) return;
     const s = JSON.parse(raw);
     let _migrated = false;
-    if ((s.economyVersion || 0) < ECONOMY_VERSION) {
+    // Load version guards FIRST so that saveSettings() will persist them.
+    // Without this, economyVersion is never saved and the migration fires every reload.
+    if (typeof s.economyVersion === 'number') settings.economyVersion = s.economyVersion;
+    if (typeof s.skinVersion    === 'number') settings.skinVersion    = s.skinVersion;
+    if (settings.economyVersion < ECONOMY_VERSION) {
       // Economy was rebalanced â€” reset coins only, preserve everything else
       s.coins = 0;
       s.economyVersion = ECONOMY_VERSION;
+      settings.economyVersion = ECONOMY_VERSION;  // persisted via saveSettings()
       _migrated = true;
     }
-    if ((s.skinVersion || 0) < SKIN_VERSION) {
+    if (settings.skinVersion < SKIN_VERSION) {
       // Skin shop converted to coin-only â€” reset purchased skins once
       s.purchasedSkins = [];
       s.selectedSkin = 'classic';
       s.skinVersion = SKIN_VERSION;
+      settings.skinVersion = SKIN_VERSION;  // persisted via saveSettings()
       _migrated = true;
     }
     if (typeof s.sound         === 'boolean') settings.sound         = s.sound;
@@ -953,7 +962,7 @@ function renderLifetimeProgressUI() {
     ? 'Next unlock at ' + formatNumber(nextReward.milestone) + ' Lifetime Score'
     : 'All lifetime rewards unlocked!';
   if (homeDetail) homeDetail.textContent = nextReward
-    ? formatNumber(total) + ' / ' + formatNumber(nextReward.milestone) + ' â€¢ ' + nextReward.label
+    ? formatNumber(total) + ' / ' + formatNumber(nextReward.milestone) + ' \u2022 ' + nextReward.label
     : 'Every milestone reward claimed';
 
   // â”€â”€ Shop panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -972,7 +981,7 @@ function renderLifetimeProgressUI() {
       '<div class="lp-bar-block">' +
         '<div class="lp-bar-title" id="lifetime-next-target">' + (nextReward
           ? 'Next: ' + nextReward.label + ' at ' + formatNumber(nextReward.milestone)
-          : 'ðŸŽ‰ All rewards unlocked!') + '</div>' +
+          : '\uD83C\uDF89 All rewards unlocked!') + '</div>' +
         '<div class="lp-bar-row">' +
           '<div class="lp-bar-track">' +
             '<div class="lp-bar-fill" id="lifetime-progress-bar" style="width:' + pct + '%"></div>' +
@@ -1129,7 +1138,7 @@ function updatePowerupUpgradeUI() {
       '<div class="pup-sum-divider"></div>' +
       '<div class="pup-sum-stat"><span class="pup-sum-val">' + totalLevels + ' / ' + maxTotal + '</span><span class="pup-sum-lbl">Levels Owned</span></div>' +
       '<div class="pup-sum-divider"></div>' +
-      '<span class="pup-sum-note">âš¡ Max level 3 each</span>';
+      '<span class="pup-sum-note">\u26a1 Max level 3 each</span>';
   }
 
   list.innerHTML = POWERUP_UPGRADE_KEYS.map(key => {
@@ -1579,7 +1588,7 @@ const Music = (() => {
 
     // Called from tickDifficulty â€” speeds up BPM with speedMultiplier
     setTempo(multiplier) {
-      // 1.0Ã— â†’ 130 BPM, 2.8Ã— â†’ 150 BPM
+      // 1.0\u00d7 â†’ 130 BPM, 2.8\u00d7 â†’ 150 BPM
       _bpm = Math.round(130 + ((multiplier - 1.0) / 1.8) * 20);
       _bpm = Math.min(Math.max(_bpm, 130), 150);
     },
@@ -1929,7 +1938,7 @@ const DailyChallenge = (() => {
     { id: 'score600',   label: 'Reach a score of 600',         stat: 'score',            goal: 600, coins: 25 },
     { id: 'nearmiss2',  label: 'Land 2 near misses in one run', stat: 'nearMissesThisRun', goal: 2,  coins: 15 },
     { id: 'colorchange5', label: 'Survive 5 color shifts',   stat: 'colorChanges',     goal: 5,  coins: 20 },
-    { id: 'combo8',     label: 'Reach an 8Ã— combo',           stat: 'maxCombo',         goal: 8,  coins: 22 },
+    { id: 'combo8',     label: 'Reach an 8\u00d7 combo',           stat: 'maxCombo',         goal: 8,  coins: 22 },
     { id: 'powerups3',  label: 'Collect 3 power-ups',         stat: 'powerupsThisRun',  goal: 3,  coins: 18 },
   ];
 
@@ -2483,7 +2492,7 @@ function selectSkinForPreview(skinId) {
   } else if (available) {
     primaryHTML = '<button class="btn btn-primary preview-equip-btn" data-skin="' + skin.id + '">Equip</button>';
   } else if (isLifetime) {
-    primaryHTML = '<button class="btn btn-secondary preview-btn-disabled" disabled>ðŸ”’ ' + formatNumber(skin.lifetimeUnlock) + '</button>';
+    primaryHTML = '<button class="btn btn-secondary preview-btn-disabled" disabled>\uD83D\uDD12 ' + formatNumber(skin.lifetimeUnlock) + '</button>';
   } else if (isCoinSkin) {
     // Always show an enabled Buy button â€” if unaffordable it triggers the video flow
     const label = canAfford
@@ -2570,7 +2579,7 @@ function updateSkinsUI() {
     ].filter(Boolean).join(' ');
 
     return '<div class="' + cardClasses + '" data-skin="' + skin.id + '" data-rarity="' + skin.rarity + '" role="listitem" tabindex="0">' +
-      (locked ? '<span class="skin-grid-lock-icon" aria-hidden="true">ðŸ”’</span>' : '') +
+      (locked ? '<span class="skin-grid-lock-icon" aria-hidden="true">\uD83D\uDD12</span>' : '') +
       '<canvas class="skin-preview skin-canvas-mini" width="80" height="80" data-skin="' + skin.id + '" aria-hidden="true"></canvas>' +
       '<span class="skin-rarity" data-rarity="' + skin.rarity + '">' + skin.rarity + '</span>' +
       '<span class="skin-name">' + skin.name + '</span>' +
@@ -4308,9 +4317,9 @@ function pickSafeLane(playerLane) {
 }
 
 // Builds the set of lane indices to BLOCK this wave.
-// â€¢ safeLane is always kept open.
-// â€¢ At low difficulty a neighbor of safeLane is also kept open (breathing room).
-// â€¢ Blocked lanes are sorted so the playerâ€™s side fills first â€” directional pressure.
+// \u2022 safeLane is always kept open.
+// \u2022 At low difficulty a neighbor of safeLane is also kept open (breathing room).
+// \u2022 Blocked lanes are sorted so the playerâ€™s side fills first â€” directional pressure.
 function pickBlockedLanes(safeLane, playerLane) {
   const b          = difficultyBumps;
   const maxBlocked = b < 1 ? 4 : (b < 4 ? 5 : NUM_LANES - 1);
@@ -5262,7 +5271,7 @@ function checkCollisions() {
       applyFlowDelta(-FLOW_CONFIG.shieldHitPenalty, 'shield-hit');
       obstacles.splice(i, 1);
       spawnParticles(ob.x + ob.w / 2, ob.y + ob.h / 2, GAME_COLORS[ob.colorIndex].hex, 16);
-      addFloating(player.x, player.y - 55, 'Blocked â€¢ Flow Down', '#facc15');
+      addFloating(player.x, player.y - 55, 'Blocked \u2022 Flow Down', '#facc15');
       triggerShake(6, 0.22);
       if (navigator.vibrate) navigator.vibrate(50);
       Announce.say('Shield absorbed a hit.');
@@ -6827,7 +6836,7 @@ const LeaderboardService = (() => {
 const LeaderboardUI = (() => {
   let _activeTab = 'alltime';
   let _isOpen    = false;
-  const RANK_ICONS = { 1: 'ðŸ‘‘', 2: 'ðŸ¥ˆ', 3: 'ðŸ¥‰' };
+  const RANK_ICONS = { 1: '\uD83D\uDC51', 2: 'ðŸ¥ˆ', 3: 'ðŸ¥‰' };
 
   function _fmt(n) { return Math.floor(n || 0).toLocaleString(); }
 
@@ -6991,8 +7000,8 @@ const LeaderboardUI = (() => {
 
     const total = LeaderboardService.getLeaderboard('alltime').length;
     let msg = 'Global Rank: <span class="go-rank-highlight">#' + rank + '</span> of ' + total;
-    if (rank <= 10) msg += ' ðŸŽ‰ Top 10!';
-    if (rank <= 3)  msg = 'ðŸ† <span class="go-rank-highlight">#' + rank + ' Global</span> â€” Incredible!';
+    if (rank <= 10) msg += ' \uD83C\uDF89 Top 10!';
+    if (rank <= 3)  msg = '\uD83C\uDFC6 <span class="go-rank-highlight">#' + rank + ' Global</span> â€” Incredible!';
     row.innerHTML = msg;
 
     // Show rank toast
