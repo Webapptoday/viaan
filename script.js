@@ -33,7 +33,71 @@ const POWERUP_UPGRADE_DEFS = {
 const POWERUP_UPGRADE_KEYS = Object.keys(POWERUP_UPGRADE_DEFS);
 
 // Single built-in difficulty â€” ramps automatically via tickDifficulty()
-const GAME_CONFIG = { playerSpeed: 255, spawnRate: 0.13, forbiddenInterval: 2.7, baseSpeed: 225 };
+const GAME_CONFIG = { playerSpeed: 255, spawnRate: 1.35, forbiddenInterval: 3.0, baseSpeed: 210 };
+
+// ============================================================
+// DIFFICULTY REDESIGN CONFIG
+// All balance tuning lives here. No magic numbers elsewhere.
+// To re-balance: edit phase values; adjust caps at bottom.
+// ============================================================
+const DIFFICULTY_CONFIG = {
+  // phases: each entry controls live game values for that time window.
+  //   endAt = elapsed seconds when this phase ends (Infinity = forever)
+  //   spd   = speedMultiplier target
+  //   si    = spawn interval (s)
+  //   cc    = cluster/wave chance vs single-block (0-1)
+  //   fi    = forbidden color change interval (s)
+  //   mo    = max simultaneous obstacles (soft cap, per phase)
+  //   ac    = anti-camp targeting strength bonus (0-1)
+  phases: [
+    // Phase 0 - Intro   (0-20s):   teaches movement and color rules, very readable
+    { name:'Intro',   endAt:  20, spd:1.00, si:1.35, cc:0.22, fi:3.20, mo:10, ac:0.20 },
+    // Phase 1 - Build   (20-45s):  gradual pressure ramp, still forgiving
+    { name:'Build',   endAt:  45, spd:1.12, si:0.92, cc:0.38, fi:2.70, mo:14, ac:0.36 },
+    // Phase 2 - Engage  (45-90s):  movement necessary, core engagement window
+    { name:'Engage',  endAt:  90, spd:1.28, si:0.64, cc:0.53, fi:2.20, mo:18, ac:0.55 },
+    // Phase 3 - Intense (90-150s): skilled players feel real pressure
+    { name:'Intense', endAt: 150, spd:1.50, si:0.43, cc:0.64, fi:1.82, mo:22, ac:0.70 },
+    // Phase 4 - Expert  (150s+):   difficult but always visually readable
+    { name:'Expert',  endAt: Infinity, spd:1.70, si:0.30, cc:0.72, fi:1.55, mo:26, ac:0.86 },
+  ],
+
+  // Hard safety caps - NEVER exceeded regardless of phase, combo, or panic
+  speedMultHardCap:    1.80,  // was 3.25 - ends the ludicrous bullet-speed problem
+  spawnIntervalFloor:  0.26,  // was 0.085 - prevents spawn-rate insanity
+  maxObstaclesHardCap: 28,    // was 48 - prevents visual chaos
+
+  // Seconds over which phase values cross-fade (smoothstep easing)
+  blendWindow: 8.0,
+
+  // Panic wave tuning (less extreme than original)
+  panicSpeedBonus: 1.14,  // obstacle speed x1.14 during panic (was x1.32)
+  panicSpawnMult:  0.60,  // spawn interval x0.60 during panic (was x0.34 = 3x faster)
+
+  // Per-obstacle-type speed multipliers (replaces hard-coded 1.55/1.85 values)
+  // Applied as: vy = base * typeSpeedMults[type] + rand(0, typeSpeedRand[type])
+  typeSpeedMults: { 0:1.00, 1:0.85, 2:0.62, 3:1.10, 4:1.18 },
+  typeSpeedRand:  { 0:28,   1:22,   2:16,   3:26,   4:26   },
+
+  // Developer debug overlay - toggle at runtime: DIFFICULTY_CONFIG.debugOverlay = true
+  debugOverlay: false,
+};
+
+// ============================================================
+// PATTERN LIBRARY
+// Named wave patterns. phaseWeights[i] = relative weight in phase i.
+// 0 = never appears in that phase. Higher = more likely.
+// ============================================================
+const PATTERN_LIBRARY = [
+  { id:'HALF_FILL',   phaseWeights:[12, 9, 5, 3, 2] },  // Half lanes blocked, half open
+  { id:'SINGLE_SIDE', phaseWeights:[ 9, 6, 3, 1, 1] },  // Single side-lane threat
+  { id:'STAGGER',     phaseWeights:[ 6, 8, 8, 7, 6] },  // 2-3 blocks with readable gap
+  { id:'SWEEP_GAP',   phaseWeights:[ 3, 7, 9, 8, 7] },  // Gap drifts across lanes
+  { id:'CENTER_PUSH', phaseWeights:[ 1, 3, 7, 9, 9] },  // Center blocked, sides open
+  { id:'SIDE_PUSH',   phaseWeights:[ 1, 3, 6, 8, 9] },  // Sides blocked, center open
+  { id:'PINCER',      phaseWeights:[ 0, 1, 4, 7, 9] },  // Two flanks, middle escape
+  { id:'TARGETED',    phaseWeights:[ 0, 1, 3, 6, 8] },  // Direct pressure on player zone
+];
 
 // Player skins â€” unlock thresholds are bestScore requirements (bestScore never decreases)
 const SKIN_DEFS = [
@@ -117,10 +181,10 @@ const FLOW_CONFIG = {
   scoreMultCap: 2.1,
   coinMultPerCombo: 0.08,
   coinMultCap: 1.2,
-  spawnIntervalPerCombo: 0.022,
-  spawnIntervalCap: 0.34,
-  gapTightenPerCombo: 0.95,
-  gapTightenCap: 15,
+  spawnIntervalPerCombo: 0.007,  // was 0.022
+  spawnIntervalCap: 0.14,         // was 0.34
+  gapTightenPerCombo: 0.42,       // was 0.95
+  gapTightenCap: 8,              // was 15
   targetingPerCombo: 0.012,
   targetingCap: 0.18,
   switchSpeedPerCombo: 0.018,
@@ -541,6 +605,7 @@ let coinItemTimer     = 0;
 let difficultyBumps   = 0;
 let difficultyTimer   = 0;
 let speedMultiplier   = 1.0;
+let difficultyPhase   = 0;   // 0=Intro 1=Build 2=Engage 3=Intense 4=Expert
 let forbiddenIndex    = 0;
 
 let activePowerupKey   = null;
@@ -2160,8 +2225,8 @@ function getFlowCoinMultiplier() {
 
 function getActiveSpawnInterval() {
   const comboReduction = Math.min(combo * FLOW_CONFIG.spawnIntervalPerCombo, FLOW_CONFIG.spawnIntervalCap);
-  const campReduction  = flowState.campPressure * 0.12;
-  return Math.max(0.085, panicSpawnRate() * (1 - comboReduction - campReduction));
+  const campReduction  = flowState.campPressure * 0.08;
+  return Math.max(DIFFICULTY_CONFIG.spawnIntervalFloor, panicSpawnRate() * (1 - comboReduction - campReduction));
 }
 
 function getActiveForbiddenInterval() {
@@ -3882,7 +3947,7 @@ function drawSkinPreviewInner(pCtx, skin, cx, cy, r, now) {
 // Types: 0=NORMAL (straight), 2=BIG (large+slow)
 
 function spawnObstacle() {
-  if (obstacles.length >= MAX_OBSTACLES) return;
+  if (obstacles.length >= getPhaseMaxObstacles()) return;
 
   // Color: 60/40 forbidden/neutral post-grace, but drops to 30/70 while the warning
   // phase is active so new spawns don't pile up forbidden blocks during color transitions.
@@ -3913,11 +3978,11 @@ function spawnObstacle() {
 
   let w, h, vy;
   switch (type) {
-    case 0: w = 28 + Math.random()*16;  h = w;                         vy = base + Math.random()*80;       break;
+    case 0: w = 28 + Math.random()*16;  h = w;                         vy = base * DIFFICULTY_CONFIG.typeSpeedMults[0] + Math.random() * DIFFICULTY_CONFIG.typeSpeedRand[0]; break;
     case 1: w = 26 + Math.random()*14;  h = w;                         vy = base*0.85 + Math.random()*50;  break;
     case 2: w = 52 + Math.random()*20;  h = 38 + Math.random()*14;     vy = base*0.60 + Math.random()*28;  break; // medium-large, not room-filling
-    case 3: w = 14 + Math.random()*10;  h = 52 + Math.random()*28;     vy = base*1.55 + Math.random()*85;  break;
-    case 4: w = 12 + Math.random()*8;   h = 12 + Math.random()*8;      vy = base*1.85 + Math.random()*100; break;
+    case 3: w = 14 + Math.random()*10;  h = 52 + Math.random()*28;     vy = base * DIFFICULTY_CONFIG.typeSpeedMults[3] + Math.random() * DIFFICULTY_CONFIG.typeSpeedRand[3]; break;
+    case 4: w = 12 + Math.random()*8;   h = 12 + Math.random()*8;      vy = base * DIFFICULTY_CONFIG.typeSpeedMults[4] + Math.random() * DIFFICULTY_CONFIG.typeSpeedRand[4]; break;
   }
 
   if (activePowerupKey === 'SLOW') vy *= 0.4;
@@ -3989,7 +4054,7 @@ function spawnObstacle() {
 // Spawns 2â€“4 blocks using a named lane pattern that always leaves open corridors.
 // Replaces old random-X cluster patterns with a controlled, fair wave system.
 function spawnWave() {
-  if (obstacles.length >= MAX_OBSTACLES) return;
+  if (obstacles.length >= getPhaseMaxObstacles()) return;
   const cw        = canvas.width;
   const lw        = cw / NUM_LANES;
   const lanes     = getLaneCenters();
@@ -4000,7 +4065,19 @@ function spawnWave() {
   // Detect which lane the player is in, then choose a player-aware safe lane.
   const playerLane = getPlayerLane();
   observePlayerLaneForSpawn(playerLane);
-  const plan = buildWavePlan(lanes, playerLane, lw, postGrace);
+
+  // Pattern-based safe lane selection
+  const patternId  = selectSpawnPattern();
+  const midLane    = Math.floor(NUM_LANES / 2);
+  let   safeLaneHint = -1;
+  if (patternId === 'CENTER_PUSH') {
+    safeLaneHint = Math.random() < 0.5 ? 0 : NUM_LANES - 1;
+  } else if (patternId === 'SIDE_PUSH' || patternId === 'PINCER') {
+    safeLaneHint = Math.max(1, Math.min(NUM_LANES - 2, midLane + (Math.random() < 0.5 ? 0 : -1)));
+  } else if (patternId === 'HALF_FILL') {
+    safeLaneHint = playerLane <= midLane ? NUM_LANES - 1 : 0;
+  }
+  const plan = buildWavePlan(lanes, playerLane, lw, postGrace, safeLaneHint);
   const safeLane = plan.safeLane;
   const blocked  = plan.blocked;
 
@@ -4030,8 +4107,9 @@ function spawnWave() {
       if (bigCount < 2) { w = 50 + Math.random() * 18;  h = 34 + Math.random() * 12;  wType = 2; } // large hazard
       else               { w = 22 + Math.random() * 14;  h = 20 + Math.random() * 14;  wType = 0; }
     }
-    const speedScale = wType === 4 ? 1.65 : (wType === 3 ? 1.35 : (wType === 2 ? 0.62 : 1.0));
-    const vyR = base * speedScale + Math.random() * 70;
+    const speedScale = DIFFICULTY_CONFIG.typeSpeedMults[wType] ?? 1.0;
+    const speedRandV = DIFFICULTY_CONFIG.typeSpeedRand[wType] ?? 28;
+    const vyR = base * speedScale + Math.random() * speedRandV;
     const vy  = slow ? vyR * 0.4 : vyR;
 
     // Color: honor warning-phase fairness (30% forbidden during color transition)
@@ -4161,7 +4239,14 @@ function pickAdjacentLane(baseLane, preferredLane) {
   return opts[0];
 }
 
-function buildWavePlan(laneCenters, playerLane, laneW, postGrace) {
+function buildWavePlan(laneCenters, playerLane, laneW, postGrace, safeLaneHint) {
+  // If a pattern hint is provided, try that safe lane first
+  if (safeLaneHint !== undefined && safeLaneHint >= 0) {
+    const blocked = pickBlockedLanes(safeLaneHint, playerLane);
+    if (!postGrace || validateEscapeRoute(laneCenters, blocked, laneW)) {
+      return { safeLane: safeLaneHint, blocked };
+    }
+  }
   const attempts = postGrace ? 8 : 4;
   for (let attempt = 0; attempt < attempts; attempt++) {
     const safeLane = pickSafeLane(playerLane);
@@ -5261,18 +5346,22 @@ function awardNearMiss(ob) {
 // The active spawn rate is read via panicSpawnRate() below.
 // No state is permanently altered; everything resets after each wave.
 function panicSpawnRate() {
-  return panicPhase === 'wave' ? spawnRate * 0.34 : spawnRate; // ~3Ã— faster during wave
+  // Was: spawnRate * 0.34 (~3x faster). Now 60% of normal â€” still urgent but not insane.
+  return panicPhase === 'wave' ? spawnRate * DIFFICULTY_CONFIG.panicSpawnMult : spawnRate;
 }
 function panicSpeedMult() {
-  return panicPhase === 'wave' ? 1.32 : 1.0; // 32 % faster obstacle velocity during wave
+  // Was: 1.32 â€” now 1.14. Less extreme multiplier on already-high base speed.
+  return panicPhase === 'wave' ? DIFFICULTY_CONFIG.panicSpeedBonus : 1.0;
 }
 function activeForbiddenRatio() {
-  if (panicPhase === 'wave') return 0.74;
-  return Math.min(0.62 + difficultyBumps * 0.02, 0.72);
+  if (panicPhase === 'wave') return 0.72;
+  return Math.min(0.58 + difficultyBumps * 0.012, 0.68);
 }
 function currentClusterChance() {
-  const earlyRamp = Math.min(graceTimer, 8) * 0.015;
-  return Math.min(CLUSTER_CHANCE + earlyRamp + difficultyBumps * 0.035, 0.82);
+  // Phase-driven cluster chance â€” replaces old fixed-ramp difficultyBumps formula
+  const elapsed = getElapsedPlayTime();
+  const base    = lerpDiff(elapsed, 'cc');
+  return Math.min(base + Math.min(graceTimer, 6) * 0.006, 0.76);
 }
 
 function tickPanicWave(dt) {
@@ -5469,45 +5558,83 @@ function drawDoubleDangerBanner() {
   ctx.restore();
 }
 
-function tickDifficulty(dt) {
-  difficultyTimer += dt;
-  if (difficultyTimer < DIFF_SCALE_EVERY) return;
-  difficultyTimer = 0;
-  difficultyBumps++;
+// --- Phase-aware difficulty helpers (added v47) ---
 
-  // Notify the player that difficulty increased â€” makes skill progress feel real
-  if (difficultyBumps > 0 && !settings.reducedMotion) {
-    const msgs = ['\u26a1 Speed Up!', '\u26a1 Faster!', '\ud83d\udd25 Intensity!', '\u26a1 Max Speed!'];
-    const msg  = msgs[Math.min(difficultyBumps - 1, msgs.length - 1)];
-    addFloating(canvas.width / 2, canvas.height / 3, msg, '#f97316', 20);
+function getElapsedPlayTime() {
+  if (gameStartTime <= 0) return 0;
+  return Math.max(0, (performance.now() - gameStartTime - pausedDuration) / 1000);
+}
+
+function getDiffPhase(elapsed) {
+  const phases = DIFFICULTY_CONFIG.phases;
+  for (let i = 0; i < phases.length - 1; i++) {
+    if (elapsed < phases[i].endAt) return i;
   }
+  return phases.length - 1;
+}
 
-  // Performance-reactive scaling: skilled play (combo + near misses + score) ramps intensity faster.
-  const perfCombo = Math.max(0, maxCombo - 4) * 0.018;
-  const perfMiss  = Math.min(missionRun.nearMissesThisRun, 10) * 0.012;
-  const perfScore = Math.min(score / 18000, 0.28);
-  const perfMult  = Math.min(1.45, 1 + perfCombo + perfMiss + perfScore);
+function lerpDiff(elapsed, key) {
+  const phases = DIFFICULTY_CONFIG.phases;
+  const pi     = getDiffPhase(elapsed);
+  if (pi === 0) return phases[0][key];
+  const prev   = phases[pi - 1];
+  const cur    = phases[pi];
+  const t      = Math.min(1, (elapsed - prev.endAt) / DIFFICULTY_CONFIG.blendWindow);
+  const ease   = t * t * (3 - 2 * t);
+  return prev[key] + (cur[key] - prev[key]) * ease;
+}
 
-  const prevMultiplier = speedMultiplier;
-  speedMultiplier   = Math.min((1.0 + difficultyBumps * 0.18) * perfMult, 3.25);
-  spawnRate         = Math.max(
-    GAME_CONFIG.spawnRate * Math.pow(0.78, difficultyBumps) * (1 - (perfMult - 1) * 0.16),
-    0.095
-  );
-  forbiddenInterval = Math.max(
-    GAME_CONFIG.forbiddenInterval - difficultyBumps * 0.28 - (perfMult - 1) * 0.20,
-    1.45
-  );
-  // Rescale existing on-screen obstacles so the speed-up is felt immediately,
-  // not only on newly spawned ones. Preserves per-type relative speeds.
-  if (speedMultiplier > prevMultiplier) {
-    const ratio  = speedMultiplier / prevMultiplier;
+function getPhaseMaxObstacles() {
+  const elapsed = getElapsedPlayTime();
+  return Math.min(Math.round(lerpDiff(elapsed, 'mo')), DIFFICULTY_CONFIG.maxObstaclesHardCap);
+}
+
+function selectSpawnPattern() {
+  const elapsed  = getElapsedPlayTime();
+  const phaseIdx = getDiffPhase(elapsed);
+  let total = 0;
+  for (const p of PATTERN_LIBRARY) total += (p.phaseWeights[phaseIdx] || 0);
+  if (total <= 0) return 'STAGGER';
+  let r = Math.random() * total;
+  for (const p of PATTERN_LIBRARY) {
+    r -= (p.phaseWeights[phaseIdx] || 0);
+    if (r <= 0) return p.id;
+  }
+  return PATTERN_LIBRARY[0].id;
+}
+
+function tickDifficulty(dt) {
+  // Smooth phase-based difficulty. No more sudden bumps every 6 seconds.
+  const elapsed    = getElapsedPlayTime();
+  const prevPhase  = difficultyPhase;
+  difficultyPhase  = getDiffPhase(elapsed);
+
+  const newSpeedMult = Math.min(lerpDiff(elapsed, 'spd'), DIFFICULTY_CONFIG.speedMultHardCap);
+  const newSpawnRate = Math.max(lerpDiff(elapsed, 'si'),  DIFFICULTY_CONFIG.spawnIntervalFloor);
+
+  // Rescale on-screen obstacles when speed increases
+  if (newSpeedMult > speedMultiplier && speedMultiplier > 0) {
+    const ratio  = newSpeedMult / speedMultiplier;
     const isSlow = activePowerupKey === 'SLOW';
     obstacles.forEach(o => {
       o.baseVy *= ratio;
       o.vy      = isSlow ? o.baseVy * 0.4 : o.baseVy;
     });
   }
+
+  speedMultiplier   = newSpeedMult;
+  spawnRate         = newSpawnRate;
+  forbiddenInterval = lerpDiff(elapsed, 'fi');
+
+  // Legacy counter used by lane-selection helpers (0-12 range over 84s arc)
+  difficultyBumps = Math.min(12, Math.round(elapsed / 7));
+
+  // Phase transition announcement
+  if (difficultyPhase !== prevPhase && difficultyPhase > 0 && !settings.reducedMotion) {
+    const label = DIFFICULTY_CONFIG.phases[difficultyPhase].name;
+    addFloating(canvas.width / 2, canvas.height / 3, '\u26a1 ' + label, '#f97316', 20);
+  }
+
   Music.setTempo(speedMultiplier);
 }
 
@@ -5626,6 +5753,37 @@ function drawBackground() {
   }
 }
 
+
+// --- Developer debug overlay (DIFFICULTY_CONFIG.debugOverlay = true to enable) ---
+function drawDebugOverlay() {
+  const elapsed  = getElapsedPlayTime();
+  const ph       = DIFFICULTY_CONFIG.phases[difficultyPhase] || {};
+  const lines    = [
+    'Phase: ' + (ph.name||'?') + ' (' + difficultyPhase + ')  t=' + elapsed.toFixed(1) + 's',
+    'SpeedMult: ' + speedMultiplier.toFixed(3) + ' / cap=' + DIFFICULTY_CONFIG.speedMultHardCap,
+    'SpawnRate: ' + spawnRate.toFixed(3) + 's raw  active=' + getActiveSpawnInterval().toFixed(3) + 's',
+    'ClusterChance: ' + (currentClusterChance()*100).toFixed(0) + '%',
+    'ForbidInterval: ' + forbiddenInterval.toFixed(2) + 's',
+    'Obstacles: ' + obstacles.length + ' / soft=' + getPhaseMaxObstacles() + ' / hard=' + DIFFICULTY_CONFIG.maxObstaclesHardCap,
+    'Combo: ' + combo + '  Camp: ' + flowState.campPressure.toFixed(2) + '  DiffBumps: ' + difficultyBumps,
+    'Panic: ' + panicPhase + '  DD: ' + ddPhase,
+  ];
+  ctx.save();
+  ctx.font = '11px monospace';
+  ctx.textBaseline = 'top';
+  const pad=7, lh=15, bw=340, bh=lines.length*lh+pad*2;
+  ctx.fillStyle = 'rgba(0,0,0,0.78)';
+  ctx.fillRect(2, 2, bw, bh);
+  ctx.strokeStyle = 'rgba(139,92,246,0.65)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(2, 2, bw, bh);
+  lines.forEach((line, i) => {
+    ctx.fillStyle = i === 0 ? '#f97316' : i >= 5 ? '#94a3b8' : '#e2e8f0';
+    ctx.fillText(line, 2 + pad, 2 + pad + i * lh);
+  });
+  ctx.restore();
+}
+
 function render(ts) {
   ctx.save();
   ctx.translate(shakeX, shakeY);
@@ -5682,6 +5840,7 @@ function render(ts) {
     ctx.fillStyle = vg;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
+  if (DIFFICULTY_CONFIG.debugOverlay) drawDebugOverlay();
   ctx.restore();
 }
 
@@ -5784,7 +5943,7 @@ function startGame() {
   _timeMilestonesHit  = new Set();
   _comboMilestonesHit = new Set();
   playerTrail = [];
-  spawnTimer = 0; powerupTimer = 0; coinItemTimer = 0; difficultyTimer = 0; difficultyBumps = 0;
+  spawnTimer = 0; powerupTimer = 0; coinItemTimer = 0; difficultyTimer = 0; difficultyBumps = 0; difficultyPhase = 0;
   coinStreakCount = 0; coinStreakTimer = 0; coinsFromPickupsThisRun = 0;
   // Reset per-run mission counters (cumulative stat handled separately in evaluateMissions)
   missionRun = { seconds: 0, score: 0, colorChanges: 0, powerupsThisRun: 0, nearMissesThisRun: 0, panicWavesSurvived: 0, maxCombo: 0 };
@@ -5853,14 +6012,13 @@ function startGame() {
     resetFlowState(player.x, player.y);
     updateComboDisplay();
     // Pre-fill obstacles so there's immediate on-screen pressure
-    const preCount = 24;
+    const preCount = 8;  // was 24 -- gentle opening so the first 2s are readable
     for (let _i = 0; _i < preCount; _i++) {
       spawnObstacle();
       if (obstacles.length > 0) {
         const ob = obstacles[obstacles.length - 1];
-        // Tight stagger â€” blocks arrive in a quick opening rush.
-        ob.y = -(ob.h + 10) - _i * (canvas.height * 0.082 + 4);
-        // Demote big blocks on pre-fill â€” opening screen stays readable
+        // Wider stagger -- blocks arrive gradually, not all at once
+        ob.y = -(ob.h + 10) - _i * (canvas.height * 0.15 + 8);
         if (ob.type === 2) { ob.type = 0; ob.w = 28 + Math.random()*16; ob.h = ob.w; }
       }
     }
@@ -6967,4 +7125,8 @@ const LeaderboardUI = (() => {
 
   return { open, close, init, renderBoard, renderYourStats, showPostRunRank, promptPlayerName, switchTab };
 })();
+
+
+
+
 
