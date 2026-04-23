@@ -6654,30 +6654,79 @@ document.addEventListener('DOMContentLoaded', init);
 // ============================================================
 
 const LeaderboardService = (() => {
-  const LOCAL_KEY     = 'forbiddenColor_leaderboard';
-  const NAMES_KEY     = 'forbiddenColor_playerName';
-  const MOCK_KEY      = 'forbiddenColor_mockLB';
-  const MAX_LOCAL     = 20;
+  // ============================================================
+  // LeaderboardService — Firebase Firestore + localStorage hybrid
+  //
+  // Online boards (alltime / daily / weekly):
+  //   Backed by Firebase Cloud Firestore — real-time, persistent.
+  //   Falls back to stable mock data when Firebase is not configured.
+  //
+  // Local board:
+  //   Always localStorage-only (not sent to Firebase).
+  //
+  // Firestore collection: leaderboard_scores
+  // Doc ID scheme:
+  //   {uid}_alltime          — player all-time best score
+  //   {uid}_daily_{YYYYMMDD} — player best for this calendar day
+  //   {uid}_weekly_{YYYYWW}  — player best for this calendar week
+  //
+  // Anti-cheat note:
+  //   Firestore rules enforce score bounds and ownership.
+  //   For server-side session validation, add a Cloud Function
+  //   trigger on leaderboard_scores writes.
+  // ============================================================
 
-  // -- Fake player name pools --------------------------------
+  const LOCAL_KEY = 'forbiddenColor_leaderboard'; // kept for backward compat
+  const NAMES_KEY = 'forbiddenColor_playerName';  // kept for backward compat
+  const MAX_LOCAL = 20;
+
+  // -- Period key helpers ------------------------------------
+  function _dailyKey() {
+    const d = new Date();
+    return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
+  }
+  function _weeklyKey() {
+    const d = new Date();
+    const s = new Date(d);
+    s.setDate(d.getDate() - d.getDay());
+    return s.getFullYear() * 10000 + (s.getMonth() + 1) * 100 + s.getDate();
+  }
+
+  // -- Firebase data cache (populated by real-time listeners) -
+  // Keyed by UI board type: 'alltime' | 'daily' | 'weekly'
+  const _cache = { alltime: null, daily: null, weekly: null };
+
+  // -- Mock fallback (shown before Firebase data arrives) ----
   const _adjectives = ['Neon','Void','Solar','Hyper','Pixel','Turbo','Ultra','Cyber','Dark','Blaze','Ghost','Storm','Prism','Lunar','Nova','Shock','Wave','Pulse','Rapid','Quantum'];
   const _nouns      = ['Fox','Byte','Dash','Grid','Hawk','Bolt','Edge','Flux','Glow','Haze','Jet','Lynx','Mist','Node','Orb','Peak','Quill','Rift','Surge','Trace'];
   const _suffixes   = ['42','99','7','X','Z','Pro','GG','1','777','404','00','XL','Jr','Sr','','','','','',''];
-
   function _fakeName(seed) {
     const a = _adjectives[seed % _adjectives.length];
     const b = _nouns[Math.floor(seed / _adjectives.length) % _nouns.length];
     const c = _suffixes[Math.floor(seed / (_adjectives.length * _nouns.length)) % _suffixes.length];
     return a + b + c;
   }
-
-  // Seeded pseudo-random (so mock board is stable across reloads)
   function _seededRng(seed) {
     let s = seed;
-    return function() {
+    return function () {
       s = (s * 1664525 + 1013904223) & 0xffffffff;
       return (s >>> 0) / 0xffffffff;
     };
+  }
+  function _genMockBoard(seed, count, baseMin, baseMax, shift) {
+    const rng = _seededRng(seed + shift);
+    const out = [];
+    for (let i = 0; i < count; i++) {
+      out.push({ name: _fakeName(seed + i * 7), score: Math.floor(baseMin + rng() * (baseMax - baseMin)), fake: true });
+    }
+    out.sort((a, b) => b.score - a.score);
+    return out;
+  }
+  function _getMockBoard(type) {
+    const BASE = 31337;
+    if (type === 'daily')  { const sh = _dailyKey()  % 9999; return _genMockBoard(BASE + sh, 25, 500,  20000, sh); }
+    if (type === 'weekly') { const sh = _weeklyKey() % 9999; return _genMockBoard(BASE + sh, 25, 600,  35000, sh); }
+    return _genMockBoard(BASE, 25, 800, 48000, 0);
   }
 
   // -- Player name ------------------------------------------
@@ -6697,14 +6746,13 @@ const LeaderboardService = (() => {
     if (t.length < 3) return 'Name must be at least 3 characters.';
     if (t.length > 12) return 'Name must be 12 characters or less.';
     if (!/^[a-zA-Z0-9]+$/.test(t)) return 'Letters and numbers only.';
-    // Basic profanity filter
     const blocked = ['fuck','shit','ass','bitch','cunt','dick','piss','cock','damn','hell'];
     const lower = t.toLowerCase();
     for (const w of blocked) { if (lower.includes(w)) return 'Name contains disallowed words.'; }
-    return null; // valid
+    return null;
   }
 
-  // -- Local leaderboard ------------------------------------
+  // -- Local scores (localStorage only) ----------------------
   let _localScores = null;
   function _loadLocal() {
     if (_localScores) return;
@@ -6734,125 +6782,155 @@ const LeaderboardService = (() => {
     _saveLocal();
   }
 
-  // -- Mock online leaderboard ------------------------------
-  // Generates stable, believable fake boards seeded from a constant.
-  // Daily/Weekly boards shift slightly each day/week.
-  let _mockData = null;
+  // -- Firebase submit (async, fire-and-forget) ---------------
+  // Writes the player's best score to all_time, daily, and weekly boards.
+  // Uses Firestore transactions so the stored score only ever increases.
+  async function _fbSubmit(score, name) {
+    const db = window._fbDb;
+    if (!db) return; // Firebase not yet configured
 
-  function _dayKey()  { const d=new Date(); return d.getFullYear()*10000 + (d.getMonth()+1)*100 + d.getDate(); }
-  function _weekKey() { const d=new Date(); const s=new Date(d); s.setDate(d.getDate()-d.getDay()); return s.getFullYear()*10000 + (s.getMonth()+1)*100 + s.getDate(); }
-
-  function _genBoard(seed, count, baseMin, baseMax, shift) {
-    const rng = _seededRng(seed + shift);
-    const entries = [];
-    for (let i = 0; i < count; i++) {
-      const r = rng();
-      const score = Math.floor(baseMin + r * (baseMax - baseMin));
-      entries.push({ name: _fakeName(seed + i * 7), score, fake: true });
+    // Ensure anonymous auth is complete before writing
+    let uid = window._fbGetUserId ? window._fbGetUserId() : null;
+    if (!uid && window._fbWaitForAuth) {
+      await window._fbWaitForAuth();
+      uid = window._fbGetUserId ? window._fbGetUserId() : null;
     }
-    entries.sort((a, b) => b.score - a.score);
-    return entries;
+    if (!uid) return; // Auth failed — skip silently
+
+    const col      = db.collection('leaderboard_scores');
+    const intScore = Math.floor(score);
+    const safeName = String(name || 'Player').trim().slice(0, 12) || 'Player';
+    const dailyPK  = _dailyKey();
+    const weeklyPK = _weeklyKey();
+
+    // Update a board doc only when the new score beats the stored record
+    async function _updateBest(docId, boardType, periodKey) {
+      const ref = col.doc(docId);
+      return db.runTransaction(async tx => {
+        const snap = await tx.get(ref);
+        if (!snap.exists || snap.data().score < intScore) {
+          const data = {
+            playerId:   uid,
+            playerName: safeName,
+            score:      intScore,
+            boardType,
+            updatedAt:  firebase.firestore.FieldValue.serverTimestamp(),
+          };
+          if (periodKey !== null) data.periodKey = periodKey;
+          tx.set(ref, data);
+        }
+      });
+    }
+
+    await Promise.all([
+      _updateBest(uid + '_alltime',             'all_time', null),
+      _updateBest(uid + '_daily_'  + dailyPK,  'daily',    dailyPK),
+      _updateBest(uid + '_weekly_' + weeklyPK, 'weekly',   weeklyPK),
+    ]).catch(err => console.warn('[Firebase] submitScore failed:', err.code || err.message));
   }
 
-  function _loadMock() {
-    if (_mockData) return;
-    try {
-      const raw = localStorage.getItem(MOCK_KEY);
-      _mockData = raw ? JSON.parse(raw) : null;
-    } catch (_) { _mockData = null; }
-
-    const BASE_SEED = 31337;
-    if (!_mockData) {
-      _mockData = {
-        alltime: _genBoard(BASE_SEED, 50, 800, 48000, 0),
-        dailySeed:  _dayKey(),
-        weeklySeed: _weekKey(),
-      };
-      _saveMock();
+  // -- Firebase real-time subscription -----------------------
+  // boardType: 'alltime' | 'daily' | 'weekly'
+  // Attaches a Firestore onSnapshot listener, keeps _cache updated,
+  // and invokes callback(entries) on every live update.
+  // Returns an unsubscribe function.
+  function subscribeToLeaderboard(boardType, limit, callback) {
+    const db = window._fbDb;
+    if (!db) {
+      // Firebase not configured — serve stable mock data immediately
+      const mock = _getMockBoard(boardType);
+      _cache[boardType] = mock;
+      if (callback) setTimeout(() => callback(mock), 0);
+      return () => {};
     }
-    // Regenerate daily/weekly if day/week changed
-    if (_mockData.dailySeed !== _dayKey()) {
-      _mockData.alltime    = _genBoard(BASE_SEED, 50, 800, 48000, 0);
-      _mockData.dailySeed  = _dayKey();
-      _saveMock();
+
+    const n = limit || 25;
+    let query;
+
+    if (boardType === 'daily') {
+      // Requires Firestore composite index: boardType ASC, periodKey ASC, score DESC
+      query = db.collection('leaderboard_scores')
+        .where('boardType', '==', 'daily')
+        .where('periodKey', '==', _dailyKey())
+        .orderBy('score', 'desc')
+        .limit(n);
+    } else if (boardType === 'weekly') {
+      // Requires Firestore composite index: boardType ASC, periodKey ASC, score DESC
+      query = db.collection('leaderboard_scores')
+        .where('boardType', '==', 'weekly')
+        .where('periodKey', '==', _weeklyKey())
+        .orderBy('score', 'desc')
+        .limit(n);
+    } else {
+      // all_time — requires Firestore index: boardType ASC, score DESC
+      query = db.collection('leaderboard_scores')
+        .where('boardType', '==', 'all_time')
+        .orderBy('score', 'desc')
+        .limit(n);
     }
-    if (_mockData.weeklySeed !== _weekKey()) {
-      _mockData.weeklySeed = _weekKey();
-      _saveMock();
-    }
-  }
-  function _saveMock() {
-    try { localStorage.setItem(MOCK_KEY, JSON.stringify(_mockData)); } catch (_) {}
+
+    return query.onSnapshot(snap => {
+      const currentUid = window._fbGetUserId ? window._fbGetUserId() : null;
+      const entries = snap.docs.map(doc => {
+        const d = doc.data();
+        return { name: d.playerName, score: d.score, isPlayer: d.playerId === currentUid };
+      });
+      _cache[boardType] = entries;
+      if (callback) callback(entries);
+    }, err => {
+      console.warn('[Firebase] Leaderboard listener error:', err.code || err.message);
+      // Fall back to mock data on listener error so UI stays populated
+      if (!_cache[boardType]) {
+        _cache[boardType] = _getMockBoard(boardType);
+        if (callback) callback(_cache[boardType]);
+      }
+    });
   }
 
-  // Insert the player's score into the mock board naturally
-  function _mergePlayerIntoBoard(board, playerScore, playerName) {
-    if (!playerScore || playerScore <= 0) return board.slice(0, 50);
-    const filtered = board.filter(e => !(e.isPlayer));
-    const playerEntry = { name: playerName || 'You', score: Math.floor(playerScore), isPlayer: true };
-    const merged = [...filtered, playerEntry];
-    merged.sort((a, b) => b.score - a.score);
-    return merged.slice(0, 50);
-  }
-
-  // -- Public API ---------------------------------------------
-  // getLeaderboard(type) -> array of {name, score, isPlayer?, fake?}
+  // -- getLeaderboard (sync — reads from cache or mock) ------
+  // Online tabs return _cache data populated by subscribeToLeaderboard.
+  // Falls back to stable mock data while Firebase data is loading.
   function getLeaderboard(type) {
-    _loadLocal();
-    _loadMock();
-    const pName  = getPlayerName() || 'You';
-    const pScore = settings ? Math.floor(settings.bestScore || 0) : 0;
-
     if (type === 'local') {
-      // Local: real player entries only
-      return getLocalLeaderboard().map((e, i) => ({
+      _loadLocal();
+      const pName = getPlayerName() || 'You';
+      return _localScores.slice().map((e, i) => ({
         ...e,
-        isPlayer: (e.name === pName) || (i === 0 && !_localScores.some(x => x.name === pName))
+        isPlayer: e.name === pName || (i === 0 && !_localScores.some(x => x.name === pName)),
       }));
     }
-
-    if (type === 'daily') {
-      const dayShift = _dayKey() % 9999;
-      const board = _genBoard(31337 + dayShift, 35, 500, 20000, dayShift);
-      return _mergePlayerIntoBoard(board, pScore, pName);
+    if (_cache[type]) return _cache[type];
+    // Fallback: mock board with player's best merged in
+    const pName  = getPlayerName() || 'You';
+    const pScore = settings ? Math.floor(settings.bestScore || 0) : 0;
+    const mock   = _getMockBoard(type);
+    if (pScore > 0) {
+      mock.push({ name: pName, score: pScore, isPlayer: true });
+      mock.sort((a, b) => b.score - a.score);
+      return mock.slice(0, 25);
     }
-    if (type === 'weekly') {
-      const wkShift = _weekKey() % 9999;
-      const board = _genBoard(31337 + wkShift, 45, 600, 35000, wkShift);
-      return _mergePlayerIntoBoard(board, pScore, pName);
-    }
-    // alltime
-    return _mergePlayerIntoBoard(_mockData.alltime, pScore, pName);
+    return mock;
   }
 
-  // getPlayerRank(type) -> 1-based rank, or null
   function getPlayerRank(type) {
     const board = getLeaderboard(type);
     const idx   = board.findIndex(e => e.isPlayer);
     return idx === -1 ? null : idx + 1;
   }
 
-  // submitScore - call after every run
+  // submitScore: saves locally and pushes to Firebase (async, non-blocking)
   function submitScore(score, name) {
     if (!score || score <= 0) return;
-    const n = name || getPlayerName() || 'You';
+    const n = name || getPlayerName() || 'Player';
     _submitLocal(score, n);
-    // For mock online: the board auto-includes player best on getLeaderboard()
+    _fbSubmit(score, n); // intentionally not awaited
   }
 
-  // getRankSummary - returns a human-readable rank string for post-run
   function getRankSummary(score) {
     if (!score || score <= 0) return null;
-    const pName = getPlayerName() || 'You';
-    // Temporarily insert this specific run score
-    const tempEntry = { name: pName, score: Math.floor(score), isPlayer: true };
-    const alltimeBoard = _mergePlayerIntoBoard(
-      _loadMock() || [],
-      score, pName
-    );
-    const rank = (alltimeBoard.findIndex(e => e.isPlayer) + 1) || null;
-    const total = alltimeBoard.length;
-    return rank ? { rank, total, board: 'alltime' } : null;
+    const board = getLeaderboard('alltime');
+    const rank  = (board.findIndex(e => e.isPlayer) + 1) || null;
+    return rank ? { rank, total: board.length, board: 'alltime' } : null;
   }
 
   return {
@@ -6864,6 +6942,7 @@ const LeaderboardService = (() => {
     setPlayerName,
     validateName,
     getRankSummary,
+    subscribeToLeaderboard,
   };
 })();
 
@@ -6873,6 +6952,8 @@ const LeaderboardService = (() => {
 const LeaderboardUI = (() => {
   let _activeTab = 'alltime';
   let _isOpen    = false;
+  // Active Firestore listeners keyed by board type ('alltime'|'daily'|'weekly')
+  let _unsubs    = {};
   const RANK_ICONS = { 1: '1st', 2: '2nd', 3: '3rd' };
 
   function _fmt(n) { return Math.floor(n || 0).toLocaleString(); }
@@ -6895,6 +6976,9 @@ const LeaderboardUI = (() => {
     _isOpen = false;
     modal.hidden = true;
     modal.setAttribute('aria-hidden', 'true');
+    // Unsubscribe all active Firestore listeners when modal closes
+    Object.values(_unsubs).forEach(fn => { try { fn(); } catch (_) {} });
+    _unsubs = {};
   }
 
   // -- Your stats card --------------------------------------
@@ -6930,6 +7014,17 @@ const LeaderboardUI = (() => {
   }
 
   // -- Tab switching -----------------------------------------
+  // Starts a Firestore listener for the tab being opened (if not already active)
+  function _ensureListener(tab) {
+    if (tab === 'local' || _unsubs[tab]) return; // local tab needs no Firebase; already subscribed
+    _unsubs[tab] = LeaderboardService.subscribeToLeaderboard(tab, 25, entries => {
+      // Re-render this tab whenever Firebase sends a live update
+      renderBoard(tab);
+      // Also refresh 'Your Stats' rank number (it reads from the alltime cache)
+      if (tab === 'alltime') renderYourStats();
+    });
+  }
+
   function switchTab(tab) {
     _activeTab = tab;
     // Tab buttons
@@ -6944,6 +7039,7 @@ const LeaderboardUI = (() => {
       if (panel) panel.hidden = (t !== tab);
     });
     renderBoard(tab);
+    _ensureListener(tab); // attach Firestore listener for this board type
   }
 
   // -- Render a board ----------------------------------------
@@ -7101,6 +7197,12 @@ const LeaderboardUI = (() => {
     if (dialog)  dialog.hidden = true;
   }
 
+  // refreshActive — called externally to re-render the currently visible tab
+  // (e.g. after a score submit so the UI stays in sync)
+  function refreshActive() {
+    if (_isOpen) renderBoard(_activeTab);
+  }
+
   // -- Init / wire buttons -----------------------------------
   function init() {
     // Open leaderboard from home screen
@@ -7169,7 +7271,7 @@ const LeaderboardUI = (() => {
     });
   }
 
-  return { open, close, init, renderBoard, renderYourStats, showPostRunRank, promptPlayerName, switchTab };
+  return { open, close, init, renderBoard, renderYourStats, showPostRunRank, promptPlayerName, switchTab, refreshActive };
 })();
 
 

@@ -769,6 +769,13 @@
   <!-- Post-run rank toast (shown in game over) -->
   <div id="lb-rank-toast" class="lb-rank-toast" hidden aria-live="polite"></div>
 
+  <!-- Firebase Web SDK (compat build — works without a bundler) -->
+  <!-- Firebase packages used: app, auth (anonymous), firestore (real-time) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <!-- Firebase config + anonymous auth init (fill in your config values here) -->
+  <script src="firebase-client.js"></script>
   <script src="script.js?v=46"></script>
 
   <!-- Vercel Analytics — tracks visitors, page views, countries, devices and traffic sources -->
