@@ -19,9 +19,9 @@ const GAME_COLORS = [
 
 const POWERUP_DEFS = {
   SHIELD: { label: 'Shield',    icon: '\uD83D\uDEE1', color: '#facc15', duration: 10 },
-  SLOW:   { label: 'Slow Time', icon: '\u23F1',        color: '#38bdf8', duration: 6  },
-  CLEAR:  { label: 'Clear',    icon: '\u2728',         color: '#e879f9', duration: 0  },
-  BOOST:  { label: 'Score x2',  icon: '\u26A1',         color: '#fb923c', duration: 8  },
+  SLOW:   { label: 'Slow Time', icon: '',        color: '#38bdf8', duration: 6  },
+  CLEAR:  { label: 'Clear',    icon: '',         color: '#e879f9', duration: 0  },
+  BOOST:  { label: 'Score x2',  icon: '',         color: '#fb923c', duration: 8  },
   SMALL:  { label: 'Small Mode',icon: '\uD83D\uDD35',  color: '#34d399', duration: 5  },
 };
 const POWERUP_KEYS = Object.keys(POWERUP_DEFS);
@@ -122,23 +122,23 @@ const SKIN_DEFS = [
 ];
 const LIFETIME_REWARD_DEFS = [
   // â”€â”€ Common â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  { id: 'lt_coins_500',   milestone: 500,    label: '100 Coins',      type: 'coins',  coins: 100,  rarity: 'common',    icon: '\uD83E\uDE99', description: 'A starter coin bundle to kick off your journey.' },
-  { id: 'lt_coins_1500',  milestone: 1500,   label: '200 Coins',      type: 'coins',  coins: 200,  rarity: 'common',    icon: '\uD83E\uDE99', description: 'Keep playing â€” the coins stack up.' },
+  { id: 'lt_coins_500',   milestone: 500,    label: '100 Coins',      type: 'coins',  coins: 100,  rarity: 'common',    icon: '', description: 'A starter coin bundle to kick off your journey.' },
+  { id: 'lt_coins_1500',  milestone: 1500,   label: '200 Coins',      type: 'coins',  coins: 200,  rarity: 'common',    icon: '', description: 'Keep playing â€” the coins stack up.' },
   // â”€â”€ Rare â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  { id: 'aurora',         milestone: 2500,   label: 'Aurora Skin',    type: 'skin',   rarity: 'rare',      icon: '\u2728', description: 'A shimmering neon-teal skin for the dedicated.' },
-  { id: 'lt_coins_4k',    milestone: 4000,   label: '350 Coins',      type: 'coins',  coins: 350,  rarity: 'rare',      icon: '\uD83E\uDE99', description: 'A rare coin reward for dedicated players.' },
-  { id: 'lt_badge_5k',    milestone: 5000,   label: 'Trailblazer',    type: 'badge',               rarity: 'rare',      icon: '\u26a1', description: 'Awarded to those who push past the score ceiling.' },
-  { id: 'lt_coins_7500',  milestone: 7500,   label: '500 Coins',      type: 'coins',  coins: 500,  rarity: 'rare',      icon: '\uD83E\uDE99', description: 'Half a thousand coins â€” impressive.' },
+  { id: 'aurora',         milestone: 2500,   label: 'Aurora Skin',    type: 'skin',   rarity: 'rare',      icon: '', description: 'A shimmering neon-teal skin for the dedicated.' },
+  { id: 'lt_coins_4k',    milestone: 4000,   label: '350 Coins',      type: 'coins',  coins: 350,  rarity: 'rare',      icon: '', description: 'A rare coin reward for dedicated players.' },
+  { id: 'lt_badge_5k',    milestone: 5000,   label: 'Trailblazer',    type: 'badge',               rarity: 'rare',      icon: '', description: 'Awarded to those who push past the score ceiling.' },
+  { id: 'lt_coins_7500',  milestone: 7500,   label: '500 Coins',      type: 'coins',  coins: 500,  rarity: 'rare',      icon: '', description: 'Half a thousand coins â€” impressive.' },
   // â”€â”€ Epic â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  { id: 'afterglow',      milestone: 10000,  label: 'Afterglow Skin', type: 'skin',   rarity: 'epic',      icon: '\uD83C\uDF05', description: 'A saturated sunset prism skin for elite players.' },
-  { id: 'lt_coins_15k',   milestone: 15000,  label: '750 Coins',      type: 'coins',  coins: 750,  rarity: 'epic',      icon: '\uD83E\uDE99', description: 'An epic hoard of coins.' },
-  { id: 'lt_badge_20k',   milestone: 20000,  label: 'Veteran',        type: 'badge',               rarity: 'epic',      icon: '\uD83C\uDFC6', description: 'A mark of true dedication and skill.' },
+  { id: 'afterglow',      milestone: 10000,  label: 'Afterglow Skin', type: 'skin',   rarity: 'epic',      icon: '', description: 'A saturated sunset prism skin for elite players.' },
+  { id: 'lt_coins_15k',   milestone: 15000,  label: '750 Coins',      type: 'coins',  coins: 750,  rarity: 'epic',      icon: '', description: 'An epic hoard of coins.' },
+  { id: 'lt_badge_20k',   milestone: 20000,  label: 'Veteran',        type: 'badge',               rarity: 'epic',      icon: '', description: 'A mark of true dedication and skill.' },
   // â”€â”€ Legendary â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  { id: 'eclipse',        milestone: 25000,  label: 'Eclipse Skin',   type: 'skin',   rarity: 'legendary', icon: '\uD83C\uDF11', description: 'A dark legendary cosmic skin.' },
-  { id: 'lt_coins_35k',   milestone: 35000,  label: '1,000 Coins',    type: 'coins',  coins: 1000, rarity: 'legendary', icon: '\uD83E\uDE99', description: 'A legendary coin vault.' },
-  { id: 'lt_badge_50k',   milestone: 50000,  label: 'Legend',         type: 'badge',               rarity: 'legendary', icon: '\uD83D\uDC51', description: 'Only legends reach this summit.' },
-  { id: 'lt_coins_75k',   milestone: 75000,  label: '2,000 Coins',    type: 'coins',  coins: 2000, rarity: 'legendary', icon: '\uD83E\uDE99', description: 'A massive coin fortune.' },
-  { id: 'lt_mythic',      milestone: 100000, label: 'Mythic',         type: 'badge',               rarity: 'legendary', icon: '\uD83D\uDD31', description: 'The pinnacle of Forbidden Color mastery.' },
+  { id: 'eclipse',        milestone: 25000,  label: 'Eclipse Skin',   type: 'skin',   rarity: 'legendary', icon: '', description: 'A dark legendary cosmic skin.' },
+  { id: 'lt_coins_35k',   milestone: 35000,  label: '1,000 Coins',    type: 'coins',  coins: 1000, rarity: 'legendary', icon: '', description: 'A legendary coin vault.' },
+  { id: 'lt_badge_50k',   milestone: 50000,  label: 'Legend',         type: 'badge',               rarity: 'legendary', icon: '', description: 'Only legends reach this summit.' },
+  { id: 'lt_coins_75k',   milestone: 75000,  label: '2,000 Coins',    type: 'coins',  coins: 2000, rarity: 'legendary', icon: '', description: 'A massive coin fortune.' },
+  { id: 'lt_mythic',      milestone: 100000, label: 'Mythic',         type: 'badge',               rarity: 'legendary', icon: '', description: 'The pinnacle of Forbidden Color mastery.' },
 ];
 
 const STATE = { HOME: 'home', PLAYING: 'playing', PAUSED: 'paused', GAMEOVER: 'gameover' };
@@ -146,7 +146,7 @@ const STATE = { HOME: 'home', PLAYING: 'playing', PAUSED: 'paused', GAMEOVER: 'g
 const WARNING_DURATION    = 0.8;  // short flash warning â€” just enough to react
 const NEAR_MISS_DIST      = 65;   // px (from player center to nearest rect edge)
 const NEAR_MISS_BONUS     = 40;
-const COMBO_BONUS_PER         = 25;   // pts per combo level on each color change (combo\u00d725: 25, 50, 75â€¦)
+const COMBO_BONUS_PER         = 25;   // pts per combo level on each color change (combox25: 25, 50, 75â€¦)
 const POWERUP_COLLECT_BONUS   = 50;   // flat pts for picking up any power-up
 const POWERUP_INTERVAL    = 15;   // s between powerup spawns (more frequent to compensate)
 const COIN_ITEM_INTERVAL  = 8.5;  // s between coin column spawns (columns have 4-6 coins each)
@@ -201,14 +201,14 @@ const FLOW_CONFIG = {
 
 // â”€â”€ Mini run goals shown in HUD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const MINI_GOAL_DEFS = [
-  { id: 'coins5',    label: 'Collect 5 coins',   icon: '\uD83E\uDE99', stat: 'pickupCoins', goal: 5,    reward: 4 },
-  { id: 'miss2',     label: 'Near-miss \u00d72',       icon: '\u26a1', stat: 'nearMisses',  goal: 2,    reward: 4 },
-  { id: 'score2k',   label: 'Score 2,000',         icon: '\uD83C\uDFAF', stat: 'score',       goal: 2000, reward: 5 },
-  { id: 'survive30', label: 'Survive 30s',          icon: '\u23f1', stat: 'seconds',     goal: 30,   reward: 4 },
-  { id: 'combo5',    label: '5\u00d7 combo',             icon: '\uD83D\uDD25', stat: 'combo',       goal: 5,    reward: 5 },
-  { id: 'coins10',   label: 'Collect 10 coins',     icon: '\uD83E\uDE99', stat: 'pickupCoins', goal: 10,   reward: 6 },
-  { id: 'miss5',     label: 'Near-miss \u00d75',         icon: '\u26a1', stat: 'nearMisses',  goal: 5,    reward: 6 },
-  { id: 'score5k',   label: 'Score 5,000',           icon: '\uD83C\uDFAF', stat: 'score',       goal: 5000, reward: 7 },
+  { id: 'coins5',    label: 'Collect 5 coins',   icon: '', stat: 'pickupCoins', goal: 5,    reward: 4 },
+  { id: 'miss2',     label: 'Near-miss x2',       icon: '', stat: 'nearMisses',  goal: 2,    reward: 4 },
+  { id: 'score2k',   label: 'Score 2,000',         icon: '', stat: 'score',       goal: 2000, reward: 5 },
+  { id: 'survive30', label: 'Survive 30s',          icon: '', stat: 'seconds',     goal: 30,   reward: 4 },
+  { id: 'combo5',    label: '5x combo',             icon: '', stat: 'combo',       goal: 5,    reward: 5 },
+  { id: 'coins10',   label: 'Collect 10 coins',     icon: '', stat: 'pickupCoins', goal: 10,   reward: 6 },
+  { id: 'miss5',     label: 'Near-miss x5',         icon: '', stat: 'nearMisses',  goal: 5,    reward: 6 },
+  { id: 'score5k',   label: 'Score 5,000',           icon: '', stat: 'score',       goal: 5000, reward: 7 },
 ];
 
 // ============================================================
@@ -300,7 +300,7 @@ const MISSION_DEFS = [
   {
     id: 'combo20',      difficulty: 'hard',
     label: 'Combo King',
-    description: 'Reach a 20\u00d7 combo in a single run.',
+    description: 'Reach a 20x combo in a single run.',
     stat: 'maxCombo',   goal: 20,   coinReward: 40,
   },
   {
@@ -435,7 +435,7 @@ function showMissionCompleteToast(m) {
   toast.setAttribute('role', 'status');
   toast.setAttribute('aria-live', 'polite');
   toast.className = 'mission-toast';
-  toast.innerHTML = '\uD83C\uDF89 <strong>' + m.label + '</strong> complete!<br><small>Open Shop to claim <strong>+' + (m.coinReward || 20) + ' coins</strong></small>';
+  toast.innerHTML = '<strong>' + m.label + '</strong> complete!<br><small>Open Shop to claim <strong>+' + (m.coinReward || 20) + ' coins</strong></small>';
   document.body.appendChild(toast);
   setTimeout(() => { toast.classList.add('mission-toast-show'); }, 20);
   setTimeout(() => { toast.classList.remove('mission-toast-show'); setTimeout(() => toast.remove(), 400); }, 4500);
@@ -479,7 +479,7 @@ function buildMissionCard(m) {
   let footer;
   if (locked) {
     const unlockTier = m.difficulty === 'medium' ? 'Easy' : 'Medium';
-    footer = '<p class="mission-locked-label">\uD83D\uDD12 Complete all ' + unlockTier + ' challenges to unlock</p>';
+    footer = '<p class="mission-locked-label">Complete all ' + unlockTier + ' challenges to unlock</p>';
   } else if (done) {
     footer = '<button class="mission-claim-btn" data-claim-id="' + m.id + '" ' +
       'aria-label="Claim ' + coinAmt + ' coins for ' + m.label + '">' +
@@ -962,7 +962,7 @@ function renderLifetimeProgressUI() {
     ? 'Next unlock at ' + formatNumber(nextReward.milestone) + ' Lifetime Score'
     : 'All lifetime rewards unlocked!';
   if (homeDetail) homeDetail.textContent = nextReward
-    ? formatNumber(total) + ' / ' + formatNumber(nextReward.milestone) + ' \u2022 ' + nextReward.label
+    ? formatNumber(total) + ' / ' + formatNumber(nextReward.milestone) + ' - ' + nextReward.label
     : 'Every milestone reward claimed';
 
   // â”€â”€ Shop panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -981,7 +981,7 @@ function renderLifetimeProgressUI() {
       '<div class="lp-bar-block">' +
         '<div class="lp-bar-title" id="lifetime-next-target">' + (nextReward
           ? 'Next: ' + nextReward.label + ' at ' + formatNumber(nextReward.milestone)
-          : '\uD83C\uDF89 All rewards unlocked!') + '</div>' +
+          : 'All rewards unlocked!') + '</div>' +
         '<div class="lp-bar-row">' +
           '<div class="lp-bar-track">' +
             '<div class="lp-bar-fill" id="lifetime-progress-bar" style="width:' + pct + '%"></div>' +
@@ -1019,13 +1019,13 @@ function renderLifetimeProgressUI() {
 
     let actionHtml;
     if (claimed) {
-      actionHtml = '<span class="lp-s-claimed">âœ“ ' + (reward.type === 'skin' ? 'Unlocked' : 'Claimed') + '</span>';
+      actionHtml = '<span class="lp-s-claimed">' + (reward.type === 'skin' ? 'Unlocked' : 'Claimed') + '</span>';
     } else if (claimable) {
       const coinPart = reward.type === 'coins' && reward.coins
         ? ' +' + reward.coins + ' <span class="coin-icon lp-coin-xs" aria-hidden="true"></span>' : '';
       actionHtml = '<button class="lp-claim-btn" data-id="' + reward.id + '" aria-label="Claim ' + reward.label + '">Claim' + coinPart + '</button>';
     } else if (reward.type === 'skin' && earned) {
-      actionHtml = '<span class="lp-s-claimed">âœ“ Unlocked</span>';
+      actionHtml = '<span class="lp-s-claimed">Unlocked</span>';
     } else {
       actionHtml = '<span class="lp-s-locked">Need ' + formatNumber(remaining) + '</span>';
     }
@@ -1040,7 +1040,7 @@ function renderLifetimeProgressUI() {
         '<div class="lp-line lp-line-before' + (isFirst ? ' lp-line-edge' : lineBefore) + '"></div>' +
         '<div class="lp-dot">' +
           '<span class="lp-dot-icon">' + reward.icon + '</span>' +
-          (claimed ? '<div class="lp-dot-check">âœ“</div>' : '') +
+          (claimed ? '<div class="lp-dot-check">✓</div>' : '') +
         '</div>' +
         '<div class="lp-line lp-line-after' + (isLast ? ' lp-line-edge' : lineAfter) + '"></div>' +
       '</div>' +
@@ -1138,7 +1138,7 @@ function updatePowerupUpgradeUI() {
       '<div class="pup-sum-divider"></div>' +
       '<div class="pup-sum-stat"><span class="pup-sum-val">' + totalLevels + ' / ' + maxTotal + '</span><span class="pup-sum-lbl">Levels Owned</span></div>' +
       '<div class="pup-sum-divider"></div>' +
-      '<span class="pup-sum-note">\u26a1 Max level 3 each</span>';
+      '<span class="pup-sum-note">Max level 3 each</span>';
   }
 
   list.innerHTML = POWERUP_UPGRADE_KEYS.map(key => {
@@ -1588,7 +1588,7 @@ const Music = (() => {
 
     // Called from tickDifficulty â€” speeds up BPM with speedMultiplier
     setTempo(multiplier) {
-      // 1.0\u00d7 â†’ 130 BPM, 2.8\u00d7 â†’ 150 BPM
+      // 1.0x â†’ 130 BPM, 2.8x â†’ 150 BPM
       _bpm = Math.round(130 + ((multiplier - 1.0) / 1.8) * 20);
       _bpm = Math.min(Math.max(_bpm, 130), 150);
     },
@@ -1938,7 +1938,7 @@ const DailyChallenge = (() => {
     { id: 'score600',   label: 'Reach a score of 600',         stat: 'score',            goal: 600, coins: 25 },
     { id: 'nearmiss2',  label: 'Land 2 near misses in one run', stat: 'nearMissesThisRun', goal: 2,  coins: 15 },
     { id: 'colorchange5', label: 'Survive 5 color shifts',   stat: 'colorChanges',     goal: 5,  coins: 20 },
-    { id: 'combo8',     label: 'Reach an 8\u00d7 combo',           stat: 'maxCombo',         goal: 8,  coins: 22 },
+    { id: 'combo8',     label: 'Reach an 8x combo',           stat: 'maxCombo',         goal: 8,  coins: 22 },
     { id: 'powerups3',  label: 'Collect 3 power-ups',         stat: 'powerupsThisRun',  goal: 3,  coins: 18 },
   ];
 
@@ -4823,7 +4823,7 @@ function completeMiniGoal() {
   coinsFromPickupsThisRun += bonus;
   // Celebration popup at centre of screen
   addFloating(canvas.width / 2, canvas.height / 2 - 80,
-    '\u2713 Goal: ' + runMiniGoal.label, '#34d399', 22);
+    'Goal: ' + runMiniGoal.label, '#34d399', 22);
   addFloating(canvas.width / 2, canvas.height / 2 - 55,
     '+' + bonus + ' bonus coins!', '#fde047', 20, true);
   spawnParticles(canvas.width / 2, canvas.height / 2 - 70, '#34d399', settings.reducedMotion ? 6 : 18);
@@ -6159,7 +6159,7 @@ function triggerGameOver() {
     if (goLifeNext) {
       if (lps.nextReward) {
         const diff = lps.nextReward.milestone - lps.total;
-        goLifeNext.textContent = formatNumber(diff) + ' more \u2192 ' + lps.nextReward.label;
+        goLifeNext.textContent = formatNumber(diff) + ' more  to  ' + lps.nextReward.label;
       } else {
         goLifeNext.textContent = 'All lifetime rewards unlocked!';
       }
@@ -6174,11 +6174,11 @@ function triggerGameOver() {
       const fromFlow     = Math.floor(maxCombo / 6);
       const fromSurvival = Math.floor(elapsed / 60);
       goCoinsBreak.innerHTML =
-        '<span>\ud83e\ude99 Pickups</span><span>' + fromPickups + '</span>' +
-        '<span>\ud83c\udfaf Score</span><span>' + fromScore + '</span>' +
-        '<span>\u26a1 Near-miss</span><span>' + fromMisses + '</span>' +
-        '<span>\ud83d\udd25 Combo</span><span>' + fromFlow + '</span>' +
-        '<span>\u23f1 Survival</span><span>' + fromSurvival + '</span>';
+        '<span>Pickups</span><span>' + fromPickups + '</span>' +
+        '<span>Score</span><span>' + fromScore + '</span>' +
+        '<span>Near-miss</span><span>' + fromMisses + '</span>' +
+        '<span>Combo</span><span>' + fromFlow + '</span>' +
+        '<span>Survival</span><span>' + fromSurvival + '</span>';
     }
 
     // Hide mini goal bar (game is over)
@@ -7000,13 +7000,13 @@ const LeaderboardUI = (() => {
 
     const total = LeaderboardService.getLeaderboard('alltime').length;
     let msg = 'Global Rank: <span class="go-rank-highlight">#' + rank + '</span> of ' + total;
-    if (rank <= 10) msg += ' \uD83C\uDF89 Top 10!';
-    if (rank <= 3)  msg = '\uD83C\uDFC6 <span class="go-rank-highlight">#' + rank + ' Global</span> â€” Incredible!';
+    if (rank <= 10) msg += ' - Top 10!';
+    if (rank <= 3)  msg = '<span class="go-rank-highlight">#' + rank + ' Global</span> - Incredible!';
     row.innerHTML = msg;
 
     // Show rank toast
     if (wasNewBest && rank <= 20) {
-      _showRankToast('Rank #' + rank + ' â€” New Best Score!');
+      _showRankToast('Rank #' + rank + ' - New Best Score!');
     }
   }
 
