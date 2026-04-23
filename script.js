@@ -33,7 +33,7 @@ const POWERUP_UPGRADE_DEFS = {
 const POWERUP_UPGRADE_KEYS = Object.keys(POWERUP_UPGRADE_DEFS);
 
 // Single built-in difficulty - ramps automatically via tickDifficulty()
-const GAME_CONFIG = { playerSpeed: 255, spawnRate: 1.10, forbiddenInterval: 2.8, baseSpeed: 220 };
+const GAME_CONFIG = { playerSpeed: 255, spawnRate: 0.60, forbiddenInterval: 2.6, baseSpeed: 230 };
 
 // ============================================================
 // DIFFICULTY REDESIGN CONFIG
@@ -43,45 +43,54 @@ const GAME_CONFIG = { playerSpeed: 255, spawnRate: 1.10, forbiddenInterval: 2.8,
 const DIFFICULTY_CONFIG = {
   // phases: each entry controls live game values for that time window.
   //   endAt = elapsed seconds when this phase ends (Infinity = forever)
-  //   spd   = speedMultiplier target
-  //   si    = spawn interval (s)       ← lower = faster spawning
-  //   cc    = cluster/wave chance vs single-block (0-1)
-  //   fi    = forbidden color change interval (s)  ← lower = faster shifts
-  //   mo    = max simultaneous obstacles (soft cap, per phase)
-  //   ac    = anti-camp targeting strength bonus (0-1)
+  //   spd   = speedMultiplier target        ← increase carefully
+  //   si    = spawn interval (s)            ← lower = more blocks
+  //   cc    = cluster/wave chance (0-1)     ← higher = more pattern waves
+  //   fi    = forbidden color interval (s)  ← lower = faster color shifts
+  //   mo    = max simultaneous obstacles    ← soft cap per phase
+  //   ac    = anti-camp targeting bonus (0-1)
   phases: [
-    // Phase 0 - Intro   (0-20s):   teaches movement and color rules; already active
-    { name:'Intro',   endAt:  20, spd:1.04, si:0.90, cc:0.35, fi:3.20, mo:14, ac:0.32 },
-    // Phase 1 - Build   (20-50s):  movement becomes necessary; close calls begin
-    { name:'Build',   endAt:  50, spd:1.20, si:0.60, cc:0.52, fi:2.75, mo:20, ac:0.55 },
-    // Phase 2 - Engage  (50-90s):  must focus; real pressure; core addictive zone
-    { name:'Engage',  endAt:  90, spd:1.36, si:0.40, cc:0.64, fi:2.40, mo:26, ac:0.72 },
-    // Phase 3 - Intense (90-150s): skilled play required; frequent close calls
-    { name:'Intense', endAt: 150, spd:1.50, si:0.28, cc:0.74, fi:2.10, mo:32, ac:0.86 },
-    // Phase 4 - Expert  (150s+):   mastery required; still visually readable
-    { name:'Expert',  endAt: Infinity, spd:1.62, si:0.20, cc:0.82, fi:1.85, mo:38, ac:0.95 },
+    // Phase 0 - Rush    (0-10s):   hard immediately, active from first second
+    { name:'Rush',    endAt:  10, spd:1.12, si:0.60, cc:0.50, fi:2.80, mo:16, ac:0.45 },
+    // Phase 1 - Drive   (10-40s):  sustained pressure, close calls begin, must keep moving
+    { name:'Drive',   endAt:  40, spd:1.26, si:0.44, cc:0.64, fi:2.50, mo:22, ac:0.64 },
+    // Phase 2 - Engage  (40-80s):  high engagement, frequent dodges, requires timing
+    { name:'Engage',  endAt:  80, spd:1.40, si:0.32, cc:0.72, fi:2.15, mo:28, ac:0.78 },
+    // Phase 3 - Intense (80-130s): skilled play required, tight windows, layered threats
+    { name:'Intense', endAt: 130, spd:1.54, si:0.22, cc:0.80, fi:1.90, mo:35, ac:0.90 },
+    // Phase 4 - Expert  (130s+):   mastery required, very hard, always one escape exists
+    { name:'Expert',  endAt: Infinity, spd:1.68, si:0.16, cc:0.88, fi:1.65, mo:42, ac:0.98 },
   ],
 
   // ── Hard safety caps ── NEVER exceeded regardless of phase, combo, or panic ──
-  speedMultHardCap:    1.72,  // ↑ slightly — blocks faster at peak, still readable
-  spawnIntervalFloor:  0.18,  // ↓ tighter floor — more threats at peak intensity
-  maxObstaclesHardCap: 40,    // ↑ more live threats on screen at hardest phase
+  // phase1_spawn_rate  = phases[0].si  = 0.60s
+  // phase2_spawn_rate  = phases[2].si  = 0.32s
+  // phase3_spawn_rate  = phases[4].si  = 0.16s
+  // max_speed          = speedMultHardCap
+  // active_threat_cap  = maxObstaclesHardCap
+  // safe_gap_minimum   = MIN_CLEAR_GAP (below)
+  // anti_camp_strength = FLOW_CONFIG.campDecayPerSec
+  // panic_mode_intensity = panicForbidRatio
+  // pattern_complexity = phases[n].cc
+  speedMultHardCap:    1.80,  // peak speed — fast but still readable
+  spawnIntervalFloor:  0.15,  // absolute minimum spawn gap at peak intensity
+  maxObstaclesHardCap: 44,    // max simultaneous live threats on screen
 
   // ── Phase blend ── smoothstep cross-fade between consecutive phases ──
-  blendWindow: 7.0,           // slightly tighter transitions
+  blendWindow: 5.0,           // tighter = faster ramp between phases
 
   // ── Panic wave tuning ──
-  panicSpeedBonus:  1.28,  // ↑ obstacle speed ×1.28 during panic — clearly faster
-  panicSpawnMult:   0.34,  // ↓ spawn interval ×0.34 during panic (~3× faster)
-  panicForbidRatio: 0.90,  // ↑ 90% of new blocks are forbidden during panic
-  ddSpawnRateMult:  0.72,  // ↓ Double Danger: ×0.72 spawn interval (≈39% more frequent)
+  panicSpeedBonus:  1.32,  // obstacle speed ×1.32 during panic — noticeably faster
+  panicSpawnMult:   0.30,  // spawn interval ×0.30 during panic (~3.3× more frequent)
+  panicForbidRatio: 0.92,  // 92% of new blocks forbidden — very dense panic surge
+  ddSpawnRateMult:  0.68,  // Double Danger: ×0.68 spawn interval (~47% more frequent)
 
   // ── Per-obstacle-type speed multipliers ──
   // Applied as: vy = base * typeSpeedMults[type] + rand(0, typeSpeedRand[type])
-  typeSpeedMults: { 0:1.00, 1:0.88, 2:0.62, 3:1.10, 4:1.18 },  // ↑ types 3&4 slightly faster
-  typeSpeedRand:  { 0:22,   1:18,   2:14,   3:20,   4:20   },   // slightly more speed variance
+  typeSpeedMults: { 0:1.02, 1:0.90, 2:0.65, 3:1.12, 4:1.22 },
+  typeSpeedRand:  { 0:24,   1:20,   2:16,   3:22,   4:22   },
 
-  // Developer debug overlay - toggle at runtime: DIFFICULTY_CONFIG.debugOverlay = true
+  // Developer debug overlay — toggle: DIFFICULTY_CONFIG.debugOverlay = true
   debugOverlay: false,
 };
 
@@ -91,14 +100,14 @@ const DIFFICULTY_CONFIG = {
 // 0 = never appears in that phase. Higher = more likely.
 // ============================================================
 const PATTERN_LIBRARY = [
-  { id:'HALF_FILL',   phaseWeights:[12, 9, 5, 3, 2] },  // Half lanes blocked, half open
-  { id:'SINGLE_SIDE', phaseWeights:[ 9, 6, 3, 1, 1] },  // Single side-lane threat
-  { id:'STAGGER',     phaseWeights:[ 6, 8, 8, 7, 6] },  // 2-3 blocks with readable gap
-  { id:'SWEEP_GAP',   phaseWeights:[ 3, 7, 9, 8, 7] },  // Gap drifts across lanes
-  { id:'CENTER_PUSH', phaseWeights:[ 1, 3, 7, 9, 9] },  // Center blocked, sides open
-  { id:'SIDE_PUSH',   phaseWeights:[ 1, 3, 6, 8, 9] },  // Sides blocked, center open
-  { id:'PINCER',      phaseWeights:[ 0, 1, 4, 7, 9] },  // Two flanks, middle escape
-  { id:'TARGETED',    phaseWeights:[ 0, 1, 3, 6, 8] },  // Direct pressure on player zone
+  { id:'HALF_FILL',   phaseWeights:[ 6, 5, 3, 2, 1] },  // Half lanes blocked — reduced, too passive
+  { id:'SINGLE_SIDE', phaseWeights:[ 4, 3, 2, 1, 0] },  // Single threat — tapers off quickly
+  { id:'STAGGER',     phaseWeights:[ 9, 9, 8, 7, 6] },  // Staggered gaps — requires movement always
+  { id:'SWEEP_GAP',   phaseWeights:[ 5, 8, 9, 8, 7] },  // Moving gap — tracks player well
+  { id:'CENTER_PUSH', phaseWeights:[ 3, 5, 8, 9, 9] },  // Center threat, side escape
+  { id:'SIDE_PUSH',   phaseWeights:[ 3, 4, 7, 8, 9] },  // Flank threat, center escape
+  { id:'PINCER',      phaseWeights:[ 1, 3, 5, 8, 9] },  // Both flanks — tight middle
+  { id:'TARGETED',    phaseWeights:[ 3, 4, 6, 8, 9] },  // Direct player pressure — starts early
 ];
 
 // Player skins - unlock thresholds are bestScore requirements (bestScore never decreases)
@@ -152,12 +161,12 @@ const COMBO_BONUS_PER         = 25;   // pts per combo level on each color chang
 const POWERUP_COLLECT_BONUS   = 50;   // flat pts for picking up any power-up
 const POWERUP_INTERVAL    = 15;   // s between powerup spawns (more frequent to compensate)
 const COIN_ITEM_INTERVAL  = 8.5;  // s between coin column spawns (columns have 4-6 coins each)
-const DIFF_SCALE_EVERY    = 5;    // ↓ s between difficulty bumps (was 6)
+const DIFF_SCALE_EVERY    = 4;    // s between difficulty bumps — faster ramp (was 5)
 const MAX_OBSTACLES       = 48;   // increased from 40 - blocks persist longer now, need more capacity
 const GRACE_PERIOD        = 0.20; // reduced -- game pressures player earlier
 const FORBIDDEN_MIN_RATIO = 0.65; // keep at least 65% of active obstacles forbidden - keeps screen readable
 const CLUSTER_CHANCE      = 0.55; // structured wave patterns fire on most spawn ticks
-const MIN_CLEAR_GAP       = 66;   // ↓ tighter corridors — more urgency, still passable
+const MIN_CLEAR_GAP       = 62;   // minimum safe corridor width — tight but passable
 const NUM_LANES           = 6;    // play area divided into this many columns for controlled, fair spawning
 const CAMPING_WAVE_LIMIT  = 1;    // ↓ anti-camp triggers after just 1 repeated wave (was 2)
 const MAX_SAFE_LANE_STREAK = 2;   // hard cap for repeating the exact same safe lane
@@ -173,11 +182,11 @@ const FLOW_CONFIG = {
   nearMissGain: 1.6,
   colorShiftGain: 1.2,
   shieldHitPenalty: 3.5,
-  idleGrace: 1.4,           // ↓ less idle grace before decay starts (was 1.7)
-  idleDecayPerSec: 1.4,     // ↑ faster idle decay (was 1.0)
-  campRadius: 44,           // ↓ tighter camp detection radius (was 50)
-  campGrace: 0.7,           // ↓ less grace before camping kicks in (was 0.9)
-  campDecayPerSec: 3.5,     // ↑ faster camp pressure build (was 2.8)
+  idleGrace: 1.2,           // less idle grace — decay kicks in faster
+  idleDecayPerSec: 1.8,     // faster idle decay — punishes standing still
+  campRadius: 38,           // tighter camp zone — player must actually move
+  campGrace: 0.5,           // very short grace before camping pressure builds
+  campDecayPerSec: 4.5,     // fast camp pressure ramp — discourages any camping
   movementMinSpeed: 42,
   scoreMultPerCombo: 0.12,
   scoreMultCap: 2.1,
@@ -599,9 +608,9 @@ const player = { x: 0, y: 0, radius: 24, baseRadius: 24, speed: 255, hasShield: 
 let playerTrail = []; // recent positions for trail-producing skins
 
 let spawnTimer        = 0;
-let spawnRate         = 1.3;   // ↓ tighter initial rate to match new Intro phase
+let spawnRate         = 0.60;  // matches GAME_CONFIG.spawnRate — hard from frame 1
 let forbiddenTimer    = 0;
-let forbiddenInterval = 3.0;   // ↓ slightly faster initial color shifts
+let forbiddenInterval = 2.6;   // matches GAME_CONFIG.forbiddenInterval
 let warningActive     = false;
 let nextForbiddenIdx  = -1;
 let powerupTimer      = 0;
@@ -635,7 +644,7 @@ let runMiniGoal = null; // { ...def, progress: 0, done: false }
 let shakeX = 0, shakeY = 0, shakeTimer = 0;
 
 // Panic wave state
-let panicCooldown  = 18;   // s until first wave (starts after grace)
+let panicCooldown  = 10;   // first panic wave fires ~10s in (was 18) — immediate pressure
 let panicTimer     = 0;   // counts up during cooldown / down during wave / down during announce
 let panicPhase     = 'cooldown'; // 'cooldown' | 'announce' | 'wave'
 let panicDuration  = 0;   // chosen length of current wave (2-4 s)
@@ -679,12 +688,12 @@ let _playerLaneSafeStreak = 0; // consecutive waves where player's lane was pick
 let _playerLaneShieldStreak = 0; // consecutive single-spawn waves that avoided player's lane
 
 const PANIC_ANNOUNCE = 0.9; // s of banner before wave starts
-const PANIC_COOLDOWN_BASE = 6;  // ↓ s between waves — more frequent panic surges
-const PANIC_COOLDOWN_VAR  = 4;  // randomised extra: 6-10 s gap (was 8-13)
+const PANIC_COOLDOWN_BASE = 5;  // s between panic waves — frequent surges (was 6)
+const PANIC_COOLDOWN_VAR  = 4;  // random extra: 5-9 s gap
 
-const DD_MIN_PLAYTIME   = 15;   // ↓ earliest Double Danger can fire (was 18s)
-const DD_COOLDOWN_BASE  = 24;   // ↓ s between DD events (was 30)
-const DD_COOLDOWN_VAR   = 14;   // randomised range: 24-38 s (was 30-48)
+const DD_MIN_PLAYTIME   = 12;   // earliest Double Danger can fire — sooner (was 15s)
+const DD_COOLDOWN_BASE  = 20;   // s between DD events — more frequent (was 24)
+const DD_COOLDOWN_VAR   = 12;   // randomised range: 20-32 s (was 24-38)
 const DD_ANNOUNCE       = 0.75; // warning banner duration (s)
 const EVENT_POST_BUFFER = 4.0;  // ↓ buffer between any two special events (was 5s)
 
@@ -4131,8 +4140,8 @@ function spawnWave() {
   const isPanic = panicPhase === 'wave';
   const isCamping = isPanic || _samePlayerLaneWaves >= CAMPING_WAVE_LIMIT;
   const flowTargeting = getFlowTargetingBonus();
-  // ↑ raised base pressure: 0.72 normal (was 0.65), 0.88 camping (was 0.85)
-  const wavePressure = Math.min(0.98, (isPanic ? 0.96 : (isCamping ? 0.88 : 0.72)) + flowTargeting);
+  // ↑ raised base pressure: 0.78 normal (was 0.72), 0.90 camping (was 0.88)
+  const wavePressure = Math.min(0.98, (isPanic ? 0.97 : (isCamping ? 0.90 : 0.78)) + flowTargeting);
   for (const laneIdx of blocked) {
     if (obstacles.length >= MAX_OBSTACLES) break;
     const cx = Math.max(4, Math.min(cw - 4, getTargetedLaneX(lanes[laneIdx], lw, player.x, wavePressure)));
@@ -5391,8 +5400,8 @@ function panicSpeedMult() {
 }
 function activeForbiddenRatio() {
   if (panicPhase === 'wave') return DIFFICULTY_CONFIG.panicForbidRatio;
-  if (ddPhase === 'active') return 0.62; // ↑ elevated during DD
-  return Math.min(0.65 + difficultyBumps * 0.014, 0.78); // ↑ higher base + steeper ramp
+  if (ddPhase === 'active') return 0.65; // elevated during Double Danger
+  return Math.min(0.68 + difficultyBumps * 0.016, 0.84); // high base, steep ramp
 }
 function currentClusterChance() {
   // Phase-driven cluster chance - replaces old fixed-ramp difficultyBumps formula
@@ -5663,8 +5672,8 @@ function tickDifficulty(dt) {
   spawnRate         = newSpawnRate;
   forbiddenInterval = lerpDiff(elapsed, 'fi');
 
-  // Legacy counter used by lane-selection helpers (0-12 range over 84s arc)
-  difficultyBumps = Math.min(12, Math.round(elapsed / 7));
+  // Legacy counter used by lane-selection helpers (0-12 range, now reaches max ~48s)
+  difficultyBumps = Math.min(12, Math.round(elapsed / DIFF_SCALE_EVERY));
 
   // Phase transition announcement
   if (difficultyPhase !== prevPhase && difficultyPhase > 0 && !settings.reducedMotion) {
@@ -6027,8 +6036,8 @@ function startGame() {
   spawnRate         = GAME_CONFIG.spawnRate;
   forbiddenInterval = GAME_CONFIG.forbiddenInterval;
   speedMultiplier   = 1.0;
-  // Head-start timers - first coin ~3s in, first color change ~6s in
-  forbiddenTimer    = GAME_CONFIG.forbiddenInterval - 4.2;
+  // Head-start timers - first coin ~3s in, first color change ~1.2s in
+  forbiddenTimer    = GAME_CONFIG.forbiddenInterval - 1.4;
   coinItemTimer     = COIN_ITEM_INTERVAL - 3.0;
   forbiddenIndex    = Math.floor(Math.random() * GAME_COLORS.length);
   nextForbiddenIdx  = -1;
