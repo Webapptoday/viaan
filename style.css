@@ -1276,7 +1276,7 @@ kbd {
 .lp-road-wrap::-webkit-scrollbar-track { background: transparent; }
 .lp-road-wrap::-webkit-scrollbar-thumb { background: rgba(139,92,246,.4); border-radius: 3px; }
 .lp-road {
-  display: flex; align-items: flex-start;
+  display: flex; align-items: stretch;
   min-width: max-content; gap: 0; padding-bottom: 8px;
 }
 
@@ -1337,6 +1337,7 @@ kbd {
   text-align: center;
   transition: transform .2s ease, box-shadow .2s;
   position: relative; overflow: hidden;
+  flex: 1; display: flex; flex-direction: column;
 }
 .lp-tile::before {
   content: ''; position: absolute; inset: 0;
@@ -1377,7 +1378,7 @@ kbd {
 .lp-r-legendary .lp-tile-name { color: #fef3c7; }
 
 .lp-tile-score { font-size: .68rem; font-weight: 700; color: #6a638c; margin-bottom: 5px; }
-.lp-tile-desc  { font-size: .68rem; color: #7a7498; line-height: 1.4; margin-bottom: 9px; }
+.lp-tile-desc  { font-size: .68rem; color: #7a7498; line-height: 1.4; margin-bottom: 9px; flex: 1; }
 .lp-tile-action { min-height: 22px; display: flex; align-items: center; justify-content: center; }
 
 /* State labels */

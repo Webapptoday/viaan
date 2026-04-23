@@ -119,37 +119,37 @@ const SKIN_DEFS = [
   { id: 'ice',     name: 'Ice',     unlock: 0, coinCost: 150, rarity: 'rare',   effect: 'shimmer', color1: '#e0f2fe', color2: '#38bdf8', glow: '#7dd3fc', shape: 'circle', trail: true  },
   { id: 'lava',    name: 'Lava',    unlock: 0, coinCost: 175, rarity: 'rare',   effect: 'flicker', color1: '#fef08a', color2: '#ef4444', glow: '#f97316', shape: 'circle', trail: true  },
   { id: 'crimson',  name: 'Crimson',  unlock: 0, coinCost: 200, rarity: 'rare',      effect: 'flicker',  color1: '#ffe4e1', color2: '#dc2626', glow: '#ef4444', shape: 'circle', trail: true  },
-  { id: 'aurora',   name: 'Aurora',   unlock: 0, lifetimeUnlock: 2500, rarity: 'rare', effect: 'shimmer', color1: '#d1fae5', color2: '#0ea5e9', glow: '#22d3ee', shape: 'circle', trail: true  },
+  { id: 'aurora',   name: 'Aurora',   unlock: 0, lifetimeUnlock: 300000, rarity: 'rare', effect: 'shimmer', color1: '#d1fae5', color2: '#0ea5e9', glow: '#22d3ee', shape: 'circle', trail: true  },
   // -- Epic --
   { id: 'gold',    name: 'Gold',    unlock: 0, coinCost: 300, rarity: 'epic',   effect: 'shimmer', color1: '#fefce8', color2: '#eab308', glow: '#fbbf24', shape: 'star',   trail: false },
   { id: 'void',     name: 'Void',     unlock: 0, coinCost: 425, rarity: 'epic',      effect: 'void',     color1: '#ddd6fe', color2: '#3b0764', glow: '#c084fc', shape: 'star',   trail: true  },
   { id: 'electric', name: 'Electric', unlock: 0, coinCost: 350, rarity: 'epic',      effect: 'electric', color1: '#e0f2fe', color2: '#0284c7', glow: '#38bdf8', shape: 'circle', trail: true  },
   { id: 'inferno',  name: 'Inferno',  unlock: 0, coinCost: 350, rarity: 'epic',      effect: 'inferno',  color1: '#fffbeb', color2: '#dc2626', glow: '#f97316', shape: 'circle', trail: true  },
   { id: 'prism',    name: 'Prism',    unlock: 0, coinCost: 350, rarity: 'epic',      effect: 'prism',    color1: '#ffffff', color2: '#a855f7', glow: '#e879f9', shape: 'circle', trail: true  },
-  { id: 'afterglow', name: 'Afterglow', unlock: 0, lifetimeUnlock: 10000, rarity: 'epic', effect: 'prism', color1: '#fef3c7', color2: '#f472b6', glow: '#fb7185', shape: 'circle', trail: true  },
+  { id: 'afterglow', name: 'Afterglow', unlock: 0, lifetimeUnlock: 700000, rarity: 'epic', effect: 'prism', color1: '#fef3c7', color2: '#f472b6', glow: '#fb7185', shape: 'circle', trail: true  },
   // -- Legendary --
   { id: 'galaxy',   name: 'Galaxy',   unlock: 0, coinCost: 550, rarity: 'legendary', effect: 'galaxy',   color1: '#c4b5fd', color2: '#1e1b4b', glow: '#818cf8', shape: 'star',   trail: true  },
-  { id: 'eclipse',  name: 'Eclipse',  unlock: 0, lifetimeUnlock: 25000, rarity: 'legendary', effect: 'void', color1: '#f5f3ff', color2: '#111827', glow: '#a78bfa', shape: 'star', trail: true  },
+  { id: 'eclipse',  name: 'Eclipse',  unlock: 0, lifetimeUnlock: 1000000, rarity: 'legendary', effect: 'void', color1: '#f5f3ff', color2: '#111827', glow: '#a78bfa', shape: 'star', trail: true  },
 ];
 const LIFETIME_REWARD_DEFS = [
   // -- Common ------------------------------------------------------------------
-  { id: 'lt_coins_500',   milestone: 500,    label: '100 Coins',      type: 'coins',  coins: 100,  rarity: 'common',    icon: '', description: 'A starter coin bundle to kick off your journey.' },
-  { id: 'lt_coins_1500',  milestone: 1500,   label: '200 Coins',      type: 'coins',  coins: 200,  rarity: 'common',    icon: '', description: 'Keep playing - the coins stack up.' },
+  { id: 'lt_coins_500',   milestone: 100000,  label: '100 Coins',      type: 'coins',  coins: 100,  rarity: 'common',    icon: '', description: 'A starter coin bundle to kick off your journey.' },
+  { id: 'lt_coins_1500',  milestone: 200000,  label: '200 Coins',      type: 'coins',  coins: 200,  rarity: 'common',    icon: '', description: 'Keep playing - the coins stack up.' },
   // -- Rare --------------------------------------------------------------------
-  { id: 'aurora',         milestone: 2500,   label: 'Aurora Skin',    type: 'skin',   rarity: 'rare',      icon: '', description: 'A shimmering neon-teal skin for the dedicated.' },
-  { id: 'lt_coins_4k',    milestone: 4000,   label: '350 Coins',      type: 'coins',  coins: 350,  rarity: 'rare',      icon: '', description: 'A rare coin reward for dedicated players.' },
-  { id: 'lt_badge_5k',    milestone: 5000,   label: 'Trailblazer',    type: 'badge',               rarity: 'rare',      icon: '', description: 'Awarded to those who push past the score ceiling.' },
-  { id: 'lt_coins_7500',  milestone: 7500,   label: '500 Coins',      type: 'coins',  coins: 500,  rarity: 'rare',      icon: '', description: 'Half a thousand coins - impressive.' },
+  { id: 'aurora',         milestone: 300000,  label: 'Aurora Skin',    type: 'skin',   rarity: 'rare',      icon: '', description: 'A shimmering neon-teal skin for the dedicated.' },
+  { id: 'lt_coins_4k',    milestone: 400000,  label: '350 Coins',      type: 'coins',  coins: 350,  rarity: 'rare',      icon: '', description: 'A rare coin reward for dedicated players.' },
+  { id: 'lt_badge_5k',    milestone: 500000,  label: 'Trailblazer',    type: 'badge',               rarity: 'rare',      icon: '', description: 'Awarded to those who push past the score ceiling.' },
+  { id: 'lt_coins_7500',  milestone: 600000,  label: '500 Coins',      type: 'coins',  coins: 500,  rarity: 'rare',      icon: '', description: 'Half a thousand coins - impressive.' },
   // -- Epic --------------------------------------------------------------------
-  { id: 'afterglow',      milestone: 10000,  label: 'Afterglow Skin', type: 'skin',   rarity: 'epic',      icon: '', description: 'A saturated sunset prism skin for elite players.' },
-  { id: 'lt_coins_15k',   milestone: 15000,  label: '750 Coins',      type: 'coins',  coins: 750,  rarity: 'epic',      icon: '', description: 'An epic hoard of coins.' },
-  { id: 'lt_badge_20k',   milestone: 20000,  label: 'Veteran',        type: 'badge',               rarity: 'epic',      icon: '', description: 'A mark of true dedication and skill.' },
+  { id: 'afterglow',      milestone: 700000,  label: 'Afterglow Skin', type: 'skin',   rarity: 'epic',      icon: '', description: 'A saturated sunset prism skin for elite players.' },
+  { id: 'lt_coins_15k',   milestone: 800000,  label: '750 Coins',      type: 'coins',  coins: 750,  rarity: 'epic',      icon: '', description: 'An epic hoard of coins.' },
+  { id: 'lt_badge_20k',   milestone: 900000,  label: 'Veteran',        type: 'badge',               rarity: 'epic',      icon: '', description: 'A mark of true dedication and skill.' },
   // -- Legendary ---------------------------------------------------------------
-  { id: 'eclipse',        milestone: 25000,  label: 'Eclipse Skin',   type: 'skin',   rarity: 'legendary', icon: '', description: 'A dark legendary cosmic skin.' },
-  { id: 'lt_coins_35k',   milestone: 35000,  label: '1,000 Coins',    type: 'coins',  coins: 1000, rarity: 'legendary', icon: '', description: 'A legendary coin vault.' },
-  { id: 'lt_badge_50k',   milestone: 50000,  label: 'Legend',         type: 'badge',               rarity: 'legendary', icon: '', description: 'Only legends reach this summit.' },
-  { id: 'lt_coins_75k',   milestone: 75000,  label: '2,000 Coins',    type: 'coins',  coins: 2000, rarity: 'legendary', icon: '', description: 'A massive coin fortune.' },
-  { id: 'lt_mythic',      milestone: 100000, label: 'Mythic',         type: 'badge',               rarity: 'legendary', icon: '', description: 'The pinnacle of ShiftPanic mastery.' },
+  { id: 'eclipse',        milestone: 1000000, label: 'Eclipse Skin',   type: 'skin',   rarity: 'legendary', icon: '', description: 'A dark legendary cosmic skin.' },
+  { id: 'lt_coins_35k',   milestone: 1100000, label: '1,000 Coins',    type: 'coins',  coins: 1000, rarity: 'legendary', icon: '', description: 'A legendary coin vault.' },
+  { id: 'lt_badge_50k',   milestone: 1200000, label: 'Legend',         type: 'badge',               rarity: 'legendary', icon: '', description: 'Only legends reach this summit.' },
+  { id: 'lt_coins_75k',   milestone: 1300000, label: '2,000 Coins',    type: 'coins',  coins: 2000, rarity: 'legendary', icon: '', description: 'A massive coin fortune.' },
+  { id: 'lt_mythic',      milestone: 1400000, label: 'Mythic',         type: 'badge',               rarity: 'legendary', icon: '', description: 'The pinnacle of ShiftPanic mastery.' },
 ];
 
 const STATE = { HOME: 'home', PLAYING: 'playing', PAUSED: 'paused', GAMEOVER: 'gameover' };
