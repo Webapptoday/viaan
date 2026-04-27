@@ -31,16 +31,15 @@
 //        rules_version = '2';
 //        service cloud.firestore {
 //          match /databases/{database}/documents {
-//            match /leaderboard_scores/{doc} {
+//            match /leaderboard/{uid} {
 //              // Anyone can read leaderboard data
 //              allow read: if true;
 //
-//              // Only authenticated users can write their own scores
-//              // Anti-cheat: score bounds enforced server-side here.
-//              // For deeper validation (e.g. session token checks),
-//              // add a Firebase Cloud Function trigger on this collection.
+//              // Only authenticated users can write their own doc.
+//              // Doc ID must equal the player's auth UID.
+//              // Score is validated server-side here.
 //              allow create, update: if request.auth != null
-//                && request.auth.uid == request.resource.data.playerId
+//                && request.auth.uid == uid
 //                && request.resource.data.score is int
 //                && request.resource.data.score >= 0
 //                && request.resource.data.score <= 9999999
@@ -53,11 +52,8 @@
 //          }
 //        }
 //
-//   6. Create Firestore composite indexes (Firestore will also
-//      auto-prompt you with a link the first time a query runs):
-//        Collection: leaderboard_scores
-//        Index A: boardType ASC, score DESC          (for all_time board)
-//        Index B: boardType ASC, periodKey ASC, score DESC  (for daily/weekly)
+//   NOTE: The collection name in code is "leaderboard" — make sure your
+//   deployed Firestore Security Rules use the same name.
 //
 // ============================================================
 

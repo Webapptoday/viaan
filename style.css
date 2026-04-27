@@ -4072,6 +4072,12 @@ body.perf-low .home-blobs::after   { animation: none !important; }
 }
 .lb-you-sticky.hidden { display: none !important; }
 
+/* Separator between top-N list and out-of-top player row */
+.lb-separator {
+  text-align: center; color: rgba(255,255,255,.3); font-size: 1.1rem;
+  letter-spacing: .4em; padding: 6px 0; user-select: none;
+}
+
 /* Perf-low: strip animations */
 body.reduced-motion .lb-panel, body.perf-low .lb-panel { animation: none !important; }
 body.reduced-motion .lb-overlay, body.perf-low .lb-overlay { animation: none !important; }

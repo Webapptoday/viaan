@@ -7405,11 +7405,12 @@ document.addEventListener('DOMContentLoaded', init);
 
 const LeaderboardService = (() => {
   // ── Constants ──────────────────────────────────────────────
-  const COLLECTION = 'leaderboard';  // Firestore collection name
-  const TOP_N      = 10;             // scores to display per board
-  const LOCAL_KEY  = 'forbiddenColor_leaderboard';
-  const NAMES_KEY  = 'forbiddenColor_playerName';
-  const MAX_LOCAL  = 20;
+  const COLLECTION  = 'leaderboard';  // Firestore collection name
+  const TOP_N       = 25;             // scores to display per board (was 10 — too few)
+  const LOCAL_KEY   = 'forbiddenColor_leaderboard';
+  const NAMES_KEY   = 'forbiddenColor_playerName';
+  const ANON_KEY    = 'forbiddenColor_anonTag';  // persistent anonymous tag
+  const MAX_LOCAL   = 30;
 
   // Board load state: 'loading' | 'ok' | 'error' | 'offline'
   const _boardState = { alltime: 'loading', daily: 'loading', weekly: 'loading' };
@@ -7418,15 +7419,52 @@ const LeaderboardService = (() => {
 
   // ── Player name ────────────────────────────────────────────
   let _playerName = null;
+
+  // Returns a stable "Anonymous XXXX" tag for players without a chosen name.
+  // Stored in localStorage so it stays consistent across sessions.
+  function _getAnonTag() {
+    let tag = null;
+    try { tag = localStorage.getItem(ANON_KEY); } catch (_) {}
+    if (!tag) {
+      // Generate a 4-digit random id the first time
+      tag = 'Anon' + String(Math.floor(1000 + Math.random() * 9000));
+      try { localStorage.setItem(ANON_KEY, tag); } catch (_) {}
+    }
+    return tag;
+  }
+
   function getPlayerName() {
     if (_playerName) return _playerName;
     try { _playerName = localStorage.getItem(NAMES_KEY) || null; } catch (_) {}
     return _playerName;
   }
+
+  // Returns the name to display for this player (chosen name or stable anon tag)
+  function getDisplayName() {
+    return getPlayerName() || _getAnonTag();
+  }
+
   function setPlayerName(name) {
     _playerName = name;
     try { localStorage.setItem(NAMES_KEY, name); } catch (_) {}
+    // Best-effort: update the name on the player's existing Firestore doc
+    _fbUpdateName(name);
   }
+
+  async function _fbUpdateName(name) {
+    if (window._fbReady) await window._fbReady;
+    const db = window._fbDb; if (!db) return;
+    const uid = window._fbGetUserId ? window._fbGetUserId() : null;
+    if (!uid) return;
+    const safeName = String(name || '').trim().slice(0, 12);
+    if (!safeName) return;
+    try {
+      await db.collection(COLLECTION).doc(uid).update({ playerName: safeName });
+    } catch (_) {
+      // Doc may not exist yet — will be set with correct name on next score submit
+    }
+  }
+
   function validateName(name) {
     if (!name || typeof name !== 'string') return 'Name is required.';
     const t = name.trim();
@@ -7474,33 +7512,34 @@ const LeaderboardService = (() => {
   // Doc ID = player UID (one doc per player — stores their best score only).
   // Uses a transaction so the stored score only ever increases.
   async function _fbSubmit(score, name) {
-    // Wait for Firebase to be ready before attempting any write
     if (window._fbReady) await window._fbReady;
     const db = window._fbDb;
-    if (!db) return; // Firebase unavailable — local submit already done
+    if (!db) return;
 
     let uid = window._fbGetUserId ? window._fbGetUserId() : null;
     if (!uid && window._fbWaitForAuth) {
       await window._fbWaitForAuth();
       uid = window._fbGetUserId ? window._fbGetUserId() : null;
     }
-    if (!uid) return; // auth failed
+    if (!uid) return;
 
     const intScore = Math.floor(score);
-    const safeName = String(name || 'Player').trim().slice(0, 12) || 'Player';
+    if (intScore <= 0) return;
+    const safeName = String(name || _getAnonTag()).trim().slice(0, 12) || _getAnonTag();
     const ref = db.collection(COLLECTION).doc(uid);
 
     try {
       await db.runTransaction(async tx => {
         const snap = await tx.get(ref);
-        // Only write if this is a new personal best (avoids overwriting a better score)
-        if (!snap.exists || snap.data().score < intScore) {
+        const existingScore = snap.exists ? (typeof snap.data().score === 'number' ? snap.data().score : parseInt(snap.data().score, 10) || 0) : 0;
+        // Only write if this is a new personal best
+        if (!snap.exists || existingScore < intScore) {
           tx.set(ref, {
             playerName: safeName,
             score:      intScore,
             playerId:   uid,
-            createdAt:  firebase.firestore.FieldValue.serverTimestamp(),
-          });
+            updatedAt:  firebase.firestore.FieldValue.serverTimestamp(),
+          }, { merge: true });
         }
       });
     } catch (err) {
@@ -7508,21 +7547,33 @@ const LeaderboardService = (() => {
     }
   }
 
+  // ── Assign stable "Anonymous N" display labels ─────────────
+  // Entries from Firestore that have no real chosen name (empty, 'Player',
+  // or an auto-generated AnonXXXX tag) are re-labelled "Anonymous 1 / 2 / …"
+  // in rank order so the leaderboard looks clean.
+  function _applyAnonLabels(entries) {
+    const currentUid = window._fbGetUserId ? window._fbGetUserId() : null;
+    let anonCount = 0;
+    return entries.map(e => {
+      // Detect "no real name": blank, 'Player', or matching our own anon pattern
+      const hasRealName = e.name && e.name.length >= 3 && !/^Anon\d{4}$/.test(e.name) && e.name !== 'Player';
+      if (!hasRealName) {
+        anonCount++;
+        return { ...e, name: 'Anonymous ' + anonCount };
+      }
+      return e;
+    });
+  }
+
   // ── Firestore real-time subscription ──────────────────────
-  // All online tabs (alltime/daily/weekly) share a single listener on the
-  // "leaderboard" collection — top N by score descending.
-  // The listener result is stored in _cache['alltime'] and mirrored to
-  // _cache['daily'] and _cache['weekly'] so tab switching works instantly.
   // Returns an unsubscribe function.
-  function subscribeToLeaderboard(boardType, _limit, callback) {
+  function subscribeToLeaderboard(boardType, limitArg, callback) {
     if (boardType === 'local') {
-      // Local tab: serve from localStorage immediately, no listener needed
       if (callback) setTimeout(() => callback([]), 0);
       return () => {};
     }
 
-    // If a listener for any online board already registered the alltime data,
-    // reuse the cached result so we don't open duplicate Firestore listeners.
+    // Reuse cached alltime data for daily/weekly tabs (no separate query needed)
     if (boardType !== 'alltime' && _boardState['alltime'] === 'ok') {
       _boardState[boardType] = 'ok';
       _cache[boardType]      = _cache['alltime'];
@@ -7534,24 +7585,23 @@ const LeaderboardService = (() => {
     let _unsub     = null;
     let _cancelled = false;
 
-    // Signal loading state immediately
     if (callback) setTimeout(() => callback([]), 0);
 
-    // Wait for Firebase to be ready (async config fetch + auth)
-    (window._fbReady || Promise.resolve(false)).then(function (ready) {
+    const fetchLimit = Math.min(typeof limitArg === 'number' && limitArg > 0 ? limitArg : TOP_N, 100);
+
+    (window._fbReady || Promise.resolve(false)).then(function () {
       if (_cancelled) return;
 
       const db = window._fbDb;
       if (!db) {
-        // Firebase unavailable — fall back to localStorage
         _loadLocal();
-        const currentUid = window._fbGetUserId ? window._fbGetUserId() : null;
-        const fallback = (_localScores || []).slice(0, TOP_N).map((e, i) => ({
-          name: e.name, score: e.score, isPlayer: i === 0,
-        }));
+        const fallback = _applyAnonLabels(
+          (_localScores || []).slice(0, TOP_N).map((e, i) => ({
+            name: e.name, score: e.score, isPlayer: i === 0,
+          }))
+        );
         _boardState[boardType] = 'offline';
         _cache[boardType]      = fallback;
-        // Mirror to other online tabs
         ['alltime','daily','weekly'].forEach(t => {
           if (t !== boardType) { _boardState[t] = 'offline'; _cache[t] = fallback; }
         });
@@ -7559,28 +7609,58 @@ const LeaderboardService = (() => {
         return;
       }
 
-      // Real Firestore listener — top 10 by score descending
       const query = db.collection(COLLECTION)
         .orderBy('score', 'desc')
-        .limit(TOP_N);
+        .limit(fetchLimit);
 
       _unsub = query.onSnapshot(function (snap) {
         if (_cancelled) return;
         const currentUid = window._fbGetUserId ? window._fbGetUserId() : null;
+
         const entries = snap.docs.map(doc => {
           const d = doc.data();
           return {
-            name:     d.playerName || 'Player',
-            score:    d.score || 0,
-            isPlayer: d.playerId === currentUid,
+            uid:      doc.id,
+            name:     d.playerName || '',
+            score:    typeof d.score === 'number' ? d.score : (parseInt(d.score, 10) || 0),
+            isPlayer: doc.id === currentUid || d.playerId === currentUid,
           };
         });
-        // Update all online tabs with the same data
-        ['alltime','daily','weekly'].forEach(t => {
-          _boardState[t] = 'ok';
-          _cache[t]      = entries;
-        });
-        if (callback) callback(entries);
+
+        const playerInList = entries.some(e => e.isPlayer);
+
+        function _finalize(allEntries) {
+          // Ensure sorted descending
+          allEntries.sort((a, b) => b.score - a.score);
+          const labelled = _applyAnonLabels(allEntries);
+          ['alltime','daily','weekly'].forEach(t => {
+            _boardState[t] = 'ok';
+            _cache[t]      = labelled;
+          });
+          if (callback) callback(labelled);
+        }
+
+        // If the current player is not in the top list, fetch their doc separately
+        // so we can show their rank below the leaderboard
+        if (!playerInList && currentUid && db) {
+          db.collection(COLLECTION).doc(currentUid).get().then(playerSnap => {
+            if (playerSnap.exists) {
+              const pd = playerSnap.data();
+              const playerEntry = {
+                uid:        playerSnap.id,
+                name:       pd.playerName || '',
+                score:      typeof pd.score === 'number' ? pd.score : (parseInt(pd.score, 10) || 0),
+                isPlayer:   true,
+                outsideTop: true,  // flag so UI can show a separator
+              };
+              _finalize(entries.concat(playerEntry));
+            } else {
+              _finalize(entries);
+            }
+          }).catch(() => _finalize(entries));
+        } else {
+          _finalize(entries);
+        }
       }, function (err) {
         if (_cancelled) return;
         console.warn('[Firebase] Leaderboard listener error:', err.code || err.message);
@@ -7599,7 +7679,7 @@ const LeaderboardService = (() => {
   function getLeaderboard(type) {
     if (type === 'local') {
       _loadLocal();
-      const pName = getPlayerName() || 'You';
+      const pName = getDisplayName();
       return (_localScores || []).slice().map((e, i) => ({
         ...e,
         isPlayer: e.name === pName || (i === 0 && !(_localScores||[]).some(x => x.name === pName)),
@@ -7615,14 +7695,15 @@ const LeaderboardService = (() => {
 
   function getPlayerRank(type) {
     const board = getLeaderboard(type);
-    const idx   = board.findIndex(e => e.isPlayer);
+    // outsideTop entries are outside the ranked list — don't count them as a clean rank
+    const idx   = board.findIndex(e => e.isPlayer && !e.outsideTop);
     return idx === -1 ? null : idx + 1;
   }
 
   // submitScore: saves locally and pushes to Firebase (async, non-blocking)
   function submitScore(score, name) {
     if (!score || score <= 0) return;
-    const n = name || getPlayerName() || 'Player';
+    const n = name || getDisplayName();
     _submitLocal(score, n);
     _fbSubmit(score, n); // intentionally not awaited
   }
@@ -7630,8 +7711,8 @@ const LeaderboardService = (() => {
   function getRankSummary(score) {
     if (!score || score <= 0) return null;
     const board = getLeaderboard('alltime');
-    const rank  = (board.findIndex(e => e.isPlayer) + 1) || null;
-    return rank ? { rank, total: board.length, board: 'alltime' } : null;
+    const rank  = (board.findIndex(e => e.isPlayer && !e.outsideTop) + 1) || null;
+    return rank ? { rank, total: board.filter(e => !e.outsideTop).length, board: 'alltime' } : null;
   }
 
   return {
@@ -7641,6 +7722,7 @@ const LeaderboardService = (() => {
     submitScore,
     resetLocalLeaderboard,
     getPlayerName,
+    getDisplayName,
     setPlayerName,
     validateName,
     getRankSummary,
@@ -7671,6 +7753,13 @@ const LeaderboardUI = (() => {
     switchTab(tab || _activeTab);
     document.getElementById('btn-lb-close').focus();
     Audio && Audio.uiClick && Audio.uiClick();
+    // Prompt for a leaderboard name the first time the player opens the board
+    if (!LeaderboardService.getPlayerName()) {
+      setTimeout(() => promptPlayerName(() => {
+        renderYourStats();
+        renderBoard(_activeTab);
+      }), 500);
+    }
   }
   function close() {
     const modal = document.getElementById('modal-leaderboard');
@@ -7694,7 +7783,7 @@ const LeaderboardUI = (() => {
       ? Math.floor((settings ? (settings.lifetimeScore || 0) : 0) / runs)
       : 0;
     const rank    = LeaderboardService.getPlayerRank('alltime');
-    const pName   = LeaderboardService.getPlayerName();
+    const pName   = LeaderboardService.getDisplayName();
 
     const stats = [
       { val: best ? _fmt(best) : '-',    lbl: 'Best Score' },
@@ -7781,7 +7870,12 @@ const LeaderboardUI = (() => {
       return;
     }
 
-    container.innerHTML = entries.map((e, i) => {
+    // Separate main ranked entries from the player's out-of-top entry
+    const mainEntries    = entries.filter(e => !e.outsideTop);
+    const outsideEntry   = entries.find(e => e.outsideTop);
+    const outsideRank    = outsideEntry ? entries.indexOf(outsideEntry) + 1 : null;
+
+    let html = mainEntries.map((e, i) => {
       const rank     = i + 1;
       const isPlayer = e.isPlayer;
       const icon     = RANK_ICONS[rank] || '';
@@ -7801,8 +7895,20 @@ const LeaderboardUI = (() => {
       '</div>';
     }).join('');
 
-    // Sticky "your rank" if player row is not visible
-    _renderStickyYou(container, entries);
+    // If player is outside the top list, show a separator + their row at the bottom
+    if (outsideEntry) {
+      html += '<div class="lb-separator" role="separator">· · ·</div>';
+      html += '<div class="lb-row lb-row-you' + (highlightNew ? ' lb-new' : '') + '" data-rank="' + outsideRank + '" role="listitem">' +
+        '<div class="lb-rank"><span class="lb-rank-num">' + outsideRank + '</span></div>' +
+        '<div class="lb-player"><span class="lb-player-name">' + _esc(outsideEntry.name) + '<span class="lb-you-badge">YOU</span></span></div>' +
+        '<div class="lb-score-cell"><span class="lb-score-val">' + _fmt(outsideEntry.score) + '</span></div>' +
+      '</div>';
+    }
+
+    container.innerHTML = html;
+
+    // Sticky "your rank" if player row is not visible (only for in-top entries)
+    _renderStickyYou(container, mainEntries);
 
     // Scroll player row into view if highlightNew
     if (highlightNew) {
@@ -7844,8 +7950,8 @@ const LeaderboardUI = (() => {
 
   // -- Post-run rank display ---------------------------------
   function showPostRunRank(score, wasNewBest) {
-    // Submit the score
-    LeaderboardService.submitScore(score, LeaderboardService.getPlayerName());
+    // Submit the score (always — uses transaction so only personal bests are stored)
+    LeaderboardService.submitScore(score, LeaderboardService.getDisplayName());
 
     const rank    = LeaderboardService.getPlayerRank('alltime');
     const section = document.getElementById('go-rank-section');
@@ -7855,14 +7961,15 @@ const LeaderboardUI = (() => {
     if (!rank) { section.hidden = true; return; }
     section.hidden = false;
 
-    const total = LeaderboardService.getLeaderboard('alltime').length;
+    const board = LeaderboardService.getLeaderboard('alltime');
+    const total = board.filter(e => !e.outsideTop).length;
     let msg = 'Global Rank: <span class="go-rank-highlight">#' + rank + '</span> of ' + total;
     if (rank <= 10) msg += ' - Top 10!';
     if (rank <= 3)  msg = '<span class="go-rank-highlight">#' + rank + ' Global</span> - Incredible!';
     row.innerHTML = msg;
 
     // Show rank toast
-    if (wasNewBest && rank <= 20) {
+    if (wasNewBest && rank <= 25) {
       _showRankToast('Rank #' + rank + ' - New Best Score!');
     }
   }
@@ -7975,11 +8082,16 @@ const LeaderboardUI = (() => {
     const ndSave = document.getElementById('nd-save');
     if (ndSave) ndSave.addEventListener('click', _saveName);
 
-    // Name dialog: cancel
+    // Name dialog: cancel / skip — keep anon tag, still resolve callback
     const ndCancel = document.getElementById('nd-cancel');
     if (ndCancel) ndCancel.addEventListener('click', () => {
-      _nameResolve = null;
+      const cb = _nameResolve; _nameResolve = null;
       _closeNameDialog();
+      // Refresh so "Your Rank" card shows the anon display name
+      const nameEl = document.getElementById('lb-player-name-display');
+      if (nameEl) nameEl.textContent = LeaderboardService.getDisplayName();
+      renderYourStats();
+      if (cb) cb(null);
     });
 
     // Name dialog: enter key
