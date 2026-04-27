@@ -859,9 +859,17 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <!-- Game theme music — loaded lazily, played only after first user gesture -->
+  <audio id="theme-audio"
+         src="public/audio/shift-panic-theme.mp3"
+         loop
+         preload="none"
+         aria-hidden="true"
+         style="display:none"></audio>
+
   <!-- Firebase config + anonymous auth init (fill in your config values here) -->
   <script src="firebase-client.js"></script>
-  <script src="script.js?v=46"></script>
+  <script src="script.js?v=47"></script>
 
   <!-- Vercel Analytics — tracks visitors, page views, countries, devices and traffic sources -->
   <script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>

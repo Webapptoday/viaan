@@ -2371,6 +2371,139 @@ const ShopMusic = (() => {
 })();
 
 // ============================================================
+// SECTION 4b-2: THEME PLAYER (MP3 file via HTMLMediaElement)
+// Plays public/audio/shift-panic-theme.mp3 through the Web Audio
+// graph so volume is controlled via the same gain bus as synthesized
+// audio.  createMediaElementSource is called exactly once (lazy init).
+// ============================================================
+
+const ThemePlayer = (() => {
+  let _audioEl   = null;   // <audio id="theme-audio">
+  let _srcNode   = null;   // MediaElementAudioSourceNode (created once)
+  let _gainNode  = null;   // GainNode for music volume
+  let _ctx       = null;   // AudioContext reference
+  let _initDone  = false;
+  let _wantsPlay = false;  // deferred play requested before context ready
+
+  // Effective volume: musicVol × masterVol (0 when muted)
+  function _targetGain() {
+    if (!settings.sound) return 0;
+    return (settings.musicVol ?? VOL_DEFAULTS.music) *
+           (settings.masterVol ?? VOL_DEFAULTS.master);
+  }
+
+  // Wire the <audio> element into the Web Audio graph (once per session).
+  // Must be called from inside a user-gesture handler.
+  function _ensureInit() {
+    if (_initDone) return true;
+    _audioEl = document.getElementById('theme-audio');
+    if (!_audioEl) return false;
+    _ctx = Audio.getCtx();
+    if (!_ctx) return false;
+
+    try {
+      _srcNode  = _ctx.createMediaElementSource(_audioEl);
+      _gainNode = _ctx.createGain();
+      _gainNode.gain.value = _targetGain();
+      _srcNode.connect(_gainNode);
+      _gainNode.connect(_ctx.destination);
+      _initDone = true;
+    } catch (err) {
+      // Already connected (e.g. hot-reload) — treat as ready
+      console.warn('[ThemePlayer] init error:', err);
+      _initDone = true;
+    }
+    return _initDone;
+  }
+
+  function _doPlay() {
+    if (!_audioEl) return;
+    const promise = _audioEl.play();
+    if (promise && typeof promise.catch === 'function') {
+      promise.catch(err => {
+        // Autoplay blocked — retry on next user gesture
+        if (err.name !== 'AbortError') console.warn('[ThemePlayer] play blocked:', err.name);
+      });
+    }
+  }
+
+  return {
+    /** Start / restart from current position (loops automatically). */
+    start() {
+      if (!_ensureInit()) { _wantsPlay = true; return; }
+      _wantsPlay = false;
+      if (!_gainNode) return;
+      _gainNode.gain.cancelScheduledValues(_ctx.currentTime);
+      _gainNode.gain.setValueAtTime(0, _ctx.currentTime);
+      _gainNode.gain.linearRampToValueAtTime(_targetGain(), _ctx.currentTime + 0.25);
+      if (_ctx.state === 'suspended') {
+        _ctx.resume().then(() => _doPlay()).catch(() => {});
+      } else {
+        _doPlay();
+      }
+    },
+
+    /** Full stop — pauses and rewinds to beginning. */
+    stop() {
+      if (!_audioEl) return;
+      if (_gainNode && _ctx) {
+        const t = _ctx.currentTime;
+        _gainNode.gain.cancelScheduledValues(t);
+        _gainNode.gain.setValueAtTime(_gainNode.gain.value, t);
+        _gainNode.gain.linearRampToValueAtTime(0, t + 0.08);
+        setTimeout(() => {
+          _audioEl.pause();
+          _audioEl.currentTime = 0;
+        }, 100);
+      } else {
+        _audioEl.pause();
+        _audioEl.currentTime = 0;
+      }
+    },
+
+    /** Pause playback (used when game is paused — preserves position). */
+    pause() {
+      if (!_audioEl) return;
+      if (_gainNode && _ctx) {
+        const t = _ctx.currentTime;
+        _gainNode.gain.cancelScheduledValues(t);
+        _gainNode.gain.setValueAtTime(_gainNode.gain.value, t);
+        _gainNode.gain.linearRampToValueAtTime(0, t + 0.18);
+        setTimeout(() => { _audioEl.pause(); }, 200);
+      } else {
+        _audioEl.pause();
+      }
+    },
+
+    /** Resume from paused state. */
+    resume() {
+      if (!_audioEl || !_gainNode || !_ctx) return;
+      const doR = () => {
+        _doPlay();
+        const t = _ctx.currentTime;
+        _gainNode.gain.cancelScheduledValues(t);
+        _gainNode.gain.setValueAtTime(0, t);
+        _gainNode.gain.linearRampToValueAtTime(_targetGain(), t + 0.20);
+      };
+      if (_ctx.state === 'suspended') { _ctx.resume().then(doR).catch(() => {}); }
+      else { doR(); }
+    },
+
+    /** Called by AudioManager.refreshAllVolumes() whenever settings change. */
+    refreshVolume() {
+      if (!_gainNode || !_ctx) return;
+      const target = _targetGain();
+      const t = _ctx.currentTime;
+      _gainNode.gain.cancelScheduledValues(t);
+      _gainNode.gain.setValueAtTime(_gainNode.gain.value, t);
+      _gainNode.gain.linearRampToValueAtTime(target, t + 0.08);
+      // Also reflect mute state in the media element volume as a fallback
+      if (_audioEl) _audioEl.muted = !settings.sound;
+    },
+  };
+})();
+
+// ============================================================
 // ============================================================
 // SECTION 4c: AUDIO MANAGER (central facade)
 // ============================================================
@@ -2403,17 +2536,18 @@ const AudioManager = (() => {
       fn(...args);
     },
     setMusicIntensity(level) { Music.setIntensity(level); },
-    stopMusic()              { Music.stop(); HomeMusic.stop(); ShopMusic.stop(); },
-    startHomeMusic()         { ShopMusic.stop(); Music.stop(); HomeMusic.start(); },
+    stopMusic()              { ThemePlayer.stop(); Music.stop(); HomeMusic.stop(); ShopMusic.stop(); },
+    startHomeMusic()         { ThemePlayer.stop(); ShopMusic.stop(); Music.stop(); HomeMusic.start(); },
     stopHomeMusic()          { HomeMusic.stop(); },
-    startGameMusic()         { HomeMusic.stop(); ShopMusic.stop(); Music.start(); },
-    startShopMusic()         { HomeMusic.stop(); Music.stop(); ShopMusic.start(); },
+    startGameMusic()         { HomeMusic.stop(); ShopMusic.stop(); Music.stop(); ThemePlayer.start(); },
+    startShopMusic()         { HomeMusic.stop(); ThemePlayer.stop(); Music.stop(); ShopMusic.start(); },
     stopShopMusic()          { ShopMusic.stop(); },
     refreshAllVolumes() {
       Audio.refreshSfxVol();
       Music.refreshVolume();
       HomeMusic.refreshVolume();
       ShopMusic.refreshVolume();
+      ThemePlayer.refreshVolume();
     },
   };
 })();
@@ -6728,7 +6862,7 @@ function gameLoop(ts) {
     tickPanicWave(dt);
     tickDoubleDanger(dt);
     tickMiniGoal();
-    Music.tick(dt);
+    // Music.tick(dt) removed — synthesized game music replaced by ThemePlayer (MP3)
     maybeUpdateHud(ts);
 
     // Survival time milestones
@@ -6889,7 +7023,7 @@ function pauseGame() {
   currentState = STATE.PAUSED;
   cancelAnimationFrame(rafHandle); rafHandle = null;
   clearAllInputs();
-  Music.pause();
+  ThemePlayer.pause();
   document.getElementById('pause-overlay').hidden = false;
   requestAnimationFrame(() => document.getElementById('btn-resume').focus());
   Announce.say('Paused.');
@@ -6901,7 +7035,7 @@ function resumeGame() {
   document.getElementById('pause-overlay').hidden = true;
   currentState  = STATE.PLAYING;
   lastFrameTime = performance.now();
-  Music.resume();
+  ThemePlayer.resume();
   rafHandle = requestAnimationFrame(gameLoop);
   Announce.say('Resumed.');
 }
