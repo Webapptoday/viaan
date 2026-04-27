@@ -2478,7 +2478,7 @@ body.perf-low       .lp-dot { animation: none !important; }
 /* -- Round Coin Counter HUD (top-right during play) ---------- */
 .round-coin-hud {
   position: absolute;
-  top: 6px; right: 10px;
+  top: 62px; right: 10px;
   display: flex; align-items: center; gap: 5px;
   background: rgba(0,0,0,.52);
   border: 1px solid rgba(251,191,36,.25);

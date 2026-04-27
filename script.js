@@ -6139,7 +6139,7 @@ function changeForbiddenColor() {
   const bonus = combo * COMBO_BONUS_PER;
   addScore(bonus, false, false);
   if (combo > 1) {
-    addFloating(player.x, player.y - 65, (combo > prevCombo ? 'FLOW x' : 'x') + combo + '  +' + bonus, '#f59e0b');
+    addFloating(player.x, player.y - 65, 'x' + combo + '  +' + bonus, '#f59e0b');
   } else {
     addFloating(player.x, player.y - 65, '+' + bonus, '#f59e0b');
   }
@@ -6215,7 +6215,7 @@ function checkCollisions() {
       applyFlowDelta(-FLOW_CONFIG.shieldHitPenalty, 'shield-hit');
       obstacles.splice(i, 1);
       spawnParticles(ob.x + ob.w / 2, ob.y + ob.h / 2, GAME_COLORS[ob.colorIndex].hex, 16);
-      addFloating(player.x, player.y - 55, 'Blocked \u2022 Flow Down', '#facc15');
+      addFloating(player.x, player.y - 55, 'Blocked!', '#facc15');
       triggerShake(6, 0.22);
       if (navigator.vibrate) navigator.vibrate(50);
       Announce.say('Shield absorbed a hit.');
