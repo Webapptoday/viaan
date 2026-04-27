@@ -3000,6 +3000,8 @@ const DailyChallenge = (() => {
 function showScreen(id) {
   document.getElementById('home-screen').hidden = (id !== 'home-screen');
   document.getElementById('game-screen').hidden = (id !== 'game-screen');
+  const _gear = document.getElementById('btn-gear-settings');
+  if (_gear) _gear.hidden = (id === 'game-screen');
 
   if (id === 'home-screen') {
     const hs = document.getElementById('home-screen');
