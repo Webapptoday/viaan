@@ -2106,6 +2106,207 @@ const HomeMusic = (() => {
 })();
 
 // ============================================================
+// SECTION 4b2: SHOP MUSIC (fun, futuristic, rewarding)
+// ============================================================
+
+const ShopMusic = (() => {
+  let _actx       = null;
+  let _masterGain = null;
+  let _compressor = null;
+  let _isPlaying  = false;
+  let _beat       = 0;
+  let _nextBeat   = 0;
+  let _schedTimer = null;
+  const BPM       = 110;
+  const BEATS     = 16;  // 4 bars of 4/4  (C – G – Am – F)
+
+  // Bass line: gentle root-note pulse (C major feel)
+  const BASS_S = [
+    130.81, 130.81, 146.83, 130.81,  // C
+    196.00, 196.00, 220.00, 196.00,  // G
+    220.00, 220.00, 246.94, 220.00,  // Am
+    174.61, 174.61, 196.00, 174.61,  // F
+  ];
+
+  // Sparkly arp melody (C – G – Am – F, single octave higher)
+  const ARP_S = [
+    523.25, 659.25, 783.99, 659.25,  // C maj
+    587.33, 739.99, 880.00, 739.99,  // G maj
+    880.00, 783.99, 659.25, 783.99,  // Am
+    698.46, 659.25, 523.25, 587.33,  // F maj
+  ];
+
+  // Chime accent melody (higher octave, hits on every-other beat)
+  const CHIME_S = [
+    1046.50, 1318.51, 1567.98, 1318.51,
+     784.00,  987.77, 1174.66,  987.77,
+    1174.66, 1046.50,  880.00, 1046.50,
+    1174.66, 1046.50,  880.00,  783.99,
+  ];
+
+  // Pad chord voicings (soft, warm sine pads)
+  const PAD_S = [
+    [261.63, 329.63, 392.00, 523.25],   // C maj
+    [196.00, 246.94, 293.66, 392.00],   // G maj
+    [220.00, 261.63, 329.63, 440.00],   // Am
+    [174.61, 220.00, 261.63, 349.23],   // F maj
+  ];
+
+  function _ctx_() {
+    _actx = Audio.getCtx();
+    if (!_actx) return null;
+    if (_actx.state === 'suspended') _actx.resume().catch(() => {});
+    return _actx;
+  }
+  function _mv() {
+    return (settings.musicVol ?? VOL_DEFAULTS.music) * (settings.masterVol ?? VOL_DEFAULTS.master) * 0.72;
+  }
+  function _ensureGraph() {
+    if (_masterGain) return true;
+    const c = _actx; if (!c) return false;
+    _compressor = c.createDynamicsCompressor();
+    _compressor.threshold.value = -14; _compressor.ratio.value = 3;
+    _compressor.attack.value = 0.010;  _compressor.release.value = 0.45;
+    _compressor.connect(c.destination);
+    _masterGain = c.createGain(); _masterGain.gain.value = 0;
+    _masterGain.connect(_compressor);
+    return true;
+  }
+
+  // Soft sine pad — lush, warm chords
+  function _pad(when, freqs, dur) {
+    freqs.forEach(freq => {
+      const osc = _actx.createOscillator(); const env = _actx.createGain();
+      osc.type = 'sine'; osc.frequency.value = freq;
+      env.gain.setValueAtTime(0.0001, when);
+      env.gain.linearRampToValueAtTime(0.045, when + 0.28);
+      env.gain.setValueAtTime(0.045, when + dur - 0.25);
+      env.gain.linearRampToValueAtTime(0.0001, when + dur);
+      osc.connect(env); env.connect(_masterGain);
+      osc.start(when); osc.stop(when + dur + 0.01);
+    });
+  }
+
+  // Sub-bass: smooth sine pulse
+  function _bass(when, freq, dur) {
+    const osc = _actx.createOscillator(); const env = _actx.createGain();
+    osc.type = 'sine'; osc.frequency.value = freq;
+    const lp = _actx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 320;
+    env.gain.setValueAtTime(0.0001, when);
+    env.gain.linearRampToValueAtTime(0.50, when + 0.015);
+    env.gain.setValueAtTime(0.50, when + dur * 0.50);
+    env.gain.exponentialRampToValueAtTime(0.0001, when + dur);
+    osc.connect(lp); lp.connect(env); env.connect(_masterGain);
+    osc.start(when); osc.stop(when + dur + 0.01);
+  }
+
+  // Sparkling arp — bright triangle with a quick pluck envelope
+  function _arp(when, freq, dur) {
+    const c = _actx;
+    const osc = c.createOscillator(); const env = c.createGain();
+    osc.type = 'triangle'; osc.frequency.value = freq;
+    // Gentle detune wobble for a synth-pop shimmer
+    const osc2 = c.createOscillator(); const env2 = c.createGain();
+    osc2.type = 'triangle'; osc2.frequency.value = freq * 1.004;
+    const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 3400;
+    env.gain.setValueAtTime(0.0001, when);
+    env.gain.linearRampToValueAtTime(0.22, when + 0.008);
+    env.gain.exponentialRampToValueAtTime(0.0001, when + dur);
+    env2.gain.setValueAtTime(0.0001, when);
+    env2.gain.linearRampToValueAtTime(0.12, when + 0.008);
+    env2.gain.exponentialRampToValueAtTime(0.0001, when + dur);
+    osc.connect(env); env.connect(lp);
+    osc2.connect(env2); env2.connect(lp);
+    lp.connect(_masterGain);
+    osc.start(when); osc.stop(when + dur + 0.01);
+    osc2.start(when); osc2.stop(when + dur + 0.01);
+  }
+
+  // Chime accent — high sine bell with slow decay
+  function _chime(when, freq) {
+    const c = _actx;
+    const osc = c.createOscillator(); const env = c.createGain();
+    osc.type = 'sine'; osc.frequency.value = freq;
+    env.gain.setValueAtTime(0.0001, when);
+    env.gain.linearRampToValueAtTime(0.09, when + 0.004);
+    env.gain.exponentialRampToValueAtTime(0.0001, when + 0.55);
+    osc.connect(env); env.connect(_masterGain);
+    osc.start(when); osc.stop(when + 0.57);
+  }
+
+  // Light tick percussion (coin-tinkle feel, no snare/kick)
+  function _tick(when, vol) {
+    const c = _actx;
+    const osc = c.createOscillator(); const env = c.createGain();
+    osc.type = 'sine'; osc.frequency.value = 2800;
+    env.gain.setValueAtTime(0.0001, when);
+    env.gain.linearRampToValueAtTime(vol || 0.07, when + 0.002);
+    env.gain.exponentialRampToValueAtTime(0.0001, when + 0.025);
+    osc.connect(env); env.connect(_masterGain);
+    osc.start(when); osc.stop(when + 0.028);
+  }
+
+  function _scheduleBeat(when, beat) {
+    const BEAT   = 60 / BPM;
+    const bar    = Math.floor(beat / 4);  // 0-3
+    const pos    = beat % 4;
+
+    // Full pad chord once per bar (on the downbeat)
+    if (pos === 0) _pad(when, PAD_S[bar], BEAT * 4.2);
+
+    // Bass on every beat
+    _bass(when, BASS_S[beat], BEAT * 0.82);
+
+    // Sparkling arp on every beat
+    _arp(when, ARP_S[beat], BEAT * 0.70);
+
+    // Chime accent on beats 0, 4, 8, 12 and halfway through bars 1 & 3
+    if (pos === 0) _chime(when, CHIME_S[beat]);
+    if (beat === 6 || beat === 14) _chime(when, CHIME_S[beat]);
+
+    // Light ticks — 8th-note feel, accenting downbeat of each bar
+    _tick(when, pos === 0 ? 0.10 : 0.06);
+    _tick(when + BEAT * 0.5, 0.045);
+  }
+
+  function _scheduler() {
+    if (!_isPlaying || !_actx) return;
+    while (_nextBeat < _actx.currentTime + 0.14) {
+      _scheduleBeat(_nextBeat, _beat);
+      _nextBeat += 60 / BPM;
+      _beat = (_beat + 1) % BEATS;
+    }
+    _schedTimer = setTimeout(_scheduler, 55);
+  }
+
+  return {
+    start() {
+      if (!settings.sound) return;
+      const c = _ctx_(); if (!c) return;
+      if (c.state === 'suspended') { c.resume().then(() => this.start()).catch(() => {}); return; }
+      if (!_ensureGraph()) return;
+      _isPlaying = true; _beat = 0; _nextBeat = c.currentTime + 0.06;
+      _masterGain.gain.cancelScheduledValues(c.currentTime);
+      _masterGain.gain.setValueAtTime(0, c.currentTime);
+      _masterGain.gain.linearRampToValueAtTime(_mv(), c.currentTime + 1.5);
+      _scheduler();
+    },
+    stop() {
+      _isPlaying = false; clearTimeout(_schedTimer); _schedTimer = null;
+      if (!_actx || !_masterGain) return;
+      const t = _actx.currentTime;
+      _masterGain.gain.cancelScheduledValues(t);
+      _masterGain.gain.setValueAtTime(_masterGain.gain.value, t);
+      _masterGain.gain.linearRampToValueAtTime(0, t + 0.65);
+    },
+    refreshVolume() {
+      if (_masterGain && _isPlaying) _masterGain.gain.setValueAtTime(_mv(), _actx.currentTime);
+    },
+  };
+})();
+
+// ============================================================
+// ============================================================
 // SECTION 4c: AUDIO MANAGER (central facade)
 // ============================================================
 
@@ -2137,14 +2338,17 @@ const AudioManager = (() => {
       fn(...args);
     },
     setMusicIntensity(level) { Music.setIntensity(level); },
-    stopMusic()              { Music.stop(); HomeMusic.stop(); },
-    startHomeMusic()         { HomeMusic.start(); },
+    stopMusic()              { Music.stop(); HomeMusic.stop(); ShopMusic.stop(); },
+    startHomeMusic()         { ShopMusic.stop(); Music.stop(); HomeMusic.start(); },
     stopHomeMusic()          { HomeMusic.stop(); },
-    startGameMusic()         { HomeMusic.stop(); Music.start(); },
+    startGameMusic()         { HomeMusic.stop(); ShopMusic.stop(); Music.start(); },
+    startShopMusic()         { HomeMusic.stop(); Music.stop(); ShopMusic.start(); },
+    stopShopMusic()          { ShopMusic.stop(); },
     refreshAllVolumes() {
       Audio.refreshSfxVol();
       Music.refreshVolume();
       HomeMusic.refreshVolume();
+      ShopMusic.refreshVolume();
     },
   };
 })();
@@ -2886,6 +3090,7 @@ function showModal(id) {
     HomeBg.stop();
     HomePreview.stop();
     startShopPreviewLoop();
+    AudioManager.startShopMusic();
   }
   requestAnimationFrame(() => {
     const first = m.querySelector('button,[href],input,select,[tabindex]:not([tabindex="-1"])');
@@ -2898,10 +3103,12 @@ function hideModal(id) {
   if (m) m.hidden = true;
   if (id === 'modal-progress') {
     stopShopPreviewLoop();
+    AudioManager.stopShopMusic();
     // Restart home bg loops only if we're on the home screen
     if (currentState === STATE.HOME) {
       HomeBg.start();
       HomePreview.start();
+      AudioManager.startHomeMusic();
     }
   }
 }
