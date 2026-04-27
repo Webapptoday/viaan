@@ -1421,28 +1421,7 @@ const Audio = (() => {
       src.start(t); src.stop(t + 0.18);
     },
 
-    // Color change: punchy low thud + metallic ping
-    colorChange() {
-      if (!settings.sound) return;
-      const c = ctx_(); if (!c) return;
-      const dest = _sfxOut(); if (!dest) return;
-      const t = c.currentTime;
-      const osc = c.createOscillator(); const g = c.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(380, t);
-      osc.frequency.exponentialRampToValueAtTime(220, t + 0.10);
-      g.gain.setValueAtTime(0.0001, t);
-      g.gain.linearRampToValueAtTime(0.38, t + 0.005);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
-      osc.connect(g); g.connect(dest);
-      osc.start(t); osc.stop(t + 0.23);
-      const osc2 = c.createOscillator(); const g2 = c.createGain();
-      osc2.type = 'sine'; osc2.frequency.value = 1760;
-      g2.gain.setValueAtTime(0.13, t + 0.015);
-      g2.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
-      osc2.connect(g2); g2.connect(dest);
-      osc2.start(t + 0.015); osc2.stop(t + 0.23);
-    },
+
 
     // Game over: dramatic impact + descending fail stinger
     gameOver() {
@@ -2516,14 +2495,13 @@ const ThemePlayer = (() => {
 
 const AudioManager = (() => {
   const COOLDOWNS = {
-    coin: 75, nearMiss: 180, colorChange: 130, death: 0, combo: 100,
+    coin: 75, nearMiss: 180, death: 0, combo: 100,
     powerupSpawn: 400, powerupCollect: 100, panicRiser: 2000, doubleDanger: 500,
   };
   const _lastPlayed = {};
   const _dispatch = {
     coin:           () => Audio.collect(),
     nearMiss:       () => Audio.nearMiss(),
-    colorChange:    () => Audio.colorChange(),
     death:          () => Audio.gameOver(),
     combo:          (n) => Audio.comboUp(n),
     powerupSpawn:   () => Audio.powerupSpawn(),
@@ -6173,7 +6151,6 @@ function changeForbiddenColor() {
   updateForbiddenDisplay();
   colorChangeGrace = 0.25; // 0.25 s invincibility window on color change
   // rebalanceAfterColorChange() disabled - blocks keep their spawn color
-  AudioManager.playSound('colorChange');
   flashForbiddenBorder(GAME_COLORS[forbiddenIndex].hex);
   Announce.say('Forbidden color is now ' + GAME_COLORS[forbiddenIndex].name + '!');
 }
