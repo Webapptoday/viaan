@@ -5947,7 +5947,7 @@ function drawParticles() {
 // ============================================================
 
 // -- Centre-screen milestone banner ----------------------------
-const SCORE_MILESTONES = [500, 1000, 2000, 3500, 5000, 7500, 10000];
+const SCORE_MILESTONES = [5000, 10000, 25000, 50000];
 const TIME_MILESTONES  = [30, 60, 120, 180];   // seconds into run
 const COMBO_MILESTONES = [5, 10, 20, 30];      // combo count
 
@@ -6258,9 +6258,9 @@ function tickScoreOverTime(dt) {
       triggerMilestone(label, '#fbbf24');
     }
   }
-  // Beyond fixed list: every 5000 above 10000
-  if (s >= 10000) {
-    const extraStep = Math.floor(s / 5000) * 5000;
+  // Beyond fixed list: every 100000 above 50000
+  if (s >= 100000) {
+    const extraStep = Math.floor(s / 100000) * 100000;
     if (!_scoreMilestonesHit.has(extraStep)) {
       _scoreMilestonesHit.add(extraStep);
       triggerMilestone((extraStep / 1000) + 'K', '#fbbf24');
