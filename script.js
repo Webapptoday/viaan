@@ -459,7 +459,9 @@ function claimMission(id) {
   if (!ms || !ms.done || ms.claimed) return;
   ms.claimed = true;
   saveMissions();
-  awardCoins(m.coinReward || 20);
+  settings.coins += (m.coinReward || 20);
+  saveSettings();
+  updateCoinUI(true);
   updateMissionUI();
   // Flash animation on the card
   const card = document.querySelector('.mission-item[data-mission-id="' + id + '"]');
@@ -2924,7 +2926,9 @@ const DailyChallenge = (() => {
     _state.claimed = true;
     save();
     const ch = getChallenge();
-    awardCoins(ch.coins);
+    settings.coins += ch.coins;
+    saveSettings();
+    updateCoinUI(true);
     renderUI();
   }
 
@@ -3577,17 +3581,15 @@ function endTrySkin() {
 function awardCoins(amount, showFloat = false, source = 'generic') {
   if (tryMode.active) return 0;
   if (amount <= 0) return 0;
-  const scaled = currentState === STATE.PLAYING && (source === 'pickup' || source === 'close-call')
-    ? Math.max(1, Math.round(amount * getFlowCoinMultiplier()))
-    : amount;
-  settings.coins += scaled;
+  // Only 'pickup' source awards coins; all other bonus sources are ignored
+  if (source !== 'pickup') return 0;
+  settings.coins += amount;
   saveSettings();
   updateCoinUI(true);
-  // Floating text only when explicitly requested (e.g. mission rewards shown at center)
   if (showFloat && currentState === STATE.PLAYING && player) {
-    addFloating(player.x, player.y - 72, '+' + scaled, '#fde047', 18);
+    addFloating(player.x, player.y - 72, '+' + amount, '#fde047', 18);
   }
-  return scaled;
+  return amount;
 }
 
 function awardRunCoins(finalScore, elapsedSecs) {
@@ -5761,15 +5763,9 @@ function tickMiniGoal() {
 function completeMiniGoal() {
   if (!runMiniGoal || runMiniGoal.done) return;
   runMiniGoal.done = true;
-  const reward = runMiniGoal.reward;
-  const bonus  = awardCoins(reward, false, 'pickup');
-  // Mini goal bonus is awarded immediately via awardCoins — NOT added to roundCoins
-  // to avoid double-counting at end of run.
   // Celebration popup at centre of screen
   addFloating(canvas.width / 2, canvas.height / 2 - 80,
     'Goal: ' + runMiniGoal.label, '#34d399', 22);
-  addFloating(canvas.width / 2, canvas.height / 2 - 55,
-    '+' + bonus + ' bonus coins!', '#fde047', 20, true);
   spawnParticles(canvas.width / 2, canvas.height / 2 - 70, '#34d399', settings.reducedMotion ? 6 : 18);
   triggerShake(3, 0.14);
   AudioManager.playSound('nearMiss');
@@ -6279,9 +6275,7 @@ function awardNearMiss(ob) {
   missionRun.nearMissesThisRun++;
   const cx = ob.x + ob.w / 2;
   const cy = ob.y + ob.h / 2;
-  const closeCallCoins = awardCoins(FLOW_CONFIG.closeCallCoins, false, 'close-call');
   addFloating(cx, ob.y - 18, 'Close Call', '#34d399', 20);
-  addFloating(cx, ob.y - 38, '+' + closeCallCoins, '#fde047', 16, true);
   // Small particle burst at the miss point
   spawnParticles(cx, cy, '#34d399', settings.reducedMotion ? 4 : 10);
   // Gentle shake - confirms the danger without being disorienting
