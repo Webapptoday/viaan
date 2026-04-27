@@ -900,7 +900,127 @@ kbd {
   background: var(--card); z-index: 1;
 }
 
-/* FPS counter */
+/* ============================================================
+   TUTORIAL (stepped How-To-Play)
+   ============================================================ */
+.tut-box {
+  max-width: 420px;
+  padding: 0;
+  gap: 0;
+  overflow: visible;
+  border: 1px solid rgba(139,92,246,.45);
+  box-shadow: 0 0 40px rgba(139,92,246,.25), var(--shadow-lg);
+}
+
+/* Header row */
+.tut-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 16px 20px 14px;
+  border-bottom: 1px solid rgba(139,92,246,.2);
+  position: sticky; top: 0;
+  background: var(--card); z-index: 1;
+}
+.tut-step-badge {
+  font-size: .65rem; font-weight: 800; text-transform: uppercase;
+  letter-spacing: 1.5px; color: rgba(196,132,252,.7);
+  background: rgba(139,92,246,.15);
+  border: 1px solid rgba(139,92,246,.25);
+  border-radius: 20px; padding: 3px 10px;
+  white-space: nowrap; flex-shrink: 0;
+}
+.tut-title-bar {
+  flex: 1; font-size: 1rem; font-weight: 800;
+  color: var(--text); margin: 0; letter-spacing: .02em;
+}
+
+/* Slide area */
+.tut-slides { padding: 28px 28px 8px; min-height: 210px; }
+
+.tut-slide { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 14px; }
+.tut-slide[hidden] { display: none; }
+
+.tut-icon {
+  font-size: 3.2rem; line-height: 1;
+  filter: drop-shadow(0 0 14px rgba(168,85,247,.55));
+  animation: tutIconPop .35s cubic-bezier(.34,1.56,.64,1) both;
+}
+@keyframes tutIconPop {
+  from { transform: scale(0.5); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+
+.tut-slide-title {
+  font-size: 1.45rem; font-weight: 900; margin: 0;
+  background: linear-gradient(135deg, #e879f9 0%, #a78bfa 50%, #38bdf8 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -.01em;
+}
+.tut-slide-text {
+  font-size: .93rem; line-height: 1.65; color: var(--text-muted);
+  max-width: 320px; margin: 0;
+}
+.tut-slide-text strong { color: var(--text); }
+.tut-slide-text em { color: rgba(251,191,36,.9); font-style: normal; }
+
+/* Step dots */
+.tut-dots {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 16px 0 4px;
+}
+.tut-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: rgba(139,92,246,.25);
+  border: 1px solid rgba(139,92,246,.35);
+  transition: background .2s, transform .2s, box-shadow .2s;
+}
+.tut-dot-active {
+  background: #a78bfa;
+  transform: scale(1.35);
+  box-shadow: 0 0 8px rgba(167,139,250,.7);
+  border-color: #a78bfa;
+}
+
+/* Navigation row */
+.tut-nav {
+  display: flex; align-items: center; justify-content: flex-end;
+  gap: 10px; padding: 18px 20px 20px;
+  border-top: 1px solid rgba(139,92,246,.15);
+  flex-wrap: wrap;
+}
+.tut-btn-back  { margin-right: auto; }
+.tut-btn-skip  { font-size: .82rem; padding: 8px 16px; opacity: .75; }
+.tut-btn-skip:hover { opacity: 1; }
+.tut-btn-next, .tut-btn-start { min-width: 110px; }
+.tut-btn-start { background: linear-gradient(135deg, #7c3aed, #2563eb); border-color: transparent; }
+.tut-btn-start:hover { box-shadow: 0 0 20px rgba(124,58,237,.5); }
+
+/* Slide transition */
+.tut-slide-enter {
+  animation: tutSlideIn .22s ease both;
+}
+@keyframes tutSlideIn {
+  from { opacity: 0; transform: translateX(18px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.tut-slide-enter-back {
+  animation: tutSlideInBack .22s ease both;
+}
+@keyframes tutSlideInBack {
+  from { opacity: 0; transform: translateX(-18px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+  .tut-box { max-width: 100%; margin: 0 4px; }
+  .tut-slides { padding: 22px 18px 8px; min-height: 190px; }
+  .tut-icon { font-size: 2.6rem; }
+  .tut-slide-title { font-size: 1.2rem; }
+  .tut-nav { padding: 14px 14px 16px; }
+}
+
+
 .fps-counter {
   position: absolute; top: 6px; left: 6px;
   font-size: .72rem; font-weight: 800; font-family: monospace;

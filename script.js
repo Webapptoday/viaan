@@ -7420,6 +7420,101 @@ function onCanvasPointerUp(e) {
 }
 
 // ============================================================
+// TUTORIAL — first-time stepped How-To-Play
+// ============================================================
+const Tutorial = (() => {
+  const STEPS = 5;
+  const LS_KEY = 'shiftPanicTutorialSeen';
+  let _step = 0;
+  let _onComplete = null; // callback to invoke when player starts or skips
+
+  function _slide(i) { return document.querySelector(`#tut-slides [data-step="${i}"]`); }
+  function _dot(i)   { return document.querySelector(`#tut-dots [data-dot="${i}"]`); }
+
+  function _goTo(i, dir) {
+    const prev = _slide(_step);
+    _step = i;
+    const next = _slide(_step);
+    if (prev && prev !== next) {
+      prev.hidden = true;
+      prev.classList.remove('tut-slide-enter', 'tut-slide-enter-back');
+    }
+    if (next) {
+      next.hidden = false;
+      next.classList.remove('tut-slide-enter', 'tut-slide-enter-back');
+      void next.offsetWidth; // reflow to restart animation
+      next.classList.add(dir === 'back' ? 'tut-slide-enter-back' : 'tut-slide-enter');
+    }
+    // Update badge
+    const badge = document.getElementById('tut-step-badge');
+    if (badge) badge.textContent = (_step + 1) + ' / ' + STEPS;
+    // Update dots
+    document.querySelectorAll('#tut-dots .tut-dot').forEach((d, idx) => {
+      d.classList.toggle('tut-dot-active', idx === _step);
+    });
+    // Update buttons
+    const back  = document.getElementById('tut-btn-back');
+    const skip  = document.getElementById('tut-btn-skip');
+    const next  = document.getElementById('tut-btn-next');
+    const start = document.getElementById('tut-btn-start');
+    const last  = _step === STEPS - 1;
+    if (back)  back.hidden  = (_step === 0);
+    if (skip)  skip.hidden  = last;
+    if (next)  next.hidden  = last;
+    if (start) start.hidden = !last;
+  }
+
+  function _markSeen() {
+    try { localStorage.setItem(LS_KEY, 'true'); } catch (_) {}
+  }
+
+  function _finish() {
+    _markSeen();
+    hideModal('modal-howtoplay');
+    if (typeof _onComplete === 'function') {
+      const cb = _onComplete;
+      _onComplete = null;
+      cb();
+    }
+  }
+
+  function open(onComplete) {
+    _onComplete = onComplete || null;
+    _step = -1; // force _goTo to treat first slide as new
+    _goTo(0, 'fwd');
+    // Show/hide Start Game button label depending on mode
+    const startBtn = document.getElementById('tut-btn-start');
+    if (startBtn) startBtn.textContent = _onComplete ? '▶ Start Game' : '✓ Done';
+    showModal('modal-howtoplay');
+    // Focus first focusable element
+    setTimeout(() => {
+      const el = document.getElementById('tut-btn-next') || document.getElementById('tut-btn-start');
+      if (el) el.focus();
+    }, 80);
+  }
+
+  function hasSeen() {
+    try { return localStorage.getItem(LS_KEY) === 'true'; } catch (_) { return false; }
+  }
+
+  function _bindButtons() {
+    const next  = document.getElementById('tut-btn-next');
+    const back  = document.getElementById('tut-btn-back');
+    const skip  = document.getElementById('tut-btn-skip');
+    const start = document.getElementById('tut-btn-start');
+    const close = document.getElementById('btn-htp-close');
+    if (next)  next.addEventListener('click',  () => { Audio.uiClick(); _goTo(Math.min(_step + 1, STEPS - 1), 'fwd'); });
+    if (back)  back.addEventListener('click',  () => { Audio.uiClick(); _goTo(Math.max(_step - 1, 0), 'back'); });
+    if (skip)  skip.addEventListener('click',  () => { Audio.uiClick(); _finish(); });
+    if (start) start.addEventListener('click', () => { Audio.uiClick(); _finish(); });
+    // ✕ just dismisses — does NOT mark seen, does NOT start game
+    if (close) close.addEventListener('click', () => { Audio.uiClick(); _onComplete = null; hideModal('modal-howtoplay'); });
+  }
+
+  return { open, hasSeen, bindButtons: _bindButtons };
+})();
+
+// ============================================================
 // SECTION 26: INITIALISATION
 // ============================================================
 
@@ -7454,6 +7549,9 @@ function init() {
   const _drawerEl = document.getElementById('settings-drawer');
   if (_drawerEl) makeFocusTrap(_drawerEl);
 
+  // Bind tutorial buttons (must happen after DOM ready)
+  Tutorial.bindButtons();
+
   // One-shot unlock for iOS/Android - AudioContext must be created inside a user gesture.
   // We listen on both touchstart and pointerdown so it fires on the very first tap/click.
   const _unlockAudio = () => {
@@ -7465,8 +7563,15 @@ function init() {
   document.addEventListener('touchstart',  _unlockAudio, { capture: true, passive: true, once: true });
   document.addEventListener('pointerdown', _unlockAudio, { capture: true, passive: true, once: true });
 
-  // Home screen
-  document.getElementById('btn-start').addEventListener('click', () => { Audio.uiClick(); startGame(); });
+  // Home screen — Play button: show tutorial first time, otherwise start directly
+  document.getElementById('btn-start').addEventListener('click', () => {
+    Audio.uiClick();
+    if (!Tutorial.hasSeen()) {
+      Tutorial.open(() => startGame());
+    } else {
+      startGame();
+    }
+  });
   document.getElementById('btn-progress').addEventListener('click', () => {
     Audio.uiClick();
     // Reset to Skins tab on every open
@@ -7522,9 +7627,8 @@ function init() {
 
   // Help button → How To Play
   const _btnHelp = document.getElementById('btn-help');
-  if (_btnHelp) _btnHelp.addEventListener('click', () => { Audio.uiClick(); showModal('modal-howtoplay'); });
-  const _btnHtpClose = document.getElementById('btn-htp-close');
-  if (_btnHtpClose) _btnHtpClose.addEventListener('click', () => { hideModal('modal-howtoplay'); });
+  if (_btnHelp) _btnHelp.addEventListener('click', () => { Audio.uiClick(); Tutorial.open(null); });
+  // btn-htp-close is handled inside Tutorial.bindButtons()
 
   document.getElementById('btn-progress-close').addEventListener('click', () => {
     hideModal('modal-progress'); document.getElementById('btn-progress').focus();
