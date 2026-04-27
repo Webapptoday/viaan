@@ -1362,23 +1362,55 @@ const Audio = (() => {
 const Music = (() => {
   let _actx       = null;
   let _masterGain = null;
+  let _compressor = null;
   let _baseGain   = null;
   let _intGain    = null;
   let _isPlaying  = false;
   let _beat       = 0;
   let _nextBeat   = 0;
   let _schedTimer = null;
-  let _bpm        = 130;
+  let _bpm        = 148;
   let _intCurrent = 0;
   let _intTarget  = 0;
 
   const SCHEDULE_AHEAD = 0.14; // seconds of look-ahead
   const LOOKAHEAD_MS   = 55;   // poll interval
-  const BEATS_PER_LOOP = 8;    // 2 bars of 4/4
+  const BEATS_PER_LOOP = 16;   // 4 bars of 4/4  (Am – F – C – G)
 
-  // Note tables
-  const BASS_NOTES = [73.42, 98.00, 73.42, 110.00]; // D2 G2 D2 A2
-  const STAB_NOTES = [349.23, 440.00, 523.25, 440.00]; // F4 A4 C5 A4
+  // Bass line: arpeggiated chord tones per beat, one bar per chord
+  // Am: A2 C3 E3 G3 | F: F2 A2 C3 A2 | C: C3 E3 G3 E3 | G: G2 B2 D3 B2
+  const BASS_LINE = [
+    110.00, 130.81, 164.81, 196.00,
+     87.31, 110.00, 130.81, 110.00,
+    130.81, 164.81, 196.00, 164.81,
+     98.00, 123.47, 146.83, 123.47,
+  ];
+
+  // Lead melody: descending chord-tone phrase over Am–F–C–G
+  // Am: E5 C5 A4 C5 | F: F5 C5 A4 F4 | C: E5 C5 G4 E4 | G: D5 B4 G4 B4
+  const LEAD_MELODY = [
+    659.25, 523.25, 440.00, 523.25,
+    698.46, 523.25, 440.00, 349.23,
+    659.25, 523.25, 392.00, 329.63,
+    587.33, 493.88, 392.00, 493.88,
+  ];
+
+  // Arp chords (16th-note bursts at high intensity)
+  // Am arp | F arp | C arp | G arp
+  const ARP_CHORDS = [
+    [440.00, 523.25, 659.25, 880.00],
+    [349.23, 440.00, 523.25, 698.46],
+    [261.63, 329.63, 392.00, 523.25],
+    [196.00, 246.94, 293.66, 392.00],
+  ];
+
+  // Chord stab voicings (intensity downbeats)
+  const CHORD_STABS = [
+    [440.00, 523.25, 659.25], // Am4: A4 C5 E5
+    [349.23, 440.00, 523.25], // F4:  F4 A4 C5
+    [261.63, 329.63, 392.00], // C4:  C4 E4 G4
+    [196.00, 246.94, 293.66], // G3:  G3 B3 D4
+  ];
 
   function _ctx_() {
     _actx = Audio.getCtx();
@@ -1390,7 +1422,7 @@ const Music = (() => {
   let _noiseBuf = null;
   function _noise() {
     if (_noiseBuf) return _noiseBuf;
-    const len = _actx.sampleRate; // 1 s
+    const len = _actx.sampleRate;
     _noiseBuf = _actx.createBuffer(1, len, _actx.sampleRate);
     const d = _noiseBuf.getChannelData(0);
     for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
@@ -1400,9 +1432,17 @@ const Music = (() => {
   function _ensureGraph() {
     if (_masterGain) return true;
     const c = _actx; if (!c) return false;
+    // Master dynamics compressor for loudness and glue
+    _compressor = c.createDynamicsCompressor();
+    _compressor.threshold.value = -14;
+    _compressor.knee.value      = 6;
+    _compressor.ratio.value     = 4;
+    _compressor.attack.value    = 0.003;
+    _compressor.release.value   = 0.25;
+    _compressor.connect(c.destination);
     _masterGain = c.createGain(); _masterGain.gain.value = 0;
-    _masterGain.connect(c.destination);
-    _baseGain = c.createGain(); _baseGain.gain.value = 0.60;
+    _masterGain.connect(_compressor);
+    _baseGain = c.createGain(); _baseGain.gain.value = 0.65;
     _baseGain.connect(_masterGain);
     _intGain = c.createGain(); _intGain.gain.value = 0;
     _intGain.connect(_masterGain);
@@ -1413,90 +1453,178 @@ const Music = (() => {
 
   function _kick(when) {
     const c = _actx;
+    // Sine sweep for body
     const osc = c.createOscillator(); const env = c.createGain();
     osc.type = 'sine';
-    osc.frequency.setValueAtTime(170, when);
-    osc.frequency.exponentialRampToValueAtTime(44, when + 0.20);
+    osc.frequency.setValueAtTime(200, when);
+    osc.frequency.exponentialRampToValueAtTime(45, when + 0.18);
     env.gain.setValueAtTime(0.0001, when);
-    env.gain.linearRampToValueAtTime(0.90, when + 0.003);
-    env.gain.exponentialRampToValueAtTime(0.0001, when + 0.28);
+    env.gain.linearRampToValueAtTime(1.0, when + 0.002);
+    env.gain.exponentialRampToValueAtTime(0.0001, when + 0.30);
     osc.connect(env); env.connect(_baseGain);
-    osc.start(when); osc.stop(when + 0.30);
+    osc.start(when); osc.stop(when + 0.32);
+    // Click transient
+    const nb = _noise(); const click = c.createBufferSource(); click.buffer = nb;
+    const clickBp = c.createBiquadFilter(); clickBp.type = 'bandpass'; clickBp.frequency.value = 3500; clickBp.Q.value = 0.5;
+    const clickEnv = c.createGain();
+    clickEnv.gain.setValueAtTime(0.18, when);
+    clickEnv.gain.exponentialRampToValueAtTime(0.0001, when + 0.010);
+    click.connect(clickBp); clickBp.connect(clickEnv); clickEnv.connect(_baseGain);
+    click.start(when); click.stop(when + 0.012);
   }
 
   function _snare(when) {
     const c = _actx; const nb = _noise();
+    // Tonal body
+    const body = c.createOscillator(); const bodyEnv = c.createGain();
+    body.type = 'triangle'; body.frequency.value = 190;
+    bodyEnv.gain.setValueAtTime(0.0001, when);
+    bodyEnv.gain.linearRampToValueAtTime(0.30, when + 0.002);
+    bodyEnv.gain.exponentialRampToValueAtTime(0.0001, when + 0.10);
+    body.connect(bodyEnv); bodyEnv.connect(_baseGain);
+    body.start(when); body.stop(when + 0.11);
+    // Noise crack
     const src = c.createBufferSource(); src.buffer = nb;
-    const hp  = c.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 1800;
+    const hp  = c.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 1600;
     const env = c.createGain();
     env.gain.setValueAtTime(0.0001, when);
-    env.gain.linearRampToValueAtTime(0.42, when + 0.003);
-    env.gain.exponentialRampToValueAtTime(0.0001, when + 0.15);
+    env.gain.linearRampToValueAtTime(0.55, when + 0.002);
+    env.gain.exponentialRampToValueAtTime(0.0001, when + 0.20);
     src.connect(hp); hp.connect(env); env.connect(_baseGain);
-    src.start(when); src.stop(when + 0.16);
+    src.start(when); src.stop(when + 0.22);
   }
 
-  function _hihat(when, vol) {
+  function _closedHat(when, vol) {
     const c = _actx; const nb = _noise();
     const src = c.createBufferSource(); src.buffer = nb;
-    const hp  = c.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 7500;
+    const hp  = c.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 8000;
+    const bp  = c.createBiquadFilter(); bp.type  = 'bandpass'; bp.frequency.value = 12000; bp.Q.value = 0.8;
     const env = c.createGain();
     env.gain.setValueAtTime(0.0001, when);
-    env.gain.linearRampToValueAtTime(vol || 0.18, when + 0.002);
-    env.gain.exponentialRampToValueAtTime(0.0001, when + 0.038);
+    env.gain.linearRampToValueAtTime(vol || 0.20, when + 0.001);
+    env.gain.exponentialRampToValueAtTime(0.0001, when + 0.030);
+    src.connect(hp); hp.connect(bp); bp.connect(env); env.connect(_baseGain);
+    src.start(when); src.stop(when + 0.040);
+  }
+
+  function _openHat(when) {
+    const c = _actx; const nb = _noise();
+    const src = c.createBufferSource(); src.buffer = nb;
+    const hp  = c.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 7000;
+    const env = c.createGain();
+    env.gain.setValueAtTime(0.0001, when);
+    env.gain.linearRampToValueAtTime(0.22, when + 0.002);
+    env.gain.setValueAtTime(0.22, when + 0.10);
+    env.gain.exponentialRampToValueAtTime(0.0001, when + 0.30);
     src.connect(hp); hp.connect(env); env.connect(_baseGain);
-    src.start(when); src.stop(when + 0.045);
+    src.start(when); src.stop(when + 0.32);
   }
 
   function _bass(when, freq, dur) {
     const c = _actx;
-    const osc = c.createOscillator(); const lp = c.createBiquadFilter();
-    lp.type = 'lowpass'; lp.frequency.value = 290;
-    const env = c.createGain();
-    osc.type = 'sawtooth'; osc.frequency.value = freq;
+    const osc  = c.createOscillator();
+    const osc2 = c.createOscillator(); // power fifth for thickness
+    const lp   = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 420; lp.Q.value = 1.4;
+    const env  = c.createGain();
+    osc.type  = 'sawtooth'; osc.frequency.value  = freq;
+    osc2.type = 'square';   osc2.frequency.value = freq * 1.5;
+    const osc2g = c.createGain(); osc2g.gain.value = 0.18;
     env.gain.setValueAtTime(0.0001, when);
-    env.gain.linearRampToValueAtTime(0.38, when + 0.008);
+    env.gain.linearRampToValueAtTime(0.60, when + 0.006);
+    env.gain.setValueAtTime(0.60, when + dur * 0.55);
     env.gain.exponentialRampToValueAtTime(0.0001, when + dur);
-    osc.connect(lp); lp.connect(env); env.connect(_baseGain);
+    osc.connect(lp); osc2.connect(osc2g); osc2g.connect(lp);
+    lp.connect(env); env.connect(_baseGain);
     osc.start(when); osc.stop(when + dur + 0.01);
+    osc2.start(when); osc2.stop(when + dur + 0.01);
   }
 
-  // Intensity layer instruments
-  function _intHihat(when) {
-    const c = _actx; const nb = _noise();
-    const src = c.createBufferSource(); src.buffer = nb;
-    const hp  = c.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 9000;
+  // Detuned dual-saw lead synth — the main melody voice
+  function _lead(when, freq, dur) {
+    const c = _actx;
+    const osc1 = c.createOscillator();
+    const osc2 = c.createOscillator(); // slight detune for width/warmth
+    osc1.type = 'sawtooth'; osc1.frequency.value = freq;
+    osc2.type = 'sawtooth'; osc2.frequency.value = freq * 1.006;
+    const lp  = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2400; lp.Q.value = 1.2;
+    const g1  = c.createGain(); g1.gain.value = 0.5;
+    const g2  = c.createGain(); g2.gain.value = 0.5;
     const env = c.createGain();
     env.gain.setValueAtTime(0.0001, when);
-    env.gain.linearRampToValueAtTime(0.14, when + 0.002);
-    env.gain.exponentialRampToValueAtTime(0.0001, when + 0.028);
-    src.connect(hp); hp.connect(env); env.connect(_intGain);
-    src.start(when); src.stop(when + 0.035);
+    env.gain.linearRampToValueAtTime(0.30, when + 0.008);
+    env.gain.setValueAtTime(0.30, when + dur * 0.60);
+    env.gain.exponentialRampToValueAtTime(0.0001, when + dur);
+    osc1.connect(g1); osc2.connect(g2); g1.connect(lp); g2.connect(lp);
+    lp.connect(env); env.connect(_baseGain);
+    osc1.start(when); osc1.stop(when + dur + 0.01);
+    osc2.start(when); osc2.stop(when + dur + 0.01);
   }
 
-  function _intStab(when, freq) {
+  // Intensity: punchy square-wave arp note
+  function _arp(when, freq) {
     const c = _actx;
     const osc = c.createOscillator(); const env = c.createGain();
     osc.type = 'square'; osc.frequency.value = freq;
     env.gain.setValueAtTime(0.0001, when);
-    env.gain.linearRampToValueAtTime(0.10, when + 0.005);
-    env.gain.exponentialRampToValueAtTime(0.0001, when + 0.08);
+    env.gain.linearRampToValueAtTime(0.14, when + 0.003);
+    env.gain.exponentialRampToValueAtTime(0.0001, when + 0.060);
     osc.connect(env); env.connect(_intGain);
-    osc.start(when); osc.stop(when + 0.09);
+    osc.start(when); osc.stop(when + 0.070);
+  }
+
+  // Intensity: percussive chord stab
+  function _chordStab(when, freqs) {
+    const c = _actx;
+    freqs.forEach(freq => {
+      const osc = c.createOscillator(); const env = c.createGain();
+      osc.type = 'square'; osc.frequency.value = freq;
+      env.gain.setValueAtTime(0.0001, when);
+      env.gain.linearRampToValueAtTime(0.07, when + 0.004);
+      env.gain.exponentialRampToValueAtTime(0.0001, when + 0.14);
+      osc.connect(env); env.connect(_intGain);
+      osc.start(when); osc.stop(when + 0.16);
+    });
   }
 
   // ---- Scheduler ----
 
   function _scheduleOneBeat(when, beat) {
     const BEAT = 60 / _bpm;
-    // Base pattern
-    if (beat === 0 || beat === 4)   _kick(when);
-    if (beat === 2 || beat === 6)   _snare(when);
-    _hihat(when, beat % 2 === 0 ? 0.22 : 0.14);
-    if (beat % 2 === 0) _bass(when, BASS_NOTES[beat >> 1], BEAT * 0.88);
-    // Intensity layer (gated by _intGain)
-    _intHihat(when + BEAT * 0.5);          // offbeat 8th hi-hat
-    if (beat % 2 === 0) _intStab(when, STAB_NOTES[beat >> 1]);
+    const bar  = Math.floor(beat / 4);  // 0–3: which chord
+    const pos  = beat % 4;              // position within bar
+
+    // --- Drums ---
+    // Kick: 4-on-the-floor + syncopated ghost on beats 3 & 11
+    if (beat === 0 || beat === 4 || beat === 8 || beat === 12) _kick(when);
+    if (beat === 3 || beat === 11) _kick(when);
+    // Snare: backbeat (beats 2, 6, 10, 14)
+    if (beat === 2 || beat === 6 || beat === 10 || beat === 14) _snare(when);
+    // Closed hi-hats every beat; accent on downbeats
+    _closedHat(when, beat % 4 === 0 ? 0.26 : (beat % 2 === 0 ? 0.18 : 0.13));
+    // Open hat on upbeat of bars 2 & 4 (low intensity only)
+    if ((beat === 5 || beat === 13) && _intCurrent < 0.4) _openHat(when + BEAT * 0.5);
+    // Extra 16th hi-hat on offbeats at high intensity
+    if (_intCurrent > 0.5) _closedHat(when + BEAT * 0.5, 0.09);
+
+    // --- Bass ---
+    _bass(when, BASS_LINE[beat], BEAT * 0.80);
+
+    // --- Lead melody ---
+    _lead(when, LEAD_MELODY[beat], BEAT * 0.72);
+
+    // --- Intensity layers ---
+    if (_intCurrent > 0.30) {
+      // Arp note on downbeat of each 4-beat group
+      _arp(when, ARP_CHORDS[bar][pos]);
+      // Extra 8th-note arp at higher intensity
+      if (_intCurrent > 0.65) {
+        _arp(when + BEAT * 0.5, ARP_CHORDS[bar][(pos + 2) % 4]);
+      }
+    }
+    // Chord stab on bar downbeats during panic / high combo
+    if (pos === 0 && _intCurrent > 0.58) {
+      _chordStab(when, CHORD_STABS[bar]);
+    }
   }
 
   function _scheduler() {
@@ -1515,13 +1643,12 @@ const Music = (() => {
     start() {
       if (!settings.sound) return;
       const c = _ctx_(); if (!c) return;
-      // iOS: ensure context is running before scheduling
       if (c.state === 'suspended') {
         c.resume().then(() => this.start()).catch(() => {});
         return;
       }
       if (!_ensureGraph()) return;
-      _noise(); // pre-generate noise buffer
+      _noise();
       _isPlaying  = true;
       _beat       = 0;
       _nextBeat   = c.currentTime + 0.06;
@@ -1531,7 +1658,7 @@ const Music = (() => {
       _intGain.gain.setValueAtTime(0, c.currentTime);
       _masterGain.gain.cancelScheduledValues(c.currentTime);
       _masterGain.gain.setValueAtTime(0, c.currentTime);
-      _masterGain.gain.linearRampToValueAtTime(0.50, c.currentTime + 0.30);
+      _masterGain.gain.linearRampToValueAtTime(0.55, c.currentTime + 0.30);
       _scheduler();
     },
 
@@ -1556,13 +1683,12 @@ const Music = (() => {
     resume() {
       if (!settings.sound || _isPlaying) return;
       const c = _ctx_(); if (!c || !_masterGain) return;
-      // iOS: must resume AudioContext before scheduling
       const doResume = () => {
         _isPlaying = true;
         _nextBeat  = c.currentTime + 0.06;
         _masterGain.gain.cancelScheduledValues(c.currentTime);
         _masterGain.gain.setValueAtTime(0, c.currentTime);
-        _masterGain.gain.linearRampToValueAtTime(0.50, c.currentTime + 0.20);
+        _masterGain.gain.linearRampToValueAtTime(0.55, c.currentTime + 0.20);
         _scheduler();
       };
       if (c.state === 'suspended') {
@@ -1572,8 +1698,7 @@ const Music = (() => {
       }
     },
 
-    // Called every frame from gameLoop - lerps intensity gain
-    // threshold levels: combo>=3 -> 0.3, combo>=5 -> 0.6, panic -> 1.0
+    // Called every frame - lerps intensity gain
     tick(dt) {
       if (!_isPlaying || !_actx || !_intGain) return;
       if (panicPhase === 'wave') {
@@ -1588,20 +1713,19 @@ const Music = (() => {
       const rate  = dt / 0.30;
       const delta = _intTarget - _intCurrent;
       _intCurrent = Math.max(0, Math.min(1, _intCurrent + (delta > 0 ? rate : -rate)));
-      _intGain.gain.setValueAtTime(_intCurrent * 0.42, _actx.currentTime);
+      _intGain.gain.setValueAtTime(_intCurrent * 0.50, _actx.currentTime);
     },
 
-    // Directly set intensity level (0-1) - used by AudioManager
     setIntensity(level) {
       if (!_actx || !_intGain) return;
-      _intTarget  = Math.max(0, Math.min(1, level));
+      _intTarget = Math.max(0, Math.min(1, level));
     },
 
     // Called from tickDifficulty - speeds up BPM with speedMultiplier
     setTempo(multiplier) {
-      // 1.0x -> 130 BPM, 2.8x -> 150 BPM
-      _bpm = Math.round(130 + ((multiplier - 1.0) / 1.8) * 20);
-      _bpm = Math.min(Math.max(_bpm, 130), 150);
+      // 1.0x -> 148 BPM, scales up to 170 BPM at max speed
+      _bpm = Math.round(148 + ((multiplier - 1.0) / 1.8) * 22);
+      _bpm = Math.min(Math.max(_bpm, 148), 170);
     },
   };
 })();
@@ -2677,15 +2801,9 @@ function awardCoins(amount, showFloat = false, source = 'generic') {
 }
 
 function awardRunCoins(finalScore, elapsedSecs) {
-  const fromScore    = Math.floor(finalScore / 1000);
-  const fromSurvival = Math.floor(elapsedSecs / 60);
-  const fromMisses   = Math.min(missionRun.nearMissesThisRun, 3);
-  const fromPanic    = missionRun.panicWavesSurvived;
-  const fromPowerups = 0;
-  const fromFlow     = Math.floor(maxCombo / 6);
-  const total = fromScore + fromSurvival + fromMisses + fromPanic + fromPowerups + fromFlow;
-  if (total > 0) awardCoins(total);
-  return total;
+  // Coins are already awarded individually during the run via awardCoins().
+  // No additional end-of-run payout.
+  return coinsFromPickupsThisRun;
 }
 
 let _pendingBuySkinId = null;
@@ -6177,7 +6295,7 @@ function triggerGameOver() {
     document.getElementById('gameover-best').textContent  = settings.bestScore;
     document.getElementById('gameover-combo').textContent = maxCombo;
     document.getElementById('gameover-time').textContent   = timeStr;
-    document.getElementById('gameover-coins').textContent  = '+' + coinsEarned;
+    document.getElementById('gameover-coins').textContent  = '+' + coinsFromPickupsThisRun;
     const goIcon = document.getElementById('gameover-icon');
     if (goIcon) goIcon.textContent = '';
     document.getElementById('new-best-badge').hidden      = !wasNewBest;
@@ -6205,17 +6323,8 @@ function triggerGameOver() {
     // -- Coin breakdown tooltip --
     const goCoinsBreak = document.getElementById('go-coins-breakdown');
     if (goCoinsBreak) {
-      const fromPickups  = coinsFromPickupsThisRun;
-      const fromScore    = Math.floor(final / 1000);
-      const fromMisses   = Math.min(missionRun.nearMissesThisRun, 3);
-      const fromFlow     = Math.floor(maxCombo / 6);
-      const fromSurvival = Math.floor(elapsed / 60);
       goCoinsBreak.innerHTML =
-        '<span>Pickups</span><span>' + fromPickups + '</span>' +
-        '<span>Score</span><span>' + fromScore + '</span>' +
-        '<span>Near-miss</span><span>' + fromMisses + '</span>' +
-        '<span>Combo</span><span>' + fromFlow + '</span>' +
-        '<span>Survival</span><span>' + fromSurvival + '</span>';
+        '<span>Collected</span><span>' + coinsFromPickupsThisRun + '</span>';
     }
 
     // Hide mini goal bar (game is over)
