@@ -639,7 +639,7 @@ let coinPickupFlashTimer = 0; // 0->1 - brief gold screen pulse on coin collect
 // -- Coin streak & run tracking -------------------------------
 let coinStreakCount         = 0;   // consecutive coins collected without gap
 let coinStreakTimer         = 0;   // countdown (s) until streak resets
-let coinsFromPickupsThisRun = 0;  // coins earned from in-run pickups
+let roundCoins = 0;  // coins earned from in-run pickups
 
 // -- Mini run goal --------------------------------------------
 let runMiniGoal = null; // { ...def, progress: 0, done: false }
@@ -2944,6 +2944,21 @@ function updateCoinUI(animate) {
   }
 }
 
+function updateRoundCoinHUD() {
+  const el = document.getElementById('round-coin-count');
+  if (el) el.textContent = roundCoins;
+}
+
+function showRoundCoinHUD() {
+  const hud = document.getElementById('round-coin-hud');
+  if (hud) hud.hidden = false;
+}
+
+function hideRoundCoinHUD() {
+  const hud = document.getElementById('round-coin-hud');
+  if (hud) hud.hidden = true;
+}
+
 // -- Shop Preview Loop --------------------------------------
 function startShopPreviewLoop() {
   if (_shopPreviewRaf) return;
@@ -3184,9 +3199,13 @@ function awardCoins(amount, showFloat = false, source = 'generic') {
 }
 
 function awardRunCoins(finalScore, elapsedSecs) {
-  // Coins are already awarded individually during the run via awardCoins().
-  // No additional end-of-run payout.
-  return coinsFromPickupsThisRun;
+  // Award exactly the number of coins physically collected this run (no multipliers).
+  if (roundCoins > 0) {
+    settings.coins += roundCoins;
+    saveSettings();
+    updateCoinUI(true);
+  }
+  return roundCoins;
 }
 
 let _pendingBuySkinId = null;
@@ -5195,39 +5214,32 @@ function updateCoinItems(dt) {
     if (dist < player.radius + c.size / 2 + 8) {
       AudioManager.playSound('coin');
       applyFlowDelta(FLOW_CONFIG.coinGainPerCoin * c.value, 'coin');
-      const earnedCoins = awardCoins(c.value, false, 'pickup');
-      coinsFromPickupsThisRun += earnedCoins;
 
-      // Streak tracking
+      // Exactly +1 coin per physical pickup — no multipliers, no flow scaling
+      roundCoins += 1;
+      updateRoundCoinHUD();
+
+      // Streak tracking — visual feedback only, no extra coins
       coinStreakCount++;
       coinStreakTimer = 0.65; // window to extend the streak
-      let streakBonus = 0;
       if (coinStreakCount === 3) {
-        streakBonus = awardCoins(2, false, 'pickup');
-        coinsFromPickupsThisRun += streakBonus;
-        addFloating(c.x, c.y - 48, '\xd73 Streak! +' + streakBonus, '#fde047', 21, true);
+        addFloating(c.x, c.y - 48, '\xd73 Streak!', '#fde047', 21, true);
       } else if (coinStreakCount === 5) {
-        streakBonus = awardCoins(3, false, 'pickup');
-        coinsFromPickupsThisRun += streakBonus;
-        addFloating(c.x, c.y - 48, '\xd75 Streak! +' + streakBonus, '#fb923c', 23, true);
+        addFloating(c.x, c.y - 48, '\xd75 Streak!', '#fb923c', 23, true);
       } else if (coinStreakCount === 8) {
-        streakBonus = awardCoins(5, false, 'pickup');
-        coinsFromPickupsThisRun += streakBonus;
-        addFloating(c.x, c.y - 48, '\xd78 Streak! +' + streakBonus, '#c084fc', 26, true);
+        addFloating(c.x, c.y - 48, '\xd78 Streak!', '#c084fc', 26, true);
         triggerShake(2, 0.08);
       } else if (coinStreakCount > 8 && coinStreakCount % 4 === 0) {
-        streakBonus = awardCoins(4, false, 'pickup');
-        coinsFromPickupsThisRun += streakBonus;
-        addFloating(c.x, c.y - 48, '\xd7' + coinStreakCount + '! +' + streakBonus, '#e879f9', 24, true);
+        addFloating(c.x, c.y - 48, '\xd7' + coinStreakCount + '!', '#e879f9', 24, true);
       }
 
-      // Floating text at coin position for clear attribution
-      addFloating(c.x, c.y - 20, '+' + earnedCoins, '#fde047', 20, true);
+      // Floating "+1 coin" popup near the coin
+      addFloating(c.x, c.y - 20, '+1 coin', '#fde047', 20, true);
       coinPickupFlashTimer = 1;
 
       // Update mini goal progress for coin collection
       if (runMiniGoal && !runMiniGoal.done && runMiniGoal.stat === 'pickupCoins') {
-        runMiniGoal.progress = coinsFromPickupsThisRun;
+        runMiniGoal.progress = roundCoins;
         if (runMiniGoal.progress >= runMiniGoal.goal) completeMiniGoal();
         else updateMiniGoalHUD();
       }
@@ -5318,7 +5330,7 @@ function pickMiniGoal() {
 function getMiniGoalProgress() {
   if (!runMiniGoal) return 0;
   switch (runMiniGoal.stat) {
-    case 'pickupCoins': return coinsFromPickupsThisRun;
+    case 'pickupCoins': return roundCoins;
     case 'nearMisses':  return missionRun.nearMissesThisRun;
     case 'score':       return Math.floor(score);
     case 'seconds':     return Math.max(0, Math.floor((performance.now() - gameStartTime - pausedDuration) / 1000));
@@ -5359,7 +5371,8 @@ function completeMiniGoal() {
   runMiniGoal.done = true;
   const reward = runMiniGoal.reward;
   const bonus  = awardCoins(reward, false, 'pickup');
-  coinsFromPickupsThisRun += bonus;
+  // Mini goal bonus is awarded immediately via awardCoins — NOT added to roundCoins
+  // to avoid double-counting at end of run.
   // Celebration popup at centre of screen
   addFloating(canvas.width / 2, canvas.height / 2 - 80,
     'Goal: ' + runMiniGoal.label, '#34d399', 22);
@@ -6491,7 +6504,7 @@ function startGame() {
   _comboMilestonesHit = new Set();
   playerTrail = [];
   spawnTimer = 0; powerupTimer = 0; coinItemTimer = 0; difficultyTimer = 0; difficultyBumps = 0; difficultyPhase = 0;
-  coinStreakCount = 0; coinStreakTimer = 0; coinsFromPickupsThisRun = 0;
+  coinStreakCount = 0; coinStreakTimer = 0; roundCoins = 0;
   // Reset per-run mission counters (cumulative stat handled separately in evaluateMissions)
   missionRun = { seconds: 0, score: 0, colorChanges: 0, powerupsThisRun: 0, nearMissesThisRun: 0, panicWavesSurvived: 0, maxCombo: 0 };
   // Pick a fresh mini goal for this run
@@ -6576,6 +6589,7 @@ function startGame() {
     pauseStartTime   = 0;
     lastFrameTime    = performance.now();
     updateMiniGoalHUD(); // show mini goal bar immediately when game starts
+    updateRoundCoinHUD(); showRoundCoinHUD(); // show round coin counter
     const c = GAME_COLORS[forbiddenIndex];
     Announce.say('Game started. Forbidden color: ' + c.name + '.');
     AudioManager.startGameMusic();
@@ -6678,7 +6692,8 @@ function triggerGameOver() {
     document.getElementById('gameover-best').textContent  = settings.bestScore;
     document.getElementById('gameover-combo').textContent = maxCombo;
     document.getElementById('gameover-time').textContent   = timeStr;
-    document.getElementById('gameover-coins').textContent  = '+' + coinsFromPickupsThisRun;
+    document.getElementById('gameover-coins').textContent  = '+' + coinsEarned;
+    hideRoundCoinHUD();
     const goIcon = document.getElementById('gameover-icon');
     if (goIcon) goIcon.textContent = '';
     document.getElementById('new-best-badge').hidden      = !wasNewBest;
@@ -6707,7 +6722,7 @@ function triggerGameOver() {
     const goCoinsBreak = document.getElementById('go-coins-breakdown');
     if (goCoinsBreak) {
       goCoinsBreak.innerHTML =
-        '<span>Collected</span><span>' + coinsFromPickupsThisRun + '</span>';
+        '<span>Collected</span><span>' + roundCoins + '</span>';
     }
 
     // Hide mini goal bar (game is over)
@@ -6759,6 +6774,7 @@ function returnHome() {
   clearAllInputs();
   document.getElementById('gameover-overlay').hidden = true;
   document.getElementById('pause-overlay').hidden    = true;
+  hideRoundCoinHUD();
   showScreen('home-screen');
   applySettingsToUI();
 

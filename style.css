@@ -2337,6 +2337,26 @@ body.perf-low       .lp-dot { animation: none !important; }
 #run-goal-bar.run-goal-done .run-goal-fill { background: #34d399; width: 100% !important; }
 .run-goal-pct { font-size: .68rem; font-variant-numeric: tabular-nums; min-width: 26px; text-align: right; }
 
+/* -- Round Coin Counter HUD (top-right during play) ---------- */
+.round-coin-hud {
+  position: absolute;
+  top: 6px; right: 10px;
+  display: flex; align-items: center; gap: 5px;
+  background: rgba(0,0,0,.52);
+  border: 1px solid rgba(251,191,36,.25);
+  border-radius: 20px;
+  padding: 4px 10px 4px 8px;
+  font-size: .78rem; font-weight: 700;
+  color: #fde047;
+  pointer-events: none; z-index: 20;
+  backdrop-filter: blur(4px);
+  white-space: nowrap;
+  transition: opacity .25s;
+}
+.round-coin-hud[hidden] { display: none; }
+.round-coin-hud .coin-icon { width: 14px; height: 14px; animation: none; }
+#round-coin-count { font-variant-numeric: tabular-nums; min-width: 14px; text-align: right; }
+
 /* -- Game Over: Coin Breakdown ------------------------------- */
 .go-coins-breakdown {
   display: grid; grid-template-columns: 1fr auto;
