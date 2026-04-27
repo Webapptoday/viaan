@@ -7501,8 +7501,8 @@ const Tutorial = (() => {
     if (back)  back.addEventListener('click',  () => { Audio.uiClick(); _goTo(Math.max(_step - 1, 0), 'back'); });
     if (skip)  skip.addEventListener('click',  () => { Audio.uiClick(); _finish(); });
     if (start) start.addEventListener('click', () => { Audio.uiClick(); _finish(); });
-    // ✕ just dismisses — does NOT mark seen, does NOT start game
-    if (close) close.addEventListener('click', () => { Audio.uiClick(); _onComplete = null; hideModal('modal-howtoplay'); });
+    // ✕ marks seen (so it never auto-shows again) but does NOT start game
+    if (close) close.addEventListener('click', () => { Audio.uiClick(); _markSeen(); _onComplete = null; hideModal('modal-howtoplay'); });
   }
 
   return { open, hasSeen, bindButtons: _bindButtons };
