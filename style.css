@@ -3967,6 +3967,21 @@ body.perf-low .home-blobs::after   { animation: none !important; }
 .lb-empty { text-align: center; padding: 36px 20px; color: #4b5a70; font-size: .88rem; font-weight: 700; }
 .lb-empty-icon { font-size: 2.2rem; margin-bottom: 8px; display: block; filter: grayscale(1) opacity(.4); }
 
+/* Loading state */
+.lb-loading {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  padding: 36px 20px; color: #6b7fa0; font-size: .88rem; font-weight: 700;
+}
+.lb-loading-spinner {
+  width: 18px; height: 18px;
+  border: 2px solid rgba(139,92,246,.25);
+  border-top-color: #a78bfa;
+  border-radius: 50%;
+  animation: lbSpin .7s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes lbSpin { to { transform: rotate(360deg); } }
+
 /* Footer */
 .lb-footer {
   display: flex; align-items: center; justify-content: space-between;

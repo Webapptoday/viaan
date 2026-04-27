@@ -7192,88 +7192,24 @@ document.addEventListener('DOMContentLoaded', init);
 // ============================================================
 // Architecture: LeaderboardService handles all data.
 // LeaderboardUI handles rendering.
-// To connect a real backend (Firebase, Supabase, etc.):
-//   - replace the `_online*` functions in LeaderboardService
-//   - keep the UI layer identical
+// Backend: Firebase Firestore (collection: "leaderboard")
+// Fallback: localStorage when Firebase is unavailable.
 // ============================================================
 
 const LeaderboardService = (() => {
-  // ============================================================
-  // LeaderboardService — Firebase Firestore + localStorage hybrid
-  //
-  // Online boards (alltime / daily / weekly):
-  //   Backed by Firebase Cloud Firestore — real-time, persistent.
-  //   Falls back to stable mock data when Firebase is not configured.
-  //
-  // Local board:
-  //   Always localStorage-only (not sent to Firebase).
-  //
-  // Firestore collection: leaderboard_scores
-  // Doc ID scheme:
-  //   {uid}_alltime          — player all-time best score
-  //   {uid}_daily_{YYYYMMDD} — player best for this calendar day
-  //   {uid}_weekly_{YYYYWW}  — player best for this calendar week
-  //
-  // Anti-cheat note:
-  //   Firestore rules enforce score bounds and ownership.
-  //   For server-side session validation, add a Cloud Function
-  //   trigger on leaderboard_scores writes.
-  // ============================================================
+  // ── Constants ──────────────────────────────────────────────
+  const COLLECTION = 'leaderboard';  // Firestore collection name
+  const TOP_N      = 10;             // scores to display per board
+  const LOCAL_KEY  = 'forbiddenColor_leaderboard';
+  const NAMES_KEY  = 'forbiddenColor_playerName';
+  const MAX_LOCAL  = 20;
 
-  const LOCAL_KEY = 'forbiddenColor_leaderboard'; // kept for backward compat
-  const NAMES_KEY = 'forbiddenColor_playerName';  // kept for backward compat
-  const MAX_LOCAL = 20;
+  // Board load state: 'loading' | 'ok' | 'error' | 'offline'
+  const _boardState = { alltime: 'loading', daily: 'loading', weekly: 'loading' };
+  // Cache populated by Firestore onSnapshot listeners
+  const _cache      = { alltime: [], daily: [], weekly: [] };
 
-  // -- Period key helpers ------------------------------------
-  function _dailyKey() {
-    const d = new Date();
-    return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
-  }
-  function _weeklyKey() {
-    const d = new Date();
-    const s = new Date(d);
-    s.setDate(d.getDate() - d.getDay());
-    return s.getFullYear() * 10000 + (s.getMonth() + 1) * 100 + s.getDate();
-  }
-
-  // -- Firebase data cache (populated by real-time listeners) -
-  // Keyed by UI board type: 'alltime' | 'daily' | 'weekly'
-  const _cache = { alltime: null, daily: null, weekly: null };
-
-  // -- Mock fallback (shown before Firebase data arrives) ----
-  const _adjectives = ['Neon','Void','Solar','Hyper','Pixel','Turbo','Ultra','Cyber','Dark','Blaze','Ghost','Storm','Prism','Lunar','Nova','Shock','Wave','Pulse','Rapid','Quantum'];
-  const _nouns      = ['Fox','Byte','Dash','Grid','Hawk','Bolt','Edge','Flux','Glow','Haze','Jet','Lynx','Mist','Node','Orb','Peak','Quill','Rift','Surge','Trace'];
-  const _suffixes   = ['42','99','7','X','Z','Pro','GG','1','777','404','00','XL','Jr','Sr','','','','','',''];
-  function _fakeName(seed) {
-    const a = _adjectives[seed % _adjectives.length];
-    const b = _nouns[Math.floor(seed / _adjectives.length) % _nouns.length];
-    const c = _suffixes[Math.floor(seed / (_adjectives.length * _nouns.length)) % _suffixes.length];
-    return a + b + c;
-  }
-  function _seededRng(seed) {
-    let s = seed;
-    return function () {
-      s = (s * 1664525 + 1013904223) & 0xffffffff;
-      return (s >>> 0) / 0xffffffff;
-    };
-  }
-  function _genMockBoard(seed, count, baseMin, baseMax, shift) {
-    const rng = _seededRng(seed + shift);
-    const out = [];
-    for (let i = 0; i < count; i++) {
-      out.push({ name: _fakeName(seed + i * 7), score: Math.floor(baseMin + rng() * (baseMax - baseMin)), fake: true });
-    }
-    out.sort((a, b) => b.score - a.score);
-    return out;
-  }
-  function _getMockBoard(type) {
-    const BASE = 31337;
-    if (type === 'daily')  { const sh = _dailyKey()  % 9999; return _genMockBoard(BASE + sh, 25, 500,  20000, sh); }
-    if (type === 'weekly') { const sh = _weeklyKey() % 9999; return _genMockBoard(BASE + sh, 25, 600,  35000, sh); }
-    return _genMockBoard(BASE, 25, 800, 48000, 0);
-  }
-
-  // -- Player name ------------------------------------------
+  // ── Player name ────────────────────────────────────────────
   let _playerName = null;
   function getPlayerName() {
     if (_playerName) return _playerName;
@@ -7296,7 +7232,7 @@ const LeaderboardService = (() => {
     return null;
   }
 
-  // -- Local scores (localStorage only) ----------------------
+  // ── Local scores (localStorage — always available) ─────────
   let _localScores = null;
   function _loadLocal() {
     if (_localScores) return;
@@ -7326,134 +7262,148 @@ const LeaderboardService = (() => {
     _saveLocal();
   }
 
-  // -- Firebase submit (async, fire-and-forget) ---------------
-  // Writes the player's best score to all_time, daily, and weekly boards.
-  // Uses Firestore transactions so the stored score only ever increases.
+  // ── Firebase submit (fire-and-forget) ──────────────────────
+  // Writes / updates the player's single doc in the "leaderboard" collection.
+  // Doc ID = player UID (one doc per player — stores their best score only).
+  // Uses a transaction so the stored score only ever increases.
   async function _fbSubmit(score, name) {
+    // Wait for Firebase to be ready before attempting any write
+    if (window._fbReady) await window._fbReady;
     const db = window._fbDb;
-    if (!db) return; // Firebase not yet configured
+    if (!db) return; // Firebase unavailable — local submit already done
 
-    // Ensure anonymous auth is complete before writing
     let uid = window._fbGetUserId ? window._fbGetUserId() : null;
     if (!uid && window._fbWaitForAuth) {
       await window._fbWaitForAuth();
       uid = window._fbGetUserId ? window._fbGetUserId() : null;
     }
-    if (!uid) return; // Auth failed — skip silently
+    if (!uid) return; // auth failed
 
-    const col      = db.collection('leaderboard_scores');
     const intScore = Math.floor(score);
     const safeName = String(name || 'Player').trim().slice(0, 12) || 'Player';
-    const dailyPK  = _dailyKey();
-    const weeklyPK = _weeklyKey();
+    const ref = db.collection(COLLECTION).doc(uid);
 
-    // Update a board doc only when the new score beats the stored record
-    async function _updateBest(docId, boardType, periodKey) {
-      const ref = col.doc(docId);
-      return db.runTransaction(async tx => {
+    try {
+      await db.runTransaction(async tx => {
         const snap = await tx.get(ref);
+        // Only write if this is a new personal best (avoids overwriting a better score)
         if (!snap.exists || snap.data().score < intScore) {
-          const data = {
-            playerId:   uid,
+          tx.set(ref, {
             playerName: safeName,
             score:      intScore,
-            boardType,
-            updatedAt:  firebase.firestore.FieldValue.serverTimestamp(),
-          };
-          if (periodKey !== null) data.periodKey = periodKey;
-          tx.set(ref, data);
+            playerId:   uid,
+            createdAt:  firebase.firestore.FieldValue.serverTimestamp(),
+          });
         }
       });
+    } catch (err) {
+      console.warn('[Firebase] submitScore failed:', err.code || err.message);
     }
-
-    await Promise.all([
-      _updateBest(uid + '_alltime',             'all_time', null),
-      _updateBest(uid + '_daily_'  + dailyPK,  'daily',    dailyPK),
-      _updateBest(uid + '_weekly_' + weeklyPK, 'weekly',   weeklyPK),
-    ]).catch(err => console.warn('[Firebase] submitScore failed:', err.code || err.message));
   }
 
-  // -- Firebase real-time subscription -----------------------
-  // boardType: 'alltime' | 'daily' | 'weekly'
-  // Attaches a Firestore onSnapshot listener, keeps _cache updated,
-  // and invokes callback(entries) on every live update.
+  // ── Firestore real-time subscription ──────────────────────
+  // All online tabs (alltime/daily/weekly) share a single listener on the
+  // "leaderboard" collection — top N by score descending.
+  // The listener result is stored in _cache['alltime'] and mirrored to
+  // _cache['daily'] and _cache['weekly'] so tab switching works instantly.
   // Returns an unsubscribe function.
-  function subscribeToLeaderboard(boardType, limit, callback) {
-    const db = window._fbDb;
-    if (!db) {
-      // Firebase not configured — serve stable mock data immediately
-      const mock = _getMockBoard(boardType);
-      _cache[boardType] = mock;
-      if (callback) setTimeout(() => callback(mock), 0);
+  function subscribeToLeaderboard(boardType, _limit, callback) {
+    if (boardType === 'local') {
+      // Local tab: serve from localStorage immediately, no listener needed
+      if (callback) setTimeout(() => callback([]), 0);
       return () => {};
     }
 
-    const n = limit || 25;
-    let query;
-
-    if (boardType === 'daily') {
-      // Requires Firestore composite index: boardType ASC, periodKey ASC, score DESC
-      query = db.collection('leaderboard_scores')
-        .where('boardType', '==', 'daily')
-        .where('periodKey', '==', _dailyKey())
-        .orderBy('score', 'desc')
-        .limit(n);
-    } else if (boardType === 'weekly') {
-      // Requires Firestore composite index: boardType ASC, periodKey ASC, score DESC
-      query = db.collection('leaderboard_scores')
-        .where('boardType', '==', 'weekly')
-        .where('periodKey', '==', _weeklyKey())
-        .orderBy('score', 'desc')
-        .limit(n);
-    } else {
-      // all_time — requires Firestore index: boardType ASC, score DESC
-      query = db.collection('leaderboard_scores')
-        .where('boardType', '==', 'all_time')
-        .orderBy('score', 'desc')
-        .limit(n);
+    // If a listener for any online board already registered the alltime data,
+    // reuse the cached result so we don't open duplicate Firestore listeners.
+    if (boardType !== 'alltime' && _boardState['alltime'] === 'ok') {
+      _boardState[boardType] = 'ok';
+      _cache[boardType]      = _cache['alltime'];
+      if (callback) setTimeout(() => callback(_cache[boardType]), 0);
+      return () => {};
     }
 
-    return query.onSnapshot(snap => {
-      const currentUid = window._fbGetUserId ? window._fbGetUserId() : null;
-      const entries = snap.docs.map(doc => {
-        const d = doc.data();
-        return { name: d.playerName, score: d.score, isPlayer: d.playerId === currentUid };
-      });
-      _cache[boardType] = entries;
-      if (callback) callback(entries);
-    }, err => {
-      console.warn('[Firebase] Leaderboard listener error:', err.code || err.message);
-      // Fall back to mock data on listener error so UI stays populated
-      if (!_cache[boardType]) {
-        _cache[boardType] = _getMockBoard(boardType);
-        if (callback) callback(_cache[boardType]);
+    _boardState[boardType] = 'loading';
+    let _unsub     = null;
+    let _cancelled = false;
+
+    // Signal loading state immediately
+    if (callback) setTimeout(() => callback([]), 0);
+
+    // Wait for Firebase to be ready (async config fetch + auth)
+    (window._fbReady || Promise.resolve(false)).then(function (ready) {
+      if (_cancelled) return;
+
+      const db = window._fbDb;
+      if (!db) {
+        // Firebase unavailable — fall back to localStorage
+        _loadLocal();
+        const currentUid = window._fbGetUserId ? window._fbGetUserId() : null;
+        const fallback = (_localScores || []).slice(0, TOP_N).map((e, i) => ({
+          name: e.name, score: e.score, isPlayer: i === 0,
+        }));
+        _boardState[boardType] = 'offline';
+        _cache[boardType]      = fallback;
+        // Mirror to other online tabs
+        ['alltime','daily','weekly'].forEach(t => {
+          if (t !== boardType) { _boardState[t] = 'offline'; _cache[t] = fallback; }
+        });
+        if (callback) callback(fallback);
+        return;
       }
+
+      // Real Firestore listener — top 10 by score descending
+      const query = db.collection(COLLECTION)
+        .orderBy('score', 'desc')
+        .limit(TOP_N);
+
+      _unsub = query.onSnapshot(function (snap) {
+        if (_cancelled) return;
+        const currentUid = window._fbGetUserId ? window._fbGetUserId() : null;
+        const entries = snap.docs.map(doc => {
+          const d = doc.data();
+          return {
+            name:     d.playerName || 'Player',
+            score:    d.score || 0,
+            isPlayer: d.playerId === currentUid,
+          };
+        });
+        // Update all online tabs with the same data
+        ['alltime','daily','weekly'].forEach(t => {
+          _boardState[t] = 'ok';
+          _cache[t]      = entries;
+        });
+        if (callback) callback(entries);
+      }, function (err) {
+        if (_cancelled) return;
+        console.warn('[Firebase] Leaderboard listener error:', err.code || err.message);
+        ['alltime','daily','weekly'].forEach(t => { _boardState[t] = 'error'; });
+        if (callback) callback(_cache[boardType] || []);
+      });
     });
+
+    return function () {
+      _cancelled = true;
+      if (_unsub) { try { _unsub(); } catch (_) {} }
+    };
   }
 
-  // -- getLeaderboard (sync — reads from cache or mock) ------
-  // Online tabs return _cache data populated by subscribeToLeaderboard.
-  // Falls back to stable mock data while Firebase data is loading.
+  // ── getLeaderboard (sync — reads from cache) ───────────────
   function getLeaderboard(type) {
     if (type === 'local') {
       _loadLocal();
       const pName = getPlayerName() || 'You';
-      return _localScores.slice().map((e, i) => ({
+      return (_localScores || []).slice().map((e, i) => ({
         ...e,
-        isPlayer: e.name === pName || (i === 0 && !_localScores.some(x => x.name === pName)),
+        isPlayer: e.name === pName || (i === 0 && !(_localScores||[]).some(x => x.name === pName)),
       }));
     }
-    if (_cache[type]) return _cache[type];
-    // Fallback: mock board with player's best merged in
-    const pName  = getPlayerName() || 'You';
-    const pScore = settings ? Math.floor(settings.bestScore || 0) : 0;
-    const mock   = _getMockBoard(type);
-    if (pScore > 0) {
-      mock.push({ name: pName, score: pScore, isPlayer: true });
-      mock.sort((a, b) => b.score - a.score);
-      return mock.slice(0, 25);
-    }
-    return mock;
+    return _cache[type] || [];
+  }
+
+  function getBoardState(type) {
+    if (type === 'local') return 'ok';
+    return _boardState[type] || 'ok';
   }
 
   function getPlayerRank(type) {
@@ -7479,6 +7429,7 @@ const LeaderboardService = (() => {
 
   return {
     getLeaderboard,
+    getBoardState,
     getPlayerRank,
     submitScore,
     resetLocalLeaderboard,
@@ -7590,6 +7541,28 @@ const LeaderboardUI = (() => {
   function renderBoard(type, highlightNew) {
     const container = document.getElementById('lb-rows-' + type);
     if (!container) return;
+
+    // Show loading / error states for online boards
+    if (type !== 'local') {
+      const state = LeaderboardService.getBoardState(type);
+      if (state === 'loading') {
+        container.innerHTML =
+          '<div class="lb-loading" aria-live="polite">' +
+            '<span class="lb-loading-spinner" aria-hidden="true"></span>' +
+            'Loading scores…' +
+          '</div>';
+        return;
+      }
+      if (state === 'error') {
+        container.innerHTML =
+          '<div class="lb-empty">' +
+            '<span class="lb-empty-icon">⚠️</span>' +
+            'Could not load scores.<br>Check your connection and try again.' +
+          '</div>';
+        return;
+      }
+    }
+
     const entries = LeaderboardService.getLeaderboard(type);
 
     if (!entries || entries.length === 0) {
