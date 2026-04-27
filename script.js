@@ -7428,16 +7428,16 @@ const Tutorial = (() => {
   function _goTo(i, dir) {
     const prev = _slide(_step);
     _step = i;
-    const next = _slide(_step);
-    if (prev && prev !== next) {
+    const nextSlide = _slide(_step);
+    if (prev && prev !== nextSlide) {
       prev.hidden = true;
       prev.classList.remove('tut-slide-enter', 'tut-slide-enter-back');
     }
-    if (next) {
-      next.hidden = false;
-      next.classList.remove('tut-slide-enter', 'tut-slide-enter-back');
-      void next.offsetWidth; // reflow to restart animation
-      next.classList.add(dir === 'back' ? 'tut-slide-enter-back' : 'tut-slide-enter');
+    if (nextSlide) {
+      nextSlide.hidden = false;
+      nextSlide.classList.remove('tut-slide-enter', 'tut-slide-enter-back');
+      void nextSlide.offsetWidth; // reflow to restart animation
+      nextSlide.classList.add(dir === 'back' ? 'tut-slide-enter-back' : 'tut-slide-enter');
     }
     // Update badge
     const badge = document.getElementById('tut-step-badge');
