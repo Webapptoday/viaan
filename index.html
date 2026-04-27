@@ -100,9 +100,10 @@
                 aria-haspopup="dialog" aria-controls="modal-leaderboard">
           🏆 Leaderboard
         </button>
-        <button id="btn-settings" class="btn btn-secondary btn-settings-open"
-                aria-haspopup="dialog" aria-controls="modal-settings">
-          Settings
+        <button id="btn-help" class="btn btn-secondary btn-help-open"
+                aria-haspopup="dialog" aria-controls="modal-howtoplay"
+                aria-label="How to Play">
+          ? Help
         </button>
       </div>
 
@@ -111,117 +112,178 @@
 
 
   <!-- ============================================================
-       SETTINGS & HELP PANEL
-       Unified modal: preferences + how-to + controls
+       GEAR BUTTON — fixed, always on top
   ============================================================ -->
-  <div id="modal-settings" class="modal" role="dialog" aria-modal="true"
-       aria-labelledby="settings-panel-title" hidden>
-    <div class="modal-box settings-panel">
+  <button id="btn-gear-settings"
+          class="gear-btn"
+          aria-label="Open settings"
+          aria-haspopup="dialog"
+          aria-controls="settings-drawer">
+    <svg class="gear-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"
+         aria-hidden="true" focusable="false">
+      <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" fill="currentColor"/>
+      <path fill-rule="evenodd" clip-rule="evenodd"
+        d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"
+        fill="currentColor"/>
+    </svg>
+  </button>
 
-      <!-- Header -->
-      <div class="spanel-header">
-        <h2 id="settings-panel-title">Settings &amp; Help</h2>
-        <button class="btn-close" id="btn-settings-close" aria-label="Close settings">✕</button>
+
+  <!-- ============================================================
+       SETTINGS DRAWER — slide-in from right
+  ============================================================ -->
+  <div id="settings-drawer-overlay" class="sdr-overlay" hidden aria-hidden="true"></div>
+  <div id="settings-drawer" class="sdr-panel" role="dialog"
+       aria-modal="true" aria-labelledby="sdr-title" hidden>
+
+    <div class="sdr-header">
+      <h2 class="sdr-title" id="sdr-title">Settings</h2>
+      <button class="btn-close sdr-close" id="btn-settings-close" aria-label="Close settings">✕</button>
+    </div>
+
+    <div class="sdr-body">
+
+      <!-- AUDIO -->
+      <div class="sdr-section">
+        <p class="sdr-section-label">Audio</p>
+
+        <div class="vol-row">
+          <label for="music-vol-slider" class="vol-label">Music</label>
+          <input type="range" id="music-vol-slider" min="0" max="100" step="1" value="70"
+                 aria-label="Music volume" class="vol-slider" />
+          <span class="vol-value" id="music-vol-val">70%</span>
+        </div>
+
+        <div class="vol-row">
+          <label for="sfx-vol-slider" class="vol-label">SFX</label>
+          <input type="range" id="sfx-vol-slider" min="0" max="100" step="1" value="80"
+                 aria-label="Sound effects volume" class="vol-slider" />
+          <span class="vol-value" id="sfx-vol-val">80%</span>
+        </div>
+
+        <label class="toggle-label">
+          <span class="toggle-text">Mute All</span>
+          <span class="toggle-wrap">
+            <input type="checkbox" id="sound-toggle" role="switch" aria-label="Mute all audio" />
+            <span class="toggle-track" aria-hidden="true"></span>
+          </span>
+        </label>
       </div>
 
-      <!-- ── PREFERENCES ── -->
-      <section aria-labelledby="spanel-prefs-id">
-        <h3 class="spanel-section-title" id="spanel-prefs-id">Preferences</h3>
-        <div class="settings-grid">
+      <!-- GAMEPLAY -->
+      <div class="sdr-section">
+        <p class="sdr-section-label">Gameplay</p>
 
-          <label class="toggle-label">
-            <span class="toggle-text">Sound</span>
-            <span class="toggle-wrap">
-              <input type="checkbox" id="sound-toggle" role="switch" aria-label="Toggle sound" />
-              <span class="toggle-track" aria-hidden="true"></span>
-            </span>
-          </label>
+        <label class="toggle-label">
+          <span class="toggle-text">Screen Shake</span>
+          <span class="toggle-wrap">
+            <input type="checkbox" id="screen-shake-toggle" role="switch" aria-label="Toggle screen shake" />
+            <span class="toggle-track" aria-hidden="true"></span>
+          </span>
+        </label>
 
-          <label class="toggle-label">
-            <span class="toggle-text">Reduced Motion</span>
-            <span class="toggle-wrap">
-              <input type="checkbox" id="reduced-motion-toggle" role="switch" aria-label="Toggle reduced motion" />
-              <span class="toggle-track" aria-hidden="true"></span>
-            </span>
-          </label>
+        <label class="toggle-label">
+          <span class="toggle-text">Particle Effects</span>
+          <span class="toggle-wrap">
+            <input type="checkbox" id="particles-toggle" role="switch" aria-label="Toggle particle effects" />
+            <span class="toggle-track" aria-hidden="true"></span>
+          </span>
+        </label>
 
-          <label class="toggle-label">
-            <span class="toggle-text">High Contrast</span>
-            <span class="toggle-wrap">
-              <input type="checkbox" id="high-contrast-toggle" role="switch" aria-label="Toggle high contrast mode" />
-              <span class="toggle-track" aria-hidden="true"></span>
-            </span>
-          </label>
+        <label class="toggle-label">
+          <span class="toggle-text">Reduced Motion</span>
+          <span class="toggle-wrap">
+            <input type="checkbox" id="reduced-motion-toggle" role="switch" aria-label="Toggle reduced motion" />
+            <span class="toggle-track" aria-hidden="true"></span>
+          </span>
+        </label>
+      </div>
 
-          <label class="toggle-label">
-            <span class="toggle-text">Colorblind Mode</span>
-            <span class="toggle-wrap">
-              <input type="checkbox" id="colorblind-toggle" role="switch" aria-label="Toggle colorblind mode — adds patterns and symbols to dangerous blocks" />
-              <span class="toggle-track" aria-hidden="true"></span>
-            </span>
-          </label>
+      <!-- VISUAL -->
+      <div class="sdr-section">
+        <p class="sdr-section-label">Visual</p>
 
-          <label class="toggle-label">
-            <span class="toggle-text">Low Performance Mode</span>
-            <span class="toggle-wrap">
-              <input type="checkbox" id="perf-mode-toggle" role="switch" aria-label="Toggle low performance mode — reduces visual effects for smoother gameplay" />
-              <span class="toggle-track" aria-hidden="true"></span>
-            </span>
-          </label>
+        <label class="toggle-label">
+          <span class="toggle-text">High Contrast</span>
+          <span class="toggle-wrap">
+            <input type="checkbox" id="high-contrast-toggle" role="switch" aria-label="Toggle high contrast mode" />
+            <span class="toggle-track" aria-hidden="true"></span>
+          </span>
+        </label>
 
-          <div class="vol-row">
-            <label for="music-vol-slider" class="vol-label">Music Volume</label>
-            <input type="range" id="music-vol-slider" min="0" max="100" step="1" value="70"
-                   aria-label="Music volume" class="vol-slider" />
-            <span class="vol-value" id="music-vol-val">70%</span>
-          </div>
+        <label class="toggle-label">
+          <span class="toggle-text">Colorblind Mode</span>
+          <span class="toggle-wrap">
+            <input type="checkbox" id="colorblind-toggle" role="switch" aria-label="Toggle colorblind mode" />
+            <span class="toggle-track" aria-hidden="true"></span>
+          </span>
+        </label>
 
-          <div class="vol-row">
-            <label for="sfx-vol-slider" class="vol-label">SFX Volume</label>
-            <input type="range" id="sfx-vol-slider" min="0" max="100" step="1" value="80"
-                   aria-label="Sound effects volume" class="vol-slider" />
-            <span class="vol-value" id="sfx-vol-val">80%</span>
-          </div>
+        <label class="toggle-label">
+          <span class="toggle-text">Low Performance Mode</span>
+          <span class="toggle-wrap">
+            <input type="checkbox" id="perf-mode-toggle" role="switch" aria-label="Toggle low performance mode" />
+            <span class="toggle-track" aria-hidden="true"></span>
+          </span>
+        </label>
+      </div>
 
-        </div>
-      </section>
+      <!-- INTERFACE -->
+      <div class="sdr-section">
+        <p class="sdr-section-label">Interface</p>
 
-      <!-- ── HOW TO PLAY ── -->
-      <section aria-labelledby="spanel-howto-id">
-        <h3 class="spanel-section-title" id="spanel-howto-id">How to Play</h3>
+        <label class="toggle-label">
+          <span class="toggle-text">Show FPS</span>
+          <span class="toggle-wrap">
+            <input type="checkbox" id="fps-toggle" role="switch" aria-label="Toggle FPS counter" />
+            <span class="toggle-track" aria-hidden="true"></span>
+          </span>
+        </label>
+      </div>
+
+      <!-- DANGER ZONE -->
+      <div class="sdr-section sdr-section-danger">
+        <button id="btn-reset-settings" class="btn btn-secondary sdr-reset-btn">
+          Reset All Settings
+        </button>
+      </div>
+
+    </div><!-- /.sdr-body -->
+  </div><!-- /#settings-drawer -->
+
+
+  <!-- ============================================================
+       HOW TO PLAY MODAL
+  ============================================================ -->
+  <div id="modal-howtoplay" class="modal" role="dialog" aria-modal="true"
+       aria-labelledby="htp-title" hidden>
+    <div class="modal-box htp-box">
+      <div class="spanel-header">
+        <h2 id="htp-title">How to Play</h2>
+        <button class="btn-close" id="btn-htp-close" aria-label="Close how to play">✕</button>
+      </div>
+      <div style="padding: 0 24px 20px">
         <ul class="howto-list">
-          <li>Move with <strong>Arrow Keys</strong> or <strong>WASD</strong> — on mobile, <strong>drag anywhere</strong> on the screen.</li>
+          <li>Move with <strong>Arrow Keys</strong> or <strong>WASD</strong> — on mobile, <strong>drag anywhere</strong>.</li>
           <li>The <strong>forbidden color</strong> is shown in the top bar — <em>never touch those blocks</em>.</li>
           <li>All <em>other</em> colored blocks are safe to pass through freely.</li>
-          <li>Watch the <strong>countdown bar</strong> — it drains fast. A brief flash previews the next color. React quickly.</li>
-          <li>Surviving each color change builds your <strong>combo</strong> for bonus points.</li>
+          <li>Watch the <strong>countdown bar</strong> — it drains fast. React quickly when the color changes.</li>
+          <li>Build your <strong>combo</strong> by surviving each color change for bonus points.</li>
           <li>Collect glowing power-ups: Shield, Slow Time, Clear Screen, or Score ×2.</li>
           <li>Dodge very close to a dangerous block for a <strong>Near Miss</strong> bonus.</li>
-          <li>Colorblind mode adds patterns &amp; symbols to dangerous blocks. High Contrast boosts visual separation.</li>
         </ul>
-      </section>
-
-      <!-- ── CONTROLS ── -->
-      <section aria-labelledby="spanel-controls-id">
-        <h3 class="spanel-section-title" id="spanel-controls-id">Controls</h3>
-        <table class="controls-table" aria-label="Keyboard controls reference">
-          <thead>
-            <tr><th scope="col">Keys</th><th scope="col">Action</th></tr>
-          </thead>
+        <table class="controls-table" style="margin-top:16px" aria-label="Keyboard controls">
+          <thead><tr><th>Keys</th><th>Action</th></tr></thead>
           <tbody>
-            <tr><td><kbd>↑ ↓ ← →</kbd> / <kbd>W A S D</kbd></td><td>Move player</td></tr>
+            <tr><td><kbd>↑ ↓ ← →</kbd> / <kbd>W A S D</kbd></td><td>Move</td></tr>
             <tr><td><kbd>P</kbd> / <kbd>Space</kbd></td><td>Pause / Resume</td></tr>
-            <tr><td><kbd>R</kbd></td><td>Restart (Game Over)</td></tr>
-            <tr><td><kbd>Escape</kbd></td><td>Close panel / Pause / Home</td></tr>
+            <tr><td><kbd>R</kbd></td><td>Restart</td></tr>
+            <tr><td><kbd>Escape</kbd></td><td>Close / Pause / Home</td></tr>
           </tbody>
         </table>
-      </section>
-
-      <!-- Bottom close for easy mobile tap -->
-      <button class="btn btn-primary" id="btn-settings-close-bottom">Done</button>
-
-    </div><!-- /.settings-panel -->
-  </div><!-- /#modal-settings -->
+      </div>
+    </div>
+  </div>
 
 
   <!-- ============================================================
@@ -448,6 +510,9 @@
             aria-label="Game play area — use arrow keys or WASD to move your character"
             role="img"
             tabindex="-1"></canvas>
+
+    <!-- FPS counter (shown only when enabled in settings) -->
+    <div id="fps-counter" class="fps-counter" hidden aria-hidden="true"></div>
 
     <!-- Forbidden-color-change border flash overlay (JS sets --flash-color and adds .flash-active) -->
     <div id="color-flash-overlay" aria-hidden="true"></div>

@@ -755,16 +755,170 @@ kbd {
 .controls-table th { color: var(--text-muted); font-size: .68rem; text-transform: uppercase; letter-spacing: 1px; }
 
 /* ============================================================
-   SETTINGS PANEL (unified modal)
+   GEAR BUTTON (fixed, always visible)
    ============================================================ */
-.settings-panel {
-  max-width: 520px;
-  gap: 0;
+.gear-btn {
+  position: fixed;
+  top: 16px; right: 16px;
+  z-index: 1100;
+  width: 44px; height: 44px;
+  border: 1px solid rgba(139,92,246,.35);
+  border-radius: 12px;
+  background: rgba(15,10,35,.72);
+  backdrop-filter: blur(12px);
+  color: rgba(196,132,252,.85);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
   padding: 0;
-  max-height: 92dvh;
-  overflow-y: auto;
+  transition: background .18s, border-color .18s, color .18s, transform .18s, box-shadow .18s;
+  box-shadow: 0 2px 16px rgba(0,0,0,.35);
+}
+.gear-btn:hover {
+  background: rgba(109,40,217,.28);
+  border-color: rgba(167,139,250,.60);
+  color: #e9d5ff;
+  box-shadow: 0 0 18px rgba(139,92,246,.40);
+}
+.gear-btn:hover .gear-icon { transform: rotate(30deg); }
+.gear-btn:active { transform: scale(.92); }
+.gear-btn:focus-visible { outline: 3px solid var(--accent-light); outline-offset: 3px; }
+
+.gear-icon {
+  width: 22px; height: 22px;
+  transition: transform .35s ease;
+  flex-shrink: 0;
 }
 
+/* ============================================================
+   SETTINGS DRAWER
+   ============================================================ */
+.sdr-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,.55);
+  backdrop-filter: blur(4px);
+  z-index: 1199;
+  opacity: 0;
+  transition: opacity .25s ease;
+}
+.sdr-overlay.sdr-open { opacity: 1; }
+.sdr-overlay[hidden] { display: none !important; }
+
+.sdr-panel {
+  position: fixed;
+  top: 0; right: 0; bottom: 0;
+  width: min(340px, 92vw);
+  z-index: 1200;
+  background: rgba(13,8,30,.96);
+  backdrop-filter: blur(20px);
+  border-left: 1px solid rgba(139,92,246,.28);
+  display: flex; flex-direction: column;
+  transform: translateX(100%);
+  transition: transform .28s cubic-bezier(.22,1,.36,1);
+  overflow: hidden;
+  box-shadow: -8px 0 40px rgba(0,0,0,.5);
+}
+.sdr-panel.sdr-open { transform: translateX(0); }
+.sdr-panel[hidden] { display: none !important; }
+
+.sdr-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid rgba(139,92,246,.18);
+  flex-shrink: 0;
+}
+.sdr-title {
+  font-size: 1.1rem; font-weight: 800;
+  color: var(--text);
+  letter-spacing: .02em;
+  margin: 0;
+}
+.sdr-close { flex-shrink: 0; }
+
+.sdr-body {
+  overflow-y: auto;
+  flex: 1;
+  padding-bottom: 24px;
+  /* custom scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(139,92,246,.3) transparent;
+}
+.sdr-body::-webkit-scrollbar { width: 4px; }
+.sdr-body::-webkit-scrollbar-track { background: transparent; }
+.sdr-body::-webkit-scrollbar-thumb { background: rgba(139,92,246,.3); border-radius: 2px; }
+
+.sdr-section {
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255,255,255,.05);
+}
+.sdr-section:last-child { border-bottom: none; }
+
+.sdr-section-label {
+  font-size: .62rem; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 2px;
+  color: rgba(196,132,252,.5);
+  margin: 0 0 12px;
+  padding-left: 8px;
+  border-left: 2px solid rgba(139,92,246,.5);
+}
+
+/* Tighter toggles & sliders inside the drawer */
+.sdr-section .toggle-label {
+  padding: 9px 0;
+  font-size: .88rem;
+}
+.sdr-section .vol-row {
+  padding: 8px 0;
+  font-size: .88rem;
+}
+.sdr-section .vol-label { min-width: 52px; }
+
+.sdr-section-danger { padding-top: 18px; padding-bottom: 18px; }
+.sdr-reset-btn {
+  width: 100%;
+  font-size: .84rem;
+  border-color: rgba(239,68,68,.25);
+  color: rgba(252,165,165,.85);
+}
+.sdr-reset-btn:hover {
+  background: rgba(239,68,68,.12);
+  border-color: rgba(239,68,68,.5);
+  color: #fca5a5;
+}
+
+/* How To Play modal box */
+.htp-box {
+  max-width: 500px;
+  padding: 0;
+  gap: 0;
+  max-height: 90dvh;
+  overflow-y: auto;
+}
+.htp-box .spanel-header {
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--card-border);
+  position: sticky; top: 0;
+  background: var(--card); z-index: 1;
+}
+
+/* FPS counter */
+.fps-counter {
+  position: absolute; top: 6px; left: 6px;
+  font-size: .72rem; font-weight: 800; font-family: monospace;
+  color: rgba(134,239,172,.85);
+  background: rgba(0,0,0,.45);
+  border-radius: 4px; padding: 2px 6px;
+  pointer-events: none; z-index: 50;
+  letter-spacing: .04em;
+}
+.fps-counter[hidden] { display: none !important; }
+
+/* Help button (home screen) */
+.btn-help-open {
+  font-size: .85rem;
+  padding: 10px 18px;
+}
+
+/* ── kept but now used only for HTP modal ── */
 .spanel-header {
   display: flex; align-items: center; justify-content: space-between;
   padding: 22px 24px 16px;
@@ -789,12 +943,6 @@ kbd {
 .btn-close:hover { background: rgba(255,255,255,.16); }
 .btn-close:focus-visible { outline: 3px solid var(--accent-light); outline-offset: 2px; }
 
-.settings-panel section {
-  padding: 20px 24px;
-  border-bottom: 1px solid var(--card-border);
-}
-.settings-panel section:last-of-type { border-bottom: none; }
-
 .spanel-section-title {
   font-size: .65rem; font-weight: 800;
   color: rgba(148, 163, 184, 0.52);
@@ -810,16 +958,6 @@ kbd {
   background: rgba(255,255,255,.07);
   border: 1px solid rgba(255,255,255,.1);
   border-radius: 20px; padding: 2px 10px;
-}
-
-.settings-panel .settings-grid { gap: 0; }
-.settings-panel .howto-list    { margin: 0; }
-.settings-panel .controls-table { margin: 0; }
-
-.settings-panel > .btn {
-  margin: 16px 24px 24px;
-  width: calc(100% - 48px);
-  display: flex;
 }
 
 /* ============================================================
@@ -2549,14 +2687,9 @@ body.perf-low       .lp-dot { animation: none !important; }
     max-width: 100%;
     padding: 22px 18px 32px;
   }
-  .settings-panel {
-    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-    max-height: 92dvh;
-    max-width: 100%;
-  }
+  .sdr-panel { width: 100vw; border-left: none; border-top: 1px solid rgba(139,92,246,.28); top: auto; bottom: 0; transform: translateY(100%); }
+  .sdr-panel.sdr-open { transform: translateY(0); }
   .spanel-header { padding: 18px 18px 14px; }
-  .settings-panel section { padding: 16px 18px; }
-  .settings-panel > .btn { margin: 12px 18px 20px; width: calc(100% - 36px); }
   /* Buy confirm: bottom sheet on mobile */
   .skin-buy-dialog {
     top: auto;

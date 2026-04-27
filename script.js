@@ -571,6 +571,9 @@ let settings = {
   highContrast:   false,
   colorblind:     false,
   perfMode:       'high', // 'high' | 'low' - Low reduces particles, glow, and animations
+  screenShake:    true,
+  particles:      true,
+  showFps:        false,
   bestScore:      0,
   lifetimeScore:  0,
   selectedSkin:   'classic',
@@ -810,6 +813,9 @@ function loadSettings() {
     if (typeof s.highContrast  === 'boolean') settings.highContrast  = s.highContrast;
     if (typeof s.colorblind    === 'boolean') settings.colorblind    = s.colorblind;
     if (s.perfMode === 'low' || s.perfMode === 'high') settings.perfMode = s.perfMode;
+    if (typeof s.screenShake === 'boolean') settings.screenShake = s.screenShake;
+    if (typeof s.particles   === 'boolean') settings.particles   = s.particles;
+    if (typeof s.showFps     === 'boolean') settings.showFps     = s.showFps;
     // Migrate old colorMode string format
     if (s.colorMode === 'high-contrast') settings.highContrast = true;
     if (s.colorMode === 'colorblind')    settings.colorblind   = true;
@@ -848,21 +854,64 @@ function applyColorMode() {
   document.body.classList.toggle('perf-low',           settings.perfMode === 'low');
 }
 
+// ── Settings drawer open/close helpers ─────────────────────
+function openSettingsDrawer() {
+  const panel   = document.getElementById('settings-drawer');
+  const overlay = document.getElementById('settings-drawer-overlay');
+  if (!panel) return;
+  panel.hidden   = false;
+  overlay.hidden = false;
+  requestAnimationFrame(() => {
+    panel.classList.add('sdr-open');
+    overlay.classList.add('sdr-open');
+  });
+  panel.setAttribute('aria-hidden', 'false');
+  requestAnimationFrame(() => {
+    const first = panel.querySelector('button,[href],input,[tabindex]:not([tabindex="-1"])');
+    if (first) first.focus();
+  });
+}
+function closeSettingsDrawer() {
+  const panel   = document.getElementById('settings-drawer');
+  const overlay = document.getElementById('settings-drawer-overlay');
+  if (!panel) return;
+  panel.classList.remove('sdr-open');
+  overlay.classList.remove('sdr-open');
+  panel.setAttribute('aria-hidden', 'true');
+  const onEnd = () => {
+    panel.hidden   = true;
+    overlay.hidden = true;
+    panel.removeEventListener('transitionend', onEnd);
+  };
+  panel.addEventListener('transitionend', onEnd, { once: true });
+  // Return focus to gear button
+  const gear = document.getElementById('btn-gear-settings');
+  if (gear) gear.focus();
+}
+
 function applySettingsToUI() {
-  const soundEl = document.getElementById('sound-toggle');
-  const rmEl    = document.getElementById('reduced-motion-toggle');
-  const hcEl    = document.getElementById('high-contrast-toggle');
-  const cbEl    = document.getElementById('colorblind-toggle');
-  const pmEl    = document.getElementById('perf-mode-toggle');
-  const hsEl    = document.getElementById('home-highscore');
+  const soundEl    = document.getElementById('sound-toggle');
+  const rmEl       = document.getElementById('reduced-motion-toggle');
+  const hcEl       = document.getElementById('high-contrast-toggle');
+  const cbEl       = document.getElementById('colorblind-toggle');
+  const pmEl       = document.getElementById('perf-mode-toggle');
+  const shakeEl    = document.getElementById('screen-shake-toggle');
+  const partEl     = document.getElementById('particles-toggle');
+  const fpsEl      = document.getElementById('fps-toggle');
+  const hsEl       = document.getElementById('home-highscore');
   const musicVolEl = document.getElementById('music-vol-slider');
   const sfxVolEl   = document.getElementById('sfx-vol-slider');
-  if (soundEl) soundEl.checked = settings.sound;
-  if (rmEl)    rmEl.checked    = settings.reducedMotion;
-  if (hcEl)    hcEl.checked    = settings.highContrast;
-  if (cbEl)    cbEl.checked    = settings.colorblind;
-  if (pmEl)    pmEl.checked    = settings.perfMode === 'low';
-  if (hsEl)    hsEl.textContent = settings.bestScore;
+
+  // Note: sound-toggle now means "Mute All" — checked = muted, so invert
+  if (soundEl)  soundEl.checked  = !settings.sound;
+  if (rmEl)     rmEl.checked     = settings.reducedMotion;
+  if (hcEl)     hcEl.checked     = settings.highContrast;
+  if (cbEl)     cbEl.checked     = settings.colorblind;
+  if (pmEl)     pmEl.checked     = settings.perfMode === 'low';
+  if (shakeEl)  shakeEl.checked  = settings.screenShake !== false; // default on
+  if (partEl)   partEl.checked   = settings.particles !== false;   // default on
+  if (fpsEl)    fpsEl.checked    = !!settings.showFps;
+  if (hsEl)     hsEl.textContent = settings.bestScore;
   if (musicVolEl) {
     musicVolEl.value = Math.round((settings.musicVol ?? VOL_DEFAULTS.music) * 100);
     const lbl = document.getElementById('music-vol-val');
@@ -874,11 +923,16 @@ function applySettingsToUI() {
     if (lbl) lbl.textContent = sfxVolEl.value + '%';
   }
 
+  // Sync FPS counter visibility
+  const fpsCtr = document.getElementById('fps-counter');
+  if (fpsCtr) fpsCtr.hidden = !settings.showFps;
+
   // Wire change listeners once (idempotent guard via _settingsWired flag)
   if (!applySettingsToUI._wired) {
     applySettingsToUI._wired = true;
+    // Mute All — inverted: checked = muted
     if (soundEl) soundEl.addEventListener('change', () => {
-      settings.sound = soundEl.checked; saveSettings();
+      settings.sound = !soundEl.checked; saveSettings(); AudioManager.refreshAllVolumes();
     });
     if (rmEl) rmEl.addEventListener('change', () => {
       settings.reducedMotion = rmEl.checked; saveSettings(); applyColorMode();
@@ -891,6 +945,17 @@ function applySettingsToUI() {
     });
     if (pmEl) pmEl.addEventListener('change', () => {
       settings.perfMode = pmEl.checked ? 'low' : 'high'; saveSettings(); applyColorMode();
+    });
+    if (shakeEl) shakeEl.addEventListener('change', () => {
+      settings.screenShake = shakeEl.checked; saveSettings();
+    });
+    if (partEl) partEl.addEventListener('change', () => {
+      settings.particles = partEl.checked; saveSettings();
+    });
+    if (fpsEl) fpsEl.addEventListener('change', () => {
+      settings.showFps = fpsEl.checked; saveSettings();
+      const fpsCtr = document.getElementById('fps-counter');
+      if (fpsCtr) fpsCtr.hidden = !settings.showFps;
     });
     if (musicVolEl) musicVolEl.addEventListener('input', () => {
       settings.musicVol = parseInt(musicVolEl.value, 10) / 100;
@@ -5713,6 +5778,7 @@ function drawPowerup(p) {
 // ============================================================
 
 function spawnParticles(x, y, color, count) {
+  if (settings.particles === false) return;
   // perf-low: 25% of normal; reducedMotion: 35% of normal
   const base = count || 8;
   const n = settings.reducedMotion ? Math.max(1, Math.ceil(base * 0.35))
@@ -6410,7 +6476,7 @@ function tickDifficulty(dt) {
 // ============================================================
 
 function triggerShake(intensity, dur) {
-  if (settings.reducedMotion) return;
+  if (settings.reducedMotion || settings.screenShake === false) return;
   shakeTimer = dur || 0.25;
   shakeX = (Math.random() - 0.5) * intensity;
   shakeY = (Math.random() - 0.5) * intensity;
@@ -6621,6 +6687,19 @@ function gameLoop(ts) {
     const dt = Math.min((ts - lastFrameTime) / 1000, 0.033); // cap at ~30 fps step to prevent lag-spike tunnelling
     lastFrameTime = ts;
     graceTimer   += dt;
+
+    // FPS counter
+    if (settings.showFps) {
+      gameLoop._fpsFrames = (gameLoop._fpsFrames || 0) + 1;
+      gameLoop._fpsAccum  = (gameLoop._fpsAccum  || 0) + dt;
+      if (gameLoop._fpsAccum >= 0.5) {
+        const fps = Math.round(gameLoop._fpsFrames / gameLoop._fpsAccum);
+        const fpsCtr = document.getElementById('fps-counter');
+        if (fpsCtr) fpsCtr.textContent = fps + ' fps';
+        gameLoop._fpsFrames = 0;
+        gameLoop._fpsAccum  = 0;
+      }
+    }
 
     // Try mode countdown
     if (tryMode.active) {
@@ -7053,10 +7132,13 @@ function onKeyDown(e) {
   if ((e.key === 'h' || e.key === 'H') && currentState === STATE.GAMEOVER) { returnHome();  return; }
 
   if (e.key === 'Escape') {
+    const _drawer = document.getElementById('settings-drawer');
+    const _drawerOpen = _drawer && _drawer.classList.contains('sdr-open');
     if      (currentState === STATE.PAUSED)   { resumeGame(); }
     else if (currentState === STATE.PLAYING)  { pauseGame(); }
     else if (currentState === STATE.GAMEOVER) { returnHome(); }
-    else if (!document.getElementById('modal-settings').hidden) { hideModal('modal-settings'); document.getElementById('btn-settings').focus(); }
+    else if (_drawerOpen)                     { closeSettingsDrawer(); }
+    else if (!document.getElementById('modal-howtoplay').hidden) { hideModal('modal-howtoplay'); }
     else if (!document.getElementById('modal-progress').hidden)  { hideModal('modal-progress');  document.getElementById('btn-progress').focus(); }
   }
 }
@@ -7245,10 +7327,13 @@ function init() {
   }
 
   // Focus traps for modals and overlays
-  ['modal-settings','modal-progress','pause-overlay','gameover-overlay'].forEach(id => {
+  ['modal-progress','modal-howtoplay','modal-leaderboard','pause-overlay','gameover-overlay'].forEach(id => {
     const el = document.getElementById(id);
     if (el) makeFocusTrap(el);
   });
+  // Drawer focus trap
+  const _drawerEl = document.getElementById('settings-drawer');
+  if (_drawerEl) makeFocusTrap(_drawerEl);
 
   // One-shot unlock for iOS/Android - AudioContext must be created inside a user gesture.
   // We listen on both touchstart and pointerdown so it fires on the very first tap/click.
@@ -7263,7 +7348,6 @@ function init() {
 
   // Home screen
   document.getElementById('btn-start').addEventListener('click', () => { Audio.uiClick(); startGame(); });
-  document.getElementById('btn-settings').addEventListener('click', () => { Audio.uiClick(); showModal('modal-settings'); });
   document.getElementById('btn-progress').addEventListener('click', () => {
     Audio.uiClick();
     // Reset to Skins tab on every open
@@ -7285,12 +7369,43 @@ function init() {
     showModal('modal-progress');
   });
 
-  document.getElementById('btn-settings-close').addEventListener('click', () => {
-    hideModal('modal-settings'); document.getElementById('btn-settings').focus();
+  // Gear settings button → open drawer
+  const _gearBtn = document.getElementById('btn-gear-settings');
+  if (_gearBtn) _gearBtn.addEventListener('click', () => { Audio.uiClick(); openSettingsDrawer(); });
+
+  // Drawer close button
+  const _drawerClose = document.getElementById('btn-settings-close');
+  if (_drawerClose) _drawerClose.addEventListener('click', () => { closeSettingsDrawer(); });
+
+  // Drawer overlay click → close
+  const _drawerOverlay = document.getElementById('settings-drawer-overlay');
+  if (_drawerOverlay) _drawerOverlay.addEventListener('click', () => { closeSettingsDrawer(); });
+
+  // Reset settings button
+  const _btnReset = document.getElementById('btn-reset-settings');
+  if (_btnReset) _btnReset.addEventListener('click', () => {
+    if (!confirm('Reset all settings to defaults? Your scores and progress will not be affected.')) return;
+    const keep = {
+      bestScore: settings.bestScore, lifetimeScore: settings.lifetimeScore,
+      coins: settings.coins, purchasedSkins: settings.purchasedSkins,
+      lifetimeRewards: settings.lifetimeRewards, powerupUpgrades: settings.powerupUpgrades,
+      selectedSkin: settings.selectedSkin, streakCount: settings.streakCount,
+      streakLastDate: settings.streakLastDate, economyVersion: settings.economyVersion,
+      skinVersion: settings.skinVersion,
+    };
+    Object.assign(settings, {
+      sound: true, masterVol: 0.85, musicVol: 0.70, sfxVol: 0.80,
+      reducedMotion: false, highContrast: false, colorblind: false, perfMode: 'high',
+      screenShake: true, particles: true, showFps: false,
+    }, keep);
+    saveSettings(); applySettingsToUI(); applyColorMode(); AudioManager.refreshAllVolumes();
   });
-  document.getElementById('btn-settings-close-bottom').addEventListener('click', () => {
-    hideModal('modal-settings'); document.getElementById('btn-settings').focus();
-  });
+
+  // Help button → How To Play
+  const _btnHelp = document.getElementById('btn-help');
+  if (_btnHelp) _btnHelp.addEventListener('click', () => { Audio.uiClick(); showModal('modal-howtoplay'); });
+  const _btnHtpClose = document.getElementById('btn-htp-close');
+  if (_btnHtpClose) _btnHtpClose.addEventListener('click', () => { hideModal('modal-howtoplay'); });
 
   document.getElementById('btn-progress-close').addEventListener('click', () => {
     hideModal('modal-progress'); document.getElementById('btn-progress').focus();
