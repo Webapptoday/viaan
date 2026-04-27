@@ -388,6 +388,7 @@
                 <span class="preview-skin-rarity" id="preview-skin-rarity" data-rarity="common">common</span>
               </div>
               <div class="preview-actions" id="preview-actions"></div>
+              <div id="preview-ability-info" class="preview-ability-info" hidden></div>
             </div>
 
             <!-- Right: full skin grid -->
@@ -503,6 +504,18 @@
       </div>
       <div id="powerup-duration-bar-wrap" hidden>
         <div id="powerup-duration-bar"></div>
+      </div>
+    </div>
+
+    <!-- Skin ability cooldown indicator -->
+    <div id="skin-ability-hud" class="skin-ability-hud" hidden aria-live="polite" aria-label="Skin ability">
+      <span class="sa-icon" aria-hidden="true"></span>
+      <div class="sa-info">
+        <span class="sa-name"></span>
+        <span class="sa-state"></span>
+      </div>
+      <div class="sa-bar-track" aria-hidden="true">
+        <div class="sa-bar-fill"></div>
       </div>
     </div>
 
@@ -892,7 +905,7 @@
 
   <!-- Firebase config + anonymous auth init (fill in your config values here) -->
   <script src="firebase-client.js"></script>
-  <script src="script.js?v=57"></script>
+  <script src="script.js?v=58"></script>
 
   <!-- Vercel Analytics — tracks visitors, page views, countries, devices and traffic sources -->
   <script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>

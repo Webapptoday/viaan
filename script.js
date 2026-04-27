@@ -43,11 +43,11 @@ const GAME_CONFIG = { playerSpeed: 255, spawnRate: 0.60, forbiddenInterval: 2.6,
 const DIFFICULTY_CONFIG = {
   // phases: each entry controls live game values for that time window.
   //   endAt = elapsed seconds when this phase ends (Infinity = forever)
-  //   spd   = speedMultiplier target        ← increase carefully
-  //   si    = spawn interval (s)            ← lower = more blocks
-  //   cc    = cluster/wave chance (0-1)     ← higher = more pattern waves
-  //   fi    = forbidden color interval (s)  ← lower = faster color shifts
-  //   mo    = max simultaneous obstacles    ← soft cap per phase
+  //   spd   = speedMultiplier target        ÃƒÂ¢Ã¢â‚¬Â Ã‚Â increase carefully
+  //   si    = spawn interval (s)            ÃƒÂ¢Ã¢â‚¬Â Ã‚Â lower = more blocks
+  //   cc    = cluster/wave chance (0-1)     ÃƒÂ¢Ã¢â‚¬Â Ã‚Â higher = more pattern waves
+  //   fi    = forbidden color interval (s)  ÃƒÂ¢Ã¢â‚¬Â Ã‚Â lower = faster color shifts
+  //   mo    = max simultaneous obstacles    ÃƒÂ¢Ã¢â‚¬Â Ã‚Â soft cap per phase
   //   ac    = anti-camp targeting bonus (0-1)
   phases: [
     // Phase 0 - Rush    (0-10s):   hard immediately, active from first second
@@ -62,7 +62,7 @@ const DIFFICULTY_CONFIG = {
     { name:'Expert',  endAt: Infinity, spd:1.68, si:0.16, cc:0.88, fi:1.65, mo:42, ac:0.98 },
   ],
 
-  // ── Hard safety caps ── NEVER exceeded regardless of phase, combo, or panic ──
+  // ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Hard safety caps ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ NEVER exceeded regardless of phase, combo, or panic ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
   // phase1_spawn_rate  = phases[0].si  = 0.60s
   // phase2_spawn_rate  = phases[2].si  = 0.32s
   // phase3_spawn_rate  = phases[4].si  = 0.16s
@@ -72,25 +72,25 @@ const DIFFICULTY_CONFIG = {
   // anti_camp_strength = FLOW_CONFIG.campDecayPerSec
   // panic_mode_intensity = panicForbidRatio
   // pattern_complexity = phases[n].cc
-  speedMultHardCap:    1.80,  // peak speed — fast but still readable
+  speedMultHardCap:    1.80,  // peak speed ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â fast but still readable
   spawnIntervalFloor:  0.15,  // absolute minimum spawn gap at peak intensity
   maxObstaclesHardCap: 44,    // max simultaneous live threats on screen
 
-  // ── Phase blend ── smoothstep cross-fade between consecutive phases ──
+  // ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Phase blend ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ smoothstep cross-fade between consecutive phases ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
   blendWindow: 5.0,           // tighter = faster ramp between phases
 
-  // ── Panic wave tuning ──
-  panicSpeedBonus:  1.32,  // obstacle speed ×1.32 during panic — noticeably faster
-  panicSpawnMult:   0.30,  // spawn interval ×0.30 during panic (~3.3× more frequent)
-  panicForbidRatio: 0.92,  // 92% of new blocks forbidden — very dense panic surge
-  ddSpawnRateMult:  0.68,  // Double Danger: ×0.68 spawn interval (~47% more frequent)
+  // ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Panic wave tuning ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
+  panicSpeedBonus:  1.32,  // obstacle speed ÃƒÆ’Ã¢â‚¬â€1.32 during panic ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â noticeably faster
+  panicSpawnMult:   0.30,  // spawn interval ÃƒÆ’Ã¢â‚¬â€0.30 during panic (~3.3ÃƒÆ’Ã¢â‚¬â€ more frequent)
+  panicForbidRatio: 0.92,  // 92% of new blocks forbidden ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â very dense panic surge
+  ddSpawnRateMult:  0.68,  // Double Danger: ÃƒÆ’Ã¢â‚¬â€0.68 spawn interval (~47% more frequent)
 
-  // ── Per-obstacle-type speed multipliers ──
+  // ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Per-obstacle-type speed multipliers ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
   // Applied as: vy = base * typeSpeedMults[type] + rand(0, typeSpeedRand[type])
   typeSpeedMults: { 0:1.02, 1:0.90, 2:0.65, 3:1.12, 4:1.22 },
   typeSpeedRand:  { 0:24,   1:20,   2:16,   3:22,   4:22   },
 
-  // Developer debug overlay — toggle: DIFFICULTY_CONFIG.debugOverlay = true
+  // Developer debug overlay ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â toggle: DIFFICULTY_CONFIG.debugOverlay = true
   debugOverlay: false,
 };
 
@@ -100,14 +100,14 @@ const DIFFICULTY_CONFIG = {
 // 0 = never appears in that phase. Higher = more likely.
 // ============================================================
 const PATTERN_LIBRARY = [
-  { id:'HALF_FILL',   phaseWeights:[ 6, 5, 3, 2, 1] },  // Half lanes blocked — reduced, too passive
-  { id:'SINGLE_SIDE', phaseWeights:[ 4, 3, 2, 1, 0] },  // Single threat — tapers off quickly
-  { id:'STAGGER',     phaseWeights:[ 9, 9, 8, 7, 6] },  // Staggered gaps — requires movement always
-  { id:'SWEEP_GAP',   phaseWeights:[ 5, 8, 9, 8, 7] },  // Moving gap — tracks player well
+  { id:'HALF_FILL',   phaseWeights:[ 6, 5, 3, 2, 1] },  // Half lanes blocked ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â reduced, too passive
+  { id:'SINGLE_SIDE', phaseWeights:[ 4, 3, 2, 1, 0] },  // Single threat ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â tapers off quickly
+  { id:'STAGGER',     phaseWeights:[ 9, 9, 8, 7, 6] },  // Staggered gaps ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â requires movement always
+  { id:'SWEEP_GAP',   phaseWeights:[ 5, 8, 9, 8, 7] },  // Moving gap ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â tracks player well
   { id:'CENTER_PUSH', phaseWeights:[ 3, 5, 8, 9, 9] },  // Center threat, side escape
   { id:'SIDE_PUSH',   phaseWeights:[ 3, 4, 7, 8, 9] },  // Flank threat, center escape
-  { id:'PINCER',      phaseWeights:[ 1, 3, 5, 8, 9] },  // Both flanks — tight middle
-  { id:'TARGETED',    phaseWeights:[ 3, 4, 6, 8, 9] },  // Direct player pressure — starts early
+  { id:'PINCER',      phaseWeights:[ 1, 3, 5, 8, 9] },  // Both flanks ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â tight middle
+  { id:'TARGETED',    phaseWeights:[ 3, 4, 6, 8, 9] },  // Direct player pressure ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â starts early
 ];
 
 // Player skins - unlock thresholds are bestScore requirements (bestScore never decreases)
@@ -130,7 +130,26 @@ const SKIN_DEFS = [
   // -- Legendary --
   { id: 'galaxy',   name: 'Galaxy',   unlock: 0, coinCost: 550, rarity: 'legendary', effect: 'galaxy',   color1: '#c4b5fd', color2: '#1e1b4b', glow: '#818cf8', shape: 'star',   trail: true  },
   { id: 'eclipse',  name: 'Eclipse',  unlock: 0, lifetimeUnlock: 3500000, rarity: 'legendary', effect: 'void', color1: '#f5f3ff', color2: '#111827', glow: '#a78bfa', shape: 'star', trail: true  },
+  // -- Defense / Ability Skins --
+  { id: 'coin-magnet',  name: 'Coin Magnet',  unlock: 0, coinCost: 100, rarity: 'common',    effect: 'pulse',    color1: '#fefce8', color2: '#eab308', glow: '#fbbf24', shape: 'circle', trail: false },
+  { id: 'neon-shield',  name: 'Neon Shield',  unlock: 0, coinCost: 175, rarity: 'rare',      effect: 'electric', color1: '#e0f2fe', color2: '#0ea5e9', glow: '#38bdf8', shape: 'circle', trail: true  },
+  { id: 'frost-runner', name: 'Frost Runner', unlock: 0, coinCost: 200, rarity: 'rare',      effect: 'shimmer',  color1: '#f0f9ff', color2: '#7dd3fc', glow: '#93c5fd', shape: 'circle', trail: true  },
+  { id: 'dash-core',    name: 'Dash Core',    unlock: 0, coinCost: 350, rarity: 'epic',      effect: 'electric', color1: '#eff6ff', color2: '#3b82f6', glow: '#60a5fa', shape: 'circle', trail: true  },
+  { id: 'pulse-wave',   name: 'Pulse Wave',   unlock: 0, coinCost: 425, rarity: 'epic',      effect: 'prism',    color1: '#faf5ff', color2: '#a855f7', glow: '#c084fc', shape: 'circle', trail: true  },
+  { id: 'ghost-shift',  name: 'Ghost Shift',  unlock: 0, coinCost: 600, rarity: 'legendary', effect: 'aura',     color1: '#f8fafc', color2: '#94a3b8', glow: '#cbd5e1', shape: 'star',   trail: true  },
 ];
+// Ability metadata for defence skins. Maps skin id -> ability config.
+// passive:true = always active, no cooldown UI shown.
+// duration:-1  = permanent until triggered externally (Neon Shield).
+// duration:0   = instant effect, no effect timer (Pulse Wave).
+const SKIN_ABILITY_DEFS = {
+  'coin-magnet':  { abilityId: 'magnet', abilityName: 'Coin Magnet',  icon: '\u{1F9F2}', passive: true,  cooldown: 0,  duration: 0,   desc: 'Pulls nearby coins toward you automatically.' },
+  'neon-shield':  { abilityId: 'shield', abilityName: 'Neon Shield',  icon: '\uD83D\uDEE1', passive: false, cooldown: 45, duration: -1,  desc: 'Survive 1 collision every 45s. Shield recharges after breaking.' },
+  'frost-runner': { abilityId: 'frost',  abilityName: 'Frost Aura',   icon: '\u2744',     passive: false, cooldown: 25, duration: 3,   desc: 'Slow all blocks 35% for 3s every 25s.' },
+  'dash-core':    { abilityId: 'dash',   abilityName: 'Dash Boost',   icon: '\uD83D\uDCA8', passive: false, cooldown: 20, duration: 1,   desc: '1.75\xd7 speed burst for 1s every 20s.' },
+  'pulse-wave':   { abilityId: 'pulse',  abilityName: 'Pulse Wave',   icon: '\uD83D\uDCA5', passive: false, cooldown: 30, duration: 0,   desc: 'Blasts nearby blocks outward every 30s.' },
+  'ghost-shift':  { abilityId: 'ghost',  abilityName: 'Ghost Mode',   icon: '\uD83D\uDC7B', passive: false, cooldown: 40, duration: 1,   desc: 'Phase through danger blocks for 1s every 40s.' },
+};
 const LIFETIME_REWARD_DEFS = [
   // -- Common ------------------------------------------------------------------
   { id: 'lt_coins_500',   milestone:   25000, label: '100 Coins',      type: 'coins',  coins: 100,  rarity: 'common',    icon: '', description: 'A starter coin bundle to kick off your journey.' },
@@ -161,14 +180,14 @@ const COMBO_BONUS_PER         = 25;   // pts per combo level on each color chang
 const POWERUP_COLLECT_BONUS   = 50;   // flat pts for picking up any power-up
 const POWERUP_INTERVAL    = 15;   // s between powerup spawns (more frequent to compensate)
 const COIN_ITEM_INTERVAL  = 8.5;  // s between coin column spawns (columns have 4-6 coins each)
-const DIFF_SCALE_EVERY    = 4;    // s between difficulty bumps — faster ramp (was 5)
+const DIFF_SCALE_EVERY    = 4;    // s between difficulty bumps ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â faster ramp (was 5)
 const MAX_OBSTACLES       = 48;   // increased from 40 - blocks persist longer now, need more capacity
 const GRACE_PERIOD        = 0.20; // reduced -- game pressures player earlier
 const FORBIDDEN_MIN_RATIO = 0.65; // keep at least 65% of active obstacles forbidden - keeps screen readable
 const CLUSTER_CHANCE      = 0.55; // structured wave patterns fire on most spawn ticks
-const MIN_CLEAR_GAP       = 62;   // minimum safe corridor width — tight but passable
+const MIN_CLEAR_GAP       = 62;   // minimum safe corridor width ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â tight but passable
 const NUM_LANES           = 6;    // play area divided into this many columns for controlled, fair spawning
-const CAMPING_WAVE_LIMIT  = 1;    // ↓ anti-camp triggers after just 1 repeated wave (was 2)
+const CAMPING_WAVE_LIMIT  = 1;    // ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬Å“ anti-camp triggers after just 1 repeated wave (was 2)
 const MAX_SAFE_LANE_STREAK = 2;   // hard cap for repeating the exact same safe lane
 const MAX_PLAYER_LANE_SHIELD = 0; // single spawns no longer avoid player lane (full pressure)
 const OBSTACLE_CLEANUP_MARGIN = 110; // blocks removed shortly after leaving screen (frees cap for new threats)
@@ -182,17 +201,17 @@ const FLOW_CONFIG = {
   nearMissGain: 1.6,
   colorShiftGain: 1.2,
   shieldHitPenalty: 3.5,
-  idleGrace: 1.2,           // less idle grace — decay kicks in faster
-  idleDecayPerSec: 1.8,     // faster idle decay — punishes standing still
-  campRadius: 38,           // tighter camp zone — player must actually move
+  idleGrace: 1.2,           // less idle grace ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â decay kicks in faster
+  idleDecayPerSec: 1.8,     // faster idle decay ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â punishes standing still
+  campRadius: 38,           // tighter camp zone ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â player must actually move
   campGrace: 0.5,           // very short grace before camping pressure builds
-  campDecayPerSec: 4.5,     // fast camp pressure ramp — discourages any camping
+  campDecayPerSec: 4.5,     // fast camp pressure ramp ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â discourages any camping
   movementMinSpeed: 42,
   scoreMultPerCombo: 0.12,
   scoreMultCap: 2.1,
   coinMultPerCombo: 0.08,
   coinMultCap: 1.2,
-  spawnIntervalPerCombo: 0.008,  // ↑ slightly — combo reduces interval a bit more
+  spawnIntervalPerCombo: 0.008,  // ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬Ëœ slightly ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â combo reduces interval a bit more
   spawnIntervalCap: 0.15,
   gapTightenPerCombo: 0.42,       // was 0.95
   gapTightenCap: 8,              // was 15
@@ -616,7 +635,7 @@ const player = { x: 0, y: 0, radius: 24, baseRadius: 24, speed: 255, hasShield: 
 let playerTrail = []; // recent positions for trail-producing skins
 
 let spawnTimer        = 0;
-let spawnRate         = 0.60;  // matches GAME_CONFIG.spawnRate — hard from frame 1
+let spawnRate         = 0.60;  // matches GAME_CONFIG.spawnRate ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â hard from frame 1
 let forbiddenTimer    = 0;
 let forbiddenInterval = 2.6;   // matches GAME_CONFIG.forbiddenInterval
 let warningActive     = false;
@@ -652,7 +671,7 @@ let runMiniGoal = null; // { ...def, progress: 0, done: false }
 let shakeX = 0, shakeY = 0, shakeTimer = 0;
 
 // Panic wave state
-let panicCooldown  = 10;   // first panic wave fires ~10s in (was 18) — immediate pressure
+let panicCooldown  = 10;   // first panic wave fires ~10s in (was 18) ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â immediate pressure
 let panicTimer     = 0;   // counts up during cooldown / down during wave / down during announce
 let panicPhase     = 'cooldown'; // 'cooldown' | 'announce' | 'wave'
 let panicDuration  = 0;   // chosen length of current wave (2-4 s)
@@ -696,14 +715,14 @@ let _playerLaneSafeStreak = 0; // consecutive waves where player's lane was pick
 let _playerLaneShieldStreak = 0; // consecutive single-spawn waves that avoided player's lane
 
 const PANIC_ANNOUNCE = 0.9; // s of banner before wave starts
-const PANIC_COOLDOWN_BASE = 5;  // s between panic waves — frequent surges (was 6)
+const PANIC_COOLDOWN_BASE = 5;  // s between panic waves ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â frequent surges (was 6)
 const PANIC_COOLDOWN_VAR  = 4;  // random extra: 5-9 s gap
 
-const DD_MIN_PLAYTIME   = 12;   // earliest Double Danger can fire — sooner (was 15s)
-const DD_COOLDOWN_BASE  = 20;   // s between DD events — more frequent (was 24)
+const DD_MIN_PLAYTIME   = 12;   // earliest Double Danger can fire ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â sooner (was 15s)
+const DD_COOLDOWN_BASE  = 20;   // s between DD events ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â more frequent (was 24)
 const DD_COOLDOWN_VAR   = 12;   // randomised range: 20-32 s (was 24-38)
 const DD_ANNOUNCE       = 0.75; // warning banner duration (s)
-const EVENT_POST_BUFFER = 4.0;  // ↓ buffer between any two special events (was 5s)
+const EVENT_POST_BUFFER = 4.0;  // ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬Å“ buffer between any two special events (was 5s)
 
 const keys      = { left: false, right: false, up: false, down: false };
 const touchDirs = { left: false, right: false, up: false, down: false };
@@ -856,7 +875,7 @@ function applyColorMode() {
   document.body.classList.toggle('perf-low',           settings.perfMode === 'low');
 }
 
-// ── Settings drawer open/close helpers ─────────────────────
+// ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Settings drawer open/close helpers ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
 function openSettingsDrawer() {
   const panel   = document.getElementById('settings-drawer');
   const overlay = document.getElementById('settings-drawer-overlay');
@@ -904,7 +923,7 @@ function applySettingsToUI() {
   const musicVolEl = document.getElementById('music-vol-slider');
   const sfxVolEl   = document.getElementById('sfx-vol-slider');
 
-  // Note: sound-toggle now means "Mute All" — checked = muted, so invert
+  // Note: sound-toggle now means "Mute All" ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â checked = muted, so invert
   if (soundEl)  soundEl.checked  = !settings.sound;
   if (rmEl)     rmEl.checked     = settings.reducedMotion;
   if (hcEl)     hcEl.checked     = settings.highContrast;
@@ -932,7 +951,7 @@ function applySettingsToUI() {
   // Wire change listeners once (idempotent guard via _settingsWired flag)
   if (!applySettingsToUI._wired) {
     applySettingsToUI._wired = true;
-    // Mute All — inverted: checked = muted
+    // Mute All ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â inverted: checked = muted
     if (soundEl) soundEl.addEventListener('change', () => {
       settings.sound = !soundEl.checked; saveSettings(); AudioManager.refreshAllVolumes();
     });
@@ -1317,7 +1336,7 @@ function buyPowerupUpgrade(key) {
 // SECTION 4: AUDIO SYSTEM (Web Audio API)
 // ============================================================
 
-// Volume defaults — user can override via settings sliders
+// Volume defaults ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â user can override via settings sliders
 const VOL_DEFAULTS = { master: 0.85, music: 0.70, sfx: 0.80 };
 
 const Audio = (() => {
@@ -1380,7 +1399,7 @@ const Audio = (() => {
       }
     },
 
-    // Coin collect: sparkling 3-note arpeggio C6–E6–G6
+    // Coin collect: sparkling 3-note arpeggio C6ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“E6ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“G6
     collect() {
       if (!settings.sound) return;
       const c = ctx_(); if (!c) return;
@@ -1597,7 +1616,7 @@ const Music = (() => {
 
   const SCHEDULE_AHEAD = 0.14;
   const LOOKAHEAD_MS   = 55;
-  const BEATS_PER_LOOP = 16;   // 4 bars of 4/4  (Am – F – C – G)
+  const BEATS_PER_LOOP = 16;   // 4 bars of 4/4  (Am ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“ F ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“ C ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“ G)
 
   // Bass line: root-tone walk per beat
   const BASS_LINE = [
@@ -1607,8 +1626,8 @@ const Music = (() => {
      98.00, 123.47, 146.83, 123.47,  // G
   ];
 
-  // Lead melody: descending chord-tone phrase over Am–F–C–G
-  // Lead melody A – verse feel (tier 0/1)
+  // Lead melody: descending chord-tone phrase over AmÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“FÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“CÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“G
+  // Lead melody A ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“ verse feel (tier 0/1)
   const LEAD_MELODY = [
     659.25, 587.33, 523.25, 440.00,
     698.46, 587.33, 523.25, 349.23,
@@ -1616,7 +1635,7 @@ const Music = (() => {
     587.33, 523.25, 392.00, 493.88,
   ];
 
-  // Lead melody B – high intensity / tier 2
+  // Lead melody B ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“ high intensity / tier 2
   const LEAD_B = [
     880.00, 783.99, 659.25, 783.99,
     932.33, 783.99, 698.46, 523.25,
@@ -1777,7 +1796,7 @@ const Music = (() => {
     osc2.start(when); osc2.stop(when + dur + 0.01);
   }
 
-  // Detuned dual-saw lead synth — the main melody voice
+  // Detuned dual-saw lead synth ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â the main melody voice
   function _lead(when, freq, dur) {
     const c = _actx;
     const osc1 = c.createOscillator();
@@ -1843,7 +1862,7 @@ const Music = (() => {
 
   function _scheduleOneBeat(when, beat) {
     const BEAT = 60 / _bpm;
-    const bar  = Math.floor(beat / 4);  // 0–3: which chord
+    const bar  = Math.floor(beat / 4);  // 0ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“3: which chord
     const pos  = beat % 4;              // position within bar
 
     // --- Drums ---
@@ -1970,11 +1989,11 @@ const Music = (() => {
       else { doResume(); }
     },
 
-    // Called every game frame — drives intensity/tier/beat phase for UI sync
+    // Called every game frame ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â drives intensity/tier/beat phase for UI sync
     tick(dt) {
       if (!_isPlaying || !_actx || !_intGain) return;
 
-      // Beat phase 0→1 (for UI pulse sync)
+      // Beat phase 0ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢1 (for UI pulse sync)
       const beatDur = 60 / _bpm;
       _beatPhase = ((_actx.currentTime % (beatDur * BEATS_PER_LOOP)) / beatDur) % 1;
 
@@ -2164,7 +2183,7 @@ const ShopMusic = (() => {
   let _nextBeat   = 0;
   let _schedTimer = null;
   const BPM       = 110;
-  const BEATS     = 16;  // 4 bars of 4/4  (C – G – Am – F)
+  const BEATS     = 16;  // 4 bars of 4/4  (C ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“ G ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“ Am ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“ F)
 
   // Bass line: gentle root-note pulse (C major feel)
   const BASS_S = [
@@ -2174,7 +2193,7 @@ const ShopMusic = (() => {
     174.61, 174.61, 196.00, 174.61,  // F
   ];
 
-  // Sparkly arp melody (C – G – Am – F, single octave higher)
+  // Sparkly arp melody (C ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“ G ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“ Am ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“ F, single octave higher)
   const ARP_S = [
     523.25, 659.25, 783.99, 659.25,  // C maj
     587.33, 739.99, 880.00, 739.99,  // G maj
@@ -2219,7 +2238,7 @@ const ShopMusic = (() => {
     return true;
   }
 
-  // Soft sine pad — lush, warm chords
+  // Soft sine pad ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â lush, warm chords
   function _pad(when, freqs, dur) {
     freqs.forEach(freq => {
       const osc = _actx.createOscillator(); const env = _actx.createGain();
@@ -2246,7 +2265,7 @@ const ShopMusic = (() => {
     osc.start(when); osc.stop(when + dur + 0.01);
   }
 
-  // Sparkling arp — bright triangle with a quick pluck envelope
+  // Sparkling arp ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â bright triangle with a quick pluck envelope
   function _arp(when, freq, dur) {
     const c = _actx;
     const osc = c.createOscillator(); const env = c.createGain();
@@ -2268,7 +2287,7 @@ const ShopMusic = (() => {
     osc2.start(when); osc2.stop(when + dur + 0.01);
   }
 
-  // Chime accent — high sine bell with slow decay
+  // Chime accent ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â high sine bell with slow decay
   function _chime(when, freq) {
     const c = _actx;
     const osc = c.createOscillator(); const env = c.createGain();
@@ -2310,7 +2329,7 @@ const ShopMusic = (() => {
     if (pos === 0) _chime(when, CHIME_S[beat]);
     if (beat === 6 || beat === 14) _chime(when, CHIME_S[beat]);
 
-    // Light ticks — 8th-note feel, accenting downbeat of each bar
+    // Light ticks ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â 8th-note feel, accenting downbeat of each bar
     _tick(when, pos === 0 ? 0.10 : 0.06);
     _tick(when + BEAT * 0.5, 0.045);
   }
@@ -2366,7 +2385,7 @@ const ThemePlayer = (() => {
   let _initDone  = false;
   let _wantsPlay = false;  // deferred play requested before context ready
 
-  // Effective volume: musicVol × masterVol (0 when muted)
+  // Effective volume: musicVol ÃƒÆ’Ã¢â‚¬â€ masterVol (0 when muted)
   function _targetGain() {
     if (!settings.sound) return 0;
     return (settings.musicVol ?? VOL_DEFAULTS.music) *
@@ -2396,7 +2415,7 @@ const ThemePlayer = (() => {
       _gainNode.connect(_ctx.destination);
       _initDone = true;
     } catch (err) {
-      // Already connected (e.g. hot-reload) — treat as ready
+      // Already connected (e.g. hot-reload) ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â treat as ready
       console.warn('[ThemePlayer] init error:', err);
       _initDone = true;
     }
@@ -2408,7 +2427,7 @@ const ThemePlayer = (() => {
     const promise = _audioEl.play();
     if (promise && typeof promise.catch === 'function') {
       promise.catch(err => {
-        // Autoplay blocked — retry on next user gesture
+        // Autoplay blocked ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â retry on next user gesture
         if (err.name !== 'AbortError') console.warn('[ThemePlayer] play blocked:', err.name);
       });
     }
@@ -2430,7 +2449,7 @@ const ThemePlayer = (() => {
       }
     },
 
-    /** Full stop — pauses and rewinds to beginning. */
+    /** Full stop ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â pauses and rewinds to beginning. */
     stop() {
       if (!_audioEl) return;
       if (_gainNode && _ctx) {
@@ -2448,7 +2467,7 @@ const ThemePlayer = (() => {
       }
     },
 
-    /** Pause playback (used when game is paused — preserves position). */
+    /** Pause playback (used when game is paused ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â preserves position). */
     pause() {
       if (!_audioEl) return;
       if (_gainNode && _ctx) {
@@ -3151,7 +3170,7 @@ function getActiveSpawnInterval() {
 
 function getActiveForbiddenInterval() {
   const comboReduction = Math.min(combo * FLOW_CONFIG.switchSpeedPerCombo, FLOW_CONFIG.switchSpeedCap);
-  return Math.max(1.1, forbiddenInterval * (1 - comboReduction)); // ↓ tighter floor (was 1.2)
+  return Math.max(1.1, forbiddenInterval * (1 - comboReduction)); // ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬Å“ tighter floor (was 1.2)
 }
 
 function getFlowGapTighten() {
@@ -3320,6 +3339,191 @@ function getSkin() {
   return skin;
 }
 
+// ============================================================
+// SKIN ABILITY ENGINE
+// Auto-cooldown, activation, and per-frame effects for the 6
+// defence ability skins.  Integrates with game loop, collision,
+// coin attraction, obstacle movement, and player speed.
+// ============================================================
+const SkinAbility = (() => {
+  let _def         = null;   // SKIN_ABILITY_DEFS entry, or null
+  let _cooldown    = 0;      // seconds until ability fires again (0 = ready)
+  let _effectTime  = 0;      // seconds left on active effect; -1 = permanent
+  let _active      = false;  // is an effect currently running?
+  let _skinShield  = false;  // Neon Shield is armed
+  let _ghostMode   = false;  // Ghost Shift phase-through is active
+  let _frostActive = false;  // Frost Aura slow is active
+  let _dashActive  = false;  // Dash Boost speed multiplier is active
+
+  // Call at game start (after initPlayer) to arm the skin's ability.
+  function reset() {
+    const skin = getSkin();
+    _def        = SKIN_ABILITY_DEFS[skin.id] || null;
+    _cooldown   = 0;
+    _effectTime = 0;
+    _active     = false;
+    _skinShield = false;
+    _ghostMode  = false;
+    _frostActive = false;
+    _dashActive  = false;
+    // Neon Shield arms immediately.
+    if (_def && _def.abilityId === 'shield') {
+      _skinShield = true;
+      _active     = true;
+      _effectTime = -1;
+    }
+    _updateHUD();
+  }
+
+  // Called every game-loop frame.
+  function tick(dt) {
+    if (!_def || _def.passive) { _updateHUD(); return; }
+
+    if (_active) {
+      if (_effectTime > 0) {
+        _effectTime -= dt;
+        if (_effectTime <= 0) {
+          _effectTime = 0;
+          _deactivate();
+          _cooldown = _def.cooldown;
+          _active   = false;
+        }
+      }
+      // _effectTime === -1: permanent until externally triggered (shield).
+      _updateHUD();
+      return;
+    }
+
+    if (_cooldown > 0) {
+      _cooldown = Math.max(0, _cooldown - dt);
+    }
+    if (_cooldown <= 0) {
+      _activate();
+    }
+    _updateHUD();
+  }
+
+  function _activate() {
+    if (!_def) return;
+    _active     = true;
+    _effectTime = _def.duration;
+    switch (_def.abilityId) {
+      case 'shield':
+        _skinShield = true;
+        _effectTime = -1;
+        addFloating(player.x, player.y - 55, '\uD83D\uDEE1 Shield Ready!', '#38bdf8', 20);
+        break;
+      case 'frost':
+        _frostActive = true;
+        _doFrostRipple();
+        addFloating(player.x, player.y - 55, '\u2744 Frost Aura!', '#93c5fd', 20);
+        break;
+      case 'dash':
+        _dashActive = true;
+        spawnParticles(player.x, player.y, '#60a5fa', settings.reducedMotion ? 6 : 14);
+        addFloating(player.x, player.y - 55, '\uD83D\uDCA8 Dash!', '#60a5fa', 20);
+        break;
+      case 'pulse':
+        _doPulseWave();
+        addFloating(player.x, player.y - 55, '\uD83D\uDCA5 Pulse!', '#c084fc', 20);
+        // Instant effect: immediately reset and start cooldown.
+        _active     = false;
+        _effectTime = 0;
+        _cooldown   = _def.cooldown;
+        break;
+      case 'ghost':
+        _ghostMode = true;
+        addFloating(player.x, player.y - 55, '\uD83D\uDC7B Ghost Mode!', '#e2e8f0', 20);
+        break;
+    }
+    _updateHUD();
+  }
+
+  function _deactivate() {
+    switch (_def.abilityId) {
+      case 'frost':  _frostActive = false; break;
+      case 'dash':   _dashActive  = false; break;
+      case 'ghost':  _ghostMode   = false; break;
+    }
+  }
+
+  // Called by checkCollisions when the skin shield absorbs a hit.
+  function onShieldBroken() {
+    _skinShield = false;
+    _active     = false;
+    _effectTime = 0;
+    _cooldown   = _def.cooldown;
+    _updateHUD();
+  }
+
+  function _doFrostRipple() {
+    ringBursts.push({ x: player.x, y: player.y, r: player.radius, maxR: 200, color: '#93c5fd', alpha: 0.9, speed: 250 });
+    ringBursts.push({ x: player.x, y: player.y, r: 0,             maxR: 140, color: '#bfdbfe', alpha: 0.5, speed: 360 });
+    triggerShake(3, 0.12);
+  }
+
+  function _doPulseWave() {
+    ringBursts.push({ x: player.x, y: player.y, r: player.radius, maxR: 280, color: '#c084fc', alpha: 0.9, speed: 440 });
+    ringBursts.push({ x: player.x, y: player.y, r: 0,             maxR: 200, color: '#f0abfc', alpha: 0.5, speed: 580 });
+    triggerShake(4, 0.15);
+    for (const ob of obstacles) {
+      const obCx = ob.x + ob.w / 2;
+      const obCy = ob.y + ob.h / 2;
+      const dx   = obCx - player.x;
+      const dy   = obCy - player.y;
+      const d    = Math.sqrt(dx * dx + dy * dy) || 1;
+      const force = Math.max(0, 1 - d / 320) * 420;
+      if (force > 0) {
+        ob.pulseKickVx = (dx / d) * force;
+        ob.pulseKickVy = (dy / d) * force * 0.7;
+      }
+    }
+  }
+
+  function _updateHUD() {
+    const el = document.getElementById('skin-ability-hud');
+    if (!el) return;
+    if (!_def) { el.hidden = true; return; }
+    el.hidden = false;
+    const iconEl  = el.querySelector('.sa-icon');
+    const nameEl  = el.querySelector('.sa-name');
+    const barEl   = el.querySelector('.sa-bar-fill');
+    const stateEl = el.querySelector('.sa-state');
+    if (iconEl) iconEl.textContent = _def.icon;
+    if (nameEl) nameEl.textContent = _def.abilityName;
+    if (_def.passive) {
+      el.dataset.state = 'active';
+      if (stateEl) stateEl.textContent = 'Passive';
+      if (barEl)   barEl.style.width   = '100%';
+      return;
+    }
+    if (_active) {
+      el.dataset.state = 'active';
+      if (_def.abilityId === 'shield') {
+        if (stateEl) stateEl.textContent = 'Armed';
+        if (barEl)   barEl.style.width   = '100%';
+      } else {
+        const pct = _def.duration > 0 ? Math.max(0, (_effectTime / _def.duration) * 100) : 0;
+        if (stateEl) stateEl.textContent = _effectTime > 0 ? _effectTime.toFixed(1) + 's' : 'Active';
+        if (barEl)   barEl.style.width   = pct + '%';
+      }
+    } else {
+      const pct = _def.cooldown > 0 ? Math.max(0, (1 - _cooldown / _def.cooldown) * 100) : 100;
+      el.dataset.state = _cooldown <= 0 ? 'ready' : 'cooling';
+      if (stateEl) stateEl.textContent = _cooldown > 0 ? Math.ceil(_cooldown) + 's' : 'Ready';
+      if (barEl)   barEl.style.width   = pct + '%';
+    }
+  }
+
+  function hasMagnet()     { return !!(_def && _def.abilityId === 'magnet'); }
+  function hasFrost()      { return _frostActive; }
+  function getDashMult()   { return _dashActive ? 1.75 : 1; }
+  function hasGhost()      { return _ghostMode; }
+  function hasSkinShield() { return _skinShield; }
+
+  return { reset, tick, onShieldBroken, hasMagnet, hasFrost, getDashMult, hasGhost, hasSkinShield };
+})();
+
 
 function updateCoinUI(animate) {
   const homeCoinEl     = document.getElementById('home-coins');
@@ -3406,6 +3610,20 @@ function selectSkinForPreview(skinId) {
   const actionsEl  = document.getElementById('preview-actions');
   if (nameEl)   nameEl.textContent = skin.name;
   if (rarityEl) { rarityEl.textContent = skin.rarity; rarityEl.dataset.rarity = skin.rarity; }
+  // Ability info panel
+  const abilityInfoEl = document.getElementById('preview-ability-info');
+  if (abilityInfoEl) {
+    const abilDef = SKIN_ABILITY_DEFS[skin.id];
+    if (abilDef) {
+      abilityInfoEl.hidden = false;
+      abilityInfoEl.innerHTML =
+        '<span class="preview-ability-icon">' + abilDef.icon + '</span>' +
+        '<span class="preview-ability-name">' + abilDef.abilityName + '</span>' +
+        '<span class="preview-ability-desc">' + abilDef.desc + '</span>';
+    } else {
+      abilityInfoEl.hidden = true;
+    }
+  }
   if (!actionsEl) return;
 
   const available  = isSkinAvailable(skin);
@@ -3507,11 +3725,16 @@ function updateSkinsUI() {
       isCoinSkin && !available ? 'skin-coin-card' : '',
     ].filter(Boolean).join(' ');
 
+    const abilDef = SKIN_ABILITY_DEFS[skin.id];
+    const abilityTagHTML = abilDef
+      ? '<span class="skin-ability-tag">' + abilDef.icon + ' ' + abilDef.abilityName + '</span>'
+      : '';
     return '<div class="' + cardClasses + '" data-skin="' + skin.id + '" data-rarity="' + skin.rarity + '" role="listitem" tabindex="0">' +
       (locked ? '<span class="skin-grid-lock-icon" aria-hidden="true">\uD83D\uDD12</span>' : '') +
       '<canvas class="skin-preview skin-canvas-mini" width="80" height="80" data-skin="' + skin.id + '" aria-hidden="true"></canvas>' +
       '<span class="skin-rarity" data-rarity="' + skin.rarity + '">' + skin.rarity + '</span>' +
       '<span class="skin-name">' + skin.name + '</span>' +
+      abilityTagHTML +
       statusHTML +
       '</div>';
   }).join('');
@@ -4168,7 +4391,7 @@ function updatePlayer(dt) {
   }
 
   // -- Velocity physics ----------------------------------------------------
-  const maxSpd = player.speed;
+  const maxSpd = player.speed * SkinAbility.getDashMult();
   const hasInput = inputX !== 0 || inputY !== 0;
 
   if (hasInput) {
@@ -4209,6 +4432,10 @@ function drawPlayer() {
   const skin = getSkin();
   const now  = performance.now();
   ctx.save();
+  // Ghost Shift: flicker player alpha to show phase-through is active
+  if (SkinAbility.hasGhost()) {
+    ctx.globalAlpha = 0.38 + 0.24 * Math.sin(now / 70);
+  }
 
   // -- Per-skin outer effect (drawn behind the player) --------------------
   if (skin.effect === 'aura') {
@@ -5054,7 +5281,7 @@ function spawnWave() {
   const isPanic = panicPhase === 'wave';
   const isCamping = isPanic || _samePlayerLaneWaves >= CAMPING_WAVE_LIMIT;
   const flowTargeting = getFlowTargetingBonus();
-  // ↑ raised base pressure: 0.78 normal (was 0.72), 0.90 camping (was 0.88)
+  // ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬Ëœ raised base pressure: 0.78 normal (was 0.72), 0.90 camping (was 0.88)
   const wavePressure = Math.min(0.98, (isPanic ? 0.97 : (isCamping ? 0.90 : 0.78)) + flowTargeting);
   for (const laneIdx of blocked) {
     if (obstacles.length >= MAX_OBSTACLES) break;
@@ -5273,7 +5500,7 @@ function pickSafeLane(playerLane) {
 // \u2022 Blocked lanes are sorted so the player's side fills first - directional pressure.
 function pickBlockedLanes(safeLane, playerLane) {
   const b          = difficultyBumps;
-  // ↑ more lanes blocked sooner: 5 from b<1, all-but-safe from b<3
+  // ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬Ëœ more lanes blocked sooner: 5 from b<1, all-but-safe from b<3
   const maxBlocked = b < 1 ? 5 : (b < 3 ? NUM_LANES - 1 : NUM_LANES - 1);
 
   const allBlocked = [];
@@ -5342,10 +5569,24 @@ function updateObstacles(dt) {
 
     // -- Y advance -------------------------------------------------------------
     // Pulse blocks track center-Y so height scaling stays anchored.
+    // Frost Aura slows block fall speed by 35%.
+    const _frostMult = SkinAbility.hasFrost() ? 0.65 : 1;
     if (ob.pulseAmp > 0) {
-      ob.cy += ob.vy * dt;
+      ob.cy += ob.vy * dt * _frostMult;
     } else {
-      ob.y += ob.vy * dt;
+      ob.y += ob.vy * dt * _frostMult;
+    }
+
+    // -- Pulse Wave kick: push obstacle away from player ----------------------
+    if (ob.pulseKickVx) {
+      const nx = Math.max(0, Math.min(canvas.width - ob.w, ob.x + ob.pulseKickVx * dt));
+      if (ob.swayAmp > 0) ob.originX += (nx - ob.x); // keep sway origin in sync
+      ob.x  = nx;
+      ob.y += ob.pulseKickVy * dt;
+      const kickDecay = Math.exp(-6 * dt);
+      ob.pulseKickVx *= kickDecay;
+      ob.pulseKickVy *= kickDecay;
+      if (Math.abs(ob.pulseKickVx) < 0.5) { ob.pulseKickVx = 0; ob.pulseKickVy = 0; }
     }
 
     // -- Sway: smooth sine sweep left-right --------------------------------
@@ -5602,6 +5843,17 @@ function updateCoinItems(dt) {
   for (let i = coinItems.length - 1; i >= 0; i--) {
     const c = coinItems[i];
     c.y += c.vy * dt;
+    // -- Coin Magnet ability: pull coins toward player when active ---------------
+    if (SkinAbility.hasMagnet()) {
+      const mdx = player.x - c.x;
+      const mdy = player.y - c.y;
+      const md  = Math.sqrt(mdx * mdx + mdy * mdy) || 1;
+      if (md < 220) {
+        const pull = 210 * (1 - md / 220);
+        c.x += (mdx / md) * pull * dt;
+        c.y += (mdy / md) * pull * dt;
+      }
+    }
     const dx   = player.x - c.x;
     const dy   = player.y - c.y;
     const dist = Math.sqrt(dx * dx + dy * dy);
@@ -5609,11 +5861,11 @@ function updateCoinItems(dt) {
       AudioManager.playSound('coin');
       applyFlowDelta(FLOW_CONFIG.coinGainPerCoin * c.value, 'coin');
 
-      // Exactly +1 coin per physical pickup — no multipliers, no flow scaling
+      // Exactly +1 coin per physical pickup ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â no multipliers, no flow scaling
       roundCoins += 1;
       updateRoundCoinHUD();
 
-      // Streak tracking — visual feedback only, no extra coins
+      // Streak tracking ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â visual feedback only, no extra coins
       coinStreakCount++;
       coinStreakTimer = 0.65; // window to extend the streak
       if (coinStreakCount === 3) {
@@ -6205,6 +6457,25 @@ function checkCollisions() {
     if (distCircleRect(player.x, player.y, player.radius, ob.x, ob.y, ob.w, ob.h) >= player.radius) continue;
     if (!isDangerous(ob)) continue; // safe color - re-checked against current forbiddenIndex
 
+    // Ghost Shift (skin ability): phase through dangerous blocks
+    if (SkinAbility.hasGhost()) {
+      obstacles.splice(i, 1);
+      spawnParticles(ob.x + ob.w / 2, ob.y + ob.h / 2, '#e2e8f0', settings.reducedMotion ? 4 : 10);
+      continue;
+    }
+    // Neon Shield (skin ability): absorb one collision then start recharge
+    if (SkinAbility.hasSkinShield()) {
+      SkinAbility.onShieldBroken();
+      applyFlowDelta(-FLOW_CONFIG.shieldHitPenalty, 'shield-hit');
+      obstacles.splice(i, 1);
+      spawnParticles(ob.x + ob.w / 2, ob.y + ob.h / 2, '#38bdf8', settings.reducedMotion ? 8 : 18);
+      addFloating(player.x, player.y - 55, '\uD83D\uDEE1 Shield Broke!', '#38bdf8');
+      triggerShake(6, 0.22);
+      if (navigator.vibrate) navigator.vibrate(50);
+      Announce.say('Skin shield absorbed a hit.');
+      continue;
+    }
+
     if (player.hasShield) {
       player.hasShield = false;
       if (activePowerupKey === 'SHIELD') { activePowerupKey = null; updatePowerupDisplay(); }
@@ -6735,6 +7006,13 @@ function render(ts) {
   ctx.translate(shakeX, shakeY);
   drawBackground();
   obstacles.forEach(drawObstacle);
+  // Frost Aura: subtle blue screen wash while the slow is active
+  if (SkinAbility.hasFrost() && !settings.reducedMotion) {
+    ctx.globalAlpha = 0.07;
+    ctx.fillStyle   = '#93c5fd';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.globalAlpha = 1;
+  }
   powerups.forEach(drawPowerup);
   coinItems.forEach(drawCoinItem);
   drawTrail();
@@ -6823,6 +7101,7 @@ function gameLoop(ts) {
     }
 
     updatePlayer(dt);
+    SkinAbility.tick(dt);
     tickFlowSystem(dt);
     tickShake(dt);
     if (colorChangeGrace > 0) colorChangeGrace -= dt;
@@ -6841,7 +7120,7 @@ function gameLoop(ts) {
     tickPanicWave(dt);
     tickDoubleDanger(dt);
     tickMiniGoal();
-    // Music.tick(dt) removed — synthesized game music replaced by ThemePlayer (MP3)
+    // Music.tick(dt) removed ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â synthesized game music replaced by ThemePlayer (MP3)
     maybeUpdateHud(ts);
 
     // Survival time milestones
@@ -6968,6 +7247,7 @@ function startGame() {
   setTimeout(() => {
     resizeCanvas();
     initPlayer();
+    SkinAbility.reset();
     resetFlowState(player.x, player.y);
     updateComboDisplay();
     // Pre-fill obstacles so there's immediate on-screen pressure
@@ -7414,7 +7694,7 @@ function onCanvasPointerUp(e) {
 }
 
 // ============================================================
-// TUTORIAL — first-time stepped How-To-Play
+// TUTORIAL ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â first-time stepped How-To-Play
 // ============================================================
 const Tutorial = (() => {
   const STEPS = 5;
@@ -7478,7 +7758,7 @@ const Tutorial = (() => {
     _goTo(0, 'fwd');
     // Show/hide Start Game button label depending on mode
     const startBtn = document.getElementById('tut-btn-start');
-    if (startBtn) startBtn.textContent = _onComplete ? '▶ Start Game' : '✓ Done';
+    if (startBtn) startBtn.textContent = _onComplete ? 'ÃƒÂ¢Ã¢â‚¬â€œÃ‚Â¶ Start Game' : 'ÃƒÂ¢Ã…â€œÃ¢â‚¬Å“ Done';
     showModal('modal-howtoplay');
     // Focus first focusable element
     setTimeout(() => {
@@ -7501,7 +7781,7 @@ const Tutorial = (() => {
     if (back)  back.addEventListener('click',  () => { Audio.uiClick(); _goTo(Math.max(_step - 1, 0), 'back'); });
     if (skip)  skip.addEventListener('click',  () => { Audio.uiClick(); _finish(); });
     if (start) start.addEventListener('click', () => { Audio.uiClick(); _finish(); });
-    // ✕ marks seen (so it never auto-shows again) but does NOT start game
+    // ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¢ marks seen (so it never auto-shows again) but does NOT start game
     if (close) close.addEventListener('click', () => { Audio.uiClick(); _markSeen(); _onComplete = null; hideModal('modal-howtoplay'); });
   }
 
@@ -7557,7 +7837,7 @@ function init() {
   document.addEventListener('touchstart',  _unlockAudio, { capture: true, passive: true, once: true });
   document.addEventListener('pointerdown', _unlockAudio, { capture: true, passive: true, once: true });
 
-  // Home screen — Play button: show tutorial first time, otherwise start directly
+  // Home screen ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Play button: show tutorial first time, otherwise start directly
   document.getElementById('btn-start').addEventListener('click', () => {
     Audio.uiClick();
     if (!Tutorial.hasSeen()) {
@@ -7587,7 +7867,7 @@ function init() {
     showModal('modal-progress');
   });
 
-  // Gear settings button → open drawer
+  // Gear settings button ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ open drawer
   const _gearBtn = document.getElementById('btn-gear-settings');
   if (_gearBtn) _gearBtn.addEventListener('click', () => { Audio.uiClick(); openSettingsDrawer(); });
 
@@ -7595,7 +7875,7 @@ function init() {
   const _drawerClose = document.getElementById('btn-settings-close');
   if (_drawerClose) _drawerClose.addEventListener('click', () => { closeSettingsDrawer(); });
 
-  // Drawer overlay click → close
+  // Drawer overlay click ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ close
   const _drawerOverlay = document.getElementById('settings-drawer-overlay');
   if (_drawerOverlay) _drawerOverlay.addEventListener('click', () => { closeSettingsDrawer(); });
 
@@ -7619,7 +7899,7 @@ function init() {
     saveSettings(); applySettingsToUI(); applyColorMode(); AudioManager.refreshAllVolumes();
   });
 
-  // Help button → How To Play
+  // Help button ÃƒÂ¢Ã¢â‚¬Â Ã¢â‚¬â„¢ How To Play
   const _btnHelp = document.getElementById('btn-help');
   if (_btnHelp) _btnHelp.addEventListener('click', () => { Audio.uiClick(); Tutorial.open(null); });
   // btn-htp-close is handled inside Tutorial.bindButtons()
@@ -7727,76 +8007,79 @@ document.addEventListener('DOMContentLoaded', init);
 
 
 // ============================================================
-// LEADERBOARD MODULE
+// LEADERBOARD MODULE  (v2 ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â proper daily/weekly/global + fake seed)
 // ============================================================
 // Architecture: LeaderboardService handles all data.
 // LeaderboardUI handles rendering.
 // Backend: Firebase Firestore (collection: "leaderboard")
+//   Each player has ONE doc (ID = localStorage playerId UUID).
+//   Doc fields: score (global best), weeklyScore + weekId,
+//                dailyScore + dayId, playerName, playerId.
+// Fake players: seeded once per day to leaderboard collection.
 // Fallback: localStorage when Firebase is unavailable.
 // ============================================================
 
 const LeaderboardService = (() => {
-  // ── Constants ──────────────────────────────────────────────
-  const COLLECTION  = 'leaderboard';  // Firestore collection name
-  const TOP_N       = 25;             // scores to display per board (was 10 — too few)
+  // ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Constants ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
+  const COLLECTION  = 'leaderboard';
+  const TOP_N       = 100;
   const LOCAL_KEY   = 'forbiddenColor_leaderboard';
   const NAMES_KEY   = 'forbiddenColor_playerName';
-  const ANON_KEY    = 'forbiddenColor_anonTag';  // persistent anonymous tag
-  const MAX_LOCAL   = 30;
+  const ANON_KEY    = 'forbiddenColor_anonTag';
+  const MAX_LOCAL   = 50;
 
-  // Board load state: 'loading' | 'ok' | 'error' | 'offline'
+  // Per-board state & cache
   const _boardState = { alltime: 'loading', daily: 'loading', weekly: 'loading' };
-  // Cache populated by Firestore onSnapshot listeners
   const _cache      = { alltime: [], daily: [], weekly: [] };
 
-  // ── Player name ────────────────────────────────────────────
+  // ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Date helpers ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
+  // ISO 8601 week: YYYY-Www, computed in UTC so all clients agree.
+  function _getWeekId() {
+    const d = new Date();
+    // Thursday in current week determines the year (ISO rule)
+    const thu = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + 3 - ((d.getUTCDay() + 6) % 7)));
+    const yearStart = new Date(Date.UTC(thu.getUTCFullYear(), 0, 4));
+    const week = 1 + Math.round(((thu - yearStart) / 86400000 - 3 + (yearStart.getUTCDay() + 6) % 7) / 7);
+    return thu.getUTCFullYear() + '-W' + String(week).padStart(2, '0');
+  }
+  function _getDayId() {
+    const d = new Date();
+    return d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0') + '-' + String(d.getUTCDate()).padStart(2, '0');
+  }
+
+  // ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Player name ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
   let _playerName = null;
 
-  // Returns a stable "Anonymous XXXX" tag for players without a chosen name.
-  // Stored in localStorage so it stays consistent across sessions.
   function _getAnonTag() {
     let tag = null;
     try { tag = localStorage.getItem(ANON_KEY); } catch (_) {}
     if (!tag) {
-      // Generate a 4-digit random id the first time
       tag = 'Anon' + String(Math.floor(1000 + Math.random() * 9000));
       try { localStorage.setItem(ANON_KEY, tag); } catch (_) {}
     }
     return tag;
   }
-
   function getPlayerName() {
     if (_playerName) return _playerName;
     try { _playerName = localStorage.getItem(NAMES_KEY) || null; } catch (_) {}
     return _playerName;
   }
-
-  // Returns the name to display for this player (chosen name or stable anon tag)
-  function getDisplayName() {
-    return getPlayerName() || _getAnonTag();
-  }
+  function getDisplayName() { return getPlayerName() || _getAnonTag(); }
 
   function setPlayerName(name) {
     _playerName = name;
     try { localStorage.setItem(NAMES_KEY, name); } catch (_) {}
-    // Best-effort: update the name on the player's existing Firestore doc
     _fbUpdateName(name);
   }
-
   async function _fbUpdateName(name) {
     if (window._fbReady) await window._fbReady;
     const db = window._fbDb; if (!db) return;
-    const uid = window._fbGetUserId ? window._fbGetUserId() : null;
-    if (!uid) return;
+    const pid = window._fbPlayerId || window._fbGetUserId();
+    if (!pid) return;
     const safeName = String(name || '').trim().slice(0, 12);
     if (!safeName) return;
-    try {
-      await db.collection(COLLECTION).doc(uid).update({ playerName: safeName });
-    } catch (_) {
-      // Doc may not exist yet — will be set with correct name on next score submit
-    }
+    try { await db.collection(COLLECTION).doc(pid).update({ playerName: safeName }); } catch (_) {}
   }
-
   function validateName(name) {
     if (!name || typeof name !== 'string') return 'Name is required.';
     const t = name.trim();
@@ -7809,7 +8092,7 @@ const LeaderboardService = (() => {
     return null;
   }
 
-  // ── Local scores (localStorage — always available) ─────────
+  // ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Local scores (localStorage fallback) ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
   let _localScores = null;
   function _loadLocal() {
     if (_localScores) return;
@@ -7824,8 +8107,13 @@ const LeaderboardService = (() => {
   }
   function _submitLocal(score, name) {
     _loadLocal();
-    const entry = { name: name || 'You', score: Math.floor(score), date: Date.now() };
-    _localScores.push(entry);
+    // One entry per player name ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â keep their best only
+    const existing = _localScores.find(e => e.name === name);
+    if (existing) {
+      if (score > existing.score) existing.score = Math.floor(score);
+    } else {
+      _localScores.push({ name: name || 'You', score: Math.floor(score), date: Date.now() });
+    }
     _localScores.sort((a, b) => b.score - a.score);
     if (_localScores.length > MAX_LOCAL) _localScores = _localScores.slice(0, MAX_LOCAL);
     _saveLocal();
@@ -7834,61 +8122,143 @@ const LeaderboardService = (() => {
     _loadLocal();
     return _localScores.slice();
   }
-  function resetLocalLeaderboard() {
-    _localScores = [];
-    _saveLocal();
+  function resetLocalLeaderboard() { _localScores = []; _saveLocal(); }
+
+  // ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Fake player seed data ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
+  // 50 fake players seeded to Firebase once per day.
+  // Doc IDs are deterministic (fake_<name>) ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â never clash with real
+  // player IDs (which start with 'p' + timestamp).
+  // isFakePlayer: true prevents score displays from treating them as real.
+  const _FAKE_NAMES = [
+    'NeonRider','PixelNinja','TurboFox','ShadowDash','OrbitWolf',
+    'NovaByte','DashKnight','GlitchTiger','VortexAce','FrostRunner',
+    'CosmicWolf','RapidFalcon','BlazeByte','PhantomAce','StormPixel',
+    'LunarDash','CyberTiger','RocketPanda','QuantumFox','FlashRider',
+    'NebulaByte','IronPixel','PlasmaFox','ZenithDash','SonicAce',
+    'TitanByte','ArcaneWolf','PrismBlade','VoidHunter','FlarePulse',
+    'CrystalEdge','NightFalcon','HyperNova','StealthPix','OmegaDash',
+    'ZephyrAce','IonNinja','ChromeFox','ApexRider','BurstWolf',
+    'EchoPixel','DarkNova','NexusByte','SwiftAce','PulseDash',
+    'HexaGlitch','TurboAce','PhaseShift','CycloneX','WarpCore',
+  ];
+  function _ri(min, max) { return Math.floor(min + Math.random() * (max - min + 1)); }
+
+  async function _seedFakePlayers(db) {
+    const weekId = _getWeekId();
+    const dayId  = _getDayId();
+    const metaId = '_seed_meta';
+    const metaRef = db.collection(COLLECTION).doc(metaId);
+    try {
+      const metaSnap = await metaRef.get();
+      if (metaSnap.exists) {
+        const m = metaSnap.data();
+        if (m.dayId === dayId) return; // already seeded today
+      }
+      // Claim seed slot before batch to prevent concurrent duplicates
+      await metaRef.set({
+        playerId: metaId, playerName: '_seed', score: 0,
+        dayId, weekId, isFakePlayer: false,
+        seededAt: firebase.firestore.FieldValue.serverTimestamp(),
+      }, { merge: true });
+
+      // Firestore batch limit: 500 writes per batch.
+      // 50 fake players = 50 writes ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â fits in one batch.
+      const batch = db.batch();
+      for (let i = 0; i < _FAKE_NAMES.length; i++) {
+        const name   = _FAKE_NAMES[i];
+        const fakeId = 'fake_' + name.toLowerCase().replace(/[^a-z0-9]/g, '');
+        // Spread scores across a realistic distribution
+        const rank  = i / _FAKE_NAMES.length; // 0 = top, 1 = bottom
+        const globalScore  = _ri(Math.floor(12000 + (1 - rank) * 450000), Math.floor(18000 + (1 - rank) * 480000));
+        const weeklyScore  = _ri(Math.floor(globalScore * 0.45), Math.floor(globalScore * 0.92));
+        const dailyScore   = _ri(Math.floor(weeklyScore  * 0.35), Math.floor(weeklyScore  * 0.82));
+        const ref = db.collection(COLLECTION).doc(fakeId);
+        batch.set(ref, {
+          playerId:    fakeId,
+          playerName:  name,
+          score:       globalScore,
+          weeklyScore, weekId,
+          dailyScore,  dayId,
+          isFakePlayer: true,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        }, { merge: true });
+      }
+      await batch.commit();
+    } catch (err) {
+      if (err.code === 'permission-denied') {
+        console.warn('[ShiftPanic] Fake player seeding blocked by Firestore rules. Update rules per firebase-client.js header.');
+      } else if (err.code !== 'unavailable') {
+        console.warn('[Firebase] Seed error:', err.code || err.message);
+      }
+    }
   }
 
-  // ── Firebase submit (fire-and-forget) ──────────────────────
-  // Writes / updates the player's single doc in the "leaderboard" collection.
-  // Doc ID = player UID (one doc per player — stores their best score only).
-  // Uses a transaction so the stored score only ever increases.
+  // ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Firebase score submission ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
+  // One doc per player (doc ID = localStorage UUID).
+  // Per-period best scores only ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â never writes a lower score.
   async function _fbSubmit(score, name) {
     if (window._fbReady) await window._fbReady;
-    const db = window._fbDb;
-    if (!db) return;
-
-    let uid = window._fbGetUserId ? window._fbGetUserId() : null;
-    if (!uid && window._fbWaitForAuth) {
-      await window._fbWaitForAuth();
-      uid = window._fbGetUserId ? window._fbGetUserId() : null;
-    }
-    if (!uid) return;
+    const db = window._fbDb; if (!db) return;
+    if (window._fbWaitForAuth) await window._fbWaitForAuth();
+    const pid = window._fbPlayerId || window._fbGetUserId();
+    if (!pid) return;
 
     const intScore = Math.floor(score);
     if (intScore <= 0) return;
     const safeName = String(name || _getAnonTag()).trim().slice(0, 12) || _getAnonTag();
-    const ref = db.collection(COLLECTION).doc(uid);
+    const weekId   = _getWeekId();
+    const dayId    = _getDayId();
+    const ref = db.collection(COLLECTION).doc(pid);
 
     try {
       await db.runTransaction(async tx => {
         const snap = await tx.get(ref);
-        const existingScore = snap.exists ? (typeof snap.data().score === 'number' ? snap.data().score : parseInt(snap.data().score, 10) || 0) : 0;
-        // Only write if this is a new personal best
-        if (!snap.exists || existingScore < intScore) {
-          tx.set(ref, {
-            playerName: safeName,
-            score:      intScore,
-            playerId:   uid,
-            updatedAt:  firebase.firestore.FieldValue.serverTimestamp(),
-          }, { merge: true });
+        const ex   = snap.exists ? snap.data() : {};
+
+        const update = {
+          playerId:    pid,
+          playerName:  safeName,
+          isFakePlayer: false,
+          updatedAt:   firebase.firestore.FieldValue.serverTimestamp(),
+        };
+
+        // Global all-time best: only increase
+        if (!snap.exists || (ex.score || 0) < intScore) {
+          update.score = intScore;
+        }
+        // Weekly best: reset on new week, otherwise only increase
+        if (!snap.exists || ex.weekId !== weekId || (ex.weeklyScore || 0) < intScore) {
+          update.weeklyScore = intScore;
+          update.weekId      = weekId;
+        }
+        // Daily best: reset on new day, otherwise only increase
+        if (!snap.exists || ex.dayId !== dayId || (ex.dailyScore || 0) < intScore) {
+          update.dailyScore = intScore;
+          update.dayId      = dayId;
+        }
+
+        if (!snap.exists) {
+          update.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+          tx.set(ref, update);
+        } else {
+          tx.update(ref, update);
         }
       });
     } catch (err) {
-      console.warn('[Firebase] submitScore failed:', err.code || err.message);
+      if (err.code === 'permission-denied') {
+        console.warn('[ShiftPanic] Score write blocked by Firestore rules. Update rules per firebase-client.js header.');
+      } else {
+        console.warn('[Firebase] submitScore failed:', err.code || err.message);
+      }
     }
   }
 
-  // ── Assign stable "Anonymous N" display labels ─────────────
-  // Entries from Firestore that have no real chosen name (empty, 'Player',
-  // or an auto-generated AnonXXXX tag) are re-labelled "Anonymous 1 / 2 / …"
-  // in rank order so the leaderboard looks clean.
+  // ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Anonymous display label assignment ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
   function _applyAnonLabels(entries) {
-    const currentUid = window._fbGetUserId ? window._fbGetUserId() : null;
     let anonCount = 0;
     return entries.map(e => {
-      // Detect "no real name": blank, 'Player', or matching our own anon pattern
-      const hasRealName = e.name && e.name.length >= 3 && !/^Anon\d{4}$/.test(e.name) && e.name !== 'Player';
+      const hasRealName = e.name && e.name.length >= 3
+        && !/^Anon\d{4}$/.test(e.name) && e.name !== 'Player';
       if (!hasRealName) {
         anonCount++;
         return { ...e, name: 'Anonymous ' + anonCount };
@@ -7897,19 +8267,14 @@ const LeaderboardService = (() => {
     });
   }
 
-  // ── Firestore real-time subscription ──────────────────────
+  // ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Firestore real-time subscription ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
   // Returns an unsubscribe function.
+  // boardType: 'alltime' | 'weekly' | 'daily' | 'local'
+  // Each board type issues a DIFFERENT Firestore query, so all
+  // three tabs show genuinely different data.
   function subscribeToLeaderboard(boardType, limitArg, callback) {
     if (boardType === 'local') {
       if (callback) setTimeout(() => callback([]), 0);
-      return () => {};
-    }
-
-    // Reuse cached alltime data for daily/weekly tabs (no separate query needed)
-    if (boardType !== 'alltime' && _boardState['alltime'] === 'ok') {
-      _boardState[boardType] = 'ok';
-      _cache[boardType]      = _cache['alltime'];
-      if (callback) setTimeout(() => callback(_cache[boardType]), 0);
       return () => {};
     }
 
@@ -7917,7 +8282,7 @@ const LeaderboardService = (() => {
     let _unsub     = null;
     let _cancelled = false;
 
-    if (callback) setTimeout(() => callback([]), 0);
+    if (callback) setTimeout(() => callback([]), 0); // immediate loading state trigger
 
     const fetchLimit = Math.min(typeof limitArg === 'number' && limitArg > 0 ? limitArg : TOP_N, 100);
 
@@ -7926,66 +8291,105 @@ const LeaderboardService = (() => {
 
       const db = window._fbDb;
       if (!db) {
+        // Offline: fall back to localStorage
         _loadLocal();
         const fallback = _applyAnonLabels(
           (_localScores || []).slice(0, TOP_N).map((e, i) => ({
             name: e.name, score: e.score, isPlayer: i === 0,
           }))
         );
-        _boardState[boardType] = 'offline';
-        _cache[boardType]      = fallback;
         ['alltime','daily','weekly'].forEach(t => {
-          if (t !== boardType) { _boardState[t] = 'offline'; _cache[t] = fallback; }
+          _boardState[t] = 'offline';
+          _cache[t]      = fallback;
         });
         if (callback) callback(fallback);
         return;
       }
 
-      const query = db.collection(COLLECTION)
-        .orderBy('score', 'desc')
-        .limit(fetchLimit);
+      // Trigger fake player seeding for this day (fire-and-forget)
+      _seedFakePlayers(db);
+
+      const weekId = _getWeekId();
+      const dayId  = _getDayId();
+
+      // Build the correct Firestore query per board type
+      let query;
+      if (boardType === 'alltime') {
+        // Simple: order all docs by global best score desc
+        query = db.collection(COLLECTION)
+          .orderBy('score', 'desc')
+          .limit(fetchLimit);
+      } else if (boardType === 'weekly') {
+        // Requires composite index: weekId ASC + weeklyScore DESC
+        query = db.collection(COLLECTION)
+          .where('weekId', '==', weekId)
+          .orderBy('weeklyScore', 'desc')
+          .limit(fetchLimit);
+      } else { // daily
+        // Requires composite index: dayId ASC + dailyScore DESC
+        query = db.collection(COLLECTION)
+          .where('dayId', '==', dayId)
+          .orderBy('dailyScore', 'desc')
+          .limit(fetchLimit);
+      }
+
+      const currentPid  = window._fbPlayerId || window._fbGetUserId();
+      // Which field holds the display score for each board type
+      const scoreField  = boardType === 'weekly' ? 'weeklyScore'
+                        : boardType === 'daily'  ? 'dailyScore'
+                        : 'score';
 
       _unsub = query.onSnapshot(function (snap) {
         if (_cancelled) return;
-        const currentUid = window._fbGetUserId ? window._fbGetUserId() : null;
 
-        const entries = snap.docs.map(doc => {
-          const d = doc.data();
-          return {
-            uid:      doc.id,
-            name:     d.playerName || '',
-            score:    typeof d.score === 'number' ? d.score : (parseInt(d.score, 10) || 0),
-            isPlayer: doc.id === currentUid || d.playerId === currentUid,
-          };
-        });
+        const entries = snap.docs
+          .filter(doc => doc.id !== '_seed_meta')
+          .map(doc => {
+            const d = doc.data();
+            const s = typeof d[scoreField] === 'number' ? d[scoreField]
+                    : (parseInt(d[scoreField], 10) || 0);
+            return {
+              uid:      doc.id,
+              name:     d.playerName || '',
+              score:    s,
+              isPlayer: doc.id === currentPid || d.playerId === currentPid,
+              isFake:   !!d.isFakePlayer,
+            };
+          })
+          .filter(e => e.score > 0);
 
         const playerInList = entries.some(e => e.isPlayer);
 
         function _finalize(allEntries) {
-          // Ensure sorted descending
           allEntries.sort((a, b) => b.score - a.score);
           const labelled = _applyAnonLabels(allEntries);
-          ['alltime','daily','weekly'].forEach(t => {
-            _boardState[t] = 'ok';
-            _cache[t]      = labelled;
-          });
+          _boardState[boardType] = 'ok';
+          _cache[boardType]      = labelled;
           if (callback) callback(labelled);
         }
 
-        // If the current player is not in the top list, fetch their doc separately
-        // so we can show their rank below the leaderboard
-        if (!playerInList && currentUid && db) {
-          db.collection(COLLECTION).doc(currentUid).get().then(playerSnap => {
-            if (playerSnap.exists) {
-              const pd = playerSnap.data();
-              const playerEntry = {
+        // If current player isn't in the top list, fetch their doc and append
+        // as an "outsideTop" entry so UI can show their rank below the board.
+        if (!playerInList && currentPid) {
+          db.collection(COLLECTION).doc(currentPid).get().then(playerSnap => {
+            if (!playerSnap.exists) { _finalize(entries); return; }
+            const pd = playerSnap.data();
+            let pScore;
+            if (boardType === 'weekly') {
+              pScore = pd.weekId === weekId ? (pd.weeklyScore || 0) : 0;
+            } else if (boardType === 'daily') {
+              pScore = pd.dayId === dayId ? (pd.dailyScore || 0) : 0;
+            } else {
+              pScore = pd.score || 0;
+            }
+            if (pScore > 0) {
+              _finalize(entries.concat({
                 uid:        playerSnap.id,
                 name:       pd.playerName || '',
-                score:      typeof pd.score === 'number' ? pd.score : (parseInt(pd.score, 10) || 0),
+                score:      pScore,
                 isPlayer:   true,
-                outsideTop: true,  // flag so UI can show a separator
-              };
-              _finalize(entries.concat(playerEntry));
+                outsideTop: true,
+              }));
             } else {
               _finalize(entries);
             }
@@ -7993,10 +8397,17 @@ const LeaderboardService = (() => {
         } else {
           _finalize(entries);
         }
+
       }, function (err) {
         if (_cancelled) return;
-        console.warn('[Firebase] Leaderboard listener error:', err.code || err.message);
-        ['alltime','daily','weekly'].forEach(t => { _boardState[t] = 'error'; });
+        if (err.code === 'failed-precondition') {
+          // Composite index not created yet ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â Firestore error message contains the link
+          console.warn('[ShiftPanic] Missing Firestore composite index for "' + boardType + '" board.', err.message);
+          _boardState[boardType] = 'index';
+        } else {
+          console.warn('[Firebase] Leaderboard listener error:', err.code || err.message);
+          _boardState[boardType] = 'error';
+        }
         if (callback) callback(_cache[boardType] || []);
       });
     });
@@ -8007,7 +8418,7 @@ const LeaderboardService = (() => {
     };
   }
 
-  // ── getLeaderboard (sync — reads from cache) ───────────────
+  // ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ Sync-read from cache (called by UI) ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬ÃƒÂ¢Ã¢â‚¬ÂÃ¢â€šÂ¬
   function getLeaderboard(type) {
     if (type === 'local') {
       _loadLocal();
@@ -8019,15 +8430,12 @@ const LeaderboardService = (() => {
     }
     return _cache[type] || [];
   }
-
   function getBoardState(type) {
     if (type === 'local') return 'ok';
     return _boardState[type] || 'ok';
   }
-
   function getPlayerRank(type) {
     const board = getLeaderboard(type);
-    // outsideTop entries are outside the ranked list — don't count them as a clean rank
     const idx   = board.findIndex(e => e.isPlayer && !e.outsideTop);
     return idx === -1 ? null : idx + 1;
   }
@@ -8039,7 +8447,6 @@ const LeaderboardService = (() => {
     _submitLocal(score, n);
     _fbSubmit(score, n); // intentionally not awaited
   }
-
   function getRankSummary(score) {
     if (!score || score <= 0) return null;
     const board = getLeaderboard('alltime');
@@ -8048,21 +8455,13 @@ const LeaderboardService = (() => {
   }
 
   return {
-    getLeaderboard,
-    getBoardState,
-    getPlayerRank,
-    submitScore,
-    resetLocalLeaderboard,
-    getPlayerName,
-    getDisplayName,
-    setPlayerName,
-    validateName,
-    getRankSummary,
+    getLeaderboard, getBoardState, getPlayerRank, submitScore, resetLocalLeaderboard,
+    getPlayerName, getDisplayName, setPlayerName, validateName, getRankSummary,
     subscribeToLeaderboard,
   };
 })();
 
-// ============================================================
+
 // LEADERBOARD UI
 // ============================================================
 const LeaderboardUI = (() => {
@@ -8177,14 +8576,14 @@ const LeaderboardUI = (() => {
         container.innerHTML =
           '<div class="lb-loading" aria-live="polite">' +
             '<span class="lb-loading-spinner" aria-hidden="true"></span>' +
-            'Loading scores…' +
+            'Loading scoresΓÇª' +
           '</div>';
         return;
       }
       if (state === 'error') {
         container.innerHTML =
           '<div class="lb-empty">' +
-            '<span class="lb-empty-icon">⚠️</span>' +
+            '<span class="lb-empty-icon">ΓÜá∩╕Å</span>' +
             'Could not load scores.<br>Check your connection and try again.' +
           '</div>';
         return;
@@ -8229,7 +8628,7 @@ const LeaderboardUI = (() => {
 
     // If player is outside the top list, show a separator + their row at the bottom
     if (outsideEntry) {
-      html += '<div class="lb-separator" role="separator">· · ·</div>';
+      html += '<div class="lb-separator" role="separator">┬╖ ┬╖ ┬╖</div>';
       html += '<div class="lb-row lb-row-you' + (highlightNew ? ' lb-new' : '') + '" data-rank="' + outsideRank + '" role="listitem">' +
         '<div class="lb-rank"><span class="lb-rank-num">' + outsideRank + '</span></div>' +
         '<div class="lb-player"><span class="lb-player-name">' + _esc(outsideEntry.name) + '<span class="lb-you-badge">YOU</span></span></div>' +
@@ -8282,7 +8681,7 @@ const LeaderboardUI = (() => {
 
   // -- Post-run rank display ---------------------------------
   function showPostRunRank(score, wasNewBest) {
-    // Submit the score (always — uses transaction so only personal bests are stored)
+    // Submit the score (always ΓÇö uses transaction so only personal bests are stored)
     LeaderboardService.submitScore(score, LeaderboardService.getDisplayName());
 
     const rank    = LeaderboardService.getPlayerRank('alltime');
@@ -8360,7 +8759,7 @@ const LeaderboardUI = (() => {
     if (dialog)  dialog.hidden = true;
   }
 
-  // refreshActive — called externally to re-render the currently visible tab
+  // refreshActive ΓÇö called externally to re-render the currently visible tab
   // (e.g. after a score submit so the UI stays in sync)
   function refreshActive() {
     if (_isOpen) renderBoard(_activeTab);
@@ -8414,7 +8813,7 @@ const LeaderboardUI = (() => {
     const ndSave = document.getElementById('nd-save');
     if (ndSave) ndSave.addEventListener('click', _saveName);
 
-    // Name dialog: cancel / skip — keep anon tag, still resolve callback
+    // Name dialog: cancel / skip ΓÇö keep anon tag, still resolve callback
     const ndCancel = document.getElementById('nd-cancel');
     if (ndCancel) ndCancel.addEventListener('click', () => {
       const cb = _nameResolve; _nameResolve = null;
