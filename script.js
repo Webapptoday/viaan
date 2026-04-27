@@ -2401,6 +2401,12 @@ const ThemePlayer = (() => {
     _ctx = Audio.getCtx();
     if (!_ctx) return false;
 
+    // Attach an error listener so a 404 or network fail never crashes the game
+    _audioEl.addEventListener('error', (ev) => {
+      const code = _audioEl.error ? _audioEl.error.code : '?';
+      console.warn('[ThemePlayer] Audio load error (code ' + code + '). Music will be silent. src=' + _audioEl.src);
+    }, { once: false });
+
     try {
       _srcNode  = _ctx.createMediaElementSource(_audioEl);
       _gainNode = _ctx.createGain();
