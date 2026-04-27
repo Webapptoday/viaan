@@ -8,8 +8,5 @@
         { "key": "Accept-Ranges", "value": "bytes" }
       ]
     }
-  ],
-  "rewrites": [
-    { "source": "/((?!api/).*)", "destination": "/$1" }
   ]
 }
