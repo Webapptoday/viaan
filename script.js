@@ -564,6 +564,9 @@ const ECONOMY_VERSION = 2; // increment to trigger a one-time coin balance reset
 const SKIN_VERSION    = 1; // increment to trigger a one-time purchased-skins reset
 let settings = {
   sound:          true,
+  masterVol:      0.85,
+  musicVol:       0.70,
+  sfxVol:         0.80,
   reducedMotion:  false,
   highContrast:   false,
   colorblind:     false,
@@ -800,6 +803,9 @@ function loadSettings() {
       _migrated = true;
     }
     if (typeof s.sound         === 'boolean') settings.sound         = s.sound;
+    if (typeof s.masterVol     === 'number')  settings.masterVol     = Math.max(0, Math.min(1, s.masterVol));
+    if (typeof s.musicVol      === 'number')  settings.musicVol      = Math.max(0, Math.min(1, s.musicVol));
+    if (typeof s.sfxVol        === 'number')  settings.sfxVol        = Math.max(0, Math.min(1, s.sfxVol));
     if (typeof s.reducedMotion === 'boolean') settings.reducedMotion = s.reducedMotion;
     if (typeof s.highContrast  === 'boolean') settings.highContrast  = s.highContrast;
     if (typeof s.colorblind    === 'boolean') settings.colorblind    = s.colorblind;
@@ -849,12 +855,24 @@ function applySettingsToUI() {
   const cbEl    = document.getElementById('colorblind-toggle');
   const pmEl    = document.getElementById('perf-mode-toggle');
   const hsEl    = document.getElementById('home-highscore');
+  const musicVolEl = document.getElementById('music-vol-slider');
+  const sfxVolEl   = document.getElementById('sfx-vol-slider');
   if (soundEl) soundEl.checked = settings.sound;
   if (rmEl)    rmEl.checked    = settings.reducedMotion;
   if (hcEl)    hcEl.checked    = settings.highContrast;
   if (cbEl)    cbEl.checked    = settings.colorblind;
   if (pmEl)    pmEl.checked    = settings.perfMode === 'low';
   if (hsEl)    hsEl.textContent = settings.bestScore;
+  if (musicVolEl) {
+    musicVolEl.value = Math.round((settings.musicVol ?? VOL_DEFAULTS.music) * 100);
+    const lbl = document.getElementById('music-vol-val');
+    if (lbl) lbl.textContent = musicVolEl.value + '%';
+  }
+  if (sfxVolEl) {
+    sfxVolEl.value = Math.round((settings.sfxVol ?? VOL_DEFAULTS.sfx) * 100);
+    const lbl = document.getElementById('sfx-vol-val');
+    if (lbl) lbl.textContent = sfxVolEl.value + '%';
+  }
 
   // Wire change listeners once (idempotent guard via _settingsWired flag)
   if (!applySettingsToUI._wired) {
@@ -873,6 +891,18 @@ function applySettingsToUI() {
     });
     if (pmEl) pmEl.addEventListener('change', () => {
       settings.perfMode = pmEl.checked ? 'low' : 'high'; saveSettings(); applyColorMode();
+    });
+    if (musicVolEl) musicVolEl.addEventListener('input', () => {
+      settings.musicVol = parseInt(musicVolEl.value, 10) / 100;
+      const lbl = document.getElementById('music-vol-val');
+      if (lbl) lbl.textContent = musicVolEl.value + '%';
+      saveSettings(); AudioManager.refreshAllVolumes();
+    });
+    if (sfxVolEl) sfxVolEl.addEventListener('input', () => {
+      settings.sfxVol = parseInt(sfxVolEl.value, 10) / 100;
+      const lbl = document.getElementById('sfx-vol-val');
+      if (lbl) lbl.textContent = sfxVolEl.value + '%';
+      saveSettings(); AudioManager.refreshAllVolumes();
     });
   }
   updateSkinsUI();
@@ -1220,6 +1250,9 @@ function buyPowerupUpgrade(key) {
 // SECTION 4: AUDIO SYSTEM (Web Audio API)
 // ============================================================
 
+// Volume defaults — user can override via settings sliders
+const VOL_DEFAULTS = { master: 0.85, music: 0.70, sfx: 0.80 };
+
 const Audio = (() => {
   let _actx = null;
   function ctx_() {
@@ -1255,103 +1288,243 @@ const Audio = (() => {
     } catch (_e) {}
   }
 
+  // Shared SFX output gain (respects sfxVol setting)
+  let _sfxGain = null;
+  function _sfxOut() {
+    const c = ctx_(); if (!c) return null;
+    if (!_sfxGain) {
+      _sfxGain = c.createGain();
+      _sfxGain.gain.value = (settings.sfxVol ?? VOL_DEFAULTS.sfx) * (settings.masterVol ?? VOL_DEFAULTS.master);
+      _sfxGain.connect(c.destination);
+    }
+    return _sfxGain;
+  }
+
   return {
-    init()    { ctx_(); },
-    getCtx()  { return _actx; }, // shared by Music engine
-    // Called on first user gesture - creates and resumes AudioContext on iOS/Android
+    init()   { ctx_(); },
+    getCtx() { return _actx; },
     unlock() {
-      if (_actx && _actx.state !== 'suspended') return; // already running
-      ctx_(); // create if needed + call resume
+      if (_actx && _actx.state !== 'suspended') return;
+      ctx_();
+    },
+    refreshSfxVol() {
+      if (_sfxGain) {
+        _sfxGain.gain.value = (settings.sfxVol ?? VOL_DEFAULTS.sfx) * (settings.masterVol ?? VOL_DEFAULTS.master);
+      }
     },
 
-    // Soft pop: punchy sine blip with quick attack
+    // Coin collect: sparkling 3-note arpeggio C6–E6–G6
     collect() {
       if (!settings.sound) return;
       const c = ctx_(); if (!c) return;
+      const dest = _sfxOut(); if (!dest) return;
       const t = c.currentTime;
-      const osc = c.createOscillator(); const g = c.createGain();
-      osc.connect(g); g.connect(c.destination);
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(900, t);
-      osc.frequency.exponentialRampToValueAtTime(650, t + 0.07);
-      g.gain.setValueAtTime(0.0001, t);
-      g.gain.linearRampToValueAtTime(0.26, t + 0.007);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.11);
-      osc.start(t); osc.stop(t + 0.12);
+      [[1046.50, 0], [1318.51, 0.055], [1567.98, 0.110]].forEach(([freq, delay]) => {
+        const osc = c.createOscillator(); const env = c.createGain();
+        osc.type = 'sine'; osc.frequency.value = freq;
+        env.gain.setValueAtTime(0.0001, t + delay);
+        env.gain.linearRampToValueAtTime(0.28, t + delay + 0.006);
+        env.gain.exponentialRampToValueAtTime(0.0001, t + delay + 0.10);
+        osc.connect(env); env.connect(dest);
+        osc.start(t + delay); osc.stop(t + delay + 0.11);
+        const osc2 = c.createOscillator(); const env2 = c.createGain();
+        osc2.type = 'triangle'; osc2.frequency.value = freq * 2;
+        env2.gain.setValueAtTime(0.0001, t + delay);
+        env2.gain.linearRampToValueAtTime(0.08, t + delay + 0.004);
+        env2.gain.exponentialRampToValueAtTime(0.0001, t + delay + 0.07);
+        osc2.connect(env2); env2.connect(dest);
+        osc2.start(t + delay); osc2.stop(t + delay + 0.08);
+      });
     },
 
-    // Quick whoosh: bandpass noise sweep
+    // Near miss: fast downward noise whoosh
     nearMiss() {
       if (!settings.sound) return;
       const c = ctx_(); if (!c) return;
       const nb = _noise(); if (!nb) return;
+      const dest = _sfxOut(); if (!dest) return;
       const t  = c.currentTime;
       const src = c.createBufferSource(); src.buffer = nb;
       const bp  = c.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 0.9;
-      bp.frequency.setValueAtTime(3800, t);
-      bp.frequency.exponentialRampToValueAtTime(700, t + 0.14);
+      bp.frequency.setValueAtTime(4200, t);
+      bp.frequency.exponentialRampToValueAtTime(600, t + 0.14);
       const g = c.createGain();
-      src.connect(bp); bp.connect(g); g.connect(c.destination);
+      src.connect(bp); bp.connect(g); g.connect(dest);
       g.gain.setValueAtTime(0.0001, t);
-      g.gain.linearRampToValueAtTime(0.30, t + 0.010);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.15);
-      src.start(t); src.stop(t + 0.16);
+      g.gain.linearRampToValueAtTime(0.38, t + 0.008);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.16);
+      src.start(t); src.stop(t + 0.18);
     },
 
-    // Pulse: mid-freq thump + bright ring
+    // Color change: punchy low thud + metallic ping
     colorChange() {
       if (!settings.sound) return;
       const c = ctx_(); if (!c) return;
+      const dest = _sfxOut(); if (!dest) return;
       const t = c.currentTime;
       const osc = c.createOscillator(); const g = c.createGain();
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(340, t);
-      osc.frequency.exponentialRampToValueAtTime(270, t + 0.09);
+      osc.frequency.setValueAtTime(380, t);
+      osc.frequency.exponentialRampToValueAtTime(220, t + 0.10);
       g.gain.setValueAtTime(0.0001, t);
-      g.gain.linearRampToValueAtTime(0.30, t + 0.005);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.20);
-      osc.connect(g); g.connect(c.destination);
-      osc.start(t); osc.stop(t + 0.21);
-      // Bright ping on top
+      g.gain.linearRampToValueAtTime(0.38, t + 0.005);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
+      osc.connect(g); g.connect(dest);
+      osc.start(t); osc.stop(t + 0.23);
       const osc2 = c.createOscillator(); const g2 = c.createGain();
-      osc2.type = 'sine'; osc2.frequency.value = 880;
-      g2.gain.setValueAtTime(0.11, t + 0.02);
-      g2.gain.exponentialRampToValueAtTime(0.0001, t + 0.20);
-      osc2.connect(g2); g2.connect(c.destination);
-      osc2.start(t + 0.02); osc2.stop(t + 0.21);
+      osc2.type = 'sine'; osc2.frequency.value = 1760;
+      g2.gain.setValueAtTime(0.13, t + 0.015);
+      g2.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
+      osc2.connect(g2); g2.connect(dest);
+      osc2.start(t + 0.015); osc2.stop(t + 0.23);
     },
 
-    // Low bass impact: deep sine sweep + noise thud
+    // Game over: dramatic impact + descending fail stinger
     gameOver() {
       if (!settings.sound) return;
       const c = ctx_(); if (!c) return;
+      const dest = _sfxOut(); if (!dest) return;
       const t = c.currentTime;
       const osc = c.createOscillator(); const g = c.createGain();
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(130, t);
-      osc.frequency.exponentialRampToValueAtTime(32, t + 0.40);
+      osc.frequency.setValueAtTime(160, t);
+      osc.frequency.exponentialRampToValueAtTime(28, t + 0.38);
       g.gain.setValueAtTime(0.0001, t);
-      g.gain.linearRampToValueAtTime(0.60, t + 0.006);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.48);
-      osc.connect(g); g.connect(c.destination);
-      osc.start(t); osc.stop(t + 0.50);
-      // Low noise thud
+      g.gain.linearRampToValueAtTime(0.75, t + 0.005);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.45);
+      osc.connect(g); g.connect(dest);
+      osc.start(t); osc.stop(t + 0.48);
+      [[329.63, 0.08], [293.66, 0.20], [261.63, 0.34]].forEach(([freq, delay]) => {
+        const o = c.createOscillator(); const eg = c.createGain();
+        o.type = 'sawtooth'; o.frequency.value = freq;
+        const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1800;
+        eg.gain.setValueAtTime(0.0001, t + delay);
+        eg.gain.linearRampToValueAtTime(0.22, t + delay + 0.010);
+        eg.gain.exponentialRampToValueAtTime(0.0001, t + delay + 0.18);
+        o.connect(lp); lp.connect(eg); eg.connect(dest);
+        o.start(t + delay); o.stop(t + delay + 0.20);
+      });
       const nb = _noise();
       if (nb) {
         const src = c.createBufferSource(); src.buffer = nb;
-        const lp  = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 360;
+        const lp  = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 400;
         const gn  = c.createGain();
-        src.connect(lp); lp.connect(gn); gn.connect(c.destination);
+        src.connect(lp); lp.connect(gn); gn.connect(dest);
         gn.gain.setValueAtTime(0.0001, t);
-        gn.gain.linearRampToValueAtTime(0.28, t + 0.005);
-        gn.gain.exponentialRampToValueAtTime(0.0001, t + 0.24);
-        src.start(t); src.stop(t + 0.25);
+        gn.gain.linearRampToValueAtTime(0.32, t + 0.004);
+        gn.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
+        src.start(t); src.stop(t + 0.24);
       }
     },
 
-    warning()  { tone(880, .10, 'square',   .16); },
-    comboUp(n) { tone(440 + n * 50, .14, 'sine', .20); },
-    uiClick()  { tone(660, .06, 'sine',     .12); },
+    // Powerup spawn: ascending shimmer
+    powerupSpawn() {
+      if (!settings.sound) return;
+      const c = ctx_(); if (!c) return;
+      const dest = _sfxOut(); if (!dest) return;
+      const t = c.currentTime;
+      [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
+        const osc = c.createOscillator(); const env = c.createGain();
+        osc.type = 'triangle'; osc.frequency.value = freq;
+        env.gain.setValueAtTime(0.0001, t + i * 0.045);
+        env.gain.linearRampToValueAtTime(0.14, t + i * 0.045 + 0.010);
+        env.gain.exponentialRampToValueAtTime(0.0001, t + i * 0.045 + 0.14);
+        osc.connect(env); env.connect(dest);
+        osc.start(t + i * 0.045); osc.stop(t + i * 0.045 + 0.16);
+      });
+    },
+
+    // Powerup collect: exciting major chord hit
+    powerupCollect() {
+      if (!settings.sound) return;
+      const c = ctx_(); if (!c) return;
+      const dest = _sfxOut(); if (!dest) return;
+      const t = c.currentTime;
+      [523.25, 659.25, 783.99].forEach(freq => {
+        const osc = c.createOscillator(); const env = c.createGain();
+        osc.type = 'sawtooth'; osc.frequency.value = freq;
+        const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 3000;
+        env.gain.setValueAtTime(0.0001, t);
+        env.gain.linearRampToValueAtTime(0.22, t + 0.008);
+        env.gain.setValueAtTime(0.22, t + 0.12);
+        env.gain.exponentialRampToValueAtTime(0.0001, t + 0.30);
+        osc.connect(lp); lp.connect(env); env.connect(dest);
+        osc.start(t); osc.stop(t + 0.32);
+      });
+    },
+
+    // Panic riser: upward noise sweep
+    panicRiser() {
+      if (!settings.sound) return;
+      const c = ctx_(); if (!c) return;
+      const nb = _noise(); if (!nb) return;
+      const dest = _sfxOut(); if (!dest) return;
+      const t = c.currentTime;
+      const src = c.createBufferSource(); src.buffer = nb;
+      const bp  = c.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 0.6;
+      bp.frequency.setValueAtTime(300, t);
+      bp.frequency.exponentialRampToValueAtTime(4000, t + 0.55);
+      const gn = c.createGain();
+      src.connect(bp); bp.connect(gn); gn.connect(dest);
+      gn.gain.setValueAtTime(0.0001, t);
+      gn.gain.linearRampToValueAtTime(0.35, t + 0.10);
+      gn.gain.exponentialRampToValueAtTime(0.0001, t + 0.58);
+      src.start(t); src.stop(t + 0.60);
+    },
+
+    // Double danger: stutter bass pulse
+    doubleDangerWarning() {
+      if (!settings.sound) return;
+      const c = ctx_(); if (!c) return;
+      const dest = _sfxOut(); if (!dest) return;
+      const t = c.currentTime;
+      [0, 0.09, 0.18].forEach(delay => {
+        const osc = c.createOscillator(); const env = c.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(120, t + delay);
+        osc.frequency.exponentialRampToValueAtTime(55, t + delay + 0.08);
+        env.gain.setValueAtTime(0.0001, t + delay);
+        env.gain.linearRampToValueAtTime(0.55, t + delay + 0.004);
+        env.gain.exponentialRampToValueAtTime(0.0001, t + delay + 0.08);
+        osc.connect(env); env.connect(dest);
+        osc.start(t + delay); osc.stop(t + delay + 0.10);
+      });
+    },
+
+    warning() {
+      if (!settings.sound) return;
+      const c = ctx_(); if (!c) return;
+      const dest = _sfxOut(); if (!dest) return;
+      const t = c.currentTime;
+      const osc = c.createOscillator(); const g = c.createGain();
+      osc.type = 'square'; osc.frequency.value = 880;
+      g.gain.setValueAtTime(0.16, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.10);
+      osc.connect(g); g.connect(dest);
+      osc.start(t); osc.stop(t + 0.11);
+    },
+    comboUp(n) {
+      if (!settings.sound) return;
+      const c = ctx_(); if (!c) return;
+      const dest = _sfxOut(); if (!dest) return;
+      const t = c.currentTime;
+      const osc = c.createOscillator(); const g = c.createGain();
+      osc.type = 'sine'; osc.frequency.value = 440 + n * 55;
+      g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.22, t + 0.005);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.14);
+      osc.connect(g); g.connect(dest);
+      osc.start(t); osc.stop(t + 0.15);
+    },
+    uiClick() {
+      if (!settings.sound) return;
+      const c = ctx_(); if (!c) return;
+      const dest = _sfxOut(); if (!dest) return;
+      const t = c.currentTime;
+      const osc = c.createOscillator(); const g = c.createGain();
+      osc.type = 'sine'; osc.frequency.value = 700;
+      g.gain.setValueAtTime(0.12, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.06);
+      osc.connect(g); g.connect(dest);
+      osc.start(t); osc.stop(t + 0.07);
+    },
   };
 })();
 
@@ -1364,39 +1537,56 @@ const Music = (() => {
   let _masterGain = null;
   let _compressor = null;
   let _baseGain   = null;
+  let _midGain    = null;   // counter-melody layer (tier 1+)
   let _intGain    = null;
   let _isPlaying  = false;
   let _beat       = 0;
   let _nextBeat   = 0;
   let _schedTimer = null;
-  let _bpm        = 148;
+  let _bpm        = 142;
   let _intCurrent = 0;
   let _intTarget  = 0;
+  let _tierCurrent = 0;    // 0=early, 1=mid(20s+), 2=late(60s+)
+  let _beatPhase  = 0;     // 0..1 within current beat (for UI pulse)
 
-  const SCHEDULE_AHEAD = 0.14; // seconds of look-ahead
-  const LOOKAHEAD_MS   = 55;   // poll interval
+  const SCHEDULE_AHEAD = 0.14;
+  const LOOKAHEAD_MS   = 55;
   const BEATS_PER_LOOP = 16;   // 4 bars of 4/4  (Am – F – C – G)
 
-  // Bass line: arpeggiated chord tones per beat, one bar per chord
-  // Am: A2 C3 E3 G3 | F: F2 A2 C3 A2 | C: C3 E3 G3 E3 | G: G2 B2 D3 B2
+  // Bass line: root-tone walk per beat
   const BASS_LINE = [
-    110.00, 130.81, 164.81, 196.00,
-     87.31, 110.00, 130.81, 110.00,
-    130.81, 164.81, 196.00, 164.81,
-     98.00, 123.47, 146.83, 123.47,
+    110.00, 130.81, 164.81, 130.81,  // Am
+     87.31, 110.00, 130.81, 110.00,  // F
+    130.81, 164.81, 196.00, 164.81,  // C
+     98.00, 123.47, 146.83, 123.47,  // G
   ];
 
   // Lead melody: descending chord-tone phrase over Am–F–C–G
-  // Am: E5 C5 A4 C5 | F: F5 C5 A4 F4 | C: E5 C5 G4 E4 | G: D5 B4 G4 B4
+  // Lead melody A – verse feel (tier 0/1)
   const LEAD_MELODY = [
-    659.25, 523.25, 440.00, 523.25,
-    698.46, 523.25, 440.00, 349.23,
+    659.25, 587.33, 523.25, 440.00,
+    698.46, 587.33, 523.25, 349.23,
     659.25, 523.25, 392.00, 329.63,
-    587.33, 493.88, 392.00, 493.88,
+    587.33, 523.25, 392.00, 493.88,
+  ];
+
+  // Lead melody B – high intensity / tier 2
+  const LEAD_B = [
+    880.00, 783.99, 659.25, 783.99,
+    932.33, 783.99, 698.46, 523.25,
+    880.00, 783.99, 587.33, 523.25,
+    783.99, 698.46, 523.25, 659.25,
+  ];
+
+  // Counter-melody (mid+ layer, softer triangle pad)
+  const COUNTER = [
+    523.25, 493.88, 440.00, 493.88,
+    349.23, 392.00, 440.00, 392.00,
+    523.25, 440.00, 392.00, 440.00,
+    493.88, 440.00, 392.00, 329.63,
   ];
 
   // Arp chords (16th-note bursts at high intensity)
-  // Am arp | F arp | C arp | G arp
   const ARP_CHORDS = [
     [440.00, 523.25, 659.25, 880.00],
     [349.23, 440.00, 523.25, 698.46],
@@ -1406,10 +1596,10 @@ const Music = (() => {
 
   // Chord stab voicings (intensity downbeats)
   const CHORD_STABS = [
-    [440.00, 523.25, 659.25], // Am4: A4 C5 E5
-    [349.23, 440.00, 523.25], // F4:  F4 A4 C5
-    [261.63, 329.63, 392.00], // C4:  C4 E4 G4
-    [196.00, 246.94, 293.66], // G3:  G3 B3 D4
+    [440.00, 523.25, 659.25],
+    [349.23, 440.00, 523.25],
+    [261.63, 329.63, 392.00],
+    [196.00, 246.94, 293.66],
   ];
 
   function _ctx_() {
@@ -1444,6 +1634,8 @@ const Music = (() => {
     _masterGain.connect(_compressor);
     _baseGain = c.createGain(); _baseGain.gain.value = 0.65;
     _baseGain.connect(_masterGain);
+    _midGain = c.createGain(); _midGain.gain.value = 0;
+    _midGain.connect(_masterGain);
     _intGain = c.createGain(); _intGain.gain.value = 0;
     _intGain.connect(_masterGain);
     return true;
@@ -1560,6 +1752,21 @@ const Music = (() => {
     osc2.start(when); osc2.stop(when + dur + 0.01);
   }
 
+  // Mid-layer: soft pad counter-melody (triangle wave, filtered, goes to _midGain)
+  function _counter(when, freq, dur) {
+    const c = _actx;
+    const osc = c.createOscillator();
+    osc.type = 'triangle'; osc.frequency.value = freq;
+    const lp  = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1400;
+    const env = c.createGain();
+    env.gain.setValueAtTime(0.0001, when);
+    env.gain.linearRampToValueAtTime(0.18, when + 0.012);
+    env.gain.setValueAtTime(0.18, when + dur * 0.65);
+    env.gain.exponentialRampToValueAtTime(0.0001, when + dur);
+    osc.connect(lp); lp.connect(env); env.connect(_midGain);
+    osc.start(when); osc.stop(when + dur + 0.01);
+  }
+
   // Intensity: punchy square-wave arp note
   function _arp(when, freq) {
     const c = _actx;
@@ -1594,34 +1801,45 @@ const Music = (() => {
     const pos  = beat % 4;              // position within bar
 
     // --- Drums ---
-    // Kick: 4-on-the-floor + syncopated ghost on beats 3 & 11
-    if (beat === 0 || beat === 4 || beat === 8 || beat === 12) _kick(when);
-    if (beat === 3 || beat === 11) _kick(when);
-    // Snare: backbeat (beats 2, 6, 10, 14)
-    if (beat === 2 || beat === 6 || beat === 10 || beat === 14) _snare(when);
-    // Closed hi-hats every beat; accent on downbeats
-    _closedHat(when, beat % 4 === 0 ? 0.26 : (beat % 2 === 0 ? 0.18 : 0.13));
-    // Open hat on upbeat of bars 2 & 4 (low intensity only)
-    if ((beat === 5 || beat === 13) && _intCurrent < 0.4) _openHat(when + BEAT * 0.5);
-    // Extra 16th hi-hat on offbeats at high intensity
-    if (_intCurrent > 0.5) _closedHat(when + BEAT * 0.5, 0.09);
+    // 4-on-the-floor kicks
+    if (pos === 0) _kick(when);
+    // Syncopated ghost kicks at tier 1+
+    if (_tierCurrent >= 1 && (beat === 3 || beat === 11)) _kick(when, 0.55);
+    // Backbeat snare on beats 2, 6, 10, 14
+    if (pos === 2) _snare(when);
+    // Ghost snare at high intensity / tier 2
+    if (_tierCurrent >= 2 && _intCurrent > 0.5 && pos === 3) _snare(when);
+    // Closed hi-hat every beat; accent on downbeats
+    _closedHat(when, pos === 0 ? 0.28 : (pos % 2 === 0 ? 0.18 : 0.14));
+    // 16th hi-hats on mid+
+    if (_tierCurrent >= 1) _closedHat(when + BEAT * 0.5, 0.08);
+    // Open hat on upbeat of bars 2 & 4
+    if (beat === 5 || beat === 13) _openHat(when + BEAT * 0.5);
+    // Extra hi-hat 16ths at tier 2 / panic
+    if (_tierCurrent >= 2 && _intCurrent > 0.6) {
+      _closedHat(when + BEAT * 0.25, 0.06);
+      _closedHat(when + BEAT * 0.75, 0.06);
+    }
 
     // --- Bass ---
     _bass(when, BASS_LINE[beat], BEAT * 0.80);
 
-    // --- Lead melody ---
-    _lead(when, LEAD_MELODY[beat], BEAT * 0.72);
+    // --- Lead melody (B during high intensity/tier 2) ---
+    const melody = (_tierCurrent >= 2 && _intCurrent > 0.5) ? LEAD_B : LEAD_MELODY;
+    _lead(when, melody[beat], BEAT * 0.72);
+
+    // --- Counter-melody (mid+ tier) ---
+    if (_tierCurrent >= 1) {
+      _counter(when, COUNTER[beat], BEAT * 0.65);
+    }
 
     // --- Intensity layers ---
     if (_intCurrent > 0.30) {
-      // Arp note on downbeat of each 4-beat group
       _arp(when, ARP_CHORDS[bar][pos]);
-      // Extra 8th-note arp at higher intensity
       if (_intCurrent > 0.65) {
         _arp(when + BEAT * 0.5, ARP_CHORDS[bar][(pos + 2) % 4]);
       }
     }
-    // Chord stab on bar downbeats during panic / high combo
     if (pos === 0 && _intCurrent > 0.58) {
       _chordStab(when, CHORD_STABS[bar]);
     }
@@ -1639,7 +1857,13 @@ const Music = (() => {
 
   // ---- Public API ----
 
+  function _musicVol() {
+    return (settings.musicVol ?? VOL_DEFAULTS.music) * (settings.masterVol ?? VOL_DEFAULTS.master);
+  }
+
   return {
+    get beatPhase() { return _beatPhase; },
+
     start() {
       if (!settings.sound) return;
       const c = _ctx_(); if (!c) return;
@@ -1649,35 +1873,39 @@ const Music = (() => {
       }
       if (!_ensureGraph()) return;
       _noise();
-      _isPlaying  = true;
-      _beat       = 0;
-      _nextBeat   = c.currentTime + 0.06;
-      _intCurrent = 0;
-      _intTarget  = 0;
+      _isPlaying   = true;
+      _beat        = 0;
+      _nextBeat    = c.currentTime + 0.06;
+      _intCurrent  = 0; _intTarget  = 0;
+      _tierCurrent = 0; _beatPhase  = 0;
+      _midGain.gain.cancelScheduledValues(c.currentTime);
+      _midGain.gain.setValueAtTime(0, c.currentTime);
       _intGain.gain.cancelScheduledValues(c.currentTime);
       _intGain.gain.setValueAtTime(0, c.currentTime);
       _masterGain.gain.cancelScheduledValues(c.currentTime);
       _masterGain.gain.setValueAtTime(0, c.currentTime);
-      _masterGain.gain.linearRampToValueAtTime(0.55, c.currentTime + 0.30);
+      _masterGain.gain.linearRampToValueAtTime(_musicVol(), c.currentTime + 0.30);
       _scheduler();
     },
 
     stop() {
       _isPlaying = false;
       clearTimeout(_schedTimer); _schedTimer = null;
-      const c = _actx; if (!c || !_masterGain) return;
-      _masterGain.gain.cancelScheduledValues(c.currentTime);
-      _masterGain.gain.setValueAtTime(_masterGain.gain.value, c.currentTime);
-      _masterGain.gain.linearRampToValueAtTime(0, c.currentTime + 0.045);
+      if (!_actx || !_masterGain) return;
+      const t = _actx.currentTime;
+      _masterGain.gain.cancelScheduledValues(t);
+      _masterGain.gain.setValueAtTime(_masterGain.gain.value, t);
+      _masterGain.gain.linearRampToValueAtTime(0, t + 0.045);
     },
 
     pause() {
       _isPlaying = false;
       clearTimeout(_schedTimer); _schedTimer = null;
-      const c = _actx; if (!c || !_masterGain) return;
-      _masterGain.gain.cancelScheduledValues(c.currentTime);
-      _masterGain.gain.setValueAtTime(_masterGain.gain.value, c.currentTime);
-      _masterGain.gain.linearRampToValueAtTime(0, c.currentTime + 0.18);
+      if (!_actx || !_masterGain) return;
+      const t = _actx.currentTime;
+      _masterGain.gain.cancelScheduledValues(t);
+      _masterGain.gain.setValueAtTime(_masterGain.gain.value, t);
+      _masterGain.gain.linearRampToValueAtTime(0, t + 0.18);
     },
 
     resume() {
@@ -1686,34 +1914,50 @@ const Music = (() => {
       const doResume = () => {
         _isPlaying = true;
         _nextBeat  = c.currentTime + 0.06;
-        _masterGain.gain.cancelScheduledValues(c.currentTime);
-        _masterGain.gain.setValueAtTime(0, c.currentTime);
-        _masterGain.gain.linearRampToValueAtTime(0.55, c.currentTime + 0.20);
+        const t = c.currentTime;
+        _masterGain.gain.cancelScheduledValues(t);
+        _masterGain.gain.setValueAtTime(0, t);
+        _masterGain.gain.linearRampToValueAtTime(_musicVol(), t + 0.20);
         _scheduler();
       };
-      if (c.state === 'suspended') {
-        c.resume().then(doResume).catch(() => {});
-      } else {
-        doResume();
-      }
+      if (c.state === 'suspended') { c.resume().then(doResume).catch(() => {}); }
+      else { doResume(); }
     },
 
-    // Called every frame - lerps intensity gain
+    // Called every game frame — drives intensity/tier/beat phase for UI sync
     tick(dt) {
       if (!_isPlaying || !_actx || !_intGain) return;
-      if (panicPhase === 'wave') {
-        _intTarget = 1.0;
-      } else if (combo >= 5) {
-        _intTarget = 0.6;
-      } else if (combo >= 3) {
-        _intTarget = 0.3;
-      } else {
-        _intTarget = 0.0;
-      }
-      const rate  = dt / 0.30;
+
+      // Beat phase 0→1 (for UI pulse sync)
+      const beatDur = 60 / _bpm;
+      _beatPhase = ((_actx.currentTime % (beatDur * BEATS_PER_LOOP)) / beatDur) % 1;
+
+      // Intensity target from game state
+      if (panicPhase === 'wave')  _intTarget = 1.0;
+      else if (combo >= 6)        _intTarget = 0.75;
+      else if (combo >= 4)        _intTarget = 0.50;
+      else if (combo >= 2)        _intTarget = 0.28;
+      else                        _intTarget = 0.0;
+
+      const rate  = dt / 0.28;
       const delta = _intTarget - _intCurrent;
-      _intCurrent = Math.max(0, Math.min(1, _intCurrent + (delta > 0 ? rate : -rate)));
-      _intGain.gain.setValueAtTime(_intCurrent * 0.50, _actx.currentTime);
+      _intCurrent = Math.max(0, Math.min(1, _intCurrent + (delta > 0 ? rate : -rate * 0.7)));
+      _intGain.gain.setValueAtTime(_intCurrent * 0.52, _actx.currentTime);
+
+      // Tier transitions driven by elapsed game time
+      const elapsed = gameStartTime > 0 ? (performance.now() - gameStartTime - pausedDuration) / 1000 : 0;
+      const newTier = elapsed >= 60 ? 2 : (elapsed >= 20 ? 1 : 0);
+      if (newTier !== _tierCurrent) {
+        _tierCurrent = newTier;
+        if (newTier >= 1) {
+          _midGain.gain.cancelScheduledValues(_actx.currentTime);
+          _midGain.gain.linearRampToValueAtTime(0.42, _actx.currentTime + 4.0);
+        }
+        if (newTier >= 2) {
+          _baseGain.gain.cancelScheduledValues(_actx.currentTime);
+          _baseGain.gain.linearRampToValueAtTime(0.75, _actx.currentTime + 2.0);
+        }
+      }
     },
 
     setIntensity(level) {
@@ -1721,11 +1965,142 @@ const Music = (() => {
       _intTarget = Math.max(0, Math.min(1, level));
     },
 
-    // Called from tickDifficulty - speeds up BPM with speedMultiplier
     setTempo(multiplier) {
-      // 1.0x -> 148 BPM, scales up to 170 BPM at max speed
-      _bpm = Math.round(148 + ((multiplier - 1.0) / 1.8) * 22);
-      _bpm = Math.min(Math.max(_bpm, 148), 170);
+      _bpm = Math.round(142 + ((multiplier - 1.0) / 1.8) * 26);
+      _bpm = Math.min(Math.max(_bpm, 142), 168);
+    },
+
+    refreshVolume() {
+      if (!_masterGain || !_isPlaying) return;
+      _masterGain.gain.setValueAtTime(_musicVol(), _actx.currentTime);
+    },
+  };
+})();
+
+// ============================================================
+// SECTION 4b: HOME SCREEN MUSIC (calm, futuristic groove)
+// ============================================================
+
+const HomeMusic = (() => {
+  let _actx       = null;
+  let _masterGain = null;
+  let _compressor = null;
+  let _isPlaying  = false;
+  let _beat       = 0;
+  let _nextBeat   = 0;
+  let _schedTimer = null;
+  const BPM       = 118;
+  const BEATS     = 8;
+
+  const BASS_H    = [110.00, 130.81, 110.00, 98.00, 87.31, 110.00, 87.31, 98.00];
+  const PAD_H     = [[220.00, 261.63, 329.63], [174.61, 220.00, 261.63],
+                     [220.00, 261.63, 329.63], [196.00, 246.94, 293.66],
+                     [174.61, 220.00, 261.63], [220.00, 261.63, 329.63],
+                     [174.61, 220.00, 261.63], [196.00, 246.94, 329.63]];
+  const MELODY_H  = [440.00, 523.25, 493.88, 440.00, 392.00, 440.00, 493.88, 523.25];
+
+  function _ctx_() {
+    _actx = Audio.getCtx();
+    if (!_actx) return null;
+    if (_actx.state === 'suspended') _actx.resume().catch(() => {});
+    return _actx;
+  }
+  function _mv() {
+    return (settings.musicVol ?? VOL_DEFAULTS.music) * (settings.masterVol ?? VOL_DEFAULTS.master) * 0.68;
+  }
+  function _ensureGraph() {
+    if (_masterGain) return true;
+    const c = _actx; if (!c) return false;
+    _compressor = c.createDynamicsCompressor();
+    _compressor.threshold.value = -16; _compressor.ratio.value = 3;
+    _compressor.attack.value = 0.010;  _compressor.release.value = 0.40;
+    _compressor.connect(c.destination);
+    _masterGain = c.createGain(); _masterGain.gain.value = 0;
+    _masterGain.connect(_compressor);
+    return true;
+  }
+  function _pad(when, freqs, dur) {
+    freqs.forEach(freq => {
+      const osc = _actx.createOscillator(); const env = _actx.createGain();
+      osc.type = 'sine'; osc.frequency.value = freq;
+      env.gain.setValueAtTime(0.0001, when);
+      env.gain.linearRampToValueAtTime(0.06, when + 0.35);
+      env.gain.setValueAtTime(0.06, when + dur - 0.30);
+      env.gain.linearRampToValueAtTime(0.0001, when + dur);
+      osc.connect(env); env.connect(_masterGain);
+      osc.start(when); osc.stop(when + dur + 0.01);
+    });
+  }
+  function _homeBass(when, freq, dur) {
+    const osc = _actx.createOscillator(); const env = _actx.createGain();
+    osc.type = 'sine'; osc.frequency.value = freq;
+    const lp = _actx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 280;
+    env.gain.setValueAtTime(0.0001, when);
+    env.gain.linearRampToValueAtTime(0.55, when + 0.018);
+    env.gain.setValueAtTime(0.55, when + dur * 0.45);
+    env.gain.exponentialRampToValueAtTime(0.0001, when + dur);
+    osc.connect(lp); lp.connect(env); env.connect(_masterGain);
+    osc.start(when); osc.stop(when + dur + 0.01);
+  }
+  function _homeMelody(when, freq, dur) {
+    const osc = _actx.createOscillator(); const env = _actx.createGain();
+    osc.type = 'triangle'; osc.frequency.value = freq;
+    const lp = _actx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2200;
+    env.gain.setValueAtTime(0.0001, when);
+    env.gain.linearRampToValueAtTime(0.14, when + 0.020);
+    env.gain.setValueAtTime(0.14, when + dur * 0.55);
+    env.gain.exponentialRampToValueAtTime(0.0001, when + dur);
+    osc.connect(lp); lp.connect(env); env.connect(_masterGain);
+    osc.start(when); osc.stop(when + dur + 0.01);
+  }
+  function _homeHat(when) {
+    const osc = _actx.createOscillator(); const env = _actx.createGain();
+    osc.type = 'sine'; osc.frequency.value = 3200;
+    env.gain.setValueAtTime(0.0001, when);
+    env.gain.linearRampToValueAtTime(0.06, when + 0.002);
+    env.gain.exponentialRampToValueAtTime(0.0001, when + 0.038);
+    osc.connect(env); env.connect(_masterGain);
+    osc.start(when); osc.stop(when + 0.04);
+  }
+  function _scheduleBeat(when, beat) {
+    const BEAT = 60 / BPM;
+    _pad(when, PAD_H[beat], BEAT * 1.05);
+    _homeBass(when, BASS_H[beat], BEAT * 0.72);
+    if (beat % 2 === 0) _homeMelody(when, MELODY_H[beat], BEAT * 0.65);
+    _homeHat(when + BEAT * 0.5);
+    if (beat % 2 === 0) _homeHat(when);
+  }
+  function _scheduler() {
+    if (!_isPlaying || !_actx) return;
+    while (_nextBeat < _actx.currentTime + 0.14) {
+      _scheduleBeat(_nextBeat, _beat);
+      _nextBeat += 60 / BPM;
+      _beat = (_beat + 1) % BEATS;
+    }
+    _schedTimer = setTimeout(_scheduler, 55);
+  }
+  return {
+    start() {
+      if (!settings.sound) return;
+      const c = _ctx_(); if (!c) return;
+      if (c.state === 'suspended') { c.resume().then(() => this.start()).catch(() => {}); return; }
+      if (!_ensureGraph()) return;
+      _isPlaying = true; _beat = 0; _nextBeat = c.currentTime + 0.06;
+      _masterGain.gain.cancelScheduledValues(c.currentTime);
+      _masterGain.gain.setValueAtTime(0, c.currentTime);
+      _masterGain.gain.linearRampToValueAtTime(_mv(), c.currentTime + 1.2);
+      _scheduler();
+    },
+    stop() {
+      _isPlaying = false; clearTimeout(_schedTimer); _schedTimer = null;
+      if (!_actx || !_masterGain) return;
+      const t = _actx.currentTime;
+      _masterGain.gain.cancelScheduledValues(t);
+      _masterGain.gain.setValueAtTime(_masterGain.gain.value, t);
+      _masterGain.gain.linearRampToValueAtTime(0, t + 0.55);
+    },
+    refreshVolume() {
+      if (_masterGain && _isPlaying) _masterGain.gain.setValueAtTime(_mv(), _actx.currentTime);
     },
   };
 })();
@@ -1735,35 +2110,42 @@ const Music = (() => {
 // ============================================================
 
 const AudioManager = (() => {
-  // Per-sound cooldowns (ms) to prevent spam
-  const COOLDOWNS = { coin: 80, nearMiss: 200, colorChange: 150, death: 0, combo: 120 };
-  const _lastPlayed = {};
-
-  const _dispatch = {
-    coin:        () => Audio.collect(),
-    nearMiss:    () => Audio.nearMiss(),
-    colorChange: () => Audio.colorChange(),
-    death:       () => Audio.gameOver(),
-    combo:       (n) => Audio.comboUp(n),
+  const COOLDOWNS = {
+    coin: 75, nearMiss: 180, colorChange: 130, death: 0, combo: 100,
+    powerupSpawn: 400, powerupCollect: 100, panicRiser: 2000, doubleDanger: 500,
   };
-
+  const _lastPlayed = {};
+  const _dispatch = {
+    coin:           () => Audio.collect(),
+    nearMiss:       () => Audio.nearMiss(),
+    colorChange:    () => Audio.colorChange(),
+    death:          () => Audio.gameOver(),
+    combo:          (n) => Audio.comboUp(n),
+    powerupSpawn:   () => Audio.powerupSpawn(),
+    powerupCollect: () => Audio.powerupCollect(),
+    panicRiser:     () => Audio.panicRiser(),
+    doubleDanger:   () => Audio.doubleDangerWarning(),
+  };
   return {
-    // Play a named sound with cooldown guard
     playSound(name, ...args) {
       if (!settings.sound) return;
       const fn = _dispatch[name]; if (!fn) return;
-      const now   = performance.now();
-      const cd    = COOLDOWNS[name] ?? 100;
+      const now = performance.now();
+      const cd  = COOLDOWNS[name] ?? 100;
       if (now - (_lastPlayed[name] || 0) < cd) return;
       _lastPlayed[name] = now;
       fn(...args);
     },
-
-    // Set music intensity level (0-1). Called externally; Music.tick also drives it each frame.
     setMusicIntensity(level) { Music.setIntensity(level); },
-
-    // Stop music immediately (called on death)
-    stopMusic() { Music.stop(); },
+    stopMusic()              { Music.stop(); HomeMusic.stop(); },
+    startHomeMusic()         { HomeMusic.start(); },
+    stopHomeMusic()          { HomeMusic.stop(); },
+    startGameMusic()         { HomeMusic.stop(); Music.start(); },
+    refreshAllVolumes() {
+      Audio.refreshSfxVol();
+      Music.refreshVolume();
+      HomeMusic.refreshVolume();
+    },
   };
 })();
 
@@ -2782,6 +3164,7 @@ function endTrySkin() {
   showModal('modal-progress');
   updateSkinsUI();
   selectSkinForPreview(settings.selectedSkin);
+  AudioManager.startHomeMusic();
 }
 
 function awardCoins(amount, showFloat = false, source = 'generic') {
@@ -6015,7 +6398,7 @@ function render(ts) {
 function gameLoop(ts) {
   if (currentState !== STATE.PLAYING) return;
   try {
-    const dt = Math.min((ts - lastFrameTime) / 1000, 0.05);
+    const dt = Math.min((ts - lastFrameTime) / 1000, 0.033); // cap at ~30 fps step to prevent lag-spike tunnelling
     lastFrameTime = ts;
     graceTimer   += dt;
 
@@ -6195,7 +6578,7 @@ function startGame() {
     updateMiniGoalHUD(); // show mini goal bar immediately when game starts
     const c = GAME_COLORS[forbiddenIndex];
     Announce.say('Game started. Forbidden color: ' + c.name + '.');
-    Music.start();
+    AudioManager.startGameMusic();
     rafHandle = requestAnimationFrame(gameLoop);
   }, 50);
 }
@@ -6393,6 +6776,7 @@ function returnHome() {
   }
   requestAnimationFrame(() => document.getElementById('btn-start').focus());
   Announce.say('Home screen.');
+  AudioManager.startHomeMusic();
 }
 
 // ============================================================
@@ -6583,6 +6967,34 @@ function onCanvasTouchEnd(e) {
   if (e.touches.length === 0) touchTarget = null;
 }
 
+// -- Desktop pointer/mouse follow (non-touch pointer types only) --
+// Allows mouse and trackpad users to steer with the cursor, identical to touch.
+function _canvasPointerToGamePos(e) {
+  const rect = canvas.getBoundingClientRect();
+  return {
+    x: (e.clientX - rect.left) * (canvas.width  / rect.width),
+    y: (e.clientY - rect.top)  * (canvas.height / rect.height),
+  };
+}
+
+function onCanvasPointerDown(e) {
+  if (e.pointerType === 'touch') return; // handled by touch events
+  if (currentState !== STATE.PLAYING) return;
+  touchTarget = _canvasPointerToGamePos(e);
+  canvas.setPointerCapture(e.pointerId);
+}
+
+function onCanvasPointerMove(e) {
+  if (e.pointerType === 'touch') return; // handled by touch events
+  if (currentState !== STATE.PLAYING || !touchTarget) return;
+  touchTarget = _canvasPointerToGamePos(e);
+}
+
+function onCanvasPointerUp(e) {
+  if (e.pointerType === 'touch') return;
+  touchTarget = null;
+}
+
 // ============================================================
 // SECTION 26: INITIALISATION
 // ============================================================
@@ -6619,6 +7031,7 @@ function init() {
   // We listen on both touchstart and pointerdown so it fires on the very first tap/click.
   const _unlockAudio = () => {
     Audio.unlock();
+    AudioManager.startHomeMusic();
     document.removeEventListener('touchstart', _unlockAudio, true);
     document.removeEventListener('pointerdown', _unlockAudio, true);
   };
@@ -6745,6 +7158,12 @@ function init() {
   canvas.addEventListener('touchmove',   onCanvasTouchMove,  { passive: false });
   canvas.addEventListener('touchend',    onCanvasTouchEnd,   { passive: false });
   canvas.addEventListener('touchcancel', onCanvasTouchEnd,   { passive: false });
+
+  // Desktop mouse / stylus: hold and drag to steer
+  canvas.addEventListener('pointerdown', onCanvasPointerDown);
+  canvas.addEventListener('pointermove', onCanvasPointerMove);
+  canvas.addEventListener('pointerup',   onCanvasPointerUp);
+  canvas.addEventListener('pointercancel', onCanvasPointerUp);
 
   setupResize();
 }
