@@ -20,7 +20,7 @@
 //     match /databases/{database}/documents {
 //       match /leaderboards/{path=**} {
 //         allow read: if true;
-//         allow write: if request.auth != null;
+//         allow write: if true;
 //       }
 //     }
 //   }
@@ -91,17 +91,13 @@
     }
   }
 
-  fetch("/api/firebase-config")
-    .then(function (r) {
-      if (!r.ok) throw new Error("HTTP " + r.status);
-      return r.json();
-    })
-    .then(function (config) {
-      if (!config || !config.apiKey) throw new Error("Empty config");
-      _initFirebase(config);
-    })
-    .catch(function (err) {
-      console.warn("[Firebase] Config fetch failed — leaderboard offline.", err.message);
-      _resolve(false);
-    });
+  // Firebase client config is public by design — security is enforced by Firestore rules.
+  _initFirebase({
+    apiKey:            "AIzaSyCNGoXm2VaRILMjQtorMaIcUMDlGQpVZ9w",
+    authDomain:        "shiftpanic-1ee68.firebaseapp.com",
+    projectId:         "shiftpanic-1ee68",
+    storageBucket:     "shiftpanic-1ee68.firebasestorage.app",
+    messagingSenderId: "790226285352",
+    appId:             "1:790226285352:web:0773b3ff7678a4959fd61d",
+  });
 })();

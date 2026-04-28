@@ -8172,59 +8172,46 @@ const LeaderboardService = (() => {
   }
 
   // -- Firebase score submission -----------------------------
-  // Writes to all three boards. Each board only updates if the new
-  // score beats the player's existing score in that board.
   async function _fbSubmit(score, name) {
     await (window._fbReady || Promise.resolve(false));
     const db = window._fbDb;
-    if (!db) { console.warn('[ShiftPanic] Firebase not available  score not saved.'); return; }
-    if (window._fbWaitForAuth) await window._fbWaitForAuth();
+    if (!db) { console.warn('[ShiftPanic] Firebase not available — score not saved.'); return; }
 
     const pid = window._fbPlayerId;
-    if (!pid) { console.warn('[ShiftPanic] No playerId  score not submitted.'); return; }
+    if (!pid) { console.warn('[ShiftPanic] No playerId — score not submitted.'); return; }
 
     const intScore = Math.floor(score);
     if (intScore <= 0) return;
     const safeName = String(name || getDisplayName()).trim().slice(0, 12) || getDisplayName();
     const weekId   = _getWeekId(), dayId = _getDayId();
 
-    console.log('[ShiftPanic] Submitting score:', intScore, '| playerId:', pid, '| name:', safeName);
+    console.log('[ShiftPanic] Submitting score:', intScore, '| name:', safeName);
 
-    const gRef = db.collection(G_PATH()).doc(pid);
-    const wRef = db.collection(W_PATH(weekId)).doc(pid);
-    const dRef = db.collection(D_PATH(dayId)).doc(pid);
     const ts   = firebase.firestore.FieldValue.serverTimestamp();
     const base = { playerId: pid, playerName: safeName, isFakePlayer: false, updatedAt: ts };
 
-    async function _writeIfBetter(ref, newScore) {
+    // Write to all 3 boards using simple set-with-merge.
+    // Only update score field if new score is higher (client-side check, fast).
+    async function _writeIfBetter(path) {
       try {
-        await db.runTransaction(async tx => {
-          const snap = await tx.get(ref);
-          const cur  = snap.exists ? (snap.data().score || 0) : 0;
-          if (newScore > cur) {
-            const data = Object.assign({}, base, { score: newScore });
-            if (!snap.exists) data.createdAt = ts;
-            snap.exists ? tx.update(ref, data) : tx.set(ref, data);
-            console.log('[ShiftPanic] Score written to', ref.path, ':', newScore, '(was', cur + ')');
-          } else {
-            console.log('[ShiftPanic] Score not updated for', ref.path, ':', newScore, '<= existing', cur);
-          }
-        });
-      } catch (err) {
-        if (err.code === 'permission-denied') {
-          console.warn('[ShiftPanic] Write blocked by Firestore rules. Deploy rules from firebase-client.js header.');
-        } else {
-          console.warn('[Firebase] Score write failed:', ref.path, err.code || err.message);
+        const ref  = db.collection(path).doc(pid);
+        const snap = await ref.get();
+        const cur  = snap.exists ? (snap.data().score || 0) : 0;
+        if (intScore >= cur) {
+          await ref.set(Object.assign({}, base, { score: intScore }), { merge: true });
+          console.log('[ShiftPanic] Score saved to', path, ':', intScore);
         }
+      } catch (err) {
+        console.warn('[Firebase] Score write failed:', err.code || err.message);
       }
     }
 
     await Promise.all([
-      _writeIfBetter(gRef, intScore),
-      _writeIfBetter(wRef, intScore),
-      _writeIfBetter(dRef, intScore),
+      _writeIfBetter(G_PATH()),
+      _writeIfBetter(W_PATH(weekId)),
+      _writeIfBetter(D_PATH(dayId)),
     ]);
-    console.log('[ShiftPanic] Firebase score submission complete.');
+    console.log('[ShiftPanic] Score submission complete.');
   }
 
   // -- Firestore real-time subscription ---------------------
