@@ -86,7 +86,22 @@
       window._fbRtdb        = rtdb;
       window._fbAuth        = auth;
       window._fbWaitForAuth = function () { return authReady; };
-      authReady.then(function () { _resolve(true); });
+      authReady.then(function () {
+        _resolve(true);
+        // ── Realtime Database connection test ──────────────────────────
+        var testRef = rtdb.ref('testConnection/status');
+        testRef.set({ connected: true, timestamp: Date.now() })
+          .then(function () {
+            return testRef.once('value');
+          })
+          .then(function (snap) {
+            console.log('[ShiftPanic] RTDB test read-back OK:', snap.val());
+          })
+          .catch(function (err) {
+            console.warn('[ShiftPanic] RTDB test failed:', err.message);
+          });
+        // ───────────────────────────────────────────────────────────────
+      });
     } catch (err) {
       console.warn("[Firebase] Init error:", err.message);
       _resolve(false);
