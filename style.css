@@ -4107,6 +4107,226 @@ body.perf-low .home-blobs::before,
 body.perf-low .home-blobs::after   { animation: none !important; }
 
 /* ============================================================
+   SHOP REDESIGN – SKIN CARDS, NEXT UNLOCK, MYTHIC RARITY
+   ============================================================ */
+
+/* ---------- Rarity colors ---------- */
+[data-rarity="common"]    { color: #a0aec0; }
+[data-rarity="rare"]      { color: #63b3ed; }
+[data-rarity="epic"]      { color: #b794f4; }
+[data-rarity="legendary"] { color: #f6ad55; }
+[data-rarity="mythic"]    { color: #e879f9; }
+
+/* ---------- Mythic card animated rainbow border ---------- */
+@keyframes mythicCardPulse {
+  0%   { filter: hue-rotate(0deg)   drop-shadow(0 0 8px #e879f9); }
+  33%  { filter: hue-rotate(120deg) drop-shadow(0 0 12px #f9e879); }
+  66%  { filter: hue-rotate(240deg) drop-shadow(0 0 8px  #79f9e8); }
+  100% { filter: hue-rotate(360deg) drop-shadow(0 0 8px  #e879f9); }
+}
+
+.skin-btn[data-rarity="mythic"] {
+  border-color: #e879f9;
+  animation: mythicCardPulse 3s linear infinite;
+}
+.skin-btn[data-rarity="mythic"] .skin-rarity {
+  color: #e879f9;
+}
+
+/* ---------- Card meta (rarity + name inside card) ---------- */
+.skin-card-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  margin-top: 4px;
+}
+
+/* ---------- Score progress row inside locked card ---------- */
+.skin-prog-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  font-size: 10px;
+  margin-top: 4px;
+}
+.skin-prog-lbl {
+  color: #a0aec0;
+  white-space: nowrap;
+  min-width: 28px;
+}
+.skin-prog-val {
+  color: #a0aec0;
+  white-space: nowrap;
+  font-size: 9px;
+}
+.skin-bar-track {
+  flex: 1;
+  height: 4px;
+  background: rgba(255,255,255,0.12);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.skin-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #63b3ed, #9f7aea);
+  border-radius: 2px;
+  transition: width 0.4s ease;
+}
+
+/* ---------- Coin cost row ---------- */
+.skin-cost-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: #a0aec0;
+  margin-top: 4px;
+}
+.skin-cost-row.can-afford {
+  color: #f6ad55;
+  text-shadow: 0 0 6px rgba(246,173,85,0.5);
+}
+
+/* ---------- Lock overlay on card top-right ---------- */
+.skin-lock-overlay {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  font-size: 13px;
+  opacity: 0.85;
+  pointer-events: none;
+}
+
+/* ---------- Skin affordable glow ---------- */
+.skin-btn.skin-affordable {
+  border-color: #68d391;
+  box-shadow: 0 0 10px rgba(104,211,145,0.4);
+}
+
+/* ---------- Section label ---------- */
+.shop-section-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #718096;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.shop-section-badge {
+  background: rgba(159,122,234,0.2);
+  color: #b794f4;
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* ---------- Ability tab hint ---------- */
+.shop-ability-hint {
+  font-size: 11px;
+  color: #718096;
+  margin-bottom: 12px;
+}
+
+/* ---------- Preview score gate hint ---------- */
+.preview-score-hint {
+  font-size: 11px;
+  color: #f6ad55;
+  text-align: center;
+  margin-top: 6px;
+  padding: 0 8px;
+}
+
+/* ============================================================
+   NEXT UNLOCK WIDGET
+   ============================================================ */
+.shop-next-unlock {
+  margin-bottom: 14px;
+}
+
+.nu-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #718096;
+  margin-bottom: 6px;
+}
+
+.nu-card {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.nu-card[data-rarity="legendary"] { border-color: rgba(246,173,85,0.35); }
+.nu-card[data-rarity="epic"]      { border-color: rgba(183,148,244,0.35); }
+.nu-card[data-rarity="mythic"]    { border-color: rgba(232,121,249,0.5);
+                                    animation: mythicCardPulse 3s linear infinite; }
+
+.nu-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+}
+.nu-rarity {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.nu-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+}
+.nu-row-lbl {
+  min-width: 38px;
+  color: #a0aec0;
+  font-weight: 600;
+}
+.nu-row-val {
+  min-width: 80px;
+  text-align: right;
+  color: #cbd5e0;
+  font-size: 10px;
+}
+.nu-bar-track {
+  flex: 1;
+  height: 6px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.nu-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #63b3ed, #9f7aea);
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+.nu-bar-coins {
+  background: linear-gradient(90deg, #f6ad55, #f6e05e);
+}
+
+.nu-hint {
+  font-size: 10px;
+  color: #718096;
+  padding-left: 4px;
+}
+
+/* ============================================================
    LEADERBOARD — FULL MODAL SYSTEM
    ============================================================ */
 

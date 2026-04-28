@@ -343,9 +343,14 @@
             <span class="shop-tab-icon" aria-hidden="true">✦</span> Skins
           </button>
           <button class="shop-tab-btn" role="tab"
+                  aria-selected="false" aria-controls="shop-panel-abilities"
+                  data-tab="abilities" type="button">
+            <span class="shop-tab-icon" aria-hidden="true">⚡</span> Ability
+          </button>
+          <button class="shop-tab-btn" role="tab"
                   aria-selected="false" aria-controls="shop-panel-upgrades"
                   data-tab="upgrades" type="button">
-            <span class="shop-tab-icon" aria-hidden="true">⚡</span> Powerups
+            <span class="shop-tab-icon" aria-hidden="true">🔋</span> Powerups
           </button>
           <button class="shop-tab-btn" role="tab"
                   aria-selected="false" aria-controls="shop-panel-challenges"
@@ -376,7 +381,8 @@
         <div id="shop-panel-skins" class="shop-panel shop-panel-active"
              role="tabpanel" aria-labelledby="shop-tab-skins">
 
-          <p class="shop-panel-hint">Earn coins every run. Unlock skins and tune your look.</p>
+          <!-- Next unlock widget -->
+          <div id="shop-next-unlock" class="shop-next-unlock" hidden></div>
 
           <!-- Full-width skin layout: preview left, grid right -->
           <div class="shop-skin-split">
@@ -393,7 +399,30 @@
 
             <!-- Right: full skin grid -->
             <div class="shop-skin-grid-panel">
+              <div class="shop-section-label">Cosmetic Skins</div>
               <div class="skin-grid" id="skin-stage" role="list" aria-label="Available skins"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── ABILITY SKINS PANEL ── -->
+        <div id="shop-panel-abilities" class="shop-panel"
+             role="tabpanel" aria-labelledby="shop-tab-abilities" hidden>
+
+          <div class="shop-skin-split">
+            <div class="shop-preview-panel">
+              <canvas id="skin-preview-canvas-ab" width="160" height="160" aria-hidden="true"></canvas>
+              <div class="preview-skin-meta">
+                <span class="preview-skin-name" id="preview-skin-name-ab">-</span>
+                <span class="preview-skin-rarity" id="preview-skin-rarity-ab" data-rarity="rare">rare</span>
+              </div>
+              <div class="preview-actions" id="preview-actions-ab"></div>
+              <div id="preview-ability-info-ab" class="preview-ability-info"></div>
+            </div>
+            <div class="shop-skin-grid-panel">
+              <div class="shop-section-label">Ability Skins <span class="shop-section-badge">Active Powers</span></div>
+              <p class="shop-panel-hint shop-ability-hint">Each ability skin grants a unique in-game power. Requires lifetime score to unlock.</p>
+              <div class="skin-grid" id="skin-stage-ability" role="list" aria-label="Ability skins"></div>
             </div>
           </div>
         </div>

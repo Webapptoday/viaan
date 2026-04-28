@@ -110,34 +110,38 @@ const PATTERN_LIBRARY = [
   { id:'TARGETED',    phaseWeights:[ 3, 4, 6, 8, 9] },  // Direct player pressure  starts early
 ];
 
-// Player skins - unlock thresholds are bestScore requirements (bestScore never decreases)
+// Player skins — unlock via coin purchase + optional lifetime score gate
+// Rarity: common | rare | epic | legendary | mythic
 const SKIN_DEFS = [
-  // -- Common --
-  { id: 'classic', name: 'Classic', unlock:    0, rarity: 'common', effect: 'none',    color1: '#ffffff', color2: '#c084fc', glow: '#a855f7', shape: 'circle', trail: false },
-  { id: 'neon',    name: 'Neon',    unlock: 0, coinCost:  75, rarity: 'common', effect: 'pulse',   color1: '#ccfdf2', color2: '#06b6d4', glow: '#06b6d4', shape: 'circle', trail: true  },
-  // -- Rare --
-  { id: 'ice',     name: 'Ice',     unlock: 0, coinCost: 150, rarity: 'rare',   effect: 'shimmer', color1: '#e0f2fe', color2: '#38bdf8', glow: '#7dd3fc', shape: 'circle', trail: true  },
-  { id: 'lava',    name: 'Lava',    unlock: 0, coinCost: 175, rarity: 'rare',   effect: 'flicker', color1: '#fef08a', color2: '#ef4444', glow: '#f97316', shape: 'circle', trail: true  },
-  { id: 'crimson',  name: 'Crimson',  unlock: 0, coinCost: 200, rarity: 'rare',      effect: 'flicker',  color1: '#ffe4e1', color2: '#dc2626', glow: '#ef4444', shape: 'circle', trail: true  },
-  { id: 'aurora',   name: 'Aurora',   unlock: 0, lifetimeUnlock: 500000, rarity: 'rare', effect: 'shimmer', color1: '#d1fae5', color2: '#0ea5e9', glow: '#22d3ee', shape: 'circle', trail: true  },
-  // -- Epic --
-  { id: 'gold',    name: 'Gold',    unlock: 0, coinCost: 300, rarity: 'epic',   effect: 'shimmer', color1: '#fefce8', color2: '#eab308', glow: '#fbbf24', shape: 'star',   trail: false },
-  { id: 'void',     name: 'Void',     unlock: 0, coinCost: 425, rarity: 'epic',      effect: 'void',     color1: '#ddd6fe', color2: '#3b0764', glow: '#c084fc', shape: 'star',   trail: true  },
-  { id: 'electric', name: 'Electric', unlock: 0, coinCost: 350, rarity: 'epic',      effect: 'electric', color1: '#e0f2fe', color2: '#0284c7', glow: '#38bdf8', shape: 'circle', trail: true  },
-  { id: 'inferno',  name: 'Inferno',  unlock: 0, coinCost: 350, rarity: 'epic',      effect: 'inferno',  color1: '#fffbeb', color2: '#dc2626', glow: '#f97316', shape: 'circle', trail: true  },
-  { id: 'prism',    name: 'Prism',    unlock: 0, coinCost: 350, rarity: 'epic',      effect: 'prism',    color1: '#ffffff', color2: '#a855f7', glow: '#e879f9', shape: 'circle', trail: true  },
-  { id: 'afterglow', name: 'Afterglow', unlock: 0, lifetimeUnlock: 2000000, rarity: 'epic', effect: 'prism', color1: '#fef3c7', color2: '#f472b6', glow: '#fb7185', shape: 'circle', trail: true  },
-  // -- Legendary --
-  { id: 'galaxy',   name: 'Galaxy',   unlock: 0, coinCost: 550, rarity: 'legendary', effect: 'galaxy',   color1: '#c4b5fd', color2: '#1e1b4b', glow: '#818cf8', shape: 'star',   trail: true  },
-  { id: 'eclipse',  name: 'Eclipse',  unlock: 0, lifetimeUnlock: 3500000, rarity: 'legendary', effect: 'void', color1: '#f5f3ff', color2: '#111827', glow: '#a78bfa', shape: 'star', trail: true  },
-  // -- Defense / Ability Skins --
-  { id: 'coin-magnet',  name: 'Coin Magnet',  unlock: 0, coinCost: 100, rarity: 'common',    effect: 'pulse',    color1: '#fefce8', color2: '#eab308', glow: '#fbbf24', shape: 'circle', trail: false },
-  { id: 'neon-shield',  name: 'Neon Shield',  unlock: 0, coinCost: 175, rarity: 'rare',      effect: 'electric', color1: '#e0f2fe', color2: '#0ea5e9', glow: '#38bdf8', shape: 'circle', trail: true  },
-  { id: 'frost-runner', name: 'Frost Runner', unlock: 0, coinCost: 200, rarity: 'rare',      effect: 'shimmer',  color1: '#f0f9ff', color2: '#7dd3fc', glow: '#93c5fd', shape: 'circle', trail: true  },
-  { id: 'dash-core',    name: 'Dash Core',    unlock: 0, coinCost: 350, rarity: 'epic',      effect: 'electric', color1: '#eff6ff', color2: '#3b82f6', glow: '#60a5fa', shape: 'circle', trail: true  },
-  { id: 'pulse-wave',   name: 'Pulse Wave',   unlock: 0, coinCost: 425, rarity: 'epic',      effect: 'prism',    color1: '#faf5ff', color2: '#a855f7', glow: '#c084fc', shape: 'circle', trail: true  },
-  { id: 'ghost-shift',  name: 'Ghost Shift',  unlock: 0, coinCost: 600, rarity: 'legendary', effect: 'aura',     color1: '#f8fafc', color2: '#94a3b8', glow: '#cbd5e1', shape: 'star',   trail: true  },
+  // ── STARTER / EARLY GAME ──────────────────────────────────────────────────
+  { id: 'classic',      name: 'Classic',      coinCost:    0, lifetimeScore:       0, rarity: 'common',    effect: 'none',     color1: '#ffffff', color2: '#c084fc', glow: '#a855f7', shape: 'circle', trail: false },
+  { id: 'neon',         name: 'Neon',         coinCost:   75, lifetimeScore:       0, rarity: 'common',    effect: 'pulse',    color1: '#ccfdf2', color2: '#06b6d4', glow: '#06b6d4', shape: 'circle', trail: true  },
+  { id: 'lava',         name: 'Lava',         coinCost:  175, lifetimeScore:       0, rarity: 'rare',      effect: 'flicker',  color1: '#fef08a', color2: '#ef4444', glow: '#f97316', shape: 'circle', trail: true  },
+  // ── MID GAME ─────────────────────────────────────────────────────────────
+  { id: 'aurora',       name: 'Aurora',       coinCost:  225, lifetimeScore:       0, rarity: 'rare',      effect: 'shimmer',  color1: '#d1fae5', color2: '#0ea5e9', glow: '#22d3ee', shape: 'circle', trail: true  },
+  { id: 'inferno',      name: 'Inferno',      coinCost:  425, lifetimeScore:   75000, rarity: 'epic',      effect: 'inferno',  color1: '#fffbeb', color2: '#dc2626', glow: '#f97316', shape: 'circle', trail: true  },
+  { id: 'gold',         name: 'Gold',         coinCost:  500, lifetimeScore:  100000, rarity: 'epic',      effect: 'shimmer',  color1: '#fefce8', color2: '#eab308', glow: '#fbbf24', shape: 'star',   trail: false },
+  // ── HIGH-END ──────────────────────────────────────────────────────────────
+  { id: 'afterglow',    name: 'Afterglow',    coinCost:  700, lifetimeScore:  175000, rarity: 'legendary', effect: 'prism',    color1: '#fef3c7', color2: '#f472b6', glow: '#fb7185', shape: 'circle', trail: true  },
+  { id: 'galaxy',       name: 'Galaxy',       coinCost:  900, lifetimeScore:  300000, rarity: 'legendary', effect: 'galaxy',   color1: '#c4b5fd', color2: '#1e1b4b', glow: '#818cf8', shape: 'star',   trail: true  },
+  { id: 'eclipse',      name: 'Eclipse',      coinCost: 1200, lifetimeScore:  500000, rarity: 'legendary', effect: 'void',     color1: '#f5f3ff', color2: '#111827', glow: '#a78bfa', shape: 'star',   trail: true  },
+  // ── ABILITY SKINS ─────────────────────────────────────────────────────────
+  { id: 'coin-magnet',  name: 'Coin Magnet',  coinCost:  500, lifetimeScore:  125000, rarity: 'rare',      effect: 'pulse',    color1: '#fefce8', color2: '#eab308', glow: '#fbbf24', shape: 'circle', trail: false, isAbility: true },
+  { id: 'neon-shield',  name: 'Neon Shield',  coinCost:  800, lifetimeScore:  225000, rarity: 'epic',      effect: 'electric', color1: '#e0f2fe', color2: '#0ea5e9', glow: '#38bdf8', shape: 'circle', trail: true,  isAbility: true },
+  { id: 'frost-runner', name: 'Frost Runner', coinCost: 1000, lifetimeScore:  350000, rarity: 'epic',      effect: 'shimmer',  color1: '#f0f9ff', color2: '#7dd3fc', glow: '#93c5fd', shape: 'circle', trail: true,  isAbility: true },
+  { id: 'dash-core',    name: 'Dash Core',    coinCost: 1400, lifetimeScore:  550000, rarity: 'legendary', effect: 'electric', color1: '#eff6ff', color2: '#3b82f6', glow: '#60a5fa', shape: 'circle', trail: true,  isAbility: true },
+  { id: 'pulse-wave',   name: 'Pulse Wave',   coinCost: 1800, lifetimeScore:  800000, rarity: 'legendary', effect: 'prism',    color1: '#faf5ff', color2: '#a855f7', glow: '#c084fc', shape: 'circle', trail: true,  isAbility: true },
+  { id: 'ghost-shift',  name: 'Ghost Shift',  coinCost: 3000, lifetimeScore: 1250000, rarity: 'mythic',    effect: 'aura',     color1: '#f8fafc', color2: '#94a3b8', glow: '#cbd5e1', shape: 'star',   trail: true,  isAbility: true },
 ];
+
+// Removed skins migration map: old id -> replacement id
+const _SKIN_MIGRATION = {
+  'ice':      'neon',      // Ice -> Neon (similar blue/cool)
+  'crimson':  'lava',      // Crimson -> Lava (similar fire/red)
+  'electric': 'aurora',    // Electric -> Aurora (similar bright/blue)
+  'void':     'eclipse',   // Void -> Eclipse (similar dark)
+  'prism':    'afterglow', // Prism -> Afterglow (similar rainbow)
+};
 // Ability metadata for defence skins. Maps skin id -> ability config.
 // passive:true = always active, no cooldown UI shown.
 // duration:-1  = permanent until triggered externally (Neon Shield).
@@ -152,23 +156,20 @@ const SKIN_ABILITY_DEFS = {
 };
 const LIFETIME_REWARD_DEFS = [
   // -- Common ------------------------------------------------------------------
-  { id: 'lt_coins_500',   milestone:   25000, label: '100 Coins',      type: 'coins',  coins: 100,  rarity: 'common',    icon: '', description: 'A starter coin bundle to kick off your journey.' },
-  { id: 'lt_coins_1500',  milestone:  100000, label: '200 Coins',      type: 'coins',  coins: 200,  rarity: 'common',    icon: '', description: 'Keep playing - the coins stack up.' },
+  { id: 'lt_coins_500',   milestone:    25000, label: '100 Coins',      type: 'coins',  coins: 100,  rarity: 'common',    icon: '🪙', description: 'A starter coin bundle to kick off your journey.' },
+  { id: 'lt_coins_1500',  milestone:   100000, label: '200 Coins',      type: 'coins',  coins: 200,  rarity: 'common',    icon: '🪙', description: 'Keep playing — the coins stack up.' },
   // -- Rare --------------------------------------------------------------------
-  { id: 'aurora',         milestone:  500000, label: 'Aurora Skin',    type: 'skin',   rarity: 'rare',      icon: '', description: 'A shimmering neon-teal skin for the dedicated.' },
-  { id: 'lt_coins_4k',    milestone:  750000, label: '350 Coins',      type: 'coins',  coins: 350,  rarity: 'rare',      icon: '', description: 'A rare coin reward for dedicated players.' },
-  { id: 'lt_badge_5k',    milestone: 1000000, label: 'Trailblazer',    type: 'badge',               rarity: 'rare',      icon: '', description: 'Awarded to those who push past the score ceiling.' },
-  { id: 'lt_coins_7500',  milestone: 1500000, label: '500 Coins',      type: 'coins',  coins: 500,  rarity: 'rare',      icon: '', description: 'Half a thousand coins - impressive.' },
+  { id: 'lt_coins_4k',    milestone:   300000, label: '350 Coins',      type: 'coins',  coins: 350,  rarity: 'rare',      icon: '🪙', description: 'A rare coin reward for dedicated players.' },
+  { id: 'lt_badge_5k',    milestone:   500000, label: 'Trailblazer',    type: 'badge',               rarity: 'rare',      icon: '🔥', description: 'Awarded to those who push past the score ceiling.' },
+  { id: 'lt_coins_7500',  milestone:   750000, label: '500 Coins',      type: 'coins',  coins: 500,  rarity: 'rare',      icon: '🪙', description: 'Half a thousand coins — impressive.' },
   // -- Epic --------------------------------------------------------------------
-  { id: 'afterglow',      milestone: 2000000, label: 'Afterglow Skin', type: 'skin',   rarity: 'epic',      icon: '', description: 'A saturated sunset prism skin for elite players.' },
-  { id: 'lt_coins_15k',   milestone: 2500000, label: '750 Coins',      type: 'coins',  coins: 750,  rarity: 'epic',      icon: '', description: 'An epic hoard of coins.' },
-  { id: 'lt_badge_20k',   milestone: 3000000, label: 'Veteran',        type: 'badge',               rarity: 'epic',      icon: '', description: 'A mark of true dedication and skill.' },
+  { id: 'lt_coins_15k',   milestone:  1000000, label: '750 Coins',      type: 'coins',  coins: 750,  rarity: 'epic',      icon: '🪙', description: 'An epic hoard of coins.' },
+  { id: 'lt_badge_20k',   milestone:  1500000, label: 'Veteran',        type: 'badge',               rarity: 'epic',      icon: '⚔️', description: 'A mark of true dedication and skill.' },
+  { id: 'lt_coins_35k',   milestone:  2000000, label: '1,000 Coins',    type: 'coins',  coins: 1000, rarity: 'legendary', icon: '🪙', description: 'A legendary coin vault.' },
   // -- Legendary ---------------------------------------------------------------
-  { id: 'eclipse',        milestone: 3500000, label: 'Eclipse Skin',   type: 'skin',   rarity: 'legendary', icon: '', description: 'A dark legendary cosmic skin.' },
-  { id: 'lt_coins_35k',   milestone: 4000000, label: '1,000 Coins',    type: 'coins',  coins: 1000, rarity: 'legendary', icon: '', description: 'A legendary coin vault.' },
-  { id: 'lt_badge_50k',   milestone: 4250000, label: 'Legend',         type: 'badge',               rarity: 'legendary', icon: '', description: 'Only legends reach this summit.' },
-  { id: 'lt_coins_75k',   milestone: 4500000, label: '2,000 Coins',    type: 'coins',  coins: 2000, rarity: 'legendary', icon: '', description: 'A massive coin fortune.' },
-  { id: 'lt_mythic',      milestone: 5000000, label: 'Mythic',         type: 'badge',               rarity: 'legendary', icon: '', description: 'The pinnacle of ShiftPanic mastery.' },
+  { id: 'lt_badge_50k',   milestone:  3000000, label: 'Legend',         type: 'badge',               rarity: 'legendary', icon: '👑', description: 'Only legends reach this summit.' },
+  { id: 'lt_coins_75k',   milestone:  4000000, label: '2,000 Coins',    type: 'coins',  coins: 2000, rarity: 'legendary', icon: '🪙', description: 'A massive coin fortune.' },
+  { id: 'lt_mythic',      milestone:  5000000, label: 'Mythic',         type: 'badge',               rarity: 'mythic',    icon: '💎', description: 'The pinnacle of ShiftPanic mastery.' },
 ];
 
 const STATE = { HOME: 'home', PLAYING: 'playing', PAUSED: 'paused', GAMEOVER: 'gameover' };
@@ -582,7 +583,7 @@ let currentState = STATE.HOME;
 let newBestThisGame = false; // tracks if a new best was set during the last game session
 
 const ECONOMY_VERSION = 2; // increment to trigger a one-time coin balance reset
-const SKIN_VERSION    = 1; // increment to trigger a one-time purchased-skins reset
+const SKIN_VERSION    = 2; // bump to 2: new skin roster, removed ice/crimson/electric/void/prism
 let settings = {
   sound:          true,
   masterVol:      0.85,
@@ -819,11 +820,19 @@ function loadSettings() {
       _migrated = true;
     }
     if (settings.skinVersion < SKIN_VERSION) {
-      // Skin shop converted to coin-only - reset purchased skins once
-      s.purchasedSkins = [];
-      s.selectedSkin = 'classic';
+      // v2: removed ice/crimson/electric/void/prism — migrate owned skins to closest replacement
+      if (Array.isArray(s.purchasedSkins)) {
+        const migrated = s.purchasedSkins.map(id => _SKIN_MIGRATION[id] || id)
+          .filter((id, i, arr) => arr.indexOf(id) === i) // deduplicate
+          .filter(id => SKIN_DEFS.some(sk => sk.id === id));
+        s.purchasedSkins = migrated;
+      }
+      // Migrate selected skin if it was removed
+      if (s.selectedSkin && _SKIN_MIGRATION[s.selectedSkin]) {
+        s.selectedSkin = _SKIN_MIGRATION[s.selectedSkin];
+      }
       s.skinVersion = SKIN_VERSION;
-      settings.skinVersion = SKIN_VERSION;  // persisted via saveSettings()
+      settings.skinVersion = SKIN_VERSION;
       _migrated = true;
     }
     if (typeof s.sound         === 'boolean') settings.sound         = s.sound;
@@ -3326,9 +3335,14 @@ function hideModal(id) {
 // ============================================================
 
 function isSkinAvailable(skin) {
-  if (skin.lifetimeUnlock) return isLifetimeRewardUnlocked(skin.id);
-  if (skin.coinCost) return settings.purchasedSkins.includes(skin.id);
-  return settings.bestScore >= skin.unlock;
+  if (!skin.coinCost) return true; // free (classic)
+  if (!settings.purchasedSkins.includes(skin.id)) return false;
+  return true; // purchased; score gate was checked at purchase time
+}
+
+function isSkinScoreGateMet(skin) {
+  if (!skin.lifetimeScore) return true;
+  return (settings.lifetimeScore || 0) >= skin.lifetimeScore;
 }
 
 function getSkin() {
@@ -3626,22 +3640,23 @@ function selectSkinForPreview(skinId) {
   }
   if (!actionsEl) return;
 
-  const available  = isSkinAvailable(skin);
-  const selected   = settings.selectedSkin === skin.id && available;
-  const isCoinSkin = !!skin.coinCost;
-  const isLifetime = !!skin.lifetimeUnlock;
-  const canAfford  = isCoinSkin && settings.coins >= skin.coinCost;
+  const available       = isSkinAvailable(skin);
+  const selected        = settings.selectedSkin === skin.id && available;
+  const isCoinSkin      = !!skin.coinCost;
+  const scoreGateMet    = isSkinScoreGateMet(skin);
+  const canAfford       = isCoinSkin && settings.coins >= skin.coinCost;
   const coinSpan   = '<span class="coin-icon coin-sm" aria-hidden="true"></span>';
 
   let primaryHTML = '';
   if (selected) {
-    primaryHTML = '<button class="btn btn-secondary preview-btn-disabled" disabled>OK Equipped</button>';
+    primaryHTML = '<button class="btn btn-secondary preview-btn-disabled" disabled>✓ Equipped</button>';
   } else if (available) {
     primaryHTML = '<button class="btn btn-primary preview-equip-btn" data-skin="' + skin.id + '">Equip</button>';
-  } else if (isLifetime) {
-    primaryHTML = '<button class="btn btn-secondary preview-btn-disabled" disabled>\uD83D\uDD12 ' + formatNumber(skin.lifetimeUnlock) + '</button>';
+  } else if (!scoreGateMet) {
+    const need = skin.lifetimeScore - (settings.lifetimeScore || 0);
+    primaryHTML = '<button class="btn btn-secondary preview-btn-disabled" disabled>🔒 ' + formatNumber(skin.lifetimeScore) + ' score</button>' +
+      '<div class="preview-score-hint">' + formatNumber(need) + ' more lifetime score needed</div>';
   } else if (isCoinSkin) {
-    // Always show an enabled Buy button - if unaffordable it triggers the video flow
     const label = canAfford
       ? 'Buy ' + coinSpan + ' ' + skin.coinCost
       : coinSpan + ' ' + skin.coinCost + ' &nbsp;<span class="preview-buy-video-hint">Watch ad</span>';
@@ -3678,69 +3693,121 @@ function selectSkinForPreview(skinId) {
 }
 
 function updateSkinsUI() {
-  const grid = document.getElementById('skin-stage');
+  // Render both skins grid and ability skins grid
+  _renderSkinGrid(document.getElementById('skin-stage'),       SKIN_DEFS.filter(s => !s.isAbility));
+  _renderSkinGrid(document.getElementById('skin-stage-ability'), SKIN_DEFS.filter(s =>  s.isAbility));
+  _renderNextUnlock();
+  selectSkinForPreview(_shopPreviewSkinId || settings.selectedSkin);
+}
+
+function _renderNextUnlock() {
+  const el = document.getElementById('shop-next-unlock');
+  if (!el) return;
+  const lifetimeScore = settings.lifetimeScore || 0;
+  const coins = settings.coins || 0;
+  // Find the closest locked skin the player is progressing toward
+  const locked = SKIN_DEFS.filter(s => !isSkinAvailable(s));
+  if (!locked.length) { el.hidden = true; return; }
+  // Score-gated skins: sort by how close they are (% progress desc)
+  const withProgress = locked.map(s => {
+    const scorePct  = s.lifetimeScore ? Math.min(1, lifetimeScore / s.lifetimeScore) : 1;
+    const coinPct   = s.coinCost ? Math.min(1, coins / s.coinCost) : 1;
+    const totalPct  = (scorePct + coinPct) / 2;
+    return { skin: s, scorePct, coinPct, totalPct };
+  }).sort((a, b) => b.totalPct - a.totalPct);
+  const next = withProgress[0];
+  if (!next) { el.hidden = true; return; }
+  const s = next.skin;
+  const scorePct = Math.round(next.scorePct * 100);
+  const coinPct  = Math.round(next.coinPct  * 100);
+  const scoreNeeded = s.lifetimeScore ? Math.max(0, s.lifetimeScore - lifetimeScore) : 0;
+  const coinsNeeded = s.coinCost      ? Math.max(0, s.coinCost - coins)              : 0;
+  el.hidden = false;
+  el.innerHTML =
+    '<div class="nu-label">Next Unlock</div>' +
+    '<div class="nu-card" data-rarity="' + s.rarity + '">' +
+      '<span class="nu-rarity" data-rarity="' + s.rarity + '">' + s.rarity.toUpperCase() + '</span>' +
+      '<span class="nu-name">' + s.name + '</span>' +
+      (s.lifetimeScore ? '<div class="nu-row"><span class="nu-row-lbl">Score</span>' +
+        '<div class="nu-bar-track"><div class="nu-bar-fill" style="width:' + scorePct + '%"></div></div>' +
+        '<span class="nu-row-val">' + formatNumber(lifetimeScore) + ' / ' + formatNumber(s.lifetimeScore) + '</span></div>' : '') +
+      (s.coinCost ? '<div class="nu-row"><span class="nu-row-lbl"><span class="coin-icon coin-sm"></span></span>' +
+        '<div class="nu-bar-track"><div class="nu-bar-fill nu-bar-coins" style="width:' + coinPct + '%"></div></div>' +
+        '<span class="nu-row-val">' + coins + ' / ' + s.coinCost + '</span></div>' : '') +
+      (scoreNeeded > 0 ? '<div class="nu-hint">Play ' + formatNumber(scoreNeeded) + ' more lifetime score</div>' : '') +
+      (coinsNeeded > 0 ? '<div class="nu-hint">Earn ' + coinsNeeded + ' more coins</div>' : '') +
+    '</div>';
+}
+
+function _renderSkinGrid(grid, skins) {
   if (!grid) return;
   const coinSpan = '<span class="coin-icon coin-sm" aria-hidden="true"></span>';
+  const lifetimeScore = settings.lifetimeScore || 0;
+  const coins = settings.coins || 0;
 
-  // Rebuild DOM only when necessary - track a content hash to avoid redundant innerHTML sets
-  const _skinHash = JSON.stringify(SKIN_DEFS.map(s => ({
+  const _hash = JSON.stringify(skins.map(s => ({
     id: s.id, owned: isSkinAvailable(s), sel: settings.selectedSkin === s.id,
-    coins: settings.coins, lt: settings.lifetimeScore,
+    coins, lt: lifetimeScore,
   })));
-  if (grid._lastSkinHash === _skinHash) {
-    // State unchanged - skip expensive innerHTML rebuild, just update preview
+  if (grid._lastSkinHash === _hash) {
     selectSkinForPreview(_shopPreviewSkinId || settings.selectedSkin);
     return;
   }
-  grid._lastSkinHash = _skinHash;
+  grid._lastSkinHash = _hash;
 
-  grid.innerHTML = SKIN_DEFS.map(skin => {
-    const isCoinSkin     = !!skin.coinCost;
-    const isLifetimeSkin = !!skin.lifetimeUnlock;
-    const available      = isSkinAvailable(skin);
-    const locked         = !available;
-    const selected       = settings.selectedSkin === skin.id && available;
-    const canAfford      = isCoinSkin && settings.coins >= skin.coinCost;
+  grid.innerHTML = skins.map(skin => {
+    const available     = isSkinAvailable(skin);
+    const scoreGateMet  = isSkinScoreGateMet(skin);
+    const canAfford     = skin.coinCost ? coins >= skin.coinCost : true;
+    const locked        = !available;
+    const selected      = settings.selectedSkin === skin.id && available;
+    const scorePct      = skin.lifetimeScore ? Math.min(100, Math.round((lifetimeScore / skin.lifetimeScore) * 100)) : 100;
+    const coinPct       = skin.coinCost      ? Math.min(100, Math.round((coins / skin.coinCost) * 100)) : 100;
 
-    let statusHTML = '';
+    let bottomHTML = '';
     if (selected) {
-      statusHTML = '<span class="skin-grid-status skin-grid-equipped">Equipped</span>';
+      bottomHTML = '<span class="skin-grid-status skin-grid-equipped">✓ Equipped</span>';
     } else if (available) {
-      statusHTML = '<span class="skin-grid-status skin-grid-owned">Owned</span>';
-    } else if (isLifetimeSkin) {
-      const pct = Math.min(100, Math.round(((settings.lifetimeScore || 0) / skin.lifetimeUnlock) * 100));
-      statusHTML = '<div class="skin-grid-lock-info">' +
-        '<span class="skin-grid-lock-label">' + formatNumber(skin.lifetimeUnlock) + '</span>' +
-        '<div class="skin-bar-track"><div class="skin-bar-fill" style="width:' + pct + '%"></div></div>' +
-        '</div>';
-    } else if (isCoinSkin) {
-      const cls = canAfford ? '' : ' skin-grid-unaffordable';
-      statusHTML = '<div class="skin-grid-cost' + cls + '">' + coinSpan + ' ' + skin.coinCost + '</div>';
+      bottomHTML = '<span class="skin-grid-status skin-grid-owned">Owned</span>';
+    } else {
+      // Show score progress bar if score-gated and not met
+      const scoreBarHTML = (skin.lifetimeScore && !scoreGateMet)
+        ? '<div class="skin-prog-row">' +
+            '<span class="skin-prog-lbl">Score</span>' +
+            '<div class="skin-bar-track"><div class="skin-bar-fill" style="width:' + scorePct + '%"></div></div>' +
+            '<span class="skin-prog-val">' + formatNumber(lifetimeScore) + '</span>' +
+          '</div>'
+        : '';
+      const coinHTML = skin.coinCost
+        ? '<div class="skin-cost-row' + (canAfford ? ' can-afford' : '') + '">' + coinSpan + ' ' + skin.coinCost + '</div>'
+        : '';
+      bottomHTML = scoreBarHTML + coinHTML;
     }
 
     const cardClasses = [
       'skin-btn',
-      locked   ? 'skin-locked'    : '',
-      selected ? 'skin-selected'  : '',
-      isCoinSkin && !available ? 'skin-coin-card' : '',
+      locked   ? 'skin-locked'   : '',
+      selected ? 'skin-selected' : '',
+      (!available && skin.coinCost && scoreGateMet && canAfford) ? 'skin-affordable' : '',
     ].filter(Boolean).join(' ');
 
     const abilDef = SKIN_ABILITY_DEFS[skin.id];
-    const abilityTagHTML = abilDef
-      ? '<span class="skin-ability-tag">' + abilDef.icon + ' ' + abilDef.abilityName + '</span>'
+    const abilTag = abilDef
+      ? '<span class="skin-ability-tag">' + abilDef.icon + '</span>'
       : '';
+
     return '<div class="' + cardClasses + '" data-skin="' + skin.id + '" data-rarity="' + skin.rarity + '" role="listitem" tabindex="0">' +
-      (locked ? '<span class="skin-grid-lock-icon" aria-hidden="true">\uD83D\uDD12</span>' : '') +
       '<canvas class="skin-preview skin-canvas-mini" width="80" height="80" data-skin="' + skin.id + '" aria-hidden="true"></canvas>' +
-      '<span class="skin-rarity" data-rarity="' + skin.rarity + '">' + skin.rarity + '</span>' +
-      '<span class="skin-name">' + skin.name + '</span>' +
-      abilityTagHTML +
-      statusHTML +
-      '</div>';
+      '<div class="skin-card-meta">' +
+        '<span class="skin-rarity" data-rarity="' + skin.rarity + '">' + skin.rarity + '</span>' +
+        '<span class="skin-name">' + skin.name + '</span>' +
+        abilTag +
+      '</div>' +
+      bottomHTML +
+      (locked ? '<span class="skin-lock-overlay" aria-hidden="true">🔒</span>' : '') +
+    '</div>';
   }).join('');
 
-  // Event delegation: one listener on the grid instead of N listeners on N cards.
-  // This avoids accumulating duplicate listeners on every updateSkinsUI() call.
   if (!grid._delegated) {
     grid._delegated = true;
     grid.addEventListener('click', e => {
@@ -3753,7 +3820,7 @@ function updateSkinsUI() {
       if (isSkinAvailable(skin) && settings.selectedSkin !== skinId) {
         settings.selectedSkin = skinId;
         saveSettings();
-        grid._lastSkinHash = null; // invalidate hash so next call rebuilds
+        grid._lastSkinHash = null;
         updateSkinsUI();
         renderLifetimeProgressUI();
       }
@@ -3764,7 +3831,6 @@ function updateSkinsUI() {
     });
   }
 
-  // Update preview panel for current or previously hovered skin
   selectSkinForPreview(_shopPreviewSkinId || settings.selectedSkin);
 }
 
@@ -3830,6 +3896,15 @@ let _pendingBuySkinId = null;
 function showBuyConfirm(skinId) {
   const skin = SKIN_DEFS.find(s => s.id === skinId);
   if (!skin) return;
+
+  // Check score gate first
+  if (!isSkinScoreGateMet(skin)) {
+    const need = skin.lifetimeScore - (settings.lifetimeScore || 0);
+    showToast('Score ' + formatNumber(skin.lifetimeScore) + ' lifetime to unlock ' + skin.name + '! (' + formatNumber(need) + ' to go)', 3500);
+    Audio.uiClick();
+    return;
+  }
+
   _pendingBuySkinId = skinId;
 
   const overlay  = document.getElementById('skin-buy-overlay');
@@ -3842,7 +3917,6 @@ function showBuyConfirm(skinId) {
 
   const canAfford = settings.coins >= skin.coinCost;
   const need      = skin.coinCost - settings.coins;
-
 
   const coinSpan = '<span class="coin-icon coin-sm" aria-hidden="true"></span>';
   title.innerHTML   = 'Unlock ' + skin.name + ' for ' + coinSpan + ' ' + skin.coinCost;
@@ -7942,7 +8016,7 @@ function init() {
         panel.hidden = !isTarget;
         panel.classList.toggle('shop-panel-active', isTarget);
       });
-      if (target === 'skins')      { updateSkinsUI(); }
+      if (target === 'skins' || target === 'abilities') { updateSkinsUI(); }
       if (target === 'upgrades')   { updatePowerupUpgradeUI(); }
       if (target === 'challenges') { renderStatsUI(); updateMissionUI(); }
       if (target === 'lifetime')   { renderLifetimeProgressUI(); }
