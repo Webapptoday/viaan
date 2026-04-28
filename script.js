@@ -8024,8 +8024,8 @@ document.addEventListener('DOMContentLoaded', init);
 const LeaderboardService = (() => {
   // -- Path helpers -----------------------------------------
   const G_PATH  = ()     => 'leaderboards/global/scores';
-  const W_PATH  = (wk)   => 'leaderboards/weekly/' + wk + '/scores';
-  const D_PATH  = (dy)   => 'leaderboards/daily/'  + dy + '/scores';
+  const W_PATH  = (wk)   => 'leaderboards/weekly_' + wk + '/scores';
+  const D_PATH  = (dy)   => 'leaderboards/daily_'  + dy + '/scores';
   const META    = ()     => 'leaderboards/_meta';
 
   // -- Date helpers (UTC so all clients agree) ---------------
