@@ -8510,11 +8510,17 @@ const LeaderboardUI = (() => {
     const entries = LeaderboardService.getLeaderboard(type);
 
     if (!entries || entries.length === 0) {
-      container.innerHTML =
-        '<div class="lb-empty">' +
-          '<span class="lb-empty-icon"></span>' +
-          'No scores yet. Play a round to appear here!' +
-        '</div>';
+      // If Firebase hasn't finished signing in yet, show loading instead of empty
+      const fbReady = window._fbDb && window._fbPlayerId;
+      container.innerHTML = fbReady
+        ? '<div class="lb-empty">' +
+            '<span class="lb-empty-icon"></span>' +
+            'No scores yet. Play a round to appear here!' +
+          '</div>'
+        : '<div class="lb-loading" aria-live="polite">' +
+            '<span class="lb-loading-spinner" aria-hidden="true"></span>' +
+            'Connecting&hellip;' +
+          '</div>';
       return;
     }
 
@@ -8700,11 +8706,17 @@ const LeaderboardUI = (() => {
     const btnClose = document.getElementById('btn-lb-close');
     if (btnClose) btnClose.addEventListener('click', close);
 
-    // Backdrop close
+    // Backdrop close — ignore events that are scroll-end touches
     const modal = document.getElementById('modal-leaderboard');
-    if (modal) modal.addEventListener('click', e => {
-      if (e.target === modal) close();
-    });
+    if (modal) {
+      let _lbScrolled = false;
+      modal.addEventListener('scroll', () => { _lbScrolled = true; }, true);
+      modal.addEventListener('touchmove', () => { _lbScrolled = true; }, { passive: true, capture: true });
+      modal.addEventListener('click', e => {
+        if (_lbScrolled) { _lbScrolled = false; return; }
+        if (e.target === modal) close();
+      });
+    }
 
     // Tab buttons
     document.querySelectorAll('.lb-tab').forEach(btn => {

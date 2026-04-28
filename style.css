@@ -4212,6 +4212,9 @@ body.perf-low .home-blobs::after   { animation: none !important; }
 .lb-board {
   flex: 1; overflow-y: auto; padding: 0 20px 16px;
   scrollbar-width: thin; scrollbar-color: rgba(139,92,246,.3) transparent;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
 }
 .lb-board::-webkit-scrollbar { width: 5px; }
 .lb-board::-webkit-scrollbar-thumb { background: rgba(139,92,246,.35); border-radius: 4px; }
