@@ -8566,6 +8566,10 @@ const Multiplayer = (function () {
     document.getElementById('modal-multiplayer').hidden = true;
     console.log('[Multiplayer] Both players in -- game begins.');
 
+    // startGame() FIRST — it calls cleanupGameLoop() which would stop any running MpSync.
+    // We start MpSync AFTER so it is not killed by cleanupGameLoop().
+    startGame();
+
     if (_lastRoom && _roomCode) {
       var myId = _getMyId();
       var entries = _lastRoom.players ? Object.entries(_lastRoom.players) : [];
@@ -8573,11 +8577,11 @@ const Multiplayer = (function () {
       if (oppEntry) {
         var oppId   = oppEntry[0];
         var oppData = oppEntry[1];
+        // startGame uses a 50ms setTimeout before the RAF starts,
+        // so MpSync will be active before the first gameLoop frame runs.
         MpSync.start(_roomCode, myId, oppId, oppData.name || 'Opponent');
       }
     }
-
-    startGame();
   }
 
 
@@ -8735,7 +8739,7 @@ const MpSync = (function () {
   var _opponentRef      = null;
   var _myPlayerRef      = null;
   var _lastSendTime     = 0;
-  var SEND_INTERVAL     = 100; // 10fps max
+  var SEND_INTERVAL     = 200; // 5fps max — safe for Firebase free tier
 
   var _opponent         = null; // { x, y, alive, name, score, disconnected }
   var _opponentLastSeen = 0;
@@ -8840,9 +8844,6 @@ const MpSync = (function () {
     _opponent.score        = data.score || 0;
     _opponent.disconnected = !!data.disconnected;
     _opponentLastSeen      = Date.now();
-
-    console.log('[MpSync] Opponent position received: x=' +
-      ((_opponent.x) || 0).toFixed(1) + ' y=' + ((_opponent.y) || 0).toFixed(1));
 
     if (_opponent.disconnected) {
       _handleDisconnect('Opponent disconnected. Auto-win in 5s...');
