@@ -1,4 +1,4 @@
-﻿// ============================================================
+// ============================================================
 // SHIFTPANIC - Game Logic v2
 // ============================================================
 'use strict';
@@ -7867,335 +7867,380 @@ const Tutorial = (() => {
 // ============================================================
 
 // ============================================================
-const Multiplayer = (function () {
-
-  // â”€â”€ State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  let _roomCode      = null;   // code for room we're in
-  let _isHost        = false;  // true if we created the room
-  let _lobbyListener = null;   // RTDB .on() cleanup ref
-
-  // â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  function _getRtdb() { return window._fbRtdb || null; }
-  function _getMyId() { return window._fbPlayerId || ('p' + Date.now().toString(36)); }
-  function _getMyName() {
-    try {
-      const LeaderboardSvc = window.LeaderboardService;
-      if (LeaderboardSvc && typeof LeaderboardSvc.getDisplayName === 'function') {
-        return LeaderboardSvc.getDisplayName();
-      }
-    } catch (_) {}
-    return localStorage.getItem('forbiddenColor_playerName') ||
-           localStorage.getItem('forbiddenColor_anonTag') || 'Player';
-  }
-
-  function _genCode() {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // no I or O (ambiguous)
-    let code = '';
-    for (let i = 0; i < 4; i++) code += chars[Math.floor(Math.random() * chars.length)];
-    return code;
-  }
-
-  function _roomRef(code) { return _getRtdb().ref('rooms/' + code); }
-
-  function _showError(msg) {
-    const el = document.getElementById('mp-entry-error');
-    if (!el) return;
-    el.textContent = msg;
-    el.hidden = false;
-  }
-  function _clearError() {
-    const el = document.getElementById('mp-entry-error');
-    if (el) { el.hidden = true; el.textContent = ''; }
-  }
-
-  function _setView(view) {
-    document.getElementById('mp-view-entry').hidden = (view !== 'entry');
-    document.getElementById('mp-view-lobby').hidden = (view !== 'lobby');
-  }
-
-  // â”€â”€ Open modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  function open() {
-    _reset();
-    document.getElementById('modal-multiplayer').hidden = false;
-    _setView('entry');
-    _clearError();
-    document.getElementById('mp-join-input').value = '';
-  }
-
-  // â”€â”€ Close modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  function close() {
-    _detachLobbyListener();
-    _reset();
-    document.getElementById('modal-multiplayer').hidden = true;
-  }
-
-  function _reset() {
-    _roomCode = null;
-    _isHost   = false;
-    _detachLobbyListener();
-  }
-
-  // â”€â”€ Create Room â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  async function createRoom() {
-    const rtdb = _getRtdb();
-    if (!rtdb) { _showError('Firebase not ready. Please waitâ€¦'); return; }
-    _clearError();
-
-    const myId   = _getMyId();
-    const myName = _getMyName();
-
-    // Find a unique code (retry up to 5 times)
-    let code = null;
-    for (let i = 0; i < 5; i++) {
-      const candidate = _genCode();
-      const snap = await _roomRef(candidate).once('value');
-      if (!snap.exists()) { code = candidate; break; }
-    }
-    if (!code) { _showError('Could not generate a unique room code. Try again.'); return; }
-
-    const roomData = {
-      roomCode:     code,
-      status:       'waiting',
-      hostPlayerId: myId,
-      createdAt:    Date.now(),
-      players: {
-        [myId]: {
-          playerId: myId,
-          name:     myName,
-          joinedAt: Date.now(),
-          alive:    true,
-        }
-      }
-    };
-
-    try {
-      await _roomRef(code).set(roomData);
-      console.log('[Multiplayer] Room created:', code);
-      _roomCode = code;
-      _isHost   = true;
-      _enterLobby(code);
-    } catch (err) {
-      console.error('[Multiplayer] Create room failed:', err);
-      _showError('Failed to create room: ' + err.message);
-    }
-  }
-
-  // â”€â”€ Join Room â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  async function joinRoom() {
-    const rtdb = _getRtdb();
-    if (!rtdb) { _showError('Firebase not ready. Please waitâ€¦'); return; }
-    _clearError();
-
-    const input = document.getElementById('mp-join-input');
-    const code  = (input ? input.value.trim().toUpperCase() : '');
-    if (code.length !== 4) { _showError('Enter a 4-character room code.'); return; }
-
-    let snap;
-    try {
-      snap = await _roomRef(code).once('value');
-    } catch (err) {
-      _showError('Could not reach Firebase: ' + err.message);
-      return;
-    }
-
-    if (!snap.exists()) { _showError('Room ' + code + ' not found.'); return; }
-    const room = snap.val();
-    if (room.status !== 'waiting') { _showError('Room ' + code + ' is no longer accepting players.'); return; }
-
-    const playerCount = Object.keys(room.players || {}).length;
-    if (playerCount >= 2) { _showError('Room ' + code + ' is full (2/2 players).'); return; }
-
-    const myId   = _getMyId();
-    const myName = _getMyName();
-
-    // Don't double-join
-    if (room.players && room.players[myId]) {
-      _roomCode = code;
-      _isHost   = (room.hostPlayerId === myId);
-      _enterLobby(code);
-      return;
-    }
-
-    try {
-      await _roomRef(code).child('players/' + myId).set({
-        playerId: myId,
-        name:     myName,
-        joinedAt: Date.now(),
-        alive:    true,
-      });
-      console.log('[Multiplayer] Joined room:', code);
-      _roomCode = code;
-      _isHost   = false;
-      _enterLobby(code);
-    } catch (err) {
-      console.error('[Multiplayer] Join room failed:', err);
-      _showError('Failed to join room: ' + err.message);
-    }
-  }
-
-  // â”€â”€ Enter Lobby â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  function _enterLobby(code) {
-    _setView('lobby');
-    document.getElementById('mp-room-code-display').textContent = code;
-    _attachLobbyListener(code);
-  }
-
-  // â”€â”€ Lobby real-time listener â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  function _attachLobbyListener(code) {
-    _detachLobbyListener();
-    const ref = _roomRef(code);
-    ref.on('value', _onLobbyUpdate, function (err) {
-      console.error('[Multiplayer] Lobby listener error:', err);
-    });
-    _lobbyListener = ref;
-  }
-
-  function _detachLobbyListener() {
-    if (_lobbyListener) {
-      _lobbyListener.off('value', _onLobbyUpdate);
-      _lobbyListener = null;
-    }
-  }
-
-  function _onLobbyUpdate(snap) {
-    if (!snap.exists()) {
-      console.log('[Multiplayer] Room was deleted.');
-      return;
-    }
-    const room = snap.val();
-    console.log('[Multiplayer] Lobby updated:', room);
-    _renderLobby(room);
-  }
-
-  // â”€â”€ Render Lobby â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  function _renderLobby(room) {
-    const myId      = _getMyId();
-    const players   = room.players ? Object.values(room.players) : [];
-    const isFull    = players.length >= 2;
-    const isHost    = room.hostPlayerId === myId;
-
-    // Players list
-    const listEl = document.getElementById('mp-players-list');
-    if (listEl) {
-      listEl.innerHTML = players.map(p => {
-        const isMe     = p.playerId === myId;
-        const isRoomHost = p.playerId === room.hostPlayerId;
-        const initials = (p.name || '?').charAt(0).toUpperCase();
-        let tags = '';
-        if (isRoomHost) tags += '<span class="mp-player-tag host">Host</span>';
-        if (isMe)       tags += '<span class="mp-player-tag you">You</span>';
-        return '<div class="mp-player-row">' +
-          '<div class="mp-player-avatar">' + initials + '</div>' +
-          '<span class="mp-player-name">' + _escHtml(p.name || 'Player') + '</span>' +
-          tags +
-          '</div>';
-      }).join('');
-    }
-
-    // Waiting message
-    const waitEl = document.getElementById('mp-waiting-msg');
-    if (waitEl) waitEl.hidden = isFull;
-
-    // Start button â€” only host, only when full
-    const startBtn = document.getElementById('mp-btn-start');
-    if (startBtn) {
-      startBtn.hidden = !(isHost && isFull);
-    }
-  }
-
-  // â”€â”€ Start Match â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  async function startMatch() {
-    if (!_roomCode || !_isHost) return;
-    console.log('[Multiplayer] Start match clicked for room:', _roomCode);
-    try {
-      await _roomRef(_roomCode).child('status').set('countdown');
-      console.log('[Multiplayer] Room status set to countdown');
-    } catch (err) {
-      console.error('[Multiplayer] Start match failed:', err);
-    }
-  }
-
-  // â”€â”€ Leave Room â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  async function leaveRoom() {
-    const myId = _getMyId();
-    if (_roomCode) {
-      try {
-        // Remove this player from the room
-        await _roomRef(_roomCode).child('players/' + myId).remove();
-        console.log('[Multiplayer] Left room:', _roomCode);
-      } catch (_) {}
-    }
-    close();
-    _setView('entry');
-  }
-
-  // â”€â”€ Copy code â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  function copyCode() {
-    if (!_roomCode) return;
-    try {
-      navigator.clipboard.writeText(_roomCode);
-    } catch (_) {
-      // Fallback for browsers without clipboard API
-      const el = document.createElement('textarea');
-      el.value = _roomCode;
-      el.style.position = 'fixed'; el.style.opacity = '0';
-      document.body.appendChild(el);
-      el.select();
-      document.execCommand('copy');
-      document.body.removeChild(el);
-    }
-    const btn = document.getElementById('mp-btn-copy');
-    if (btn) { btn.textContent = 'Copied!'; setTimeout(() => { btn.textContent = 'Copy'; }, 1500); }
-  }
-
-  // â”€â”€ Sanitize â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  function _escHtml(str) {
-    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  }
-
-  // â”€â”€ Bind DOM events (called once on DOMContentLoaded) â”€â”€â”€â”€â”€
-  function bindEvents() {
-    // Close button
-    const closeBtn = document.getElementById('btn-mp-close');
-    if (closeBtn) closeBtn.addEventListener('click', () => { Audio.uiClick(); close(); });
-
-    // Backdrop click
-    const overlay = document.getElementById('modal-multiplayer');
-    if (overlay) overlay.addEventListener('click', e => {
-      if (e.target === overlay) { Audio.uiClick(); close(); }
-    });
-
-    // Create
-    const createBtn = document.getElementById('mp-btn-create');
-    if (createBtn) createBtn.addEventListener('click', () => { Audio.uiClick(); createRoom(); });
-
-    // Join
-    const joinBtn = document.getElementById('mp-btn-join');
-    if (joinBtn) joinBtn.addEventListener('click', () => { Audio.uiClick(); joinRoom(); });
-
-    // Join on Enter key
-    const joinInput = document.getElementById('mp-join-input');
-    if (joinInput) {
-      joinInput.addEventListener('keydown', e => { if (e.key === 'Enter') { Audio.uiClick(); joinRoom(); } });
-      joinInput.addEventListener('input', () => {
-        joinInput.value = joinInput.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4);
-      });
-    }
-
-    // Copy code
-    const copyBtn = document.getElementById('mp-btn-copy');
-    if (copyBtn) copyBtn.addEventListener('click', () => { Audio.uiClick(); copyCode(); });
-
-    // Start match
-    const startBtn = document.getElementById('mp-btn-start');
-    if (startBtn) startBtn.addEventListener('click', () => { Audio.uiClick(); startMatch(); });
-
-    // Leave
-    const leaveBtn = document.getElementById('mp-btn-leave');
-    if (leaveBtn) leaveBtn.addEventListener('click', () => { Audio.uiClick(); leaveRoom(); });
-  }
-
-  return { open, close, createRoom, joinRoom, leaveRoom, copyCode, startMatch, bindEvents };
+const Multiplayer = (function () {
+
+  // -- State --------------------------------------------------
+  let _roomCode       = null;   // code for the room we're in
+  let _isHost         = false;  // true if we created the room
+  let _lobbyRef       = null;   // RTDB ref we're listening to
+  let _lastStatus     = null;   // track status changes
+  let _countdownTimer = null;   // setTimeout handle
+
+  // -- Helpers ------------------------------------------------
+  function _getRtdb() { return window._fbRtdb || null; }
+  function _getMyId() { return window._fbPlayerId || ('p' + Date.now().toString(36)); }
+  function _getMyName() {
+    try {
+      const svc = window.LeaderboardService;
+      if (svc && typeof svc.getDisplayName === 'function') return svc.getDisplayName();
+    } catch (_) {}
+    return localStorage.getItem('forbiddenColor_playerName') ||
+           localStorage.getItem('forbiddenColor_anonTag') || 'Player';
+  }
+
+  function _genCode() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+    let code = '';
+    for (let i = 0; i < 4; i++) code += chars[Math.floor(Math.random() * chars.length)];
+    return code;
+  }
+
+  function _roomRef(code) { return _getRtdb().ref('rooms/' + code); }
+
+  function _showError(msg) {
+    const el = document.getElementById('mp-entry-error');
+    if (el) { el.textContent = msg; el.hidden = false; }
+  }
+  function _clearError() {
+    const el = document.getElementById('mp-entry-error');
+    if (el) { el.hidden = true; el.textContent = ''; }
+  }
+
+  function _setView(view) {
+    document.getElementById('mp-view-entry').hidden = (view !== 'entry');
+    document.getElementById('mp-view-lobby').hidden = (view !== 'lobby');
+  }
+
+  // -- Open modal ---------------------------------------------
+  function open() {
+    _reset();
+    document.getElementById('modal-multiplayer').hidden = false;
+    _setView('entry');
+    _clearError();
+    document.getElementById('mp-join-input').value = '';
+  }
+
+  // -- Close modal --------------------------------------------
+  function close() {
+    _detachListener();
+    _reset();
+    document.getElementById('modal-multiplayer').hidden = true;
+    _hideCountdown();
+  }
+
+  function _reset() {
+    _roomCode   = null;
+    _isHost     = false;
+    _lastStatus = null;
+    _detachListener();
+    _clearCountdownTimer();
+  }
+
+  // -- Create Room --------------------------------------------
+  async function createRoom() {
+    const rtdb = _getRtdb();
+    if (!rtdb) { _showError('Firebase not ready. Please wait...'); return; }
+    _clearError();
+
+    const myId   = _getMyId();
+    const myName = _getMyName();
+
+    let code = null;
+    for (let i = 0; i < 5; i++) {
+      const candidate = _genCode();
+      const snap = await _roomRef(candidate).once('value');
+      if (!snap.exists()) { code = candidate; break; }
+    }
+    if (!code) { _showError('Could not generate a unique room code. Try again.'); return; }
+
+    const roomData = {
+      roomCode:     code,
+      status:       'waiting',
+      hostPlayerId: myId,
+      createdAt:    Date.now(),
+      players: {
+        [myId]: { playerId: myId, name: myName, joinedAt: Date.now(), alive: true }
+      }
+    };
+
+    try {
+      await _roomRef(code).set(roomData);
+      console.log('[Multiplayer] Room created:', code);
+      _roomCode = code;
+      _isHost   = true;
+      _enterLobby(code);
+    } catch (err) {
+      console.error('[Multiplayer] Create room failed:', err);
+      _showError('Failed to create room: ' + err.message);
+    }
+  }
+
+  // -- Join Room ----------------------------------------------
+  async function joinRoom() {
+    const rtdb = _getRtdb();
+    if (!rtdb) { _showError('Firebase not ready. Please wait...'); return; }
+    _clearError();
+
+    const input = document.getElementById('mp-join-input');
+    const code  = (input ? input.value.trim().toUpperCase() : '');
+    if (code.length !== 4) { _showError('Enter a 4-character room code.'); return; }
+
+    let snap;
+    try {
+      snap = await _roomRef(code).once('value');
+    } catch (err) {
+      _showError('Could not reach Firebase: ' + err.message);
+      return;
+    }
+
+    if (!snap.exists()) { _showError('Room ' + code + ' not found.'); return; }
+    const room = snap.val();
+    if (room.status !== 'waiting') { _showError('Room ' + code + ' is no longer accepting players.'); return; }
+
+    const myId   = _getMyId();
+    const myName = _getMyName();
+
+    if (room.players && room.players[myId]) {
+      _roomCode = code;
+      _isHost   = (room.hostPlayerId === myId);
+      _enterLobby(code);
+      return;
+    }
+
+    const playerCount = Object.keys(room.players || {}).length;
+    if (playerCount >= 2) { _showError('Room ' + code + ' is full (2/2 players).'); return; }
+
+    try {
+      await _roomRef(code).child('players/' + myId).set({
+        playerId: myId, name: myName, joinedAt: Date.now(), alive: true,
+      });
+      console.log('[Multiplayer] Player joined room:', code);
+      _roomCode = code;
+      _isHost   = false;
+      _enterLobby(code);
+    } catch (err) {
+      console.error('[Multiplayer] Join room failed:', err);
+      _showError('Failed to join room: ' + err.message);
+    }
+  }
+
+  // -- Enter Lobby --------------------------------------------
+  function _enterLobby(code) {
+    _setView('lobby');
+    document.getElementById('mp-room-code-display').textContent = code;
+    console.log('[Multiplayer] Room listener started for:', code);
+    _attachListener(code);
+  }
+
+  // -- Real-time listener -------------------------------------
+  function _attachListener(code) {
+    _detachListener();
+    _lobbyRef = _roomRef(code);
+    _lobbyRef.on('value', _onRoomUpdate, function (err) {
+      console.error('[Multiplayer] Listener error:', err);
+    });
+  }
+
+  function _detachListener() {
+    if (_lobbyRef) {
+      _lobbyRef.off('value', _onRoomUpdate);
+      _lobbyRef = null;
+    }
+  }
+
+  function _onRoomUpdate(snap) {
+    if (!snap.exists()) {
+      console.log('[Multiplayer] Room deleted -- returning to entry.');
+      _setView('entry');
+      return;
+    }
+    const room   = snap.val();
+    const status = room.status;
+
+    if (status !== _lastStatus) {
+      console.log('[Multiplayer] Status changed:', _lastStatus, '->', status);
+      _lastStatus = status;
+    }
+
+    _renderLobby(room);
+
+    if (status === 'countdown' && !_countdownTimer) {
+      console.log('[Multiplayer] Countdown started');
+      _startCountdown();
+    } else if (status === 'playing') {
+      console.log('[Multiplayer] Match started -- entering game');
+      _hideCountdown();
+      _onMatchStart();
+    }
+  }
+
+  // -- Render Lobby -------------------------------------------
+  function _renderLobby(room) {
+    const myId       = _getMyId();
+    const players    = room.players ? Object.values(room.players) : [];
+    const isFull     = players.length >= 2;
+    const isHost     = room.hostPlayerId === myId;
+    const inProgress = room.status === 'countdown' || room.status === 'playing';
+
+    const listEl = document.getElementById('mp-players-list');
+    if (listEl) {
+      listEl.innerHTML = players.map(p => {
+        const isMe       = p.playerId === myId;
+        const isRoomHost = p.playerId === room.hostPlayerId;
+        const initials   = (p.name || '?').charAt(0).toUpperCase();
+        let tags = '';
+        if (isRoomHost) tags += '<span class="mp-player-tag host">Host</span>';
+        if (isMe)       tags += '<span class="mp-player-tag you">You</span>';
+        return '<div class="mp-player-row">' +
+          '<div class="mp-player-avatar">' + initials + '</div>' +
+          '<span class="mp-player-name">' + _escHtml(p.name || 'Player') + '</span>' +
+          tags + '</div>';
+      }).join('');
+    }
+
+    const waitEl = document.getElementById('mp-waiting-msg');
+    if (waitEl) waitEl.hidden = isFull || inProgress;
+
+    const startBtn = document.getElementById('mp-btn-start');
+    if (startBtn) startBtn.hidden = !(isHost && isFull && room.status === 'waiting');
+  }
+
+  // -- Start Match (host only) --------------------------------
+  async function startMatch() {
+    if (!_roomCode || !_isHost) return;
+    console.log('[Multiplayer] Start match clicked for room:', _roomCode);
+    try {
+      await _roomRef(_roomCode).child('status').set('countdown');
+      await _roomRef(_roomCode).child('countdownStartedAt').set(Date.now());
+      console.log('[Multiplayer] Status -> countdown');
+    } catch (err) {
+      console.error('[Multiplayer] Start match failed:', err);
+    }
+  }
+
+  // -- Countdown (runs on both tabs) --------------------------
+  function _startCountdown() {
+    _clearCountdownTimer();
+    const overlay = document.getElementById('mp-countdown-overlay');
+    const numEl   = document.getElementById('mp-countdown-num');
+    const lblEl   = document.getElementById('mp-countdown-label');
+    if (!overlay) return;
+
+    overlay.hidden = false;
+    let count = 3;
+
+    const tick = () => {
+      if (count > 0) {
+        numEl.textContent = String(count);
+        if (lblEl) lblEl.textContent = 'Get Ready!';
+        numEl.classList.remove('mp-countdown-pop');
+        void numEl.offsetWidth;
+        numEl.classList.add('mp-countdown-pop');
+        count--;
+        _countdownTimer = setTimeout(tick, 1000);
+      } else {
+        numEl.textContent = 'GO!';
+        if (lblEl) lblEl.textContent = '';
+        numEl.classList.remove('mp-countdown-pop');
+        void numEl.offsetWidth;
+        numEl.classList.add('mp-countdown-pop');
+        _countdownTimer = setTimeout(() => {
+          _clearCountdownTimer();
+          if (_isHost && _roomCode) {
+            _roomRef(_roomCode).child('status').set('playing').catch(console.error);
+          }
+        }, 1000);
+      }
+    };
+
+    tick();
+  }
+
+  function _hideCountdown() {
+    const overlay = document.getElementById('mp-countdown-overlay');
+    if (overlay) overlay.hidden = true;
+    _clearCountdownTimer();
+  }
+
+  function _clearCountdownTimer() {
+    if (_countdownTimer) { clearTimeout(_countdownTimer); _countdownTimer = null; }
+  }
+
+  // -- Match started (both tabs) ------------------------------
+  function _onMatchStart() {
+    document.getElementById('modal-multiplayer').hidden = true;
+    console.log('[Multiplayer] Both players in -- game begins.');
+  }
+
+  // -- Leave Room ---------------------------------------------
+  async function leaveRoom() {
+    const myId = _getMyId();
+    if (_roomCode) {
+      try {
+        await _roomRef(_roomCode).child('players/' + myId).remove();
+        console.log('[Multiplayer] Left room:', _roomCode);
+      } catch (_) {}
+    }
+    close();
+    _setView('entry');
+  }
+
+  // -- Copy code ----------------------------------------------
+  function copyCode() {
+    if (!_roomCode) return;
+    try {
+      navigator.clipboard.writeText(_roomCode);
+    } catch (_) {
+      const el = document.createElement('textarea');
+      el.value = _roomCode;
+      el.style.position = 'fixed'; el.style.opacity = '0';
+      document.body.appendChild(el); el.select();
+      document.execCommand('copy'); document.body.removeChild(el);
+    }
+    const btn = document.getElementById('mp-btn-copy');
+    if (btn) { btn.textContent = 'Copied!'; setTimeout(() => { btn.textContent = 'Copy'; }, 1500); }
+  }
+
+  // -- Sanitize -----------------------------------------------
+  function _escHtml(str) {
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // -- Bind DOM events ----------------------------------------
+  function bindEvents() {
+    const closeBtn = document.getElementById('btn-mp-close');
+    if (closeBtn) closeBtn.addEventListener('click', () => { Audio.uiClick(); close(); });
+
+    const overlay = document.getElementById('modal-multiplayer');
+    if (overlay) overlay.addEventListener('click', e => {
+      if (e.target === overlay) { Audio.uiClick(); close(); }
+    });
+
+    const createBtn = document.getElementById('mp-btn-create');
+    if (createBtn) createBtn.addEventListener('click', () => { Audio.uiClick(); createRoom(); });
+
+    const joinBtn = document.getElementById('mp-btn-join');
+    if (joinBtn) joinBtn.addEventListener('click', () => { Audio.uiClick(); joinRoom(); });
+
+    const joinInput = document.getElementById('mp-join-input');
+    if (joinInput) {
+      joinInput.addEventListener('keydown', e => { if (e.key === 'Enter') { Audio.uiClick(); joinRoom(); } });
+      joinInput.addEventListener('input', () => {
+        joinInput.value = joinInput.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4);
+      });
+    }
+
+    const copyBtn = document.getElementById('mp-btn-copy');
+    if (copyBtn) copyBtn.addEventListener('click', () => { Audio.uiClick(); copyCode(); });
+
+    const startBtn = document.getElementById('mp-btn-start');
+    if (startBtn) startBtn.addEventListener('click', () => { Audio.uiClick(); startMatch(); });
+
+    const leaveBtn = document.getElementById('mp-btn-leave');
+    if (leaveBtn) leaveBtn.addEventListener('click', () => { Audio.uiClick(); leaveRoom(); });
+  }
+
+  return { open, close, createRoom, joinRoom, leaveRoom, copyCode, startMatch, bindEvents };
 })();
 function init() {
   canvas = document.getElementById('game-canvas');
