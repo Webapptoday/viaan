@@ -92,6 +92,10 @@
         <button id="btn-start" class="btn btn-primary btn-large">
           Play
         </button>
+        <button id="btn-multiplayer" class="btn btn-secondary btn-mp-open"
+                aria-haspopup="dialog" aria-controls="modal-multiplayer">
+          ⚡ Multiplayer
+        </button>
         <button id="btn-progress" class="btn btn-secondary"
                 aria-haspopup="dialog" aria-controls="modal-progress">
           Shop
@@ -919,6 +923,65 @@
 
   <!-- Post-run rank toast (shown in game over) -->
   <div id="lb-rank-toast" class="lb-rank-toast" hidden aria-live="polite"></div>
+
+  <!-- ============================================================
+       MULTIPLAYER MODAL
+  ============================================================ -->
+  <div id="modal-multiplayer" class="modal mp-overlay" role="dialog"
+       aria-modal="true" aria-labelledby="mp-title" hidden>
+    <div class="mp-panel">
+
+      <!-- Header -->
+      <div class="mp-header">
+        <div class="mp-header-left">
+          <span class="mp-icon" aria-hidden="true">⚡</span>
+          <div>
+            <h2 class="mp-title" id="mp-title">Multiplayer</h2>
+            <p class="mp-subtitle">Play with a friend in real-time</p>
+          </div>
+        </div>
+        <button class="btn-close mp-close-btn" id="btn-mp-close" aria-label="Close multiplayer">✕</button>
+      </div>
+
+      <!-- ── VIEW: entry (create or join) ── -->
+      <div id="mp-view-entry" class="mp-view">
+        <button id="mp-btn-create" class="btn btn-primary mp-action-btn" type="button">
+          🎮 Create Room
+        </button>
+        <div class="mp-divider"><span>or</span></div>
+        <div class="mp-join-row">
+          <input id="mp-join-input" class="mp-code-input" type="text"
+                 maxlength="4" placeholder="ABCD"
+                 autocomplete="off" spellcheck="false"
+                 aria-label="Enter room code" />
+          <button id="mp-btn-join" class="btn btn-secondary" type="button">Join</button>
+        </div>
+        <p id="mp-entry-error" class="mp-error" aria-live="polite" hidden></p>
+      </div>
+
+      <!-- ── VIEW: lobby ── -->
+      <div id="mp-view-lobby" class="mp-view" hidden>
+        <div class="mp-room-code-row">
+          <span class="mp-room-label">Room Code</span>
+          <span id="mp-room-code-display" class="mp-room-code">----</span>
+          <button id="mp-btn-copy" class="btn btn-secondary mp-copy-btn" type="button">Copy</button>
+        </div>
+
+        <div class="mp-players-list" id="mp-players-list" aria-label="Players in lobby">
+          <!-- rendered by JS -->
+        </div>
+
+        <p id="mp-waiting-msg" class="mp-waiting-msg" aria-live="polite">Waiting for friend…</p>
+
+        <button id="mp-btn-start" class="btn btn-primary mp-start-btn" type="button" hidden>
+          ▶ Start Match
+        </button>
+
+        <button id="mp-btn-leave" class="btn btn-ghost mp-leave-btn" type="button">Leave Room</button>
+      </div>
+
+    </div>
+  </div>
 
   <!-- Firebase Web SDK (compat build — works without a bundler) -->
   <!-- Firebase packages used: app, auth (anonymous), firestore (real-time), database (multiplayer) -->

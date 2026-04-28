@@ -1,4 +1,4 @@
-// ============================================================
+﻿// ============================================================
 // SHIFTPANIC - Game Logic v2
 // ============================================================
 'use strict';
@@ -110,22 +110,22 @@ const PATTERN_LIBRARY = [
   { id:'TARGETED',    phaseWeights:[ 3, 4, 6, 8, 9] },  // Direct player pressure  starts early
 ];
 
-// Player skins — unlock via coin purchase + optional lifetime score gate
+// Player skins â€” unlock via coin purchase + optional lifetime score gate
 // Rarity: common | rare | epic | legendary | mythic
 const SKIN_DEFS = [
-  // ── STARTER / EARLY GAME ──────────────────────────────────────────────────
+  // â”€â”€ STARTER / EARLY GAME â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   { id: 'classic',      name: 'Classic',      coinCost:    0, lifetimeScore:       0, rarity: 'common',    effect: 'none',     color1: '#ffffff', color2: '#c084fc', glow: '#a855f7', shape: 'circle', trail: false },
   { id: 'neon',         name: 'Neon',         coinCost:   75, lifetimeScore:       0, rarity: 'common',    effect: 'pulse',    color1: '#ccfdf2', color2: '#06b6d4', glow: '#06b6d4', shape: 'circle', trail: true  },
   { id: 'lava',         name: 'Lava',         coinCost:  175, lifetimeScore:       0, rarity: 'rare',      effect: 'flicker',  color1: '#fef08a', color2: '#ef4444', glow: '#f97316', shape: 'circle', trail: true  },
-  // ── MID GAME ─────────────────────────────────────────────────────────────
+  // â”€â”€ MID GAME â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   { id: 'aurora',       name: 'Aurora',       coinCost:  225, lifetimeScore:       0, rarity: 'rare',      effect: 'shimmer',  color1: '#d1fae5', color2: '#0ea5e9', glow: '#22d3ee', shape: 'circle', trail: true  },
   { id: 'inferno',      name: 'Inferno',      coinCost:  425, lifetimeScore:   75000, rarity: 'epic',      effect: 'inferno',  color1: '#fffbeb', color2: '#dc2626', glow: '#f97316', shape: 'circle', trail: true  },
   { id: 'gold',         name: 'Gold',         coinCost:  500, lifetimeScore:  100000, rarity: 'epic',      effect: 'shimmer',  color1: '#fefce8', color2: '#eab308', glow: '#fbbf24', shape: 'star',   trail: false },
-  // ── HIGH-END ──────────────────────────────────────────────────────────────
+  // â”€â”€ HIGH-END â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   { id: 'afterglow',    name: 'Afterglow',    coinCost:  700, lifetimeScore:  175000, rarity: 'legendary', effect: 'prism',    color1: '#fef3c7', color2: '#f472b6', glow: '#fb7185', shape: 'circle', trail: true  },
   { id: 'galaxy',       name: 'Galaxy',       coinCost:  900, lifetimeScore:  300000, rarity: 'legendary', effect: 'galaxy',   color1: '#c4b5fd', color2: '#1e1b4b', glow: '#818cf8', shape: 'star',   trail: true  },
   { id: 'eclipse',      name: 'Eclipse',      coinCost: 1200, lifetimeScore:  500000, rarity: 'legendary', effect: 'void',     color1: '#f5f3ff', color2: '#111827', glow: '#a78bfa', shape: 'star',   trail: true  },
-  // ── ABILITY SKINS ─────────────────────────────────────────────────────────
+  // â”€â”€ ABILITY SKINS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   { id: 'coin-magnet',  name: 'Coin Magnet',  coinCost:  500, lifetimeScore:  125000, rarity: 'rare',      effect: 'pulse',    color1: '#fefce8', color2: '#eab308', glow: '#fbbf24', shape: 'circle', trail: false, isAbility: true },
   { id: 'neon-shield',  name: 'Neon Shield',  coinCost:  800, lifetimeScore:  225000, rarity: 'epic',      effect: 'electric', color1: '#e0f2fe', color2: '#0ea5e9', glow: '#38bdf8', shape: 'circle', trail: true,  isAbility: true },
   { id: 'frost-runner', name: 'Frost Runner', coinCost: 1000, lifetimeScore:  350000, rarity: 'epic',      effect: 'shimmer',  color1: '#f0f9ff', color2: '#7dd3fc', glow: '#93c5fd', shape: 'circle', trail: true,  isAbility: true },
@@ -156,20 +156,20 @@ const SKIN_ABILITY_DEFS = {
 };
 const LIFETIME_REWARD_DEFS = [
   // -- Common ------------------------------------------------------------------
-  { id: 'lt_coins_500',   milestone:    25000, label: '100 Coins',      type: 'coins',  coins: 100,  rarity: 'common',    icon: '🪙', description: 'A starter coin bundle to kick off your journey.' },
-  { id: 'lt_coins_1500',  milestone:   100000, label: '200 Coins',      type: 'coins',  coins: 200,  rarity: 'common',    icon: '🪙', description: 'Keep playing — the coins stack up.' },
+  { id: 'lt_coins_500',   milestone:    25000, label: '100 Coins',      type: 'coins',  coins: 100,  rarity: 'common',    icon: 'ðŸª™', description: 'A starter coin bundle to kick off your journey.' },
+  { id: 'lt_coins_1500',  milestone:   100000, label: '200 Coins',      type: 'coins',  coins: 200,  rarity: 'common',    icon: 'ðŸª™', description: 'Keep playing â€” the coins stack up.' },
   // -- Rare --------------------------------------------------------------------
-  { id: 'lt_coins_4k',    milestone:   300000, label: '350 Coins',      type: 'coins',  coins: 350,  rarity: 'rare',      icon: '🪙', description: 'A rare coin reward for dedicated players.' },
-  { id: 'lt_badge_5k',    milestone:   500000, label: 'Trailblazer',    type: 'badge',               rarity: 'rare',      icon: '🔥', description: 'Awarded to those who push past the score ceiling.' },
-  { id: 'lt_coins_7500',  milestone:   750000, label: '500 Coins',      type: 'coins',  coins: 500,  rarity: 'rare',      icon: '🪙', description: 'Half a thousand coins — impressive.' },
+  { id: 'lt_coins_4k',    milestone:   300000, label: '350 Coins',      type: 'coins',  coins: 350,  rarity: 'rare',      icon: 'ðŸª™', description: 'A rare coin reward for dedicated players.' },
+  { id: 'lt_badge_5k',    milestone:   500000, label: 'Trailblazer',    type: 'badge',               rarity: 'rare',      icon: 'ðŸ”¥', description: 'Awarded to those who push past the score ceiling.' },
+  { id: 'lt_coins_7500',  milestone:   750000, label: '500 Coins',      type: 'coins',  coins: 500,  rarity: 'rare',      icon: 'ðŸª™', description: 'Half a thousand coins â€” impressive.' },
   // -- Epic --------------------------------------------------------------------
-  { id: 'lt_coins_15k',   milestone:  1000000, label: '750 Coins',      type: 'coins',  coins: 750,  rarity: 'epic',      icon: '🪙', description: 'An epic hoard of coins.' },
-  { id: 'lt_badge_20k',   milestone:  1500000, label: 'Veteran',        type: 'badge',               rarity: 'epic',      icon: '⚔️', description: 'A mark of true dedication and skill.' },
-  { id: 'lt_coins_35k',   milestone:  2000000, label: '1,000 Coins',    type: 'coins',  coins: 1000, rarity: 'legendary', icon: '🪙', description: 'A legendary coin vault.' },
+  { id: 'lt_coins_15k',   milestone:  1000000, label: '750 Coins',      type: 'coins',  coins: 750,  rarity: 'epic',      icon: 'ðŸª™', description: 'An epic hoard of coins.' },
+  { id: 'lt_badge_20k',   milestone:  1500000, label: 'Veteran',        type: 'badge',               rarity: 'epic',      icon: 'âš”ï¸', description: 'A mark of true dedication and skill.' },
+  { id: 'lt_coins_35k',   milestone:  2000000, label: '1,000 Coins',    type: 'coins',  coins: 1000, rarity: 'legendary', icon: 'ðŸª™', description: 'A legendary coin vault.' },
   // -- Legendary ---------------------------------------------------------------
-  { id: 'lt_badge_50k',   milestone:  3000000, label: 'Legend',         type: 'badge',               rarity: 'legendary', icon: '👑', description: 'Only legends reach this summit.' },
-  { id: 'lt_coins_75k',   milestone:  4000000, label: '2,000 Coins',    type: 'coins',  coins: 2000, rarity: 'legendary', icon: '🪙', description: 'A massive coin fortune.' },
-  { id: 'lt_mythic',      milestone:  5000000, label: 'Mythic',         type: 'badge',               rarity: 'mythic',    icon: '💎', description: 'The pinnacle of ShiftPanic mastery.' },
+  { id: 'lt_badge_50k',   milestone:  3000000, label: 'Legend',         type: 'badge',               rarity: 'legendary', icon: 'ðŸ‘‘', description: 'Only legends reach this summit.' },
+  { id: 'lt_coins_75k',   milestone:  4000000, label: '2,000 Coins',    type: 'coins',  coins: 2000, rarity: 'legendary', icon: 'ðŸª™', description: 'A massive coin fortune.' },
+  { id: 'lt_mythic',      milestone:  5000000, label: 'Mythic',         type: 'badge',               rarity: 'mythic',    icon: 'ðŸ’Ž', description: 'The pinnacle of ShiftPanic mastery.' },
 ];
 
 const STATE = { HOME: 'home', PLAYING: 'playing', PAUSED: 'paused', GAMEOVER: 'gameover' };
@@ -820,7 +820,7 @@ function loadSettings() {
       _migrated = true;
     }
     if (settings.skinVersion < SKIN_VERSION) {
-      // v2: removed ice/crimson/electric/void/prism — migrate owned skins to closest replacement
+      // v2: removed ice/crimson/electric/void/prism â€” migrate owned skins to closest replacement
       if (Array.isArray(s.purchasedSkins)) {
         const migrated = s.purchasedSkins.map(id => _SKIN_MIGRATION[id] || id)
           .filter((id, i, arr) => arr.indexOf(id) === i) // deduplicate
@@ -3649,12 +3649,12 @@ function selectSkinForPreview(skinId) {
 
   let primaryHTML = '';
   if (selected) {
-    primaryHTML = '<button class="btn btn-secondary preview-btn-disabled" disabled>✓ Equipped</button>';
+    primaryHTML = '<button class="btn btn-secondary preview-btn-disabled" disabled>âœ“ Equipped</button>';
   } else if (available) {
     primaryHTML = '<button class="btn btn-primary preview-equip-btn" data-skin="' + skin.id + '">Equip</button>';
   } else if (!scoreGateMet) {
     const need = skin.lifetimeScore - (settings.lifetimeScore || 0);
-    primaryHTML = '<button class="btn btn-secondary preview-btn-disabled" disabled>🔒 ' + formatNumber(skin.lifetimeScore) + ' score</button>' +
+    primaryHTML = '<button class="btn btn-secondary preview-btn-disabled" disabled>ðŸ”’ ' + formatNumber(skin.lifetimeScore) + ' score</button>' +
       '<div class="preview-score-hint">' + formatNumber(need) + ' more lifetime score needed</div>';
   } else if (isCoinSkin) {
     const label = canAfford
@@ -3766,7 +3766,7 @@ function _renderSkinGrid(grid, skins) {
 
     let bottomHTML = '';
     if (selected) {
-      bottomHTML = '<span class="skin-grid-status skin-grid-equipped">✓ Equipped</span>';
+      bottomHTML = '<span class="skin-grid-status skin-grid-equipped">âœ“ Equipped</span>';
     } else if (available) {
       bottomHTML = '<span class="skin-grid-status skin-grid-owned">Owned</span>';
     } else {
@@ -3804,7 +3804,7 @@ function _renderSkinGrid(grid, skins) {
         abilTag +
       '</div>' +
       bottomHTML +
-      (locked ? '<span class="skin-lock-overlay" aria-hidden="true">🔒</span>' : '') +
+      (locked ? '<span class="skin-lock-overlay" aria-hidden="true">ðŸ”’</span>' : '') +
     '</div>';
   }).join('');
 
@@ -7866,6 +7866,337 @@ const Tutorial = (() => {
 // SECTION 26: INITIALISATION
 // ============================================================
 
+// ============================================================
+const Multiplayer = (function () {
+
+  // â”€â”€ State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  let _roomCode      = null;   // code for room we're in
+  let _isHost        = false;  // true if we created the room
+  let _lobbyListener = null;   // RTDB .on() cleanup ref
+
+  // â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  function _getRtdb() { return window._fbRtdb || null; }
+  function _getMyId() { return window._fbPlayerId || ('p' + Date.now().toString(36)); }
+  function _getMyName() {
+    try {
+      const LeaderboardSvc = window.LeaderboardService;
+      if (LeaderboardSvc && typeof LeaderboardSvc.getDisplayName === 'function') {
+        return LeaderboardSvc.getDisplayName();
+      }
+    } catch (_) {}
+    return localStorage.getItem('forbiddenColor_playerName') ||
+           localStorage.getItem('forbiddenColor_anonTag') || 'Player';
+  }
+
+  function _genCode() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // no I or O (ambiguous)
+    let code = '';
+    for (let i = 0; i < 4; i++) code += chars[Math.floor(Math.random() * chars.length)];
+    return code;
+  }
+
+  function _roomRef(code) { return _getRtdb().ref('rooms/' + code); }
+
+  function _showError(msg) {
+    const el = document.getElementById('mp-entry-error');
+    if (!el) return;
+    el.textContent = msg;
+    el.hidden = false;
+  }
+  function _clearError() {
+    const el = document.getElementById('mp-entry-error');
+    if (el) { el.hidden = true; el.textContent = ''; }
+  }
+
+  function _setView(view) {
+    document.getElementById('mp-view-entry').hidden = (view !== 'entry');
+    document.getElementById('mp-view-lobby').hidden = (view !== 'lobby');
+  }
+
+  // â”€â”€ Open modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  function open() {
+    _reset();
+    document.getElementById('modal-multiplayer').hidden = false;
+    _setView('entry');
+    _clearError();
+    document.getElementById('mp-join-input').value = '';
+  }
+
+  // â”€â”€ Close modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  function close() {
+    _detachLobbyListener();
+    _reset();
+    document.getElementById('modal-multiplayer').hidden = true;
+  }
+
+  function _reset() {
+    _roomCode = null;
+    _isHost   = false;
+    _detachLobbyListener();
+  }
+
+  // â”€â”€ Create Room â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  async function createRoom() {
+    const rtdb = _getRtdb();
+    if (!rtdb) { _showError('Firebase not ready. Please waitâ€¦'); return; }
+    _clearError();
+
+    const myId   = _getMyId();
+    const myName = _getMyName();
+
+    // Find a unique code (retry up to 5 times)
+    let code = null;
+    for (let i = 0; i < 5; i++) {
+      const candidate = _genCode();
+      const snap = await _roomRef(candidate).once('value');
+      if (!snap.exists()) { code = candidate; break; }
+    }
+    if (!code) { _showError('Could not generate a unique room code. Try again.'); return; }
+
+    const roomData = {
+      roomCode:     code,
+      status:       'waiting',
+      hostPlayerId: myId,
+      createdAt:    Date.now(),
+      players: {
+        [myId]: {
+          playerId: myId,
+          name:     myName,
+          joinedAt: Date.now(),
+          alive:    true,
+        }
+      }
+    };
+
+    try {
+      await _roomRef(code).set(roomData);
+      console.log('[Multiplayer] Room created:', code);
+      _roomCode = code;
+      _isHost   = true;
+      _enterLobby(code);
+    } catch (err) {
+      console.error('[Multiplayer] Create room failed:', err);
+      _showError('Failed to create room: ' + err.message);
+    }
+  }
+
+  // â”€â”€ Join Room â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  async function joinRoom() {
+    const rtdb = _getRtdb();
+    if (!rtdb) { _showError('Firebase not ready. Please waitâ€¦'); return; }
+    _clearError();
+
+    const input = document.getElementById('mp-join-input');
+    const code  = (input ? input.value.trim().toUpperCase() : '');
+    if (code.length !== 4) { _showError('Enter a 4-character room code.'); return; }
+
+    let snap;
+    try {
+      snap = await _roomRef(code).once('value');
+    } catch (err) {
+      _showError('Could not reach Firebase: ' + err.message);
+      return;
+    }
+
+    if (!snap.exists()) { _showError('Room ' + code + ' not found.'); return; }
+    const room = snap.val();
+    if (room.status !== 'waiting') { _showError('Room ' + code + ' is no longer accepting players.'); return; }
+
+    const playerCount = Object.keys(room.players || {}).length;
+    if (playerCount >= 2) { _showError('Room ' + code + ' is full (2/2 players).'); return; }
+
+    const myId   = _getMyId();
+    const myName = _getMyName();
+
+    // Don't double-join
+    if (room.players && room.players[myId]) {
+      _roomCode = code;
+      _isHost   = (room.hostPlayerId === myId);
+      _enterLobby(code);
+      return;
+    }
+
+    try {
+      await _roomRef(code).child('players/' + myId).set({
+        playerId: myId,
+        name:     myName,
+        joinedAt: Date.now(),
+        alive:    true,
+      });
+      console.log('[Multiplayer] Joined room:', code);
+      _roomCode = code;
+      _isHost   = false;
+      _enterLobby(code);
+    } catch (err) {
+      console.error('[Multiplayer] Join room failed:', err);
+      _showError('Failed to join room: ' + err.message);
+    }
+  }
+
+  // â”€â”€ Enter Lobby â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  function _enterLobby(code) {
+    _setView('lobby');
+    document.getElementById('mp-room-code-display').textContent = code;
+    _attachLobbyListener(code);
+  }
+
+  // â”€â”€ Lobby real-time listener â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  function _attachLobbyListener(code) {
+    _detachLobbyListener();
+    const ref = _roomRef(code);
+    ref.on('value', _onLobbyUpdate, function (err) {
+      console.error('[Multiplayer] Lobby listener error:', err);
+    });
+    _lobbyListener = ref;
+  }
+
+  function _detachLobbyListener() {
+    if (_lobbyListener) {
+      _lobbyListener.off('value', _onLobbyUpdate);
+      _lobbyListener = null;
+    }
+  }
+
+  function _onLobbyUpdate(snap) {
+    if (!snap.exists()) {
+      console.log('[Multiplayer] Room was deleted.');
+      return;
+    }
+    const room = snap.val();
+    console.log('[Multiplayer] Lobby updated:', room);
+    _renderLobby(room);
+  }
+
+  // â”€â”€ Render Lobby â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  function _renderLobby(room) {
+    const myId      = _getMyId();
+    const players   = room.players ? Object.values(room.players) : [];
+    const isFull    = players.length >= 2;
+    const isHost    = room.hostPlayerId === myId;
+
+    // Players list
+    const listEl = document.getElementById('mp-players-list');
+    if (listEl) {
+      listEl.innerHTML = players.map(p => {
+        const isMe     = p.playerId === myId;
+        const isRoomHost = p.playerId === room.hostPlayerId;
+        const initials = (p.name || '?').charAt(0).toUpperCase();
+        let tags = '';
+        if (isRoomHost) tags += '<span class="mp-player-tag host">Host</span>';
+        if (isMe)       tags += '<span class="mp-player-tag you">You</span>';
+        return '<div class="mp-player-row">' +
+          '<div class="mp-player-avatar">' + initials + '</div>' +
+          '<span class="mp-player-name">' + _escHtml(p.name || 'Player') + '</span>' +
+          tags +
+          '</div>';
+      }).join('');
+    }
+
+    // Waiting message
+    const waitEl = document.getElementById('mp-waiting-msg');
+    if (waitEl) waitEl.hidden = isFull;
+
+    // Start button â€” only host, only when full
+    const startBtn = document.getElementById('mp-btn-start');
+    if (startBtn) {
+      startBtn.hidden = !(isHost && isFull);
+    }
+  }
+
+  // â”€â”€ Start Match â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  async function startMatch() {
+    if (!_roomCode || !_isHost) return;
+    console.log('[Multiplayer] Start match clicked for room:', _roomCode);
+    try {
+      await _roomRef(_roomCode).child('status').set('countdown');
+      console.log('[Multiplayer] Room status set to countdown');
+    } catch (err) {
+      console.error('[Multiplayer] Start match failed:', err);
+    }
+  }
+
+  // â”€â”€ Leave Room â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  async function leaveRoom() {
+    const myId = _getMyId();
+    if (_roomCode) {
+      try {
+        // Remove this player from the room
+        await _roomRef(_roomCode).child('players/' + myId).remove();
+        console.log('[Multiplayer] Left room:', _roomCode);
+      } catch (_) {}
+    }
+    close();
+    _setView('entry');
+  }
+
+  // â”€â”€ Copy code â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  function copyCode() {
+    if (!_roomCode) return;
+    try {
+      navigator.clipboard.writeText(_roomCode);
+    } catch (_) {
+      // Fallback for browsers without clipboard API
+      const el = document.createElement('textarea');
+      el.value = _roomCode;
+      el.style.position = 'fixed'; el.style.opacity = '0';
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+    }
+    const btn = document.getElementById('mp-btn-copy');
+    if (btn) { btn.textContent = 'Copied!'; setTimeout(() => { btn.textContent = 'Copy'; }, 1500); }
+  }
+
+  // â”€â”€ Sanitize â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  function _escHtml(str) {
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // â”€â”€ Bind DOM events (called once on DOMContentLoaded) â”€â”€â”€â”€â”€
+  function bindEvents() {
+    // Close button
+    const closeBtn = document.getElementById('btn-mp-close');
+    if (closeBtn) closeBtn.addEventListener('click', () => { Audio.uiClick(); close(); });
+
+    // Backdrop click
+    const overlay = document.getElementById('modal-multiplayer');
+    if (overlay) overlay.addEventListener('click', e => {
+      if (e.target === overlay) { Audio.uiClick(); close(); }
+    });
+
+    // Create
+    const createBtn = document.getElementById('mp-btn-create');
+    if (createBtn) createBtn.addEventListener('click', () => { Audio.uiClick(); createRoom(); });
+
+    // Join
+    const joinBtn = document.getElementById('mp-btn-join');
+    if (joinBtn) joinBtn.addEventListener('click', () => { Audio.uiClick(); joinRoom(); });
+
+    // Join on Enter key
+    const joinInput = document.getElementById('mp-join-input');
+    if (joinInput) {
+      joinInput.addEventListener('keydown', e => { if (e.key === 'Enter') { Audio.uiClick(); joinRoom(); } });
+      joinInput.addEventListener('input', () => {
+        joinInput.value = joinInput.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4);
+      });
+    }
+
+    // Copy code
+    const copyBtn = document.getElementById('mp-btn-copy');
+    if (copyBtn) copyBtn.addEventListener('click', () => { Audio.uiClick(); copyCode(); });
+
+    // Start match
+    const startBtn = document.getElementById('mp-btn-start');
+    if (startBtn) startBtn.addEventListener('click', () => { Audio.uiClick(); startMatch(); });
+
+    // Leave
+    const leaveBtn = document.getElementById('mp-btn-leave');
+    if (leaveBtn) leaveBtn.addEventListener('click', () => { Audio.uiClick(); leaveRoom(); });
+  }
+
+  return { open, close, createRoom, joinRoom, leaveRoom, copyCode, startMatch, bindEvents };
+})();
 function init() {
   canvas = document.getElementById('game-canvas');
   ctx    = canvas.getContext('2d');
@@ -7985,7 +8316,15 @@ function init() {
     hideModal('modal-progress'); document.getElementById('btn-progress').focus();
   });
 
-  // -- Game screen controls ----------------------------------
+  // â”€â”€ Wire Multiplayer button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  const _btnMp = document.getElementById('btn-multiplayer');
+  if (_btnMp) _btnMp.addEventListener('click', () => { Audio.uiClick(); Multiplayer.open(); });
+  Multiplayer.bindEvents();
+
+// ============================================================
+// MULTIPLAYER â€” Room Create / Join / Lobby
+// Uses Firebase Realtime Database (window._fbRtdb)
+// Multiplayer bindEvents is called from inside init() above.
   document.getElementById('btn-resume').addEventListener('click', () => { Audio.uiClick(); resumeGame(); });
   document.getElementById('btn-home-from-pause').addEventListener('click', () => { Audio.uiClick(); returnHome(); });
   document.getElementById('btn-restart').addEventListener('click', () => { Audio.uiClick(); restartGame(); });
@@ -8249,10 +8588,10 @@ const LeaderboardService = (() => {
   async function _fbSubmit(score, name) {
     await (window._fbReady || Promise.resolve(false));
     const db = window._fbDb;
-    if (!db) { console.warn('[ShiftPanic] Firebase not available — score not saved.'); return; }
+    if (!db) { console.warn('[ShiftPanic] Firebase not available â€” score not saved.'); return; }
 
     const pid = window._fbPlayerId;
-    if (!pid) { console.warn('[ShiftPanic] No playerId — score not submitted.'); return; }
+    if (!pid) { console.warn('[ShiftPanic] No playerId â€” score not submitted.'); return; }
 
     const intScore = Math.floor(score);
     if (intScore <= 0) return;
@@ -8326,7 +8665,7 @@ const LeaderboardService = (() => {
 
       const db = window._fbDb;
       if (!db) {
-        console.warn('[ShiftPanic] Firebase unavailable — showing client-side fake players only.');
+        console.warn('[ShiftPanic] Firebase unavailable â€” showing client-side fake players only.');
         return; // Keep showing fake players
       }
 
@@ -8746,7 +9085,7 @@ const LeaderboardUI = (() => {
     const btnClose = document.getElementById('btn-lb-close');
     if (btnClose) btnClose.addEventListener('click', close);
 
-    // Backdrop close — ignore events that are scroll-end touches
+    // Backdrop close â€” ignore events that are scroll-end touches
     const modal = document.getElementById('modal-leaderboard');
     if (modal) {
       let _lbScrolled = false;
