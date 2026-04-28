@@ -8140,63 +8140,35 @@ const LeaderboardService = (() => {
     'NightByte','HyperWolf','StealthFox','OmegaNinja','ZephyrByte',
     'IonWolf','ChromeNinja','ApexByte','BurstFox','SwiftNinja',
   ];
-  function _ri(min, max) { return Math.floor(min + Math.random() * (max - min + 1)); }
-
-  let _seedBusy = false;
-  async function _seedFakePlayers(db) {
-    if (_seedBusy) return;
-    _seedBusy = true;
-    const weekId = _getWeekId(), dayId = _getDayId();
-
-    // Check seed meta doc to avoid re-seeding today
-    const metaRef = db.doc(META());
-    try {
-      const metaSnap = await metaRef.get();
-      if (metaSnap.exists && metaSnap.data().dayId === dayId) {
-        _seedBusy = false;
-        return; // Already seeded today
-      }
-    } catch (err) {
-      console.warn('[ShiftPanic] Seed meta check failed:', err.code || err.message);
-      _seedBusy = false;
-      return;
-    }
-
-    console.log('[ShiftPanic] Seeding 100 fake players to global / weekly / daily...');
-    // Firestore batch limit = 500 writes.
-    // 100 players x 3 boards + 1 meta = 301 writes. Fits in one batch.
-    const batch = db.batch();
-    batch.set(metaRef, { dayId, weekId, seededAt: firebase.firestore.FieldValue.serverTimestamp() });
-
-    for (let i = 0; i < _FAKE_NAMES.length; i++) {
-      const name   = _FAKE_NAMES[i];
-      const fakeId = 'fake_' + name.toLowerCase().replace(/[^a-z0-9]/g, '');
-      const rank   = i / _FAKE_NAMES.length; // 0=top, 1=bottom
-      // Global: 5,000  500,000
-      const gScore = _ri(Math.floor(5000  + (1 - rank) * 490000), Math.floor(8000  + (1 - rank) * 495000));
-      // Weekly: 5,000  250,000
-      const wScore = _ri(Math.floor(5000  + (1 - rank) * 240000), Math.floor(8000  + (1 - rank) * 245000));
-      // Daily:  5,000  150,000
-      const dScore = _ri(Math.floor(5000  + (1 - rank) * 140000), Math.floor(8000  + (1 - rank) * 145000));
-      const ts     = firebase.firestore.FieldValue.serverTimestamp();
-      const base   = { playerId: fakeId, playerName: name, isFakePlayer: true, updatedAt: ts };
-
-      batch.set(db.collection(G_PATH()).doc(fakeId), Object.assign({}, base, { score: gScore }), { merge: true });
-      batch.set(db.collection(W_PATH(weekId)).doc(fakeId), Object.assign({}, base, { score: wScore }), { merge: true });
-      batch.set(db.collection(D_PATH(dayId)).doc(fakeId), Object.assign({}, base, { score: dScore }), { merge: true });
-    }
-
-    try {
-      await batch.commit();
-      console.log('[ShiftPanic] Fake player seeding complete. 100 players in each board.');
-    } catch (err) {
-      if (err.code === 'permission-denied') {
-        console.warn('[ShiftPanic] Fake player seeding blocked. Deploy security rules from firebase-client.js header.');
-      } else {
-        console.warn('[Firebase] Seed batch error:', err.code || err.message);
-      }
-    }
-    _seedBusy = false;
+  // -- Client-side fake player generation (no Firestore writes needed) --
+  // Uses a seeded PRNG so scores are stable across page reloads.
+  function _seededRng(seed) {
+    let s = seed >>> 0;
+    return function () {
+      s = Math.imul(s ^ (s >>> 16), 0x45d9f3b);
+      s = Math.imul(s ^ (s >>> 16), 0x45d9f3b);
+      s ^= s >>> 16;
+      return (s >>> 0) / 0xffffffff;
+    };
+  }
+  function _genFakeEntries(boardType, periodId) {
+    const seedStr = boardType + '|' + periodId;
+    const seedNum = seedStr.split('').reduce(function (acc, c) { return (acc * 31 + c.charCodeAt(0)) | 0; }, 7);
+    const rng = _seededRng(seedNum);
+    const maxScore = boardType === 'alltime' ? 495000 : boardType === 'weekly' ? 245000 : 145000;
+    const minScore = 5000;
+    return _FAKE_NAMES.map(function (name, i) {
+      const rank   = i / (_FAKE_NAMES.length - 1);
+      const base   = Math.floor(minScore + (1 - rank) * (maxScore - minScore));
+      const jitter = Math.floor(rng() * 4000);
+      return {
+        uid:      'fake_' + name.toLowerCase().replace(/[^a-z0-9]/g, ''),
+        name:     name,
+        score:    base + jitter,
+        isPlayer: false,
+        isFake:   true,
+      };
+    });
   }
 
   // -- Firebase score submission -----------------------------
@@ -8256,61 +8228,78 @@ const LeaderboardService = (() => {
   }
 
   // -- Firestore real-time subscription ---------------------
-  // Returns an unsubscribe function.
-  // boardType: 'alltime' | 'weekly' | 'daily'
-  // Always fetches top 100. (limitArg is ignored to ensure
-  // enough fake players show when real players are few.)
+  // Fake players are generated client-side instantly, then real
+  // Firebase scores are merged in on top when they arrive.
+  // Board never shows empty even when Firebase is unavailable.
   function subscribeToLeaderboard(boardType, _limitArg, callback) {
     _boardState[boardType] = 'loading';
     let _unsub     = null;
     let _cancelled = false;
 
-    if (callback) setTimeout(() => callback([]), 0); // trigger loading state in UI
+    const weekId   = _getWeekId(), dayId = _getDayId();
+    const periodId = boardType === 'alltime' ? 'global' : boardType === 'weekly' ? weekId : dayId;
+
+    // Immediately populate with client-side fake players
+    const _fakeEntries = _genFakeEntries(boardType, periodId);
+    // Inject the player's own locally-stored best score so they're visible immediately
+    const localBest = (typeof settings !== 'undefined' && settings && settings.bestScore > 0)
+      ? Math.floor(settings.bestScore) : 0;
+    const localPid  = (typeof window !== 'undefined' && window._fbPlayerId) || null;
+    const localName = getDisplayName();
+    let _initialEntries;
+    if (localBest > 0 && localPid) {
+      const playerLocal = { uid: localPid, name: localName, score: localBest, isPlayer: true, isFake: false };
+      const fakesFiltered = _fakeEntries.filter(function (e) { return e.uid !== localPid; });
+      _initialEntries = fakesFiltered.concat(playerLocal);
+    } else {
+      _initialEntries = _fakeEntries.slice();
+    }
+    _initialEntries.sort(function (a, b) { return b.score - a.score; });
+    _initialEntries = _initialEntries.slice(0, 100);
+    _boardState[boardType] = 'ok';
+    _cache[boardType] = _initialEntries;
+    if (callback) setTimeout(function () { callback(_initialEntries); }, 0);
 
     (window._fbReady || Promise.resolve(false)).then(function () {
       if (_cancelled) return;
 
       const db = window._fbDb;
       if (!db) {
-        console.warn('[ShiftPanic] Firebase unavailable  leaderboard cannot load from Firebase.');
-        _boardState[boardType] = 'offline';
-        if (callback) callback([]);
-        return;
+        console.warn('[ShiftPanic] Firebase unavailable — showing client-side fake players only.');
+        return; // Keep showing fake players
       }
 
-      // Trigger fake player seeding (fire-and-forget)
-      _seedFakePlayers(db);
-
-      const weekId     = _getWeekId(), dayId = _getDayId();
       const currentPid = window._fbPlayerId;
-
-      // Determine collection path  no composite index needed since
-      // each collection is already scoped to the right period.
-      const collPath = boardType === 'alltime' ? G_PATH()
-                     : boardType === 'weekly'  ? W_PATH(weekId)
-                     : D_PATH(dayId);
+      const collPath   = boardType === 'alltime' ? G_PATH()
+                       : boardType === 'weekly'  ? W_PATH(weekId)
+                       : D_PATH(dayId);
 
       console.log('[ShiftPanic] Attaching Firestore listener:', collPath);
-
       const query = db.collection(collPath).orderBy('score', 'desc').limit(100);
 
       _unsub = query.onSnapshot(function (snap) {
         if (_cancelled) return;
 
-        const entries = snap.docs.map(function (doc) {
+        // Real scores from Firebase (skip fake_* docs that were written by old code)
+        const realEntries = snap.docs.map(function (doc) {
           const d = doc.data();
           return {
             uid:      doc.id,
             name:     d.playerName || '',
             score:    typeof d.score === 'number' ? d.score : (parseInt(d.score, 10) || 0),
             isPlayer: doc.id === currentPid,
-            isFake:   !!d.isFakePlayer,
+            isFake:   false,
           };
-        }).filter(function (e) { return e.score > 0; });
+        }).filter(function (e) { return e.score > 0 && !e.uid.startsWith('fake_'); });
 
-        console.log('[ShiftPanic] Leaderboard loaded from Firebase:', boardType, '', entries.length, 'entries');
+        // Merge: real entries replace any fake with same uid; keep top 100 total
+        const realIds  = new Set(realEntries.map(function (e) { return e.uid; }));
+        const fakeFill = _fakeEntries.filter(function (e) { return !realIds.has(e.uid); });
+        const merged   = realEntries.concat(fakeFill)
+          .sort(function (a, b) { return b.score - a.score; })
+          .slice(0, 100);
 
-        const playerInList = entries.some(function (e) { return e.isPlayer; });
+        const playerInList = merged.some(function (e) { return e.isPlayer; });
 
         function _finalize(allEntries) {
           allEntries.sort(function (a, b) { return b.score - a.score; });
@@ -8319,30 +8308,26 @@ const LeaderboardService = (() => {
           if (callback) callback(allEntries);
         }
 
-        // If current player is not in top 100, fetch their doc and append below list
         if (!playerInList && currentPid) {
           db.collection(collPath).doc(currentPid).get().then(function (playerSnap) {
-            if (!playerSnap.exists) { _finalize(entries); return; }
+            if (!playerSnap.exists) { _finalize(merged); return; }
             const pd = playerSnap.data();
             const ps = typeof pd.score === 'number' ? pd.score : 0;
             if (ps > 0) {
-              _finalize(entries.concat({
+              _finalize(merged.concat({
                 uid: playerSnap.id, name: pd.playerName || '',
                 score: ps, isPlayer: true, outsideTop: true,
               }));
-            } else {
-              _finalize(entries);
-            }
-          }).catch(function () { _finalize(entries); });
+            } else { _finalize(merged); }
+          }).catch(function () { _finalize(merged); });
         } else {
-          _finalize(entries);
+          _finalize(merged);
         }
 
       }, function (err) {
         if (_cancelled) return;
         console.warn('[Firebase] Leaderboard listener error:', err.code || err.message);
-        _boardState[boardType] = 'error';
-        if (callback) callback(_cache[boardType] || []);
+        // Keep showing whatever is in cache (fake players at minimum)
       });
     });
 
@@ -8510,17 +8495,11 @@ const LeaderboardUI = (() => {
     const entries = LeaderboardService.getLeaderboard(type);
 
     if (!entries || entries.length === 0) {
-      // If Firebase hasn't finished signing in yet, show loading instead of empty
-      const fbReady = window._fbDb && window._fbPlayerId;
-      container.innerHTML = fbReady
-        ? '<div class="lb-empty">' +
-            '<span class="lb-empty-icon"></span>' +
-            'No scores yet. Play a round to appear here!' +
-          '</div>'
-        : '<div class="lb-loading" aria-live="polite">' +
-            '<span class="lb-loading-spinner" aria-hidden="true"></span>' +
-            'Connecting&hellip;' +
-          '</div>';
+      container.innerHTML =
+        '<div class="lb-empty">' +
+          '<span class="lb-empty-icon"></span>' +
+          'No scores yet. Play a round to appear here!' +
+        '</div>';
       return;
     }
 
