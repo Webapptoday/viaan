@@ -81,7 +81,9 @@
           console.warn("[Firebase] Anonymous sign-in failed:", err.code, err.message);
           return null;
         });
+      var rtdb              = firebase.database();
       window._fbDb          = db;
+      window._fbRtdb        = rtdb;
       window._fbAuth        = auth;
       window._fbWaitForAuth = function () { return authReady; };
       authReady.then(function () { _resolve(true); });
@@ -99,5 +101,6 @@
     storageBucket:     "shiftpanic-1ee68.firebasestorage.app",
     messagingSenderId: "790226285352",
     appId:             "1:790226285352:web:0773b3ff7678a4959fd61d",
+    databaseURL:       "https://shiftpanic-1ee68-default-rtdb.firebaseio.com",
   });
 })();
