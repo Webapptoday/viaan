@@ -86,21 +86,51 @@
       window._fbRtdb        = rtdb;
       window._fbAuth        = auth;
       window._fbWaitForAuth = function () { return authReady; };
-      authReady.then(function () {
-        _resolve(true);
-        // ── Realtime Database connection test ──────────────────────────
-        var testRef = rtdb.ref('testConnection/status');
-        testRef.set({ connected: true, timestamp: Date.now() })
+
+      // ── Realtime Database: monitor connection state ──────────────────
+      rtdb.ref('.info/connected').on('value', function (snap) {
+        if (snap.val() === true) {
+          console.log('[ShiftPanic] Realtime Database CONNECTED ✓');
+        } else {
+          console.log('[ShiftPanic] Realtime Database disconnected / waiting...');
+        }
+      });
+
+      // ── Exposed test function (call window._fbRtdbTest() in console) ─
+      window._fbRtdbTest = function () {
+        console.log('[RTDB Test] Starting write to testConnection/status …');
+        var ref = rtdb.ref('testConnection/status');
+        return ref.set({ connected: true, source: 'Shift Panic', timestamp: Date.now() })
           .then(function () {
-            return testRef.once('value');
+            console.log('[RTDB Test] ✓ Write SUCCESS');
+            return ref.once('value');
           })
           .then(function (snap) {
-            console.log('[ShiftPanic] RTDB test read-back OK:', snap.val());
+            console.log('[RTDB Test] ✓ Read SUCCESS — data:', snap.val());
+            return snap.val();
           })
           .catch(function (err) {
-            console.warn('[ShiftPanic] RTDB test failed:', err.message);
+            console.error('[RTDB Test] ✗ FAILED —', err.code, ':', err.message);
+            if (err.code === 'PERMISSION_DENIED') {
+              console.error(
+                '[RTDB Test] Your Realtime Database rules are blocking writes.\n' +
+                'Go to Firebase Console → Realtime Database → Rules and set:\n\n' +
+                '{\n  "rules": {\n    ".read": "auth != null",\n    ".write": "auth != null"\n  }\n}\n\n' +
+                '(Or use true/true for testing — tighten before production.)'
+              );
+            }
           });
-        // ───────────────────────────────────────────────────────────────
+      };
+
+      // Run test automatically after auth succeeds
+      authReady.then(function (user) {
+        _resolve(true);
+        if (user) {
+          console.log('[ShiftPanic] Running RTDB connection test (uid:', user.uid + ') …');
+          window._fbRtdbTest();
+        } else {
+          console.warn('[ShiftPanic] Skipping RTDB test — anonymous auth did not return a user.');
+        }
       });
     } catch (err) {
       console.warn("[Firebase] Init error:", err.message);
