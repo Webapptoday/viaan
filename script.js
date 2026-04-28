@@ -7091,6 +7091,7 @@ function render(ts) {
   coinItems.forEach(drawCoinItem);
   drawTrail();
   drawPlayer();
+  MpSync.drawOpponent(ctx);
   drawParticles();
   drawRings();
   drawFloating();
@@ -7175,6 +7176,7 @@ function gameLoop(ts) {
     }
 
     updatePlayer(dt);
+    MpSync.sendPosition();
     SkinAbility.tick(dt);
     tickFlowSystem(dt);
     tickShake(dt);
@@ -7391,6 +7393,7 @@ function pickDeathMessage(score, combo, colorChanges) {
 
 function triggerGameOver() {
   if (tryMode.active) { endTrySkin(); return; }
+  if (MpSync.isActive()) MpSync.stop();
   currentState = STATE.GAMEOVER;
   cancelAnimationFrame(rafHandle); rafHandle = null;
   clearAllInputs();
@@ -7867,381 +7870,1009 @@ const Tutorial = (() => {
 // ============================================================
 
 // ============================================================
-const Multiplayer = (function () {
-
-  // -- State --------------------------------------------------
-  let _roomCode       = null;   // code for the room we're in
-  let _isHost         = false;  // true if we created the room
-  let _lobbyRef       = null;   // RTDB ref we're listening to
-  let _lastStatus     = null;   // track status changes
-  let _countdownTimer = null;   // setTimeout handle
-
-  // -- Helpers ------------------------------------------------
-  function _getRtdb() { return window._fbRtdb || null; }
-  function _getMyId() { return window._fbPlayerId || ('p' + Date.now().toString(36)); }
-  function _getMyName() {
-    try {
-      const svc = window.LeaderboardService;
-      if (svc && typeof svc.getDisplayName === 'function') return svc.getDisplayName();
-    } catch (_) {}
-    return localStorage.getItem('forbiddenColor_playerName') ||
-           localStorage.getItem('forbiddenColor_anonTag') || 'Player';
-  }
-
-  function _genCode() {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
-    let code = '';
-    for (let i = 0; i < 4; i++) code += chars[Math.floor(Math.random() * chars.length)];
-    return code;
-  }
-
-  function _roomRef(code) { return _getRtdb().ref('rooms/' + code); }
-
-  function _showError(msg) {
-    const el = document.getElementById('mp-entry-error');
-    if (el) { el.textContent = msg; el.hidden = false; }
-  }
-  function _clearError() {
-    const el = document.getElementById('mp-entry-error');
-    if (el) { el.hidden = true; el.textContent = ''; }
-  }
-
-  function _setView(view) {
-    document.getElementById('mp-view-entry').hidden = (view !== 'entry');
-    document.getElementById('mp-view-lobby').hidden = (view !== 'lobby');
-  }
-
-  // -- Open modal ---------------------------------------------
-  function open() {
-    _reset();
-    document.getElementById('modal-multiplayer').hidden = false;
-    _setView('entry');
-    _clearError();
-    document.getElementById('mp-join-input').value = '';
-  }
-
-  // -- Close modal --------------------------------------------
-  function close() {
-    _detachListener();
-    _reset();
-    document.getElementById('modal-multiplayer').hidden = true;
-    _hideCountdown();
-  }
-
-  function _reset() {
-    _roomCode   = null;
-    _isHost     = false;
-    _lastStatus = null;
-    _detachListener();
-    _clearCountdownTimer();
-  }
-
-  // -- Create Room --------------------------------------------
-  async function createRoom() {
-    const rtdb = _getRtdb();
-    if (!rtdb) { _showError('Firebase not ready. Please wait...'); return; }
-    _clearError();
-
-    const myId   = _getMyId();
-    const myName = _getMyName();
-
-    let code = null;
-    for (let i = 0; i < 5; i++) {
-      const candidate = _genCode();
-      const snap = await _roomRef(candidate).once('value');
-      if (!snap.exists()) { code = candidate; break; }
-    }
-    if (!code) { _showError('Could not generate a unique room code. Try again.'); return; }
-
-    const roomData = {
-      roomCode:     code,
-      status:       'waiting',
-      hostPlayerId: myId,
-      createdAt:    Date.now(),
-      players: {
-        [myId]: { playerId: myId, name: myName, joinedAt: Date.now(), alive: true }
-      }
-    };
-
-    try {
-      await _roomRef(code).set(roomData);
-      console.log('[Multiplayer] Room created:', code);
-      _roomCode = code;
-      _isHost   = true;
-      _enterLobby(code);
-    } catch (err) {
-      console.error('[Multiplayer] Create room failed:', err);
-      _showError('Failed to create room: ' + err.message);
-    }
-  }
-
-  // -- Join Room ----------------------------------------------
-  async function joinRoom() {
-    const rtdb = _getRtdb();
-    if (!rtdb) { _showError('Firebase not ready. Please wait...'); return; }
-    _clearError();
-
-    const input = document.getElementById('mp-join-input');
-    const code  = (input ? input.value.trim().toUpperCase() : '');
-    if (code.length !== 4) { _showError('Enter a 4-character room code.'); return; }
-
-    let snap;
-    try {
-      snap = await _roomRef(code).once('value');
-    } catch (err) {
-      _showError('Could not reach Firebase: ' + err.message);
-      return;
-    }
-
-    if (!snap.exists()) { _showError('Room ' + code + ' not found.'); return; }
-    const room = snap.val();
-    if (room.status !== 'waiting') { _showError('Room ' + code + ' is no longer accepting players.'); return; }
-
-    const myId   = _getMyId();
-    const myName = _getMyName();
-
-    if (room.players && room.players[myId]) {
-      _roomCode = code;
-      _isHost   = (room.hostPlayerId === myId);
-      _enterLobby(code);
-      return;
-    }
-
-    const playerCount = Object.keys(room.players || {}).length;
-    if (playerCount >= 2) { _showError('Room ' + code + ' is full (2/2 players).'); return; }
-
-    try {
-      await _roomRef(code).child('players/' + myId).set({
-        playerId: myId, name: myName, joinedAt: Date.now(), alive: true,
-      });
-      console.log('[Multiplayer] Player joined room:', code);
-      _roomCode = code;
-      _isHost   = false;
-      _enterLobby(code);
-    } catch (err) {
-      console.error('[Multiplayer] Join room failed:', err);
-      _showError('Failed to join room: ' + err.message);
-    }
-  }
-
-  // -- Enter Lobby --------------------------------------------
-  function _enterLobby(code) {
-    _setView('lobby');
-    document.getElementById('mp-room-code-display').textContent = code;
-    console.log('[Multiplayer] Room listener started for:', code);
-    _attachListener(code);
-  }
-
-  // -- Real-time listener -------------------------------------
-  function _attachListener(code) {
-    _detachListener();
-    _lobbyRef = _roomRef(code);
-    _lobbyRef.on('value', _onRoomUpdate, function (err) {
-      console.error('[Multiplayer] Listener error:', err);
-    });
-  }
-
-  function _detachListener() {
-    if (_lobbyRef) {
-      _lobbyRef.off('value', _onRoomUpdate);
-      _lobbyRef = null;
-    }
-  }
-
-  function _onRoomUpdate(snap) {
-    if (!snap.exists()) {
-      console.log('[Multiplayer] Room deleted -- returning to entry.');
-      _setView('entry');
-      return;
-    }
-    const room   = snap.val();
-    const status = room.status;
-
-    if (status !== _lastStatus) {
-      console.log('[Multiplayer] Status changed:', _lastStatus, '->', status);
-      _lastStatus = status;
-    }
-
-    _renderLobby(room);
-
-    if (status === 'countdown' && !_countdownTimer) {
-      console.log('[Multiplayer] Countdown started');
-      _startCountdown();
-    } else if (status === 'playing') {
-      console.log('[Multiplayer] Match started -- entering game');
-      _hideCountdown();
-      _onMatchStart();
-    }
-  }
-
-  // -- Render Lobby -------------------------------------------
-  function _renderLobby(room) {
-    const myId       = _getMyId();
-    const players    = room.players ? Object.values(room.players) : [];
-    const isFull     = players.length >= 2;
-    const isHost     = room.hostPlayerId === myId;
-    const inProgress = room.status === 'countdown' || room.status === 'playing';
-
-    const listEl = document.getElementById('mp-players-list');
-    if (listEl) {
-      listEl.innerHTML = players.map(p => {
-        const isMe       = p.playerId === myId;
-        const isRoomHost = p.playerId === room.hostPlayerId;
-        const initials   = (p.name || '?').charAt(0).toUpperCase();
-        let tags = '';
-        if (isRoomHost) tags += '<span class="mp-player-tag host">Host</span>';
-        if (isMe)       tags += '<span class="mp-player-tag you">You</span>';
-        return '<div class="mp-player-row">' +
-          '<div class="mp-player-avatar">' + initials + '</div>' +
-          '<span class="mp-player-name">' + _escHtml(p.name || 'Player') + '</span>' +
-          tags + '</div>';
-      }).join('');
-    }
-
-    const waitEl = document.getElementById('mp-waiting-msg');
-    if (waitEl) waitEl.hidden = isFull || inProgress;
-
-    const startBtn = document.getElementById('mp-btn-start');
-    if (startBtn) startBtn.hidden = !(isHost && isFull && room.status === 'waiting');
-  }
-
-  // -- Start Match (host only) --------------------------------
-  async function startMatch() {
-    if (!_roomCode || !_isHost) return;
-    console.log('[Multiplayer] Start match clicked for room:', _roomCode);
-    try {
-      await _roomRef(_roomCode).child('status').set('countdown');
-      await _roomRef(_roomCode).child('countdownStartedAt').set(Date.now());
-      console.log('[Multiplayer] Status -> countdown');
-    } catch (err) {
-      console.error('[Multiplayer] Start match failed:', err);
-    }
-  }
-
-  // -- Countdown (runs on both tabs) --------------------------
-  function _startCountdown() {
-    _clearCountdownTimer();
-    const overlay = document.getElementById('mp-countdown-overlay');
-    const numEl   = document.getElementById('mp-countdown-num');
-    const lblEl   = document.getElementById('mp-countdown-label');
-    if (!overlay) return;
-
-    overlay.hidden = false;
-    let count = 3;
-
-    const tick = () => {
-      if (count > 0) {
-        numEl.textContent = String(count);
-        if (lblEl) lblEl.textContent = 'Get Ready!';
-        numEl.classList.remove('mp-countdown-pop');
-        void numEl.offsetWidth;
-        numEl.classList.add('mp-countdown-pop');
-        count--;
-        _countdownTimer = setTimeout(tick, 1000);
-      } else {
-        numEl.textContent = 'GO!';
-        if (lblEl) lblEl.textContent = '';
-        numEl.classList.remove('mp-countdown-pop');
-        void numEl.offsetWidth;
-        numEl.classList.add('mp-countdown-pop');
-        _countdownTimer = setTimeout(() => {
-          _clearCountdownTimer();
-          if (_isHost && _roomCode) {
-            _roomRef(_roomCode).child('status').set('playing').catch(console.error);
-          }
-        }, 1000);
-      }
-    };
-
-    tick();
-  }
-
-  function _hideCountdown() {
-    const overlay = document.getElementById('mp-countdown-overlay');
-    if (overlay) overlay.hidden = true;
-    _clearCountdownTimer();
-  }
-
-  function _clearCountdownTimer() {
-    if (_countdownTimer) { clearTimeout(_countdownTimer); _countdownTimer = null; }
-  }
-
-  // -- Match started (both tabs) ------------------------------
-  function _onMatchStart() {
-    document.getElementById('modal-multiplayer').hidden = true;
-    console.log('[Multiplayer] Both players in -- game begins.');
-  }
-
-  // -- Leave Room ---------------------------------------------
-  async function leaveRoom() {
-    const myId = _getMyId();
-    if (_roomCode) {
-      try {
-        await _roomRef(_roomCode).child('players/' + myId).remove();
-        console.log('[Multiplayer] Left room:', _roomCode);
-      } catch (_) {}
-    }
-    close();
-    _setView('entry');
-  }
-
-  // -- Copy code ----------------------------------------------
-  function copyCode() {
-    if (!_roomCode) return;
-    try {
-      navigator.clipboard.writeText(_roomCode);
-    } catch (_) {
-      const el = document.createElement('textarea');
-      el.value = _roomCode;
-      el.style.position = 'fixed'; el.style.opacity = '0';
-      document.body.appendChild(el); el.select();
-      document.execCommand('copy'); document.body.removeChild(el);
-    }
-    const btn = document.getElementById('mp-btn-copy');
-    if (btn) { btn.textContent = 'Copied!'; setTimeout(() => { btn.textContent = 'Copy'; }, 1500); }
-  }
-
-  // -- Sanitize -----------------------------------------------
-  function _escHtml(str) {
-    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  }
-
-  // -- Bind DOM events ----------------------------------------
-  function bindEvents() {
-    const closeBtn = document.getElementById('btn-mp-close');
-    if (closeBtn) closeBtn.addEventListener('click', () => { Audio.uiClick(); close(); });
-
-    const overlay = document.getElementById('modal-multiplayer');
-    if (overlay) overlay.addEventListener('click', e => {
-      if (e.target === overlay) { Audio.uiClick(); close(); }
-    });
-
-    const createBtn = document.getElementById('mp-btn-create');
-    if (createBtn) createBtn.addEventListener('click', () => { Audio.uiClick(); createRoom(); });
-
-    const joinBtn = document.getElementById('mp-btn-join');
-    if (joinBtn) joinBtn.addEventListener('click', () => { Audio.uiClick(); joinRoom(); });
-
-    const joinInput = document.getElementById('mp-join-input');
-    if (joinInput) {
-      joinInput.addEventListener('keydown', e => { if (e.key === 'Enter') { Audio.uiClick(); joinRoom(); } });
-      joinInput.addEventListener('input', () => {
-        joinInput.value = joinInput.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4);
-      });
-    }
-
-    const copyBtn = document.getElementById('mp-btn-copy');
-    if (copyBtn) copyBtn.addEventListener('click', () => { Audio.uiClick(); copyCode(); });
-
-    const startBtn = document.getElementById('mp-btn-start');
-    if (startBtn) startBtn.addEventListener('click', () => { Audio.uiClick(); startMatch(); });
-
-    const leaveBtn = document.getElementById('mp-btn-leave');
-    if (leaveBtn) leaveBtn.addEventListener('click', () => { Audio.uiClick(); leaveRoom(); });
-  }
-
-  return { open, close, createRoom, joinRoom, leaveRoom, copyCode, startMatch, bindEvents };
+const Multiplayer = (function () {
+
+
+
+  // -- State --------------------------------------------------
+
+  let _roomCode       = null;   // code for the room we're in
+
+  let _isHost         = false;  // true if we created the room
+
+  let _lobbyRef       = null;   // RTDB ref we're listening to
+
+  let _lastStatus     = null;   // track status changes
+
+  let _countdownTimer = null;   // setTimeout handle
+  let _lastRoom       = null;   // most recent room snapshot
+
+
+
+  // -- Helpers ------------------------------------------------
+
+  function _getRtdb() { return window._fbRtdb || null; }
+
+  function _getMyId() { return window._fbPlayerId || ('p' + Date.now().toString(36)); }
+
+  function _getMyName() {
+
+    try {
+
+      const svc = window.LeaderboardService;
+
+      if (svc && typeof svc.getDisplayName === 'function') return svc.getDisplayName();
+
+    } catch (_) {}
+
+    return localStorage.getItem('forbiddenColor_playerName') ||
+
+           localStorage.getItem('forbiddenColor_anonTag') || 'Player';
+
+  }
+
+
+
+  function _genCode() {
+
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+
+    let code = '';
+
+    for (let i = 0; i < 4; i++) code += chars[Math.floor(Math.random() * chars.length)];
+
+    return code;
+
+  }
+
+
+
+  function _roomRef(code) { return _getRtdb().ref('rooms/' + code); }
+
+
+
+  function _showError(msg) {
+
+    const el = document.getElementById('mp-entry-error');
+
+    if (el) { el.textContent = msg; el.hidden = false; }
+
+  }
+
+  function _clearError() {
+
+    const el = document.getElementById('mp-entry-error');
+
+    if (el) { el.hidden = true; el.textContent = ''; }
+
+  }
+
+
+
+  function _setView(view) {
+
+    document.getElementById('mp-view-entry').hidden = (view !== 'entry');
+
+    document.getElementById('mp-view-lobby').hidden = (view !== 'lobby');
+
+  }
+
+
+
+  // -- Open modal ---------------------------------------------
+
+  function open() {
+
+    _reset();
+
+    document.getElementById('modal-multiplayer').hidden = false;
+
+    _setView('entry');
+
+    _clearError();
+
+    document.getElementById('mp-join-input').value = '';
+
+  }
+
+
+
+  // -- Close modal --------------------------------------------
+
+  function close() {
+
+    _detachListener();
+
+    _reset();
+
+    document.getElementById('modal-multiplayer').hidden = true;
+
+    _hideCountdown();
+
+  }
+
+
+
+  function _reset() {
+
+    _roomCode   = null;
+
+    _isHost     = false;
+
+    _lastStatus = null;
+    _lastRoom = null;
+
+    _detachListener();
+
+    _clearCountdownTimer();
+
+  }
+
+
+
+  // -- Create Room --------------------------------------------
+
+  async function createRoom() {
+
+    const rtdb = _getRtdb();
+
+    if (!rtdb) { _showError('Firebase not ready. Please wait...'); return; }
+
+    _clearError();
+
+
+
+    const myId   = _getMyId();
+
+    const myName = _getMyName();
+
+
+
+    let code = null;
+
+    for (let i = 0; i < 5; i++) {
+
+      const candidate = _genCode();
+
+      const snap = await _roomRef(candidate).once('value');
+
+      if (!snap.exists()) { code = candidate; break; }
+
+    }
+
+    if (!code) { _showError('Could not generate a unique room code. Try again.'); return; }
+
+
+
+    const roomData = {
+
+      roomCode:     code,
+
+      status:       'waiting',
+
+      hostPlayerId: myId,
+
+      createdAt:    Date.now(),
+
+      players: {
+
+        [myId]: { playerId: myId, name: myName, joinedAt: Date.now(), alive: true }
+
+      }
+
+    };
+
+
+
+    try {
+
+      await _roomRef(code).set(roomData);
+
+      console.log('[Multiplayer] Room created:', code);
+
+      _roomCode = code;
+
+      _isHost   = true;
+
+      _enterLobby(code);
+
+    } catch (err) {
+
+      console.error('[Multiplayer] Create room failed:', err);
+
+      _showError('Failed to create room: ' + err.message);
+
+    }
+
+  }
+
+
+
+  // -- Join Room ----------------------------------------------
+
+  async function joinRoom() {
+
+    const rtdb = _getRtdb();
+
+    if (!rtdb) { _showError('Firebase not ready. Please wait...'); return; }
+
+    _clearError();
+
+
+
+    const input = document.getElementById('mp-join-input');
+
+    const code  = (input ? input.value.trim().toUpperCase() : '');
+
+    if (code.length !== 4) { _showError('Enter a 4-character room code.'); return; }
+
+
+
+    let snap;
+
+    try {
+
+      snap = await _roomRef(code).once('value');
+
+    } catch (err) {
+
+      _showError('Could not reach Firebase: ' + err.message);
+
+      return;
+
+    }
+
+
+
+    if (!snap.exists()) { _showError('Room ' + code + ' not found.'); return; }
+
+    const room = snap.val();
+
+    if (room.status !== 'waiting') { _showError('Room ' + code + ' is no longer accepting players.'); return; }
+
+
+
+    const myId   = _getMyId();
+
+    const myName = _getMyName();
+
+
+
+    if (room.players && room.players[myId]) {
+
+      _roomCode = code;
+
+      _isHost   = (room.hostPlayerId === myId);
+
+      _enterLobby(code);
+
+      return;
+
+    }
+
+
+
+    const playerCount = Object.keys(room.players || {}).length;
+
+    if (playerCount >= 2) { _showError('Room ' + code + ' is full (2/2 players).'); return; }
+
+
+
+    try {
+
+      await _roomRef(code).child('players/' + myId).set({
+
+        playerId: myId, name: myName, joinedAt: Date.now(), alive: true,
+
+      });
+
+      console.log('[Multiplayer] Player joined room:', code);
+
+      _roomCode = code;
+
+      _isHost   = false;
+
+      _enterLobby(code);
+
+    } catch (err) {
+
+      console.error('[Multiplayer] Join room failed:', err);
+
+      _showError('Failed to join room: ' + err.message);
+
+    }
+
+  }
+
+
+
+  // -- Enter Lobby --------------------------------------------
+
+  function _enterLobby(code) {
+
+    _setView('lobby');
+
+    document.getElementById('mp-room-code-display').textContent = code;
+
+    console.log('[Multiplayer] Room listener started for:', code);
+
+    _attachListener(code);
+
+  }
+
+
+
+  // -- Real-time listener -------------------------------------
+
+  function _attachListener(code) {
+
+    _detachListener();
+
+    _lobbyRef = _roomRef(code);
+
+    _lobbyRef.on('value', _onRoomUpdate, function (err) {
+
+      console.error('[Multiplayer] Listener error:', err);
+
+    });
+
+  }
+
+
+
+  function _detachListener() {
+
+    if (_lobbyRef) {
+
+      _lobbyRef.off('value', _onRoomUpdate);
+
+      _lobbyRef = null;
+
+    }
+
+  }
+
+
+
+  function _onRoomUpdate(snap) {
+
+    if (!snap.exists()) {
+
+      console.log('[Multiplayer] Room deleted -- returning to entry.');
+
+      _setView('entry');
+
+      return;
+
+    }
+
+    const room   = snap.val();
+
+    _lastRoom = room;
+    const status = room.status;
+
+
+
+    if (status !== _lastStatus) {
+
+      console.log('[Multiplayer] Status changed:', _lastStatus, '->', status);
+
+      _lastStatus = status;
+
+    }
+
+
+
+    _renderLobby(room);
+
+
+
+    if (status === 'countdown' && !_countdownTimer) {
+
+      console.log('[Multiplayer] Countdown started');
+
+      _startCountdown();
+
+    } else if (status === 'playing') {
+
+      console.log('[Multiplayer] Match started -- entering game');
+
+      _hideCountdown();
+
+      _onMatchStart();
+
+    }
+
+  }
+
+
+
+  // -- Render Lobby -------------------------------------------
+
+  function _renderLobby(room) {
+
+    const myId       = _getMyId();
+
+    const players    = room.players ? Object.values(room.players) : [];
+
+    const isFull     = players.length >= 2;
+
+    const isHost     = room.hostPlayerId === myId;
+
+    const inProgress = room.status === 'countdown' || room.status === 'playing';
+
+
+
+    const listEl = document.getElementById('mp-players-list');
+
+    if (listEl) {
+
+      listEl.innerHTML = players.map(p => {
+
+        const isMe       = p.playerId === myId;
+
+        const isRoomHost = p.playerId === room.hostPlayerId;
+
+        const initials   = (p.name || '?').charAt(0).toUpperCase();
+
+        let tags = '';
+
+        if (isRoomHost) tags += '<span class="mp-player-tag host">Host</span>';
+
+        if (isMe)       tags += '<span class="mp-player-tag you">You</span>';
+
+        return '<div class="mp-player-row">' +
+
+          '<div class="mp-player-avatar">' + initials + '</div>' +
+
+          '<span class="mp-player-name">' + _escHtml(p.name || 'Player') + '</span>' +
+
+          tags + '</div>';
+
+      }).join('');
+
+    }
+
+
+
+    const waitEl = document.getElementById('mp-waiting-msg');
+
+    if (waitEl) waitEl.hidden = isFull || inProgress;
+
+
+
+    const startBtn = document.getElementById('mp-btn-start');
+
+    if (startBtn) startBtn.hidden = !(isHost && isFull && room.status === 'waiting');
+
+  }
+
+
+
+  // -- Start Match (host only) --------------------------------
+
+  async function startMatch() {
+
+    if (!_roomCode || !_isHost) return;
+
+    console.log('[Multiplayer] Start match clicked for room:', _roomCode);
+
+    try {
+
+      await _roomRef(_roomCode).child('status').set('countdown');
+
+      await _roomRef(_roomCode).child('countdownStartedAt').set(Date.now());
+
+      console.log('[Multiplayer] Status -> countdown');
+
+    } catch (err) {
+
+      console.error('[Multiplayer] Start match failed:', err);
+
+    }
+
+  }
+
+
+
+  // -- Countdown (runs on both tabs) --------------------------
+
+  function _startCountdown() {
+
+    _clearCountdownTimer();
+
+    const overlay = document.getElementById('mp-countdown-overlay');
+
+    const numEl   = document.getElementById('mp-countdown-num');
+
+    const lblEl   = document.getElementById('mp-countdown-label');
+
+    if (!overlay) return;
+
+
+
+    overlay.hidden = false;
+
+    let count = 3;
+
+
+
+    const tick = () => {
+
+      if (count > 0) {
+
+        numEl.textContent = String(count);
+
+        if (lblEl) lblEl.textContent = 'Get Ready!';
+
+        numEl.classList.remove('mp-countdown-pop');
+
+        void numEl.offsetWidth;
+
+        numEl.classList.add('mp-countdown-pop');
+
+        count--;
+
+        _countdownTimer = setTimeout(tick, 1000);
+
+      } else {
+
+        numEl.textContent = 'GO!';
+
+        if (lblEl) lblEl.textContent = '';
+
+        numEl.classList.remove('mp-countdown-pop');
+
+        void numEl.offsetWidth;
+
+        numEl.classList.add('mp-countdown-pop');
+
+        _countdownTimer = setTimeout(() => {
+
+          _clearCountdownTimer();
+
+          if (_isHost && _roomCode) {
+
+            _roomRef(_roomCode).child('status').set('playing').catch(console.error);
+
+          }
+
+        }, 1000);
+
+      }
+
+    };
+
+
+
+    tick();
+
+  }
+
+
+
+  function _hideCountdown() {
+
+    const overlay = document.getElementById('mp-countdown-overlay');
+
+    if (overlay) overlay.hidden = true;
+
+    _clearCountdownTimer();
+
+  }
+
+
+
+  function _clearCountdownTimer() {
+
+    if (_countdownTimer) { clearTimeout(_countdownTimer); _countdownTimer = null; }
+
+  }
+
+
+
+    // -- Match started (both tabs) ------------------------------
+
+  function _onMatchStart() {
+    document.getElementById('modal-multiplayer').hidden = true;
+    console.log('[Multiplayer] Both players in -- game begins.');
+
+    if (_lastRoom && _roomCode) {
+      var myId = _getMyId();
+      var entries = _lastRoom.players ? Object.entries(_lastRoom.players) : [];
+      var oppEntry = entries.find(function(e) { return e[0] !== myId; });
+      if (oppEntry) {
+        var oppId   = oppEntry[0];
+        var oppData = oppEntry[1];
+        MpSync.start(_roomCode, myId, oppId, oppData.name || 'Opponent');
+      }
+    }
+
+    startGame();
+  }
+
+
+
+  // -- Leave Room ---------------------------------------------
+
+  async function leaveRoom() {
+
+    const myId = _getMyId();
+
+    if (_roomCode) {
+
+      try {
+
+        await _roomRef(_roomCode).child('players/' + myId).remove();
+
+        console.log('[Multiplayer] Left room:', _roomCode);
+
+      } catch (_) {}
+
+    }
+
+    close();
+
+    _setView('entry');
+
+  }
+
+
+
+  // -- Copy code ----------------------------------------------
+
+  function copyCode() {
+
+    if (!_roomCode) return;
+
+    try {
+
+      navigator.clipboard.writeText(_roomCode);
+
+    } catch (_) {
+
+      const el = document.createElement('textarea');
+
+      el.value = _roomCode;
+
+      el.style.position = 'fixed'; el.style.opacity = '0';
+
+      document.body.appendChild(el); el.select();
+
+      document.execCommand('copy'); document.body.removeChild(el);
+
+    }
+
+    const btn = document.getElementById('mp-btn-copy');
+
+    if (btn) { btn.textContent = 'Copied!'; setTimeout(() => { btn.textContent = 'Copy'; }, 1500); }
+
+  }
+
+
+
+  // -- Sanitize -----------------------------------------------
+
+  function _escHtml(str) {
+
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+  }
+
+
+
+  // -- Bind DOM events ----------------------------------------
+
+  function bindEvents() {
+
+    const closeBtn = document.getElementById('btn-mp-close');
+
+    if (closeBtn) closeBtn.addEventListener('click', () => { Audio.uiClick(); close(); });
+
+
+
+    const overlay = document.getElementById('modal-multiplayer');
+
+    if (overlay) overlay.addEventListener('click', e => {
+
+      if (e.target === overlay) { Audio.uiClick(); close(); }
+
+    });
+
+
+
+    const createBtn = document.getElementById('mp-btn-create');
+
+    if (createBtn) createBtn.addEventListener('click', () => { Audio.uiClick(); createRoom(); });
+
+
+
+    const joinBtn = document.getElementById('mp-btn-join');
+
+    if (joinBtn) joinBtn.addEventListener('click', () => { Audio.uiClick(); joinRoom(); });
+
+
+
+    const joinInput = document.getElementById('mp-join-input');
+
+    if (joinInput) {
+
+      joinInput.addEventListener('keydown', e => { if (e.key === 'Enter') { Audio.uiClick(); joinRoom(); } });
+
+      joinInput.addEventListener('input', () => {
+
+        joinInput.value = joinInput.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4);
+
+      });
+
+    }
+
+
+
+    const copyBtn = document.getElementById('mp-btn-copy');
+
+    if (copyBtn) copyBtn.addEventListener('click', () => { Audio.uiClick(); copyCode(); });
+
+
+
+    const startBtn = document.getElementById('mp-btn-start');
+
+    if (startBtn) startBtn.addEventListener('click', () => { Audio.uiClick(); startMatch(); });
+
+
+
+    const leaveBtn = document.getElementById('mp-btn-leave');
+
+    if (leaveBtn) leaveBtn.addEventListener('click', () => { Audio.uiClick(); leaveRoom(); });
+
+  }
+
+
+
+  return { open, close, createRoom, joinRoom, leaveRoom, copyCode, startMatch, bindEvents };
+
 })();
+
+// ============================================================
+// SECTION: MULTIPLAYER LIVE SYNC (MpSync)
+// ============================================================
+const MpSync = (function () {
+
+  // -- State --------------------------------------------------
+  var _active           = false;
+  var _roomCode         = null;
+  var _myId             = null;
+  var _opponentId       = null;
+  var _opponentRef      = null;
+  var _myPlayerRef      = null;
+  var _lastSendTime     = 0;
+  var SEND_INTERVAL     = 100; // 10fps max
+
+  var _opponent         = null; // { x, y, alive, name, score, disconnected }
+  var _opponentLastSeen = 0;
+  var _staleInterval    = null;
+  var _disconnectMsgEl  = null;
+  var _renderLogTimer   = 0;   // throttle render log to once/sec
+
+  // -- Start --------------------------------------------------
+  function start(roomCode, myId, opponentId, opponentName) {
+    stop(); // clean prior session
+    _active           = true;
+    _roomCode         = roomCode;
+    _myId             = myId;
+    _opponentId       = opponentId;
+    _opponent         = {
+      x: (typeof canvas !== 'undefined' ? canvas.width  / 2 : 200),
+      y: (typeof canvas !== 'undefined' ? canvas.height / 2 : 300),
+      alive: true,
+      name: opponentName || 'Opponent',
+      score: 0,
+      disconnected: false,
+    };
+    _opponentLastSeen = Date.now();
+    _lastSendTime     = 0;
+
+    var rtdb = window._fbRtdb;
+    if (!rtdb) { console.error('[MpSync] No RTDB available'); return; }
+
+    // Register onDisconnect so Firebase marks us disconnected if tab closes
+    _myPlayerRef = rtdb.ref('rooms/' + roomCode + '/players/' + myId);
+    _myPlayerRef.onDisconnect().update({
+      alive: false, disconnected: true, updatedAt: Date.now()
+    });
+
+    // Listen to opponent's node
+    _opponentRef = rtdb.ref('rooms/' + roomCode + '/players/' + opponentId);
+    _opponentRef.on('value', _onOpponentUpdate, function (err) {
+      console.error('[MpSync] Opponent listener error:', err);
+    });
+
+    // Check for stale data every 2 seconds
+    _staleInterval = setInterval(_checkStale, 2000);
+
+    console.log('[MpSync] Started. Room:', roomCode, 'My ID:', myId, 'Opponent:', opponentId);
+  }
+
+  // -- Stop ---------------------------------------------------
+  function stop() {
+    _active = false;
+    if (_opponentRef)  { _opponentRef.off('value', _onOpponentUpdate); _opponentRef = null; }
+    if (_myPlayerRef)  { _myPlayerRef.onDisconnect().cancel(); _myPlayerRef = null; }
+    if (_staleInterval){ clearInterval(_staleInterval); _staleInterval = null; }
+    _hideDisconnectMsg();
+    _opponent   = null;
+    _roomCode   = null;
+    _myId       = null;
+    _opponentId = null;
+    console.log('[MpSync] Stopped.');
+  }
+
+  // -- Send own position (throttled to 10fps) -----------------
+  function sendPosition() {
+    if (!_active || !_roomCode || !_myId) return;
+    if (typeof player === 'undefined') return;
+    var now = performance.now();
+    if (now - _lastSendTime < SEND_INTERVAL) return;
+    _lastSendTime = now;
+
+    var elapsed = (typeof gameStartTime !== 'undefined' && gameStartTime > 0)
+      ? Math.max(0, Math.floor((performance.now() - gameStartTime - (pausedDuration || 0)) / 1000))
+      : 0;
+
+    var data = {
+      x:              player.x,
+      y:              player.y,
+      alive:          (typeof currentState !== 'undefined' && currentState === STATE.PLAYING),
+      score:          Math.floor(typeof score !== 'undefined' ? score : 0),
+      coinsCollected: typeof roundCoins !== 'undefined' ? roundCoins : 0,
+      survivalTime:   elapsed,
+      updatedAt:      Date.now(),
+    };
+
+    window._fbRtdb.ref('rooms/' + _roomCode + '/players/' + _myId)
+      .update(data)
+      .catch(function (err) { console.error('[MpSync] Send error:', err); });
+
+    console.log('[MpSync] Position sent: x=' + data.x.toFixed(1) + ' y=' + data.y.toFixed(1));
+  }
+
+  // -- Receive opponent updates -------------------------------
+  function _onOpponentUpdate(snap) {
+    if (!_active) return;
+    if (!snap.exists()) return;
+    var data = snap.val();
+    if (!_opponent) _opponent = {};
+    if (typeof data.x === 'number') _opponent.x = data.x;
+    if (typeof data.y === 'number') _opponent.y = data.y;
+    _opponent.alive        = data.alive !== false;
+    _opponent.name         = data.name || _opponent.name || 'Opponent';
+    _opponent.score        = data.score || 0;
+    _opponent.disconnected = !!data.disconnected;
+    _opponentLastSeen      = Date.now();
+
+    console.log('[MpSync] Opponent position received: x=' +
+      ((_opponent.x) || 0).toFixed(1) + ' y=' + ((_opponent.y) || 0).toFixed(1));
+
+    if (_opponent.disconnected) {
+      _handleDisconnect('Opponent disconnected. Auto-win in 5s...');
+    }
+  }
+
+  // -- Stale-connection check ---------------------------------
+  function _checkStale() {
+    if (!_active || !_opponent || _opponent.disconnected) return;
+    var age = Date.now() - _opponentLastSeen;
+    if (age > 5000) {
+      console.log('[MpSync] Disconnect detected (stale, age=' + age + 'ms)');
+      _opponent.disconnected = true;
+      if (window._fbRtdb && _roomCode && _opponentId) {
+        window._fbRtdb.ref('rooms/' + _roomCode + '/players/' + _opponentId)
+          .update({ disconnected: true })
+          .catch(function () {});
+      }
+      _handleDisconnect('Opponent disconnected. Auto-win in 5s...');
+    }
+  }
+
+  function _handleDisconnect(msg) {
+    if (!_active) return;
+    _showDisconnectMsg(msg);
+    setTimeout(function () {
+      if (!_active) return;
+      if (_opponent && _opponent.disconnected) {
+        console.log('[MpSync] Auto-win triggered');
+        _showDisconnectMsg('You win! Opponent disconnected.');
+        stop();
+      }
+    }, 5000);
+  }
+
+  // -- Disconnect message overlay -----------------------------
+  function _showDisconnectMsg(msg) {
+    if (!_disconnectMsgEl) {
+      _disconnectMsgEl = document.createElement('div');
+      _disconnectMsgEl.id = 'mp-disconnect-msg';
+      _disconnectMsgEl.style.cssText =
+        'position:fixed;top:20px;left:50%;transform:translateX(-50%);' +
+        'background:rgba(185,28,28,0.92);color:#fff;padding:9px 22px;' +
+        'border-radius:10px;font-size:14px;font-weight:700;z-index:99999;' +
+        'pointer-events:none;letter-spacing:0.02em;' +
+        'box-shadow:0 4px 20px rgba(0,0,0,0.4);';
+      document.body.appendChild(_disconnectMsgEl);
+    }
+    _disconnectMsgEl.textContent = msg;
+    _disconnectMsgEl.style.display = 'block';
+  }
+
+  function _hideDisconnectMsg() {
+    if (_disconnectMsgEl) _disconnectMsgEl.style.display = 'none';
+  }
+
+  // -- Draw opponent on canvas --------------------------------
+  function drawOpponent(ctx) {
+    if (!_active || !_opponent) return;
+    if (typeof _opponent.x !== 'number' || typeof _opponent.y !== 'number') return;
+    if (_opponent.disconnected) return;
+    if (Date.now() - _opponentLastSeen > 3000) return; // don't render stale position
+
+    var x    = _opponent.x;
+    var y    = _opponent.y;
+    var r    = 24;
+    var name = String(_opponent.name || 'Opponent').slice(0, 16);
+    var now  = performance.now();
+
+    // Throttle render log to once/sec
+    if (now - _renderLogTimer > 1000) {
+      console.log('[MpSync] Opponent rendered at x=' + x.toFixed(1) + ' y=' + y.toFixed(1));
+      _renderLogTimer = now;
+    }
+
+    ctx.save();
+
+    // Outer glow ring
+    ctx.shadowBlur  = 22;
+    ctx.shadowColor = 'rgba(99,179,237,0.85)';
+    ctx.beginPath();
+    ctx.arc(x, y, r + 3, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(147,210,255,0.55)';
+    ctx.lineWidth   = 2;
+    ctx.stroke();
+    ctx.shadowBlur  = 0;
+
+    // Semi-transparent radial fill (blue tint — distinct from player)
+    var grad = ctx.createRadialGradient(x - 5, y - 6, 2, x, y, r);
+    grad.addColorStop(0,   'rgba(147,210,255,0.70)');
+    grad.addColorStop(0.6, 'rgba(99,179,237,0.50)');
+    grad.addColorStop(1,   'rgba(49,130,206,0.30)');
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    // Solid outline
+    ctx.lineWidth   = 2.5;
+    ctx.strokeStyle = 'rgba(190,227,248,0.9)';
+    ctx.stroke();
+
+    // Name label above
+    ctx.shadowBlur   = 6;
+    ctx.shadowColor  = 'rgba(0,0,0,0.7)';
+    ctx.font         = 'bold 13px system-ui, sans-serif';
+    ctx.textAlign    = 'center';
+    ctx.textBaseline = 'bottom';
+    ctx.fillStyle    = 'rgba(255,255,255,0.95)';
+    ctx.fillText(name, x, y - r - 5);
+    ctx.shadowBlur   = 0;
+
+    ctx.restore();
+  }
+
+  function isActive() { return _active; }
+
+  return { start, stop, sendPosition, drawOpponent, isActive };
+})();
+
+
 function init() {
   canvas = document.getElementById('game-canvas');
   ctx    = canvas.getContext('2d');
