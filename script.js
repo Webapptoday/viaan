@@ -43,11 +43,11 @@ const GAME_CONFIG = { playerSpeed: 255, spawnRate: 0.60, forbiddenInterval: 2.6,
 const DIFFICULTY_CONFIG = {
   // phases: each entry controls live game values for that time window.
   //   endAt = elapsed seconds when this phase ends (Infinity = forever)
-  //   spd   = speedMultiplier target        ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â Ãƒâ€šÃ‚Â increase carefully
-  //   si    = spawn interval (s)            ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â Ãƒâ€šÃ‚Â lower = more blocks
-  //   cc    = cluster/wave chance (0-1)     ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â Ãƒâ€šÃ‚Â higher = more pattern waves
-  //   fi    = forbidden color interval (s)  ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â Ãƒâ€šÃ‚Â lower = faster color shifts
-  //   mo    = max simultaneous obstacles    ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â Ãƒâ€šÃ‚Â soft cap per phase
+  //   spd   = speedMultiplier target         increase carefully
+  //   si    = spawn interval (s)             lower = more blocks
+  //   cc    = cluster/wave chance (0-1)      higher = more pattern waves
+  //   fi    = forbidden color interval (s)   lower = faster color shifts
+  //   mo    = max simultaneous obstacles     soft cap per phase
   //   ac    = anti-camp targeting bonus (0-1)
   phases: [
     // Phase 0 - Rush    (0-10s):   hard immediately, active from first second
@@ -62,7 +62,7 @@ const DIFFICULTY_CONFIG = {
     { name:'Expert',  endAt: Infinity, spd:1.68, si:0.16, cc:0.88, fi:1.65, mo:42, ac:0.98 },
   ],
 
-  // ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ Hard safety caps ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ NEVER exceeded regardless of phase, combo, or panic ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
+  //  Hard safety caps  NEVER exceeded regardless of phase, combo, or panic 
   // phase1_spawn_rate  = phases[0].si  = 0.60s
   // phase2_spawn_rate  = phases[2].si  = 0.32s
   // phase3_spawn_rate  = phases[4].si  = 0.16s
@@ -72,25 +72,25 @@ const DIFFICULTY_CONFIG = {
   // anti_camp_strength = FLOW_CONFIG.campDecayPerSec
   // panic_mode_intensity = panicForbidRatio
   // pattern_complexity = phases[n].cc
-  speedMultHardCap:    1.80,  // peak speed ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â fast but still readable
+  speedMultHardCap:    1.80,  // peak speed  fast but still readable
   spawnIntervalFloor:  0.15,  // absolute minimum spawn gap at peak intensity
   maxObstaclesHardCap: 44,    // max simultaneous live threats on screen
 
-  // ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ Phase blend ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ smoothstep cross-fade between consecutive phases ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
+  //  Phase blend  smoothstep cross-fade between consecutive phases 
   blendWindow: 5.0,           // tighter = faster ramp between phases
 
-  // ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ Panic wave tuning ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
-  panicSpeedBonus:  1.32,  // obstacle speed ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â1.32 during panic ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â noticeably faster
-  panicSpawnMult:   0.30,  // spawn interval ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â0.30 during panic (~3.3ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â more frequent)
-  panicForbidRatio: 0.92,  // 92% of new blocks forbidden ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â very dense panic surge
-  ddSpawnRateMult:  0.68,  // Double Danger: ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â0.68 spawn interval (~47% more frequent)
+  //  Panic wave tuning 
+  panicSpeedBonus:  1.32,  // obstacle speed 1.32 during panic  noticeably faster
+  panicSpawnMult:   0.30,  // spawn interval 0.30 during panic (~3.3 more frequent)
+  panicForbidRatio: 0.92,  // 92% of new blocks forbidden  very dense panic surge
+  ddSpawnRateMult:  0.68,  // Double Danger: 0.68 spawn interval (~47% more frequent)
 
-  // ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ Per-obstacle-type speed multipliers ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
+  //  Per-obstacle-type speed multipliers 
   // Applied as: vy = base * typeSpeedMults[type] + rand(0, typeSpeedRand[type])
   typeSpeedMults: { 0:1.02, 1:0.90, 2:0.65, 3:1.12, 4:1.22 },
   typeSpeedRand:  { 0:24,   1:20,   2:16,   3:22,   4:22   },
 
-  // Developer debug overlay ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â toggle: DIFFICULTY_CONFIG.debugOverlay = true
+  // Developer debug overlay  toggle: DIFFICULTY_CONFIG.debugOverlay = true
   debugOverlay: false,
 };
 
@@ -100,14 +100,14 @@ const DIFFICULTY_CONFIG = {
 // 0 = never appears in that phase. Higher = more likely.
 // ============================================================
 const PATTERN_LIBRARY = [
-  { id:'HALF_FILL',   phaseWeights:[ 6, 5, 3, 2, 1] },  // Half lanes blocked ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â reduced, too passive
-  { id:'SINGLE_SIDE', phaseWeights:[ 4, 3, 2, 1, 0] },  // Single threat ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â tapers off quickly
-  { id:'STAGGER',     phaseWeights:[ 9, 9, 8, 7, 6] },  // Staggered gaps ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â requires movement always
-  { id:'SWEEP_GAP',   phaseWeights:[ 5, 8, 9, 8, 7] },  // Moving gap ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â tracks player well
+  { id:'HALF_FILL',   phaseWeights:[ 6, 5, 3, 2, 1] },  // Half lanes blocked  reduced, too passive
+  { id:'SINGLE_SIDE', phaseWeights:[ 4, 3, 2, 1, 0] },  // Single threat  tapers off quickly
+  { id:'STAGGER',     phaseWeights:[ 9, 9, 8, 7, 6] },  // Staggered gaps  requires movement always
+  { id:'SWEEP_GAP',   phaseWeights:[ 5, 8, 9, 8, 7] },  // Moving gap  tracks player well
   { id:'CENTER_PUSH', phaseWeights:[ 3, 5, 8, 9, 9] },  // Center threat, side escape
   { id:'SIDE_PUSH',   phaseWeights:[ 3, 4, 7, 8, 9] },  // Flank threat, center escape
-  { id:'PINCER',      phaseWeights:[ 1, 3, 5, 8, 9] },  // Both flanks ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â tight middle
-  { id:'TARGETED',    phaseWeights:[ 3, 4, 6, 8, 9] },  // Direct player pressure ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â starts early
+  { id:'PINCER',      phaseWeights:[ 1, 3, 5, 8, 9] },  // Both flanks  tight middle
+  { id:'TARGETED',    phaseWeights:[ 3, 4, 6, 8, 9] },  // Direct player pressure  starts early
 ];
 
 // Player skins - unlock thresholds are bestScore requirements (bestScore never decreases)
@@ -180,14 +180,14 @@ const COMBO_BONUS_PER         = 25;   // pts per combo level on each color chang
 const POWERUP_COLLECT_BONUS   = 50;   // flat pts for picking up any power-up
 const POWERUP_INTERVAL    = 15;   // s between powerup spawns (more frequent to compensate)
 const COIN_ITEM_INTERVAL  = 8.5;  // s between coin column spawns (columns have 4-6 coins each)
-const DIFF_SCALE_EVERY    = 4;    // s between difficulty bumps ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â faster ramp (was 5)
+const DIFF_SCALE_EVERY    = 4;    // s between difficulty bumps  faster ramp (was 5)
 const MAX_OBSTACLES       = 48;   // increased from 40 - blocks persist longer now, need more capacity
 const GRACE_PERIOD        = 0.20; // reduced -- game pressures player earlier
 const FORBIDDEN_MIN_RATIO = 0.65; // keep at least 65% of active obstacles forbidden - keeps screen readable
 const CLUSTER_CHANCE      = 0.55; // structured wave patterns fire on most spawn ticks
-const MIN_CLEAR_GAP       = 62;   // minimum safe corridor width ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â tight but passable
+const MIN_CLEAR_GAP       = 62;   // minimum safe corridor width  tight but passable
 const NUM_LANES           = 6;    // play area divided into this many columns for controlled, fair spawning
-const CAMPING_WAVE_LIMIT  = 1;    // ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ anti-camp triggers after just 1 repeated wave (was 2)
+const CAMPING_WAVE_LIMIT  = 1;    //  anti-camp triggers after just 1 repeated wave (was 2)
 const MAX_SAFE_LANE_STREAK = 2;   // hard cap for repeating the exact same safe lane
 const MAX_PLAYER_LANE_SHIELD = 0; // single spawns no longer avoid player lane (full pressure)
 const OBSTACLE_CLEANUP_MARGIN = 110; // blocks removed shortly after leaving screen (frees cap for new threats)
@@ -201,17 +201,17 @@ const FLOW_CONFIG = {
   nearMissGain: 1.6,
   colorShiftGain: 1.2,
   shieldHitPenalty: 3.5,
-  idleGrace: 1.2,           // less idle grace ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â decay kicks in faster
-  idleDecayPerSec: 1.8,     // faster idle decay ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â punishes standing still
-  campRadius: 38,           // tighter camp zone ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â player must actually move
+  idleGrace: 1.2,           // less idle grace  decay kicks in faster
+  idleDecayPerSec: 1.8,     // faster idle decay  punishes standing still
+  campRadius: 38,           // tighter camp zone  player must actually move
   campGrace: 0.5,           // very short grace before camping pressure builds
-  campDecayPerSec: 4.5,     // fast camp pressure ramp ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â discourages any camping
+  campDecayPerSec: 4.5,     // fast camp pressure ramp  discourages any camping
   movementMinSpeed: 42,
   scoreMultPerCombo: 0.12,
   scoreMultCap: 2.1,
   coinMultPerCombo: 0.08,
   coinMultCap: 1.2,
-  spawnIntervalPerCombo: 0.008,  // ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã‹Å“ slightly ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â combo reduces interval a bit more
+  spawnIntervalPerCombo: 0.008,  //  slightly  combo reduces interval a bit more
   spawnIntervalCap: 0.15,
   gapTightenPerCombo: 0.42,       // was 0.95
   gapTightenCap: 8,              // was 15
@@ -635,7 +635,7 @@ const player = { x: 0, y: 0, radius: 24, baseRadius: 24, speed: 255, hasShield: 
 let playerTrail = []; // recent positions for trail-producing skins
 
 let spawnTimer        = 0;
-let spawnRate         = 0.60;  // matches GAME_CONFIG.spawnRate ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â hard from frame 1
+let spawnRate         = 0.60;  // matches GAME_CONFIG.spawnRate  hard from frame 1
 let forbiddenTimer    = 0;
 let forbiddenInterval = 2.6;   // matches GAME_CONFIG.forbiddenInterval
 let warningActive     = false;
@@ -671,7 +671,7 @@ let runMiniGoal = null; // { ...def, progress: 0, done: false }
 let shakeX = 0, shakeY = 0, shakeTimer = 0;
 
 // Panic wave state
-let panicCooldown  = 10;   // first panic wave fires ~10s in (was 18) ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â immediate pressure
+let panicCooldown  = 10;   // first panic wave fires ~10s in (was 18)  immediate pressure
 let panicTimer     = 0;   // counts up during cooldown / down during wave / down during announce
 let panicPhase     = 'cooldown'; // 'cooldown' | 'announce' | 'wave'
 let panicDuration  = 0;   // chosen length of current wave (2-4 s)
@@ -715,14 +715,14 @@ let _playerLaneSafeStreak = 0; // consecutive waves where player's lane was pick
 let _playerLaneShieldStreak = 0; // consecutive single-spawn waves that avoided player's lane
 
 const PANIC_ANNOUNCE = 0.9; // s of banner before wave starts
-const PANIC_COOLDOWN_BASE = 5;  // s between panic waves ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â frequent surges (was 6)
+const PANIC_COOLDOWN_BASE = 5;  // s between panic waves  frequent surges (was 6)
 const PANIC_COOLDOWN_VAR  = 4;  // random extra: 5-9 s gap
 
-const DD_MIN_PLAYTIME   = 12;   // earliest Double Danger can fire ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â sooner (was 15s)
-const DD_COOLDOWN_BASE  = 20;   // s between DD events ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â more frequent (was 24)
+const DD_MIN_PLAYTIME   = 12;   // earliest Double Danger can fire  sooner (was 15s)
+const DD_COOLDOWN_BASE  = 20;   // s between DD events  more frequent (was 24)
 const DD_COOLDOWN_VAR   = 12;   // randomised range: 20-32 s (was 24-38)
 const DD_ANNOUNCE       = 0.75; // warning banner duration (s)
-const EVENT_POST_BUFFER = 4.0;  // ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ buffer between any two special events (was 5s)
+const EVENT_POST_BUFFER = 4.0;  //  buffer between any two special events (was 5s)
 
 const keys      = { left: false, right: false, up: false, down: false };
 const touchDirs = { left: false, right: false, up: false, down: false };
@@ -875,7 +875,7 @@ function applyColorMode() {
   document.body.classList.toggle('perf-low',           settings.perfMode === 'low');
 }
 
-// ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ Settings drawer open/close helpers ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬
+//  Settings drawer open/close helpers 
 function openSettingsDrawer() {
   const panel   = document.getElementById('settings-drawer');
   const overlay = document.getElementById('settings-drawer-overlay');
@@ -923,7 +923,7 @@ function applySettingsToUI() {
   const musicVolEl = document.getElementById('music-vol-slider');
   const sfxVolEl   = document.getElementById('sfx-vol-slider');
 
-  // Note: sound-toggle now means "Mute All" ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â checked = muted, so invert
+  // Note: sound-toggle now means "Mute All"  checked = muted, so invert
   if (soundEl)  soundEl.checked  = !settings.sound;
   if (rmEl)     rmEl.checked     = settings.reducedMotion;
   if (hcEl)     hcEl.checked     = settings.highContrast;
@@ -951,7 +951,7 @@ function applySettingsToUI() {
   // Wire change listeners once (idempotent guard via _settingsWired flag)
   if (!applySettingsToUI._wired) {
     applySettingsToUI._wired = true;
-    // Mute All ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â inverted: checked = muted
+    // Mute All  inverted: checked = muted
     if (soundEl) soundEl.addEventListener('change', () => {
       settings.sound = !soundEl.checked; saveSettings(); AudioManager.refreshAllVolumes();
     });
@@ -1336,7 +1336,7 @@ function buyPowerupUpgrade(key) {
 // SECTION 4: AUDIO SYSTEM (Web Audio API)
 // ============================================================
 
-// Volume defaults ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â user can override via settings sliders
+// Volume defaults  user can override via settings sliders
 const VOL_DEFAULTS = { master: 0.85, music: 0.70, sfx: 0.80 };
 
 const Audio = (() => {
@@ -1399,7 +1399,7 @@ const Audio = (() => {
       }
     },
 
-    // Coin collect: sparkling 3-note arpeggio C6ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œE6ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œG6
+    // Coin collect: sparkling 3-note arpeggio C6E6G6
     collect() {
       if (!settings.sound) return;
       const c = ctx_(); if (!c) return;
@@ -1616,7 +1616,7 @@ const Music = (() => {
 
   const SCHEDULE_AHEAD = 0.14;
   const LOOKAHEAD_MS   = 55;
-  const BEATS_PER_LOOP = 16;   // 4 bars of 4/4  (Am ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ F ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ C ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ G)
+  const BEATS_PER_LOOP = 16;   // 4 bars of 4/4  (Am  F  C  G)
 
   // Bass line: root-tone walk per beat
   const BASS_LINE = [
@@ -1626,8 +1626,8 @@ const Music = (() => {
      98.00, 123.47, 146.83, 123.47,  // G
   ];
 
-  // Lead melody: descending chord-tone phrase over AmÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œFÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œCÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œG
-  // Lead melody A ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ verse feel (tier 0/1)
+  // Lead melody: descending chord-tone phrase over AmFCG
+  // Lead melody A  verse feel (tier 0/1)
   const LEAD_MELODY = [
     659.25, 587.33, 523.25, 440.00,
     698.46, 587.33, 523.25, 349.23,
@@ -1635,7 +1635,7 @@ const Music = (() => {
     587.33, 523.25, 392.00, 493.88,
   ];
 
-  // Lead melody B ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ high intensity / tier 2
+  // Lead melody B  high intensity / tier 2
   const LEAD_B = [
     880.00, 783.99, 659.25, 783.99,
     932.33, 783.99, 698.46, 523.25,
@@ -1796,7 +1796,7 @@ const Music = (() => {
     osc2.start(when); osc2.stop(when + dur + 0.01);
   }
 
-  // Detuned dual-saw lead synth ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â the main melody voice
+  // Detuned dual-saw lead synth  the main melody voice
   function _lead(when, freq, dur) {
     const c = _actx;
     const osc1 = c.createOscillator();
@@ -1862,7 +1862,7 @@ const Music = (() => {
 
   function _scheduleOneBeat(when, beat) {
     const BEAT = 60 / _bpm;
-    const bar  = Math.floor(beat / 4);  // 0ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ3: which chord
+    const bar  = Math.floor(beat / 4);  // 03: which chord
     const pos  = beat % 4;              // position within bar
 
     // --- Drums ---
@@ -1989,11 +1989,11 @@ const Music = (() => {
       else { doResume(); }
     },
 
-    // Called every game frame ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â drives intensity/tier/beat phase for UI sync
+    // Called every game frame  drives intensity/tier/beat phase for UI sync
     tick(dt) {
       if (!_isPlaying || !_actx || !_intGain) return;
 
-      // Beat phase 0ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢1 (for UI pulse sync)
+      // Beat phase 01 (for UI pulse sync)
       const beatDur = 60 / _bpm;
       _beatPhase = ((_actx.currentTime % (beatDur * BEATS_PER_LOOP)) / beatDur) % 1;
 
@@ -2183,7 +2183,7 @@ const ShopMusic = (() => {
   let _nextBeat   = 0;
   let _schedTimer = null;
   const BPM       = 110;
-  const BEATS     = 16;  // 4 bars of 4/4  (C ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ G ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ Am ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ F)
+  const BEATS     = 16;  // 4 bars of 4/4  (C  G  Am  F)
 
   // Bass line: gentle root-note pulse (C major feel)
   const BASS_S = [
@@ -2193,7 +2193,7 @@ const ShopMusic = (() => {
     174.61, 174.61, 196.00, 174.61,  // F
   ];
 
-  // Sparkly arp melody (C ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ G ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ Am ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ F, single octave higher)
+  // Sparkly arp melody (C  G  Am  F, single octave higher)
   const ARP_S = [
     523.25, 659.25, 783.99, 659.25,  // C maj
     587.33, 739.99, 880.00, 739.99,  // G maj
@@ -2238,7 +2238,7 @@ const ShopMusic = (() => {
     return true;
   }
 
-  // Soft sine pad ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â lush, warm chords
+  // Soft sine pad  lush, warm chords
   function _pad(when, freqs, dur) {
     freqs.forEach(freq => {
       const osc = _actx.createOscillator(); const env = _actx.createGain();
@@ -2265,7 +2265,7 @@ const ShopMusic = (() => {
     osc.start(when); osc.stop(when + dur + 0.01);
   }
 
-  // Sparkling arp ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â bright triangle with a quick pluck envelope
+  // Sparkling arp  bright triangle with a quick pluck envelope
   function _arp(when, freq, dur) {
     const c = _actx;
     const osc = c.createOscillator(); const env = c.createGain();
@@ -2287,7 +2287,7 @@ const ShopMusic = (() => {
     osc2.start(when); osc2.stop(when + dur + 0.01);
   }
 
-  // Chime accent ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â high sine bell with slow decay
+  // Chime accent  high sine bell with slow decay
   function _chime(when, freq) {
     const c = _actx;
     const osc = c.createOscillator(); const env = c.createGain();
@@ -2329,7 +2329,7 @@ const ShopMusic = (() => {
     if (pos === 0) _chime(when, CHIME_S[beat]);
     if (beat === 6 || beat === 14) _chime(when, CHIME_S[beat]);
 
-    // Light ticks ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â 8th-note feel, accenting downbeat of each bar
+    // Light ticks  8th-note feel, accenting downbeat of each bar
     _tick(when, pos === 0 ? 0.10 : 0.06);
     _tick(when + BEAT * 0.5, 0.045);
   }
@@ -2385,7 +2385,7 @@ const ThemePlayer = (() => {
   let _initDone  = false;
   let _wantsPlay = false;  // deferred play requested before context ready
 
-  // Effective volume: musicVol ÃƒÆ’Ã†â€™ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â masterVol (0 when muted)
+  // Effective volume: musicVol  masterVol (0 when muted)
   function _targetGain() {
     if (!settings.sound) return 0;
     return (settings.musicVol ?? VOL_DEFAULTS.music) *
@@ -2415,7 +2415,7 @@ const ThemePlayer = (() => {
       _gainNode.connect(_ctx.destination);
       _initDone = true;
     } catch (err) {
-      // Already connected (e.g. hot-reload) ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â treat as ready
+      // Already connected (e.g. hot-reload)  treat as ready
       console.warn('[ThemePlayer] init error:', err);
       _initDone = true;
     }
@@ -2427,7 +2427,7 @@ const ThemePlayer = (() => {
     const promise = _audioEl.play();
     if (promise && typeof promise.catch === 'function') {
       promise.catch(err => {
-        // Autoplay blocked ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â retry on next user gesture
+        // Autoplay blocked  retry on next user gesture
         if (err.name !== 'AbortError') console.warn('[ThemePlayer] play blocked:', err.name);
       });
     }
@@ -2449,7 +2449,7 @@ const ThemePlayer = (() => {
       }
     },
 
-    /** Full stop ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â pauses and rewinds to beginning. */
+    /** Full stop  pauses and rewinds to beginning. */
     stop() {
       if (!_audioEl) return;
       if (_gainNode && _ctx) {
@@ -2467,7 +2467,7 @@ const ThemePlayer = (() => {
       }
     },
 
-    /** Pause playback (used when game is paused ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â preserves position). */
+    /** Pause playback (used when game is paused  preserves position). */
     pause() {
       if (!_audioEl) return;
       if (_gainNode && _ctx) {
@@ -3170,7 +3170,7 @@ function getActiveSpawnInterval() {
 
 function getActiveForbiddenInterval() {
   const comboReduction = Math.min(combo * FLOW_CONFIG.switchSpeedPerCombo, FLOW_CONFIG.switchSpeedCap);
-  return Math.max(1.1, forbiddenInterval * (1 - comboReduction)); // ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ tighter floor (was 1.2)
+  return Math.max(1.1, forbiddenInterval * (1 - comboReduction)); //  tighter floor (was 1.2)
 }
 
 function getFlowGapTighten() {
@@ -5281,7 +5281,7 @@ function spawnWave() {
   const isPanic = panicPhase === 'wave';
   const isCamping = isPanic || _samePlayerLaneWaves >= CAMPING_WAVE_LIMIT;
   const flowTargeting = getFlowTargetingBonus();
-  // ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã‹Å“ raised base pressure: 0.78 normal (was 0.72), 0.90 camping (was 0.88)
+  //  raised base pressure: 0.78 normal (was 0.72), 0.90 camping (was 0.88)
   const wavePressure = Math.min(0.98, (isPanic ? 0.97 : (isCamping ? 0.90 : 0.78)) + flowTargeting);
   for (const laneIdx of blocked) {
     if (obstacles.length >= MAX_OBSTACLES) break;
@@ -5500,7 +5500,7 @@ function pickSafeLane(playerLane) {
 // \u2022 Blocked lanes are sorted so the player's side fills first - directional pressure.
 function pickBlockedLanes(safeLane, playerLane) {
   const b          = difficultyBumps;
-  // ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã‹Å“ more lanes blocked sooner: 5 from b<1, all-but-safe from b<3
+  //  more lanes blocked sooner: 5 from b<1, all-but-safe from b<3
   const maxBlocked = b < 1 ? 5 : (b < 3 ? NUM_LANES - 1 : NUM_LANES - 1);
 
   const allBlocked = [];
@@ -5861,11 +5861,11 @@ function updateCoinItems(dt) {
       AudioManager.playSound('coin');
       applyFlowDelta(FLOW_CONFIG.coinGainPerCoin * c.value, 'coin');
 
-      // Exactly +1 coin per physical pickup ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â no multipliers, no flow scaling
+      // Exactly +1 coin per physical pickup  no multipliers, no flow scaling
       roundCoins += 1;
       updateRoundCoinHUD();
 
-      // Streak tracking ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â visual feedback only, no extra coins
+      // Streak tracking  visual feedback only, no extra coins
       coinStreakCount++;
       coinStreakTimer = 0.65; // window to extend the streak
       if (coinStreakCount === 3) {
@@ -7120,7 +7120,7 @@ function gameLoop(ts) {
     tickPanicWave(dt);
     tickDoubleDanger(dt);
     tickMiniGoal();
-    // Music.tick(dt) removed ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â synthesized game music replaced by ThemePlayer (MP3)
+    // Music.tick(dt) removed  synthesized game music replaced by ThemePlayer (MP3)
     maybeUpdateHud(ts);
 
     // Survival time milestones
@@ -7694,7 +7694,7 @@ function onCanvasPointerUp(e) {
 }
 
 // ============================================================
-// TUTORIAL ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â first-time stepped How-To-Play
+// TUTORIAL  first-time stepped How-To-Play
 // ============================================================
 const Tutorial = (() => {
   const STEPS = 5;
@@ -7758,7 +7758,7 @@ const Tutorial = (() => {
     _goTo(0, 'fwd');
     // Show/hide Start Game button label depending on mode
     const startBtn = document.getElementById('tut-btn-start');
-    if (startBtn) startBtn.textContent = _onComplete ? 'ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“Ãƒâ€šÃ‚Â¶ Start Game' : 'ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œ Done';
+    if (startBtn) startBtn.textContent = _onComplete ? 'Start Game' : 'Done';
     showModal('modal-howtoplay');
     // Focus first focusable element
     setTimeout(() => {
@@ -7781,7 +7781,7 @@ const Tutorial = (() => {
     if (back)  back.addEventListener('click',  () => { Audio.uiClick(); _goTo(Math.max(_step - 1, 0), 'back'); });
     if (skip)  skip.addEventListener('click',  () => { Audio.uiClick(); _finish(); });
     if (start) start.addEventListener('click', () => { Audio.uiClick(); _finish(); });
-    // ÃƒÆ’Ã‚Â¢Ãƒâ€¦Ã¢â‚¬Å“ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ marks seen (so it never auto-shows again) but does NOT start game
+    //  marks seen (so it never auto-shows again) but does NOT start game
     if (close) close.addEventListener('click', () => { Audio.uiClick(); _markSeen(); _onComplete = null; hideModal('modal-howtoplay'); });
   }
 
@@ -7837,7 +7837,7 @@ function init() {
   document.addEventListener('touchstart',  _unlockAudio, { capture: true, passive: true, once: true });
   document.addEventListener('pointerdown', _unlockAudio, { capture: true, passive: true, once: true });
 
-  // Home screen ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â Play button: show tutorial first time, otherwise start directly
+  // Home screen  Play button: show tutorial first time, otherwise start directly
   document.getElementById('btn-start').addEventListener('click', () => {
     Audio.uiClick();
     if (!Tutorial.hasSeen()) {
@@ -7867,7 +7867,7 @@ function init() {
     showModal('modal-progress');
   });
 
-  // Gear settings button ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ open drawer
+  // Gear settings button  open drawer
   const _gearBtn = document.getElementById('btn-gear-settings');
   if (_gearBtn) _gearBtn.addEventListener('click', () => { Audio.uiClick(); openSettingsDrawer(); });
 
@@ -7875,7 +7875,7 @@ function init() {
   const _drawerClose = document.getElementById('btn-settings-close');
   if (_drawerClose) _drawerClose.addEventListener('click', () => { closeSettingsDrawer(); });
 
-  // Drawer overlay click ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ close
+  // Drawer overlay click  close
   const _drawerOverlay = document.getElementById('settings-drawer-overlay');
   if (_drawerOverlay) _drawerOverlay.addEventListener('click', () => { closeSettingsDrawer(); });
 
@@ -7899,7 +7899,7 @@ function init() {
     saveSettings(); applySettingsToUI(); applyColorMode(); AudioManager.refreshAllVolumes();
   });
 
-  // Help button ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â ÃƒÂ¢Ã¢â€šÂ¬Ã¢â€žÂ¢ How To Play
+  // Help button  How To Play
   const _btnHelp = document.getElementById('btn-help');
   if (_btnHelp) _btnHelp.addEventListener('click', () => { Audio.uiClick(); Tutorial.open(null); });
   // btn-htp-close is handled inside Tutorial.bindButtons()
@@ -8008,7 +8008,7 @@ document.addEventListener('DOMContentLoaded', init);
 
 // ============================================================
 // ============================================================
-// LEADERBOARD MODULE  (v3 â€” Firebase as single source of truth)
+// LEADERBOARD MODULE  (v3  Firebase as single source of truth)
 // ============================================================
 // Firebase structure:
 //   leaderboards/global/scores/{playerId}           all-time best
@@ -8172,11 +8172,11 @@ const LeaderboardService = (() => {
       const name   = _FAKE_NAMES[i];
       const fakeId = 'fake_' + name.toLowerCase().replace(/[^a-z0-9]/g, '');
       const rank   = i / _FAKE_NAMES.length; // 0=top, 1=bottom
-      // Global: 5,000 â€“ 500,000
+      // Global: 5,000  500,000
       const gScore = _ri(Math.floor(5000  + (1 - rank) * 490000), Math.floor(8000  + (1 - rank) * 495000));
-      // Weekly: 5,000 â€“ 250,000
+      // Weekly: 5,000  250,000
       const wScore = _ri(Math.floor(5000  + (1 - rank) * 240000), Math.floor(8000  + (1 - rank) * 245000));
-      // Daily:  5,000 â€“ 150,000
+      // Daily:  5,000  150,000
       const dScore = _ri(Math.floor(5000  + (1 - rank) * 140000), Math.floor(8000  + (1 - rank) * 145000));
       const ts     = firebase.firestore.FieldValue.serverTimestamp();
       const base   = { playerId: fakeId, playerName: name, isFakePlayer: true, updatedAt: ts };
@@ -8205,11 +8205,11 @@ const LeaderboardService = (() => {
   async function _fbSubmit(score, name) {
     await (window._fbReady || Promise.resolve(false));
     const db = window._fbDb;
-    if (!db) { console.warn('[ShiftPanic] Firebase not available â€” score not saved.'); return; }
+    if (!db) { console.warn('[ShiftPanic] Firebase not available  score not saved.'); return; }
     if (window._fbWaitForAuth) await window._fbWaitForAuth();
 
     const pid = window._fbPlayerId;
-    if (!pid) { console.warn('[ShiftPanic] No playerId â€” score not submitted.'); return; }
+    if (!pid) { console.warn('[ShiftPanic] No playerId  score not submitted.'); return; }
 
     const intScore = Math.floor(score);
     if (intScore <= 0) return;
@@ -8272,7 +8272,7 @@ const LeaderboardService = (() => {
 
       const db = window._fbDb;
       if (!db) {
-        console.warn('[ShiftPanic] Firebase unavailable â€” leaderboard cannot load from Firebase.');
+        console.warn('[ShiftPanic] Firebase unavailable  leaderboard cannot load from Firebase.');
         _boardState[boardType] = 'offline';
         if (callback) callback([]);
         return;
@@ -8284,7 +8284,7 @@ const LeaderboardService = (() => {
       const weekId     = _getWeekId(), dayId = _getDayId();
       const currentPid = window._fbPlayerId;
 
-      // Determine collection path â€” no composite index needed since
+      // Determine collection path  no composite index needed since
       // each collection is already scoped to the right period.
       const collPath = boardType === 'alltime' ? G_PATH()
                      : boardType === 'weekly'  ? W_PATH(weekId)
@@ -8308,7 +8308,7 @@ const LeaderboardService = (() => {
           };
         }).filter(function (e) { return e.score > 0; });
 
-        console.log('[ShiftPanic] Leaderboard loaded from Firebase:', boardType, 'â€”', entries.length, 'entries');
+        console.log('[ShiftPanic] Leaderboard loaded from Firebase:', boardType, '', entries.length, 'entries');
 
         const playerInList = entries.some(function (e) { return e.isPlayer; });
 
@@ -8360,7 +8360,7 @@ const LeaderboardService = (() => {
     return idx === -1 ? null : idx + 1;
   }
 
-  // submitScore: Firebase only â€” no localStorage leaderboard
+  // submitScore: Firebase only  no localStorage leaderboard
   function submitScore(score, name) {
     if (!score || score <= 0) return;
     _fbSubmit(score, name || getDisplayName()); // intentionally not awaited
@@ -8493,14 +8493,14 @@ const LeaderboardUI = (() => {
         container.innerHTML =
           '<div class="lb-loading" aria-live="polite">' +
             '<span class="lb-loading-spinner" aria-hidden="true"></span>' +
-            'Loading scoresÎ“Ã‡Âª' +
+            'Loading scores' +
           '</div>';
         return;
       }
       if (state === 'error') {
         container.innerHTML =
           '<div class="lb-empty">' +
-            '<span class="lb-empty-icon">Î“ÃœÃ¡âˆ©â••Ã…</span>' +
+            '<span class="lb-empty-icon"></span>' +
             'Could not load scores.<br>Check your connection and try again.' +
           '</div>';
         return;
@@ -8545,7 +8545,7 @@ const LeaderboardUI = (() => {
 
     // If player is outside the top list, show a separator + their row at the bottom
     if (outsideEntry) {
-      html += '<div class="lb-separator" role="separator">â”¬â•– â”¬â•– â”¬â•–</div>';
+      html += '<div class="lb-separator" role="separator">  </div>';
       html += '<div class="lb-row lb-row-you' + (highlightNew ? ' lb-new' : '') + '" data-rank="' + outsideRank + '" role="listitem">' +
         '<div class="lb-rank"><span class="lb-rank-num">' + outsideRank + '</span></div>' +
         '<div class="lb-player"><span class="lb-player-name">' + _esc(outsideEntry.name) + '<span class="lb-you-badge">YOU</span></span></div>' +
@@ -8598,7 +8598,7 @@ const LeaderboardUI = (() => {
 
   // -- Post-run rank display ---------------------------------
   function showPostRunRank(score, wasNewBest) {
-    // Submit the score (always Î“Ã‡Ã¶ uses transaction so only personal bests are stored)
+    // Submit the score (always  uses transaction so only personal bests are stored)
     LeaderboardService.submitScore(score, LeaderboardService.getDisplayName());
 
     const rank    = LeaderboardService.getPlayerRank('alltime');
@@ -8676,7 +8676,7 @@ const LeaderboardUI = (() => {
     if (dialog)  dialog.hidden = true;
   }
 
-  // refreshActive Î“Ã‡Ã¶ called externally to re-render the currently visible tab
+  // refreshActive  called externally to re-render the currently visible tab
   // (e.g. after a score submit so the UI stays in sync)
   function refreshActive() {
     if (_isOpen) renderBoard(_activeTab);
@@ -8730,7 +8730,7 @@ const LeaderboardUI = (() => {
     const ndSave = document.getElementById('nd-save');
     if (ndSave) ndSave.addEventListener('click', _saveName);
 
-    // Name dialog: cancel / skip Î“Ã‡Ã¶ keep anon tag, still resolve callback
+    // Name dialog: cancel / skip  keep anon tag, still resolve callback
     const ndCancel = document.getElementById('nd-cancel');
     if (ndCancel) ndCancel.addEventListener('click', () => {
       const cb = _nameResolve; _nameResolve = null;
