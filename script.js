@@ -730,6 +730,17 @@ const touchDirs = { left: false, right: false, up: false, down: false };
 let touchTarget = null; // canvas drag: {x,y} in canvas coords, or null
 
 let canvas, ctx, rafHandle = null;
+let _loopGeneration = 0; // incremented each startGame — stale loops self-terminate
+
+// ---- Debug counters (always visible during play) ----
+let _dbg = {
+  loops:       0,  // active rAF loops right now
+  fbWrites:    0,  // Firebase writes since last reset
+  fbWriteSec:  0,  // writes/sec (smoothed)
+  fbListeners: 0,  // active Firebase .on() listeners
+  _fwTimer:    0,  // accumulator for write-rate calc
+  _fwCount:    0,  // raw count this window
+};
 
 // ============================================================
 // SECTION 3: SETTINGS & LOCAL STORAGE
@@ -6221,6 +6232,7 @@ function drawPowerup(p) {
 
 function spawnParticles(x, y, color, count) {
   if (settings.particles === false) return;
+  if (particles.length >= 300) return; // hard cap — prevent runaway growth
   // perf-low: 25% of normal; reducedMotion: 35% of normal
   const base = count || 8;
   const n = settings.reducedMotion ? Math.max(1, Math.ceil(base * 0.35))
@@ -7077,6 +7089,9 @@ function drawDebugOverlay() {
 
 function render(ts) {
   ctx.save();
+  // Track save depth so we can recover after errors
+  ctx._saveDepth = (ctx._saveDepth || 0) + 1;
+  try {
   ctx.translate(shakeX, shakeY);
   drawBackground();
   obstacles.forEach(drawObstacle);
@@ -7140,15 +7155,30 @@ function render(ts) {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
   if (DIFFICULTY_CONFIG.debugOverlay) drawDebugOverlay();
-  ctx.restore();
+  drawGameDebugHUD();
+  } finally {
+    ctx.restore();
+    ctx._saveDepth = Math.max(0, (ctx._saveDepth || 1) - 1);
+  }
 }
 
 // ============================================================
 // SECTION 19: GAME LOOP
 // ============================================================
 
+// ============================================================
+// CLEANUP: cancel any running game loop + detach MP sync
+// Call this at the TOP of startGame() before any other changes.
+// ============================================================
+function cleanupGameLoop() {
+  if (rafHandle) { cancelAnimationFrame(rafHandle); rafHandle = null; }
+  if (typeof MpSync !== 'undefined' && MpSync.isActive()) MpSync.stop();
+  _dbg.loops = 0;
+}
+
 function gameLoop(ts) {
-  if (currentState !== STATE.PLAYING) return;
+  if (currentState !== STATE.PLAYING) { _dbg.loops = Math.max(0, _dbg.loops - 1); return; }
+  const _myGen = gameLoop._generation;
   try {
     const dt = Math.min((ts - lastFrameTime) / 1000, 0.033); // cap at ~30 fps step to prevent lag-spike tunnelling
     lastFrameTime = ts;
@@ -7176,7 +7206,7 @@ function gameLoop(ts) {
     }
 
     updatePlayer(dt);
-    MpSync.sendPosition();
+    if (MpSync.isActive()) MpSync.sendPosition(); // only in multiplayer — skip entirely in single-player
     SkinAbility.tick(dt);
     tickFlowSystem(dt);
     tickShake(dt);
@@ -7229,26 +7259,71 @@ function gameLoop(ts) {
     checkCollisions();
     render(ts);
   } catch (err) {
-    // Keep the loop alive and surface the root cause in console instead of freezing to black.
+    // Surface the error but do NOT try to draw on a potentially broken ctx.
     console.error('[ForbiddenColor] gameLoop runtime error', err);
-    try {
-      if (ctx && canvas) {
-        drawBackground();
-        drawPlayer();
-      }
-    } catch (_err) {
-      // Ignore nested fallback errors.
-    }
+    // Reset ctx state to safe baseline so next frame starts clean.
+    try { while (ctx._saveDepth > 0) { ctx.restore(); ctx._saveDepth--; } } catch (_) {}
+    try { ctx.restore(); } catch (_) {} // one extra safety restore
   }
 
-  rafHandle = requestAnimationFrame(gameLoop);
+  // Only re-queue if this is still the active generation (prevents ghost loops).
+  if (_myGen === _loopGeneration) {
+    rafHandle = requestAnimationFrame(gameLoop);
+  } else {
+    _dbg.loops = Math.max(0, _dbg.loops - 1);
+  }
 }
 
 // ============================================================
 // SECTION 20: GAME STATE TRANSITIONS
 // ============================================================
 
+// ---- Lightweight always-on debug HUD (top-right corner during PLAYING) ----
+function drawGameDebugHUD() {
+  if (currentState !== STATE.PLAYING) return;
+  const lines = [
+    'loops:'    + _dbg.loops,
+    'blocks:'   + obstacles.length,
+    'ptcl:'     + particles.length,
+    'coins:'    + coinItems.length,
+    'fbW/s:'    + _dbg.fbWriteSec.toFixed(1),
+    'fbL:'      + _dbg.fbListeners,
+    'gen:'      + _loopGeneration,
+    'MP:'       + (typeof MpSync !== 'undefined' && MpSync.isActive() ? 'ON' : 'off'),
+  ];
+  ctx.save();
+  ctx.font = '10px monospace';
+  ctx.textBaseline = 'top';
+  const pad = 5, lh = 13, bw = 105, bh = lines.length * lh + pad * 2;
+  const bx = canvas.width - bw - 4;
+  ctx.fillStyle = 'rgba(0,0,0,0.72)';
+  ctx.fillRect(bx, 4, bw, bh);
+  lines.forEach((ln, i) => {
+    // Highlight warnings in red
+    const isWarn = (_dbg.loops > 1 && i === 0) ||
+                   (obstacles.length > 40 && i === 1) ||
+                   (particles.length > 200 && i === 2) ||
+                   (_dbg.fbWriteSec > 0.1 && i === 4);
+    ctx.fillStyle = isWarn ? '#f87171' : '#86efac';
+    ctx.fillText(ln, bx + pad, 4 + pad + i * lh);
+  });
+  ctx.restore();
+
+  // Tick write-rate counter
+  _dbg._fwTimer += 1 / 60; // approximate — real dt not available here
+  if (_dbg._fwTimer >= 1.0) {
+    _dbg.fbWriteSec = _dbg._fwCount / _dbg._fwTimer;
+    _dbg._fwCount   = 0;
+    _dbg._fwTimer   = 0;
+  }
+}
+
 function startGame() {
+  // ---- Must be first: kill any running loop before touching state ----
+  cleanupGameLoop();
+  _loopGeneration++; // invalidate all in-flight rAF handles
+  gameLoop._generation = _loopGeneration;
+
   Audio.init();
   score = 0; combo = 0; maxCombo = 0; graceTimer = 0;
   obstacles = []; particles = []; powerups = []; coinItems = []; floatingTexts = []; ringBursts = [];
@@ -7348,6 +7423,10 @@ function startGame() {
     const c = GAME_COLORS[forbiddenIndex];
     Announce.say('Game started. Forbidden color: ' + c.name + '.');
     AudioManager.startGameMusic();
+    // Safety: re-cancel any RAF that may have started in the 50ms window
+    if (rafHandle) { cancelAnimationFrame(rafHandle); rafHandle = null; }
+    _dbg.loops++;
+    gameLoop._generation = _loopGeneration; // stamp the generation
     rafHandle = requestAnimationFrame(gameLoop);
   }, 50);
 }
@@ -7357,6 +7436,7 @@ function pauseGame() {
   pauseStartTime = performance.now();
   currentState = STATE.PAUSED;
   cancelAnimationFrame(rafHandle); rafHandle = null;
+  _dbg.loops = 0;
   clearAllInputs();
   ThemePlayer.pause();
   document.getElementById('pause-overlay').hidden = false;
@@ -7371,6 +7451,8 @@ function resumeGame() {
   currentState  = STATE.PLAYING;
   lastFrameTime = performance.now();
   ThemePlayer.resume();
+  _dbg.loops++;
+  gameLoop._generation = _loopGeneration;
   rafHandle = requestAnimationFrame(gameLoop);
   Announce.say('Resumed.');
 }
@@ -7396,6 +7478,7 @@ function triggerGameOver() {
   if (MpSync.isActive()) MpSync.stop();
   currentState = STATE.GAMEOVER;
   cancelAnimationFrame(rafHandle); rafHandle = null;
+  _dbg.loops = 0;
   clearAllInputs();
   AudioManager.stopMusic();
   AudioManager.playSound('death');
@@ -7527,6 +7610,7 @@ function restartGame() {
 function returnHome() {
   currentState = STATE.HOME;
   cancelAnimationFrame(rafHandle); rafHandle = null;
+  _dbg.loops = 0;
   clearAllInputs();
   document.getElementById('gameover-overlay').hidden = true;
   document.getElementById('pause-overlay').hidden    = true;
@@ -8694,12 +8778,14 @@ const MpSync = (function () {
 
     // Check for stale data every 2 seconds
     _staleInterval = setInterval(_checkStale, 2000);
+    if (typeof _dbg !== 'undefined') _dbg.fbListeners++;
 
     console.log('[MpSync] Started. Room:', roomCode, 'My ID:', myId, 'Opponent:', opponentId);
   }
 
   // -- Stop ---------------------------------------------------
   function stop() {
+    if (_active && typeof _dbg !== 'undefined') _dbg.fbListeners = Math.max(0, _dbg.fbListeners - 1);
     _active = false;
     if (_opponentRef)  { _opponentRef.off('value', _onOpponentUpdate); _opponentRef = null; }
     if (_myPlayerRef)  { _myPlayerRef.onDisconnect().cancel(); _myPlayerRef = null; }
@@ -8734,11 +8820,11 @@ const MpSync = (function () {
       updatedAt:      Date.now(),
     };
 
+    if (typeof _dbg !== 'undefined') _dbg._fwCount++;
     window._fbRtdb.ref('rooms/' + _roomCode + '/players/' + _myId)
       .update(data)
       .catch(function (err) { console.error('[MpSync] Send error:', err); });
-
-    console.log('[MpSync] Position sent: x=' + data.x.toFixed(1) + ' y=' + data.y.toFixed(1));
+    // Removed per-send console.log (was 10/s spam) — use debug HUD fbW/s counter instead.
   }
 
   // -- Receive opponent updates -------------------------------
