@@ -7886,6 +7886,7 @@ const Multiplayer = (function () {
 
   let _countdownTimer = null;   // setTimeout handle
   let _lastRoom       = null;   // most recent room snapshot
+  let _gameStarted    = false;  // prevent startGame() from firing twice
 
 
 
@@ -8000,7 +8001,8 @@ const Multiplayer = (function () {
     _isHost     = false;
 
     _lastStatus = null;
-    _lastRoom = null;
+    _lastRoom    = null;
+    _gameStarted = false;
 
     _detachListener();
 
@@ -8273,12 +8275,15 @@ const Multiplayer = (function () {
 
       _startCountdown();
 
-    } else if (status === 'playing') {
+    } else if (status === 'playing' && !_gameStarted) {
 
-      console.log('[Multiplayer] Match started -- entering game');
+      // Guard: only fire once. Detach room listener immediately so
+      // subsequent position writes (10/s) do NOT re-call _onMatchStart().
+      _gameStarted = true;
+      console.log('[Multiplayer] Status -> playing (one-shot, detaching room listener)');
 
+      _detachListener(); // MpSync will listen to opponent directly
       _hideCountdown();
-
       _onMatchStart();
 
     }
