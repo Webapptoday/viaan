@@ -6117,8 +6117,10 @@ function spawnPowerup() {
   const key = POWERUP_KEYS[Math.floor(Math.random() * POWERUP_KEYS.length)];
   const def = POWERUP_DEFS[key];
   const sz  = 42;
+  // Unique ID needed for MP double-collect prevention
+  const id  = 'pu_' + Date.now() + '_' + Math.floor(Math.random() * 1e6);
   powerups.push({
-    x: sz / 2 + Math.random() * (canvas.width - sz), y: -sz - 12,
+    id, x: sz / 2 + Math.random() * (canvas.width - sz), y: -sz - 12,
     size: sz, vy: 80, angle: 0,
     key, icon: def.icon, color: def.color, label: def.label,
   });
@@ -6155,6 +6157,13 @@ function collectPowerup(p) {
   addScore(POWERUP_COLLECT_BONUS);
   addFloating(p.x, p.y - 38, p.label + '  +' + POWERUP_COLLECT_BONUS, p.color, 18);
 
+  // In multiplayer: mark ID collected on Firebase so the powerup
+  // disappears on both screens, and sync shared effects to opponent.
+  const isMp = typeof MpSync !== 'undefined' && MpSync.isActive();
+  if (isMp && p.id) {
+    MpSync.markPowerupCollected(p.id);
+  }
+
   switch (p.key) {
     case 'SMALL':
       playerRadiusTarget = Math.round(player.baseRadius * 0.58); // ~14 px
@@ -6173,9 +6182,17 @@ function collectPowerup(p) {
       activePowerupTimer = getPowerupDuration('SLOW');
       activePowerupTotal = activePowerupTimer;
       obstacles.forEach(o => { o.vy = o.baseVy * 0.4; });
+      // Shared: sync slow event so opponent's obstacles also slow down
+      if (isMp) {
+        MpSync.publishEvent('slow', { durationMs: Math.round(getPowerupDuration('SLOW') * 1000) });
+      }
       break;
     case 'CLEAR':
       obstacles = obstacles.filter(o => o.colorIndex !== forbiddenIndex);
+      // Shared: sync clear event so opponent's dangerous obstacles are removed too
+      if (isMp) {
+        MpSync.publishEvent('clear', {});
+      }
       break;
     case 'BOOST':
       activePowerupKey   = 'BOOST';
@@ -8843,14 +8860,19 @@ const MpSync = (function () {
   var _isHost     = false;
 
   // Firebase refs
-  var _opponentRef  = null;
-  var _myPlayerRef  = null;
-  var _forbiddenRef = null;
-  var _resultRef    = null;
+  var _opponentRef       = null;
+  var _myPlayerRef       = null;
+  var _forbiddenRef      = null;
+  var _resultRef         = null;
+  var _eventsRef         = null;  // shared power-up events
+  var _collectedRef      = null;  // collected power-up IDs (both see removal)
 
-  // Position send: 10fps throttle + 2.5s heartbeat so stationary
+  // Shared event dedup
+  var _processedEventIds = {}; // eventId → true
+
+  // Position send: 4fps throttle + 2.5s heartbeat so stationary
   // players keep their position visible on the opponent's screen.
-  var SEND_INTERVAL    = 100;  // ms = 10fps max
+  var SEND_INTERVAL    = 250;  // ms = 4fps max
   var HEARTBEAT_MS     = 2500; // force-send even if not moved
   var _lastSendTime    = 0;
   var _lastHeartbeat   = 0;
@@ -8906,6 +8928,7 @@ const MpSync = (function () {
     _lastHeartbeat    = 0;
     _lastSentX        = -9999;
     _lastSentY        = -9999;
+    _processedEventIds = {};
 
     var rtdb = window._fbRtdb;
     if (!rtdb) { console.error('[MpSync] No RTDB'); _active = false; return; }
@@ -8940,6 +8963,18 @@ const MpSync = (function () {
       console.error('[MpSync] Result listener error:', e);
     });
 
+    // Both: shared power-up events (slow, clear)
+    _eventsRef = rtdb.ref('rooms/' + roomCode + '/events');
+    _eventsRef.on('child_added', _onSharedEvent, function(e) {
+      console.error('[MpSync] Events listener error:', e);
+    });
+
+    // Both: watch collected power-up IDs so pickups disappear on both screens
+    _collectedRef = rtdb.ref('rooms/' + roomCode + '/collectedPowerUps');
+    _collectedRef.on('child_added', _onPowerupCollected, function(e) {
+      console.error('[MpSync] CollectedPowerUps listener error:', e);
+    });
+
     if (typeof _dbg !== 'undefined') _dbg.fbListeners++;
     console.log('[MpSync] Started. room=' + roomCode + ' isHost=' + _isHost);
   }
@@ -8951,9 +8986,11 @@ const MpSync = (function () {
 
     if (_stopTimer) { clearTimeout(_stopTimer); _stopTimer = null; }
 
-    if (_opponentRef)  { _opponentRef.off('value', _onOpponentUpdate);  _opponentRef  = null; }
-    if (_forbiddenRef) { _forbiddenRef.off('value', _onForbiddenUpdate); _forbiddenRef = null; }
-    if (_resultRef)    { _resultRef.off('value', _onResultUpdate);       _resultRef    = null; }
+    if (_opponentRef)  { _opponentRef.off('value', _onOpponentUpdate);      _opponentRef  = null; }
+    if (_forbiddenRef) { _forbiddenRef.off('value', _onForbiddenUpdate);     _forbiddenRef = null; }
+    if (_resultRef)    { _resultRef.off('value', _onResultUpdate);           _resultRef    = null; }
+    if (_eventsRef)    { _eventsRef.off('child_added', _onSharedEvent);      _eventsRef    = null; }
+    if (_collectedRef) { _collectedRef.off('child_added', _onPowerupCollected); _collectedRef = null; }
     if (_myPlayerRef)  {
       _myPlayerRef.onDisconnect().cancel();
       if (window._fbRtdb && _roomCode) {
@@ -9046,6 +9083,79 @@ const MpSync = (function () {
     window._fbRtdb.ref('rooms/' + _roomCode + '/forbidden')
       .set({ colorIndex: colorIndex, changedAt: Date.now() })
       .catch(function(e) { console.error('[MpSync] syncForbiddenColor error:', e); });
+  }
+
+  // ---- publishEvent: write a shared power-up event ---------
+  // Called by the collector for SLOW and CLEAR power-ups.
+  function publishEvent(type, extraData) {
+    if (!_active || !_roomCode || !_myId) return;
+    var eventId = _myId + '_' + Date.now();
+    var payload = Object.assign({ type: type, collectedBy: _myId, ts: Date.now() },
+                                 extraData || {});
+    _processedEventIds[eventId] = true; // don't re-apply to self
+    if (typeof _dbg !== 'undefined') _dbg._fwCount++;
+    window._fbRtdb.ref('rooms/' + _roomCode + '/events/' + eventId)
+      .set(payload)
+      .catch(function(e) { console.error('[MpSync] publishEvent error:', e); });
+  }
+
+  // ---- markPowerupCollected: write power-up ID so both screens remove it --
+  function markPowerupCollected(powerupId) {
+    if (!_active || !_roomCode || !_myId) return;
+    if (typeof _dbg !== 'undefined') _dbg._fwCount++;
+    window._fbRtdb.ref('rooms/' + _roomCode + '/collectedPowerUps/' + powerupId)
+      .set(_myId)
+      .catch(function(e) { console.error('[MpSync] markPowerupCollected error:', e); });
+  }
+
+  // ---- _onSharedEvent: received by BOTH players (child_added) -------------
+  function _onSharedEvent(snap) {
+    if (!_active) return;
+    var eventId = snap.key;
+    if (_processedEventIds[eventId]) return; // already applied (self-published)
+    _processedEventIds[eventId] = true;
+
+    var data = snap.val();
+    if (!data || !data.type) return;
+    console.log('[MpSync] Shared event received: type=' + data.type +
+      ' collectedBy=' + (data.collectedBy || '?'));
+
+    if (data.type === 'slow') {
+      // Apply slow to this client's obstacles
+      if (typeof obstacles !== 'undefined') {
+        obstacles.forEach(function(o) { o.vy = o.baseVy * 0.4; });
+      }
+      // Schedule un-slow after durationMs
+      var dur = data.durationMs || 6000;
+      setTimeout(function() {
+        if (typeof obstacles !== 'undefined') {
+          obstacles.forEach(function(o) { o.vy = o.baseVy; });
+        }
+      }, dur);
+    } else if (data.type === 'clear') {
+      // Clear dangerous obstacles for this client
+      if (typeof obstacles !== 'undefined' && typeof forbiddenIndex !== 'undefined') {
+        obstacles = obstacles.filter(function(o) {
+          return o.colorIndex !== forbiddenIndex;
+        });
+      }
+    }
+  }
+
+  // ---- _onPowerupCollected: remove powerup from local array ---------------
+  function _onPowerupCollected(snap) {
+    if (!_active) return;
+    var powerupId = snap.key;
+    // Remove from powerups array so both players stop seeing it
+    if (typeof powerups !== 'undefined') {
+      for (var i = powerups.length - 1; i >= 0; i--) {
+        if (powerups[i].id === powerupId) {
+          console.log('[MpSync] Removing collected powerup id=' + powerupId);
+          powerups.splice(i, 1);
+          break;
+        }
+      }
+    }
   }
 
   // ---- reportPlayerDied (called from triggerGameOver) --------
@@ -9385,7 +9495,8 @@ const MpSync = (function () {
   function getIsHost() { return _isHost; }
 
   return { start, stop, sendPosition, drawOpponent, isActive, getIsHost,
-           syncForbiddenColor, reportPlayerDied, forfeit };
+           syncForbiddenColor, reportPlayerDied, forfeit,
+           publishEvent, markPowerupCollected };
 })();
 
 
