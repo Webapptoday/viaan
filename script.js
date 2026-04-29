@@ -18,11 +18,11 @@ const GAME_COLORS = [
 ];
 
 const POWERUP_DEFS = {
-  SHIELD: { label: 'Shield',    icon: '\uD83D\uDEE1', color: '#facc15', duration: 10 },
-  SLOW:   { label: 'Slow Time', icon: '',        color: '#38bdf8', duration: 6  },
-  CLEAR:  { label: 'Clear',    icon: '',         color: '#e879f9', duration: 0  },
-  BOOST:  { label: 'Score x2',  icon: '',         color: '#fb923c', duration: 8  },
-  SMALL:  { label: 'Small Mode',icon: '\uD83D\uDD35',  color: '#34d399', duration: 5  },
+  SHIELD: { label: 'Shield',    icon: 'SH', color: '#facc15', duration: 10 },
+  SLOW:   { label: 'Slow Time', icon: 'SL', color: '#38bdf8', duration: 6  },
+  CLEAR:  { label: 'Clear',     icon: 'CL', color: '#e879f9', duration: 0  },
+  BOOST:  { label: 'Score x2',  icon: 'X2', color: '#fb923c', duration: 8  },
+  SMALL:  { label: 'Small Mode',icon: 'SM', color: '#34d399', duration: 5  },
 };
 const POWERUP_KEYS = Object.keys(POWERUP_DEFS);
 const POWERUP_UPGRADE_DEFS = {
@@ -110,28 +110,40 @@ const PATTERN_LIBRARY = [
   { id:'TARGETED',    phaseWeights:[ 3, 4, 6, 8, 9] },  // Direct player pressure  starts early
 ];
 
-// Player skins â€” unlock via coin purchase + optional lifetime score gate
+// Player skins - cosmetic only
 // Rarity: common | rare | epic | legendary | mythic
 const SKIN_DEFS = [
-  // â”€â”€ STARTER / EARLY GAME â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Starter / early game
   { id: 'classic',      name: 'Classic',      coinCost:    0, lifetimeScore:       0, rarity: 'common',    effect: 'none',     color1: '#ffffff', color2: '#c084fc', glow: '#a855f7', shape: 'circle', trail: false },
   { id: 'neon',         name: 'Neon',         coinCost:   75, lifetimeScore:       0, rarity: 'common',    effect: 'pulse',    color1: '#ccfdf2', color2: '#06b6d4', glow: '#06b6d4', shape: 'circle', trail: true  },
   { id: 'lava',         name: 'Lava',         coinCost:  175, lifetimeScore:       0, rarity: 'rare',      effect: 'flicker',  color1: '#fef08a', color2: '#ef4444', glow: '#f97316', shape: 'circle', trail: true  },
-  // â”€â”€ MID GAME â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Mid game
   { id: 'aurora',       name: 'Aurora',       coinCost:  225, lifetimeScore:       0, rarity: 'rare',      effect: 'shimmer',  color1: '#d1fae5', color2: '#0ea5e9', glow: '#22d3ee', shape: 'circle', trail: true  },
   { id: 'inferno',      name: 'Inferno',      coinCost:  425, lifetimeScore:   75000, rarity: 'epic',      effect: 'inferno',  color1: '#fffbeb', color2: '#dc2626', glow: '#f97316', shape: 'circle', trail: true  },
   { id: 'gold',         name: 'Gold',         coinCost:  500, lifetimeScore:  100000, rarity: 'epic',      effect: 'shimmer',  color1: '#fefce8', color2: '#eab308', glow: '#fbbf24', shape: 'star',   trail: false },
-  // â”€â”€ HIGH-END â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // High-end
   { id: 'afterglow',    name: 'Afterglow',    coinCost:  700, lifetimeScore:  175000, rarity: 'legendary', effect: 'prism',    color1: '#fef3c7', color2: '#f472b6', glow: '#fb7185', shape: 'circle', trail: true  },
   { id: 'galaxy',       name: 'Galaxy',       coinCost:  900, lifetimeScore:  300000, rarity: 'legendary', effect: 'galaxy',   color1: '#c4b5fd', color2: '#1e1b4b', glow: '#818cf8', shape: 'star',   trail: true  },
   { id: 'eclipse',      name: 'Eclipse',      coinCost: 1200, lifetimeScore:  500000, rarity: 'legendary', effect: 'void',     color1: '#f5f3ff', color2: '#111827', glow: '#a78bfa', shape: 'star',   trail: true  },
-  // â”€â”€ ABILITY SKINS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  { id: 'coin-magnet',  name: 'Coin Magnet',  coinCost:  500, lifetimeScore:  125000, rarity: 'rare',      effect: 'pulse',    color1: '#fefce8', color2: '#eab308', glow: '#fbbf24', shape: 'circle', trail: false, isAbility: true },
-  { id: 'neon-shield',  name: 'Neon Shield',  coinCost:  800, lifetimeScore:  225000, rarity: 'epic',      effect: 'electric', color1: '#e0f2fe', color2: '#0ea5e9', glow: '#38bdf8', shape: 'circle', trail: true,  isAbility: true },
-  { id: 'frost-runner', name: 'Frost Runner', coinCost: 1000, lifetimeScore:  350000, rarity: 'epic',      effect: 'shimmer',  color1: '#f0f9ff', color2: '#7dd3fc', glow: '#93c5fd', shape: 'circle', trail: true,  isAbility: true },
-  { id: 'dash-core',    name: 'Dash Core',    coinCost: 1400, lifetimeScore:  550000, rarity: 'legendary', effect: 'electric', color1: '#eff6ff', color2: '#3b82f6', glow: '#60a5fa', shape: 'circle', trail: true,  isAbility: true },
-  { id: 'pulse-wave',   name: 'Pulse Wave',   coinCost: 1800, lifetimeScore:  800000, rarity: 'legendary', effect: 'prism',    color1: '#faf5ff', color2: '#a855f7', glow: '#c084fc', shape: 'circle', trail: true,  isAbility: true },
-  { id: 'ghost-shift',  name: 'Ghost Shift',  coinCost: 3000, lifetimeScore: 1250000, rarity: 'mythic',    effect: 'aura',     color1: '#f8fafc', color2: '#94a3b8', glow: '#cbd5e1', shape: 'star',   trail: true,  isAbility: true },
+  // Legacy ability-skin visuals retained as cosmetic skins
+  { id: 'coin-magnet',  name: 'Coin Magnet',  coinCost:  500, lifetimeScore:  125000, rarity: 'rare',      effect: 'pulse',    color1: '#fefce8', color2: '#eab308', glow: '#fbbf24', shape: 'circle', trail: false },
+  { id: 'neon-shield',  name: 'Neon Shield',  coinCost:  800, lifetimeScore:  225000, rarity: 'epic',      effect: 'electric', color1: '#e0f2fe', color2: '#0ea5e9', glow: '#38bdf8', shape: 'circle', trail: true  },
+  { id: 'frost-runner', name: 'Frost Runner', coinCost: 1000, lifetimeScore:  350000, rarity: 'epic',      effect: 'shimmer',  color1: '#f0f9ff', color2: '#7dd3fc', glow: '#93c5fd', shape: 'circle', trail: true  },
+  { id: 'dash-core',    name: 'Dash Core',    coinCost: 1400, lifetimeScore:  550000, rarity: 'legendary', effect: 'electric', color1: '#eff6ff', color2: '#3b82f6', glow: '#60a5fa', shape: 'circle', trail: true  },
+  { id: 'pulse-wave',   name: 'Pulse Wave',   coinCost: 1800, lifetimeScore:  800000, rarity: 'legendary', effect: 'prism',    color1: '#faf5ff', color2: '#a855f7', glow: '#c084fc', shape: 'circle', trail: true  },
+  { id: 'ghost-shift',  name: 'Ghost Shift',  coinCost: 3000, lifetimeScore: 1250000, rarity: 'mythic',    effect: 'aura',     color1: '#f8fafc', color2: '#94a3b8', glow: '#cbd5e1', shape: 'star',   trail: true  },
+];
+
+// Abilities - gameplay powers only
+const ABILITY_DEFS = [
+  { id: 'magnet', name: 'Coin Magnet', rarity: 'common', coinCost: 0, lifetimeScoreRequirement: 0, description: 'Pulls nearby coins toward player.', cooldownMs: 0, effectType: 'personal', icon: 'CM' },
+  { id: 'shield', name: 'Shield', rarity: 'epic', coinCost: 800, lifetimeScoreRequirement: 225000, description: 'Blocks one hit and then recharges.', cooldownMs: 45000, effectType: 'personal', icon: 'SH' },
+  { id: 'dash', name: 'Dash', rarity: 'epic', coinCost: 1400, lifetimeScoreRequirement: 550000, description: 'Short speed burst with cooldown.', cooldownMs: 20000, effectType: 'personal', icon: 'DA' },
+  { id: 'slow-field', name: 'Slow Field', rarity: 'epic', coinCost: 1000, lifetimeScoreRequirement: 350000, description: 'Slows block speed briefly.', cooldownMs: 25000, effectType: 'shared', icon: 'SL' },
+  { id: 'pulse', name: 'Pulse Wave', rarity: 'legendary', coinCost: 1800, lifetimeScoreRequirement: 800000, description: 'Pushes nearby blocks away instantly.', cooldownMs: 30000, effectType: 'shared', icon: 'PW' },
+  { id: 'clear-blast', name: 'Clear Blast', rarity: 'legendary', coinCost: 2200, lifetimeScoreRequirement: 900000, description: 'Clears nearby danger blocks instantly.', cooldownMs: 35000, effectType: 'shared', icon: 'CB' },
+  { id: 'ghost', name: 'Ghost Shift', rarity: 'mythic', coinCost: 3000, lifetimeScoreRequirement: 1250000, description: 'Pass through danger briefly.', cooldownMs: 40000, effectType: 'personal', icon: 'GH' },
+  { id: 'small-form', name: 'Small Form', rarity: 'rare', coinCost: 900, lifetimeScoreRequirement: 250000, description: 'Become smaller briefly for tighter escapes.', cooldownMs: 28000, effectType: 'personal', icon: 'SM' },
 ];
 
 // Removed skins migration map: old id -> replacement id
@@ -142,34 +154,42 @@ const _SKIN_MIGRATION = {
   'void':     'eclipse',   // Void -> Eclipse (similar dark)
   'prism':    'afterglow', // Prism -> Afterglow (similar rainbow)
 };
-// Ability metadata for defence skins. Maps skin id -> ability config.
-// passive:true = always active, no cooldown UI shown.
-// duration:-1  = permanent until triggered externally (Neon Shield).
-// duration:0   = instant effect, no effect timer (Pulse Wave).
-const SKIN_ABILITY_DEFS = {
-  'coin-magnet':  { abilityId: 'magnet', abilityName: 'Coin Magnet',  icon: '\u{1F9F2}', passive: true,  cooldown: 0,  duration: 0,   desc: 'Pulls nearby coins toward you automatically.' },
-  'neon-shield':  { abilityId: 'shield', abilityName: 'Neon Shield',  icon: '\uD83D\uDEE1', passive: false, cooldown: 45, duration: -1,  desc: 'Survive 1 collision every 45s. Shield recharges after breaking.' },
-  'frost-runner': { abilityId: 'frost',  abilityName: 'Frost Aura',   icon: '\u2744',     passive: false, cooldown: 25, duration: 3,   desc: 'Slow all blocks 35% for 3s every 25s.' },
-  'dash-core':    { abilityId: 'dash',   abilityName: 'Dash Boost',   icon: '\uD83D\uDCA8', passive: false, cooldown: 20, duration: 1,   desc: '1.75\xd7 speed burst for 1s every 20s.' },
-  'pulse-wave':   { abilityId: 'pulse',  abilityName: 'Pulse Wave',   icon: '\uD83D\uDCA5', passive: false, cooldown: 30, duration: 0,   desc: 'Blasts nearby blocks outward every 30s.' },
-  'ghost-shift':  { abilityId: 'ghost',  abilityName: 'Ghost Mode',   icon: '\uD83D\uDC7B', passive: false, cooldown: 40, duration: 1,   desc: 'Phase through danger blocks for 1s every 40s.' },
+
+const _ABILITY_FROM_OLD_SKIN = {
+  'coin-magnet': 'magnet',
+  'neon-shield': 'shield',
+  'frost-runner': 'slow-field',
+  'dash-core': 'dash',
+  'pulse-wave': 'pulse',
+  'ghost-shift': 'ghost',
+};
+// Runtime tuning per ability id.
+const ABILITY_RUNTIME_DEFS = {
+  magnet:     { abilityId: 'magnet', abilityName: 'Coin Magnet', icon: 'CM', passive: true,  cooldown: 0,  duration: 0,  desc: 'Pulls nearby coins toward you automatically.' },
+  shield:     { abilityId: 'shield', abilityName: 'Shield',      icon: 'SH', passive: false, cooldown: 45, duration: -1, desc: 'Survive 1 collision every 45s. Shield recharges after breaking.' },
+  'slow-field': { abilityId: 'frost', abilityName: 'Slow Field', icon: 'SL', passive: false, cooldown: 25, duration: 3,  desc: 'Slow all blocks 35% for 3s every 25s.' },
+  dash:       { abilityId: 'dash',   abilityName: 'Dash',        icon: 'DA', passive: false, cooldown: 20, duration: 1,  desc: '1.75x speed burst for 1s every 20s.' },
+  pulse:      { abilityId: 'pulse',  abilityName: 'Pulse Wave',  icon: 'PW', passive: false, cooldown: 30, duration: 0,  desc: 'Blasts nearby blocks outward every 30s.' },
+  'clear-blast': { abilityId: 'clear', abilityName: 'Clear Blast', icon: 'CB', passive: false, cooldown: 35, duration: 0, desc: 'Clears nearby danger blocks instantly.' },
+  ghost:      { abilityId: 'ghost',  abilityName: 'Ghost Shift', icon: 'GH', passive: false, cooldown: 40, duration: 1,  desc: 'Phase through danger blocks for 1s every 40s.' },
+  'small-form': { abilityId: 'small', abilityName: 'Small Form', icon: 'SM', passive: false, cooldown: 28, duration: 4,  desc: 'Shrink briefly for tighter movement.' },
 };
 const LIFETIME_REWARD_DEFS = [
   // -- Common ------------------------------------------------------------------
-  { id: 'lt_coins_500',   milestone:    25000, label: '100 Coins',      type: 'coins',  coins: 100,  rarity: 'common',    icon: 'ðŸª™', description: 'A starter coin bundle to kick off your journey.' },
-  { id: 'lt_coins_1500',  milestone:   100000, label: '200 Coins',      type: 'coins',  coins: 200,  rarity: 'common',    icon: 'ðŸª™', description: 'Keep playing â€” the coins stack up.' },
+  { id: 'lt_coins_500',   milestone:    25000, label: '100 Coins',      type: 'coins',  coins: 100,  rarity: 'common',    icon: 'COIN', description: 'A starter coin bundle to kick off your journey.' },
+  { id: 'lt_coins_1500',  milestone:   100000, label: '200 Coins',      type: 'coins',  coins: 200,  rarity: 'common',    icon: 'COIN', description: 'Keep playing - the coins stack up.' },
   // -- Rare --------------------------------------------------------------------
-  { id: 'lt_coins_4k',    milestone:   300000, label: '350 Coins',      type: 'coins',  coins: 350,  rarity: 'rare',      icon: 'ðŸª™', description: 'A rare coin reward for dedicated players.' },
-  { id: 'lt_badge_5k',    milestone:   500000, label: 'Trailblazer',    type: 'badge',               rarity: 'rare',      icon: 'ðŸ”¥', description: 'Awarded to those who push past the score ceiling.' },
-  { id: 'lt_coins_7500',  milestone:   750000, label: '500 Coins',      type: 'coins',  coins: 500,  rarity: 'rare',      icon: 'ðŸª™', description: 'Half a thousand coins â€” impressive.' },
+  { id: 'lt_coins_4k',    milestone:   300000, label: '350 Coins',      type: 'coins',  coins: 350,  rarity: 'rare',      icon: 'COIN', description: 'A rare coin reward for dedicated players.' },
+  { id: 'lt_badge_5k',    milestone:   500000, label: 'Trailblazer',    type: 'badge',               rarity: 'rare',      icon: 'BADGE', description: 'Awarded to those who push past the score ceiling.' },
+  { id: 'lt_coins_7500',  milestone:   750000, label: '500 Coins',      type: 'coins',  coins: 500,  rarity: 'rare',      icon: 'COIN', description: 'Half a thousand coins - impressive.' },
   // -- Epic --------------------------------------------------------------------
-  { id: 'lt_coins_15k',   milestone:  1000000, label: '750 Coins',      type: 'coins',  coins: 750,  rarity: 'epic',      icon: 'ðŸª™', description: 'An epic hoard of coins.' },
-  { id: 'lt_badge_20k',   milestone:  1500000, label: 'Veteran',        type: 'badge',               rarity: 'epic',      icon: 'âš”ï¸', description: 'A mark of true dedication and skill.' },
-  { id: 'lt_coins_35k',   milestone:  2000000, label: '1,000 Coins',    type: 'coins',  coins: 1000, rarity: 'legendary', icon: 'ðŸª™', description: 'A legendary coin vault.' },
+  { id: 'lt_coins_15k',   milestone:  1000000, label: '750 Coins',      type: 'coins',  coins: 750,  rarity: 'epic',      icon: 'COIN', description: 'An epic hoard of coins.' },
+  { id: 'lt_badge_20k',   milestone:  1500000, label: 'Veteran',        type: 'badge',               rarity: 'epic',      icon: 'BADGE', description: 'A mark of true dedication and skill.' },
+  { id: 'lt_coins_35k',   milestone:  2000000, label: '1,000 Coins',    type: 'coins',  coins: 1000, rarity: 'legendary', icon: 'COIN', description: 'A legendary coin vault.' },
   // -- Legendary ---------------------------------------------------------------
-  { id: 'lt_badge_50k',   milestone:  3000000, label: 'Legend',         type: 'badge',               rarity: 'legendary', icon: 'ðŸ‘‘', description: 'Only legends reach this summit.' },
-  { id: 'lt_coins_75k',   milestone:  4000000, label: '2,000 Coins',    type: 'coins',  coins: 2000, rarity: 'legendary', icon: 'ðŸª™', description: 'A massive coin fortune.' },
-  { id: 'lt_mythic',      milestone:  5000000, label: 'Mythic',         type: 'badge',               rarity: 'mythic',    icon: 'ðŸ’Ž', description: 'The pinnacle of ShiftPanic mastery.' },
+  { id: 'lt_badge_50k',   milestone:  3000000, label: 'Legend',         type: 'badge',               rarity: 'legendary', icon: 'BADGE', description: 'Only legends reach this summit.' },
+  { id: 'lt_coins_75k',   milestone:  4000000, label: '2,000 Coins',    type: 'coins',  coins: 2000, rarity: 'legendary', icon: 'COIN', description: 'A massive coin fortune.' },
+  { id: 'lt_mythic',      milestone:  5000000, label: 'Mythic',         type: 'badge',               rarity: 'mythic',    icon: 'BADGE', description: 'The pinnacle of ShiftPanic mastery.' },
 ];
 
 const STATE = { HOME: 'home', PLAYING: 'playing', PAUSED: 'paused', GAMEOVER: 'gameover' };
@@ -568,7 +588,7 @@ function updateMissionUI() {
           '</span>' +
         '</div>' +
         '<p class="mission-desc">' + m.description + '</p>' +
-        '<p class="mission-claimed-label">OK Claimed</p>';
+        '<p class="mission-claimed-label">Claimed</p>';
       doneList.appendChild(item);
     });
   }
@@ -599,8 +619,14 @@ let settings = {
   bestScore:      0,
   lifetimeScore:  0,
   selectedSkin:   'classic',
+  selectedAbility: 'magnet',
+  equippedSkinId: 'classic',
+  equippedAbilityId: 'magnet',
   coins:          0,
   purchasedSkins: [],
+  purchasedAbilities: [],
+  ownedSkins: [],
+  ownedAbilities: [],
   lifetimeRewards: [],
   powerupUpgrades: {},
   streakCount:    0,
@@ -609,6 +635,15 @@ let settings = {
   economyVersion: 2,  // keep in sync with ECONOMY_VERSION constant
   skinVersion:    1,  // keep in sync with SKIN_VERSION constant
 };
+
+function syncLoadoutModel() {
+  settings.equippedSkinId = settings.selectedSkin;
+  settings.equippedAbilityId = settings.selectedAbility;
+  settings.ownedSkins = ['classic'].concat(settings.purchasedSkins || [])
+    .filter((id, i, arr) => arr.indexOf(id) === i);
+  settings.ownedAbilities = ['magnet'].concat(settings.purchasedAbilities || [])
+    .filter((id, i, arr) => arr.indexOf(id) === i);
+}
 
 let score         = 0;
 let combo         = 0;
@@ -831,11 +866,11 @@ function loadSettings() {
       _migrated = true;
     }
     if (settings.skinVersion < SKIN_VERSION) {
-      // v2: removed ice/crimson/electric/void/prism â€” migrate owned skins to closest replacement
+      // v2: removed ice/crimson/electric/void/prism - migrate owned skins to closest replacement
       if (Array.isArray(s.purchasedSkins)) {
         const migrated = s.purchasedSkins.map(id => _SKIN_MIGRATION[id] || id)
           .filter((id, i, arr) => arr.indexOf(id) === i) // deduplicate
-          .filter(id => SKIN_DEFS.some(sk => sk.id === id));
+          .filter(id => SKIN_DEFS.some(sk => sk.id === id) || _ABILITY_FROM_OLD_SKIN[id]);
         s.purchasedSkins = migrated;
       }
       // Migrate selected skin if it was removed
@@ -863,6 +898,18 @@ function loadSettings() {
     if (typeof s.selectedSkin === 'string' && SKIN_DEFS.some(sk => sk.id === s.selectedSkin)) {
       settings.selectedSkin = s.selectedSkin;
     }
+    if (typeof s.equippedSkinId === 'string' && SKIN_DEFS.some(sk => sk.id === s.equippedSkinId)) {
+      settings.selectedSkin = s.equippedSkinId;
+    }
+    if (typeof s.selectedSkin === 'string' && _ABILITY_FROM_OLD_SKIN[s.selectedSkin]) {
+      settings.selectedAbility = _ABILITY_FROM_OLD_SKIN[s.selectedSkin];
+    }
+    if (typeof s.selectedAbility === 'string' && ABILITY_DEFS.some(ab => ab.id === s.selectedAbility)) {
+      settings.selectedAbility = s.selectedAbility;
+    }
+    if (typeof s.equippedAbilityId === 'string' && ABILITY_DEFS.some(ab => ab.id === s.equippedAbilityId)) {
+      settings.selectedAbility = s.equippedAbilityId;
+    }
     if (typeof s.bestScore === 'number' && s.bestScore >= 0) settings.bestScore = s.bestScore;
     if (typeof s.lifetimeScore === 'number' && s.lifetimeScore >= 0) settings.lifetimeScore = Math.floor(s.lifetimeScore);
     if (typeof s.coins === 'number' && s.coins >= 0) settings.coins = s.coins;
@@ -873,10 +920,35 @@ function loadSettings() {
     if (typeof s.streakLastDate === 'string') settings.streakLastDate = s.streakLastDate;
     if (Array.isArray(s.purchasedSkins)) {
       settings.purchasedSkins = s.purchasedSkins.filter(id => SKIN_DEFS.some(sk => sk.id === id));
+      const migratedAbilities = s.purchasedSkins
+        .map(id => _ABILITY_FROM_OLD_SKIN[id])
+        .filter(Boolean);
+      const explicitAbilities = Array.isArray(s.purchasedAbilities) ? s.purchasedAbilities : [];
+      const mergedAbilities = explicitAbilities.concat(migratedAbilities)
+        .filter((id, i, arr) => arr.indexOf(id) === i)
+        .filter(id => ABILITY_DEFS.some(ab => ab.id === id));
+      settings.purchasedAbilities = mergedAbilities;
+      if (!settings.purchasedAbilities.includes(settings.selectedAbility)) {
+        settings.selectedAbility = settings.purchasedAbilities[0] || 'magnet';
+      }
+    }
+    if (Array.isArray(s.purchasedAbilities) && !Array.isArray(s.purchasedSkins)) {
+      settings.purchasedAbilities = s.purchasedAbilities.filter(id => ABILITY_DEFS.some(ab => ab.id === id));
+    }
+    if (Array.isArray(s.ownedSkins)) {
+      settings.purchasedSkins = s.ownedSkins
+        .filter(id => id !== 'classic')
+        .filter(id => SKIN_DEFS.some(sk => sk.id === id));
+    }
+    if (Array.isArray(s.ownedAbilities)) {
+      settings.purchasedAbilities = s.ownedAbilities
+        .filter(id => id !== 'magnet')
+        .filter(id => ABILITY_DEFS.some(ab => ab.id === id));
     }
     if (Array.isArray(s.lifetimeRewards)) {
       settings.lifetimeRewards = s.lifetimeRewards.filter(id => LIFETIME_REWARD_DEFS.some(reward => reward.id === id));
     }
+    syncLoadoutModel();
     normalizePowerupUpgradeState();
     normalizeLifetimeRewardState();
     if (_migrated) saveSettings();
@@ -884,7 +956,10 @@ function loadSettings() {
 }
 
 function saveSettings() {
-  try { localStorage.setItem('forbiddenColor_settings', JSON.stringify(settings)); } catch (_) {}
+  try {
+    syncLoadoutModel();
+    localStorage.setItem('forbiddenColor_settings', JSON.stringify(settings));
+  } catch (_) {}
 }
 
 function applyColorMode() {
@@ -1122,12 +1197,12 @@ function renderLifetimeProgressUI() {
   headerEl.innerHTML =
     '<div class="lp-header-row">' +
       '<div class="lp-score-block">' +
-        '<div class="lp-score-lbl">LIFETIME SCORE</div>' +
+        '<div class="lp-score-lbl">Lifetime Score</div>' +
         '<div class="lp-score-val" id="lifetime-score-value">' + formatNumber(total) + '</div>' +
       '</div>' +
       '<div class="lp-bar-block">' +
         '<div class="lp-bar-title" id="lifetime-next-target">' + (nextReward
-          ? 'Next: ' + nextReward.label + ' at ' + formatNumber(nextReward.milestone)
+          ? 'Next Unlock: ' + nextReward.label + ' at ' + formatNumber(nextReward.milestone)
           : 'All rewards unlocked!') + '</div>' +
         '<div class="lp-bar-row">' +
           '<div class="lp-bar-track">' +
@@ -1136,16 +1211,26 @@ function renderLifetimeProgressUI() {
           '<span class="lp-bar-pct">' + pct + '%</span>' +
         '</div>' +
         '<div class="lp-bar-sub" id="lifetime-progress-detail">' + (nextReward
-          ? formatNumber(total) + ' / ' + formatNumber(nextReward.milestone)
+          ? 'Progress: ' + formatNumber(total) + ' / ' + formatNumber(nextReward.milestone)
           : 'Every milestone reward claimed') + '</div>' +
       '</div>' +
     '</div>' +
-    '<p class="lp-tagline">Earn lifetime score across all runs to unlock exclusive rewards</p>';
+    '<p class="lp-tagline">Earn lifetime score across all runs to unlock rewards.</p>';
 
   // Reward Road
   const GLOW = { common: '#94a3b8', rare: '#38bdf8', epic: '#a855f7', legendary: '#fbbf24' };
   const RLBL = { common: 'COMMON',  rare: 'RARE',    epic: 'EPIC',    legendary: 'LEGENDARY' };
   const firstUnclaimed = LIFETIME_REWARD_DEFS.find(r => !isLifetimeRewardUnlocked(r.id));
+
+  const rewardIconMarkup = (reward) => {
+    if (reward.type === 'coins') {
+      return '<span class="lp-dot-icon lp-dot-icon-coin" aria-hidden="true"></span>';
+    }
+    if (reward.type === 'skin') {
+      return '<span class="lp-dot-icon lp-dot-icon-skin" aria-hidden="true">SK</span>';
+    }
+    return '<span class="lp-dot-icon lp-dot-icon-badge" aria-hidden="true">BD</span>';
+  };
 
   road.innerHTML = LIFETIME_REWARD_DEFS.map((reward, i) => {
     const claimed   = isLifetimeRewardUnlocked(reward.id);
@@ -1174,7 +1259,7 @@ function renderLifetimeProgressUI() {
     } else if (reward.type === 'skin' && earned) {
       actionHtml = '<span class="lp-s-claimed">Unlocked</span>';
     } else {
-      actionHtml = '<span class="lp-s-locked">Need ' + formatNumber(remaining) + '</span>';
+      actionHtml = '<span class="lp-s-locked">Need ' + formatNumber(remaining) + ' Score</span>';
     }
 
     return '<div class="lp-node ' + stateClass + ' lp-r-' + reward.rarity + '"' +
@@ -1186,7 +1271,7 @@ function renderLifetimeProgressUI() {
       '<div class="lp-conn">' +
         '<div class="lp-line lp-line-before' + (isFirst ? ' lp-line-edge' : lineBefore) + '"></div>' +
         '<div class="lp-dot">' +
-          '<span class="lp-dot-icon">' + reward.icon + '</span>' +
+          rewardIconMarkup(reward) +
           (claimed ? '<div class="lp-dot-check">Done</div>' : '') +
         '</div>' +
         '<div class="lp-line lp-line-after' + (isLast ? ' lp-line-edge' : lineAfter) + '"></div>' +
@@ -1194,7 +1279,7 @@ function renderLifetimeProgressUI() {
       '<div class="lp-tile">' +
         '<div class="lp-tile-rarity">' + RLBL[reward.rarity] + '</div>' +
         '<div class="lp-tile-name">' + reward.label + '</div>' +
-        '<div class="lp-tile-score">' + formatNumber(reward.milestone) + ' pts</div>' +
+        '<div class="lp-tile-score">' + formatNumber(reward.milestone) + ' Score</div>' +
         '<div class="lp-tile-desc">' + reward.description + '</div>' +
         '<div class="lp-tile-action">' + actionHtml + '</div>' +
       '</div>' +
@@ -3356,6 +3441,24 @@ function isSkinScoreGateMet(skin) {
   return (settings.lifetimeScore || 0) >= skin.lifetimeScore;
 }
 
+function isAbilityAvailable(ability) {
+  if (!ability.coinCost) return true;
+  return settings.purchasedAbilities.includes(ability.id);
+}
+
+function isAbilityScoreGateMet(ability) {
+  if (!ability.lifetimeScoreRequirement) return true;
+  return (settings.lifetimeScore || 0) >= ability.lifetimeScoreRequirement;
+}
+
+function getAbility() {
+  const ability = ABILITY_DEFS.find(a => a.id === settings.selectedAbility);
+  if (!ability) return null;
+  if (tryMode.active) return ability;
+  if (!isAbilityAvailable(ability)) return null;
+  return ability;
+}
+
 function getSkin() {
   const skin = SKIN_DEFS.find(s => s.id === settings.selectedSkin);
   if (!skin) return SKIN_DEFS[0];
@@ -3379,11 +3482,12 @@ const SkinAbility = (() => {
   let _ghostMode   = false;  // Ghost Shift phase-through is active
   let _frostActive = false;  // Frost Aura slow is active
   let _dashActive  = false;  // Dash Boost speed multiplier is active
+  let _smallActive = false;  // Small Form is active
 
   // Call at game start (after initPlayer) to arm the skin's ability.
   function reset() {
-    const skin = getSkin();
-    _def        = SKIN_ABILITY_DEFS[skin.id] || null;
+    const ability = getAbility();
+    _def        = ability ? (ABILITY_RUNTIME_DEFS[ability.id] || null) : null;
     _cooldown   = 0;
     _effectTime = 0;
     _active     = false;
@@ -3391,6 +3495,7 @@ const SkinAbility = (() => {
     _ghostMode  = false;
     _frostActive = false;
     _dashActive  = false;
+    _smallActive = false;
     // Neon Shield arms immediately.
     if (_def && _def.abilityId === 'shield') {
       _skinShield = true;
@@ -3436,29 +3541,50 @@ const SkinAbility = (() => {
       case 'shield':
         _skinShield = true;
         _effectTime = -1;
-        addFloating(player.x, player.y - 55, '\uD83D\uDEE1 Shield Ready!', '#38bdf8', 20);
+        addFloating(player.x, player.y - 55, 'Shield Ready!', '#38bdf8', 20);
         break;
       case 'frost':
         _frostActive = true;
         _doFrostRipple();
-        addFloating(player.x, player.y - 55, '\u2744 Frost Aura!', '#93c5fd', 20);
+        if (typeof MpSync !== 'undefined' && MpSync.isActive()) {
+          MpSync.publishEvent('slow', { durationMs: 3000 });
+        }
+        addFloating(player.x, player.y - 55, 'Slow Field Active!', '#93c5fd', 20);
         break;
       case 'dash':
         _dashActive = true;
         spawnParticles(player.x, player.y, '#60a5fa', settings.reducedMotion ? 6 : 14);
-        addFloating(player.x, player.y - 55, '\uD83D\uDCA8 Dash!', '#60a5fa', 20);
+        addFloating(player.x, player.y - 55, 'Dash Active!', '#60a5fa', 20);
         break;
       case 'pulse':
         _doPulseWave();
-        addFloating(player.x, player.y - 55, '\uD83D\uDCA5 Pulse!', '#c084fc', 20);
+        if (typeof MpSync !== 'undefined' && MpSync.isActive()) {
+          MpSync.publishEvent('clear', {});
+        }
+        addFloating(player.x, player.y - 55, 'Pulse Wave!', '#c084fc', 20);
         // Instant effect: immediately reset and start cooldown.
+        _active     = false;
+        _effectTime = 0;
+        _cooldown   = _def.cooldown;
+        break;
+      case 'clear':
+        obstacles = obstacles.filter(o => o.colorIndex !== forbiddenIndex);
+        if (typeof MpSync !== 'undefined' && MpSync.isActive()) {
+          MpSync.publishEvent('clear', {});
+        }
+        addFloating(player.x, player.y - 55, 'Clear Blast!', '#f472b6', 20);
         _active     = false;
         _effectTime = 0;
         _cooldown   = _def.cooldown;
         break;
       case 'ghost':
         _ghostMode = true;
-        addFloating(player.x, player.y - 55, '\uD83D\uDC7B Ghost Mode!', '#e2e8f0', 20);
+        addFloating(player.x, player.y - 55, 'Ghost Mode!', '#e2e8f0', 20);
+        break;
+      case 'small':
+        _smallActive = true;
+        playerRadiusTarget = Math.round(player.baseRadius * 0.58);
+        addFloating(player.x, player.y - 55, 'Small Form!', '#34d399', 20);
         break;
     }
     _updateHUD();
@@ -3469,6 +3595,10 @@ const SkinAbility = (() => {
       case 'frost':  _frostActive = false; break;
       case 'dash':   _dashActive  = false; break;
       case 'ghost':  _ghostMode   = false; break;
+      case 'small':
+        _smallActive = false;
+        playerRadiusTarget = player.baseRadius;
+        break;
     }
   }
 
@@ -3635,19 +3765,11 @@ function selectSkinForPreview(skinId) {
   const actionsEl  = document.getElementById('preview-actions');
   if (nameEl)   nameEl.textContent = skin.name;
   if (rarityEl) { rarityEl.textContent = skin.rarity; rarityEl.dataset.rarity = skin.rarity; }
-  // Ability info panel
+  // Ability info panel (skins are cosmetic only now)
   const abilityInfoEl = document.getElementById('preview-ability-info');
   if (abilityInfoEl) {
-    const abilDef = SKIN_ABILITY_DEFS[skin.id];
-    if (abilDef) {
-      abilityInfoEl.hidden = false;
-      abilityInfoEl.innerHTML =
-        '<span class="preview-ability-icon">' + abilDef.icon + '</span>' +
-        '<span class="preview-ability-name">' + abilDef.abilityName + '</span>' +
-        '<span class="preview-ability-desc">' + abilDef.desc + '</span>';
-    } else {
-      abilityInfoEl.hidden = true;
-    }
+    abilityInfoEl.hidden = true;
+    abilityInfoEl.innerHTML = '';
   }
   if (!actionsEl) return;
 
@@ -3660,17 +3782,17 @@ function selectSkinForPreview(skinId) {
 
   let primaryHTML = '';
   if (selected) {
-    primaryHTML = '<button class="btn btn-secondary preview-btn-disabled" disabled>âœ“ Equipped</button>';
+    primaryHTML = '<button class="btn btn-secondary preview-btn-disabled" disabled>Equipped</button>';
   } else if (available) {
-    primaryHTML = '<button class="btn btn-primary preview-equip-btn" data-skin="' + skin.id + '">Equip</button>';
+    primaryHTML = '<button class="btn btn-primary preview-equip-btn" data-skin="' + skin.id + '">Equip Skin</button>';
   } else if (!scoreGateMet) {
     const need = skin.lifetimeScore - (settings.lifetimeScore || 0);
-    primaryHTML = '<button class="btn btn-secondary preview-btn-disabled" disabled>ðŸ”’ ' + formatNumber(skin.lifetimeScore) + ' score</button>' +
-      '<div class="preview-score-hint">' + formatNumber(need) + ' more lifetime score needed</div>';
+    primaryHTML = '<button class="btn btn-secondary preview-btn-disabled" disabled>Need ' + formatNumber(skin.lifetimeScore) + ' Score</button>' +
+      '<div class="preview-score-hint">Need ' + formatNumber(need) + ' Score</div>';
   } else if (isCoinSkin) {
     const label = canAfford
-      ? 'Buy ' + coinSpan + ' ' + skin.coinCost
-      : coinSpan + ' ' + skin.coinCost + ' &nbsp;<span class="preview-buy-video-hint">Watch ad</span>';
+      ? 'Buy Skin ' + coinSpan + ' ' + skin.coinCost
+      : 'Buy Skin ' + coinSpan + ' ' + skin.coinCost + ' &nbsp;<span class="preview-buy-video-hint">Watch ad</span>';
     primaryHTML = '<button class="btn btn-primary preview-buy-btn' + (canAfford ? '' : ' preview-buy-needcoins') + '" data-skin="' + skin.id + '">' + label + '</button>';
   }
 
@@ -3681,6 +3803,7 @@ function selectSkinForPreview(skinId) {
   if (equipBtn) {
     equipBtn.addEventListener('click', () => {
       settings.selectedSkin = skin.id;
+      settings.equippedSkinId = skin.id;
       saveSettings();
       updateSkinsUI();
       renderLifetimeProgressUI();
@@ -3704,11 +3827,23 @@ function selectSkinForPreview(skinId) {
 }
 
 function updateSkinsUI() {
-  // Render both skins grid and ability skins grid
-  _renderSkinGrid(document.getElementById('skin-stage'),       SKIN_DEFS.filter(s => !s.isAbility));
-  _renderSkinGrid(document.getElementById('skin-stage-ability'), SKIN_DEFS.filter(s =>  s.isAbility));
+  // Render skin and ability systems separately
+  _renderSkinGrid(document.getElementById('skin-stage'), SKIN_DEFS);
+  _renderAbilityGrid(document.getElementById('skin-stage-ability'), ABILITY_DEFS);
   _renderNextUnlock();
   selectSkinForPreview(_shopPreviewSkinId || settings.selectedSkin);
+  selectAbilityForPreview(settings.selectedAbility || (ABILITY_DEFS[0] && ABILITY_DEFS[0].id));
+  updateShopLoadoutSummary();
+}
+
+function updateShopLoadoutSummary() {
+  const skinEl = document.getElementById('shop-loadout-skin');
+  const abilityEl = document.getElementById('shop-loadout-ability');
+  if (!skinEl && !abilityEl) return;
+  const skin = SKIN_DEFS.find(s => s.id === settings.selectedSkin);
+  const ability = ABILITY_DEFS.find(a => a.id === settings.selectedAbility);
+  if (skinEl) skinEl.textContent = skin ? skin.name : 'Classic';
+  if (abilityEl) abilityEl.textContent = ability ? ability.name : 'Coin Magnet';
 }
 
 function _renderNextUnlock() {
@@ -3776,23 +3911,33 @@ function _renderSkinGrid(grid, skins) {
     const coinPct       = skin.coinCost      ? Math.min(100, Math.round((coins / skin.coinCost) * 100)) : 100;
 
     let bottomHTML = '';
+    let actionHTML = '';
     if (selected) {
-      bottomHTML = '<span class="skin-grid-status skin-grid-equipped">âœ“ Equipped</span>';
+      bottomHTML = '<span class="skin-grid-status skin-grid-equipped">Equipped</span>';
+      actionHTML = '<button class="btn btn-secondary skin-card-action" data-action="equipped" disabled>Equipped</button>';
     } else if (available) {
       bottomHTML = '<span class="skin-grid-status skin-grid-owned">Owned</span>';
+      actionHTML = '<button class="btn btn-primary skin-card-action" data-action="equip" data-skin="' + skin.id + '">Equip Skin</button>';
     } else {
       // Show score progress bar if score-gated and not met
       const scoreBarHTML = (skin.lifetimeScore && !scoreGateMet)
         ? '<div class="skin-prog-row">' +
-            '<span class="skin-prog-lbl">Score</span>' +
+            '<span class="skin-prog-lbl">Required Score</span>' +
             '<div class="skin-bar-track"><div class="skin-bar-fill" style="width:' + scorePct + '%"></div></div>' +
             '<span class="skin-prog-val">' + formatNumber(lifetimeScore) + '</span>' +
           '</div>'
         : '';
       const coinHTML = skin.coinCost
-        ? '<div class="skin-cost-row' + (canAfford ? ' can-afford' : '') + '">' + coinSpan + ' ' + skin.coinCost + '</div>'
+        ? '<div class="skin-cost-row' + (canAfford ? ' can-afford' : '') + '">Coins: ' + skin.coinCost + '</div>'
         : '';
       bottomHTML = scoreBarHTML + coinHTML;
+      if (!scoreGateMet) {
+        actionHTML = '<button class="btn btn-secondary skin-card-action" data-action="locked" disabled>Locked</button>';
+      } else if (canAfford) {
+        actionHTML = '<button class="btn btn-primary skin-card-action" data-action="buy" data-skin="' + skin.id + '">Buy Skin</button>';
+      } else {
+        actionHTML = '<button class="btn btn-secondary skin-card-action" data-action="locked" disabled>Locked</button>';
+      }
     }
 
     const cardClasses = [
@@ -3802,20 +3947,15 @@ function _renderSkinGrid(grid, skins) {
       (!available && skin.coinCost && scoreGateMet && canAfford) ? 'skin-affordable' : '',
     ].filter(Boolean).join(' ');
 
-    const abilDef = SKIN_ABILITY_DEFS[skin.id];
-    const abilTag = abilDef
-      ? '<span class="skin-ability-tag">' + abilDef.icon + '</span>'
-      : '';
-
     return '<div class="' + cardClasses + '" data-skin="' + skin.id + '" data-rarity="' + skin.rarity + '" role="listitem" tabindex="0">' +
       '<canvas class="skin-preview skin-canvas-mini" width="80" height="80" data-skin="' + skin.id + '" aria-hidden="true"></canvas>' +
       '<div class="skin-card-meta">' +
         '<span class="skin-rarity" data-rarity="' + skin.rarity + '">' + skin.rarity + '</span>' +
         '<span class="skin-name">' + skin.name + '</span>' +
-        abilTag +
       '</div>' +
       bottomHTML +
-      (locked ? '<span class="skin-lock-overlay" aria-hidden="true">ðŸ”’</span>' : '') +
+      '<div class="skin-card-actions">' + actionHTML + '</div>' +
+      (locked ? '<span class="skin-lock-overlay" aria-hidden="true"><span class="lock-mini-icon"></span></span>' : '') +
     '</div>';
   }).join('');
 
@@ -3827,9 +3967,16 @@ function _renderSkinGrid(grid, skins) {
       const skinId = card.dataset.skin;
       const skin = SKIN_DEFS.find(s => s.id === skinId);
       if (!skin) return;
+      const actionBtn = e.target.closest('.skin-card-action');
       selectSkinForPreview(skinId);
-      if (isSkinAvailable(skin) && settings.selectedSkin !== skinId) {
+      if (actionBtn && actionBtn.dataset.action === 'buy') {
+        showBuyConfirm(skinId);
+        Audio.uiClick();
+        return;
+      }
+      if ((actionBtn && actionBtn.dataset.action === 'equip') || (isSkinAvailable(skin) && settings.selectedSkin !== skinId)) {
         settings.selectedSkin = skinId;
+        settings.equippedSkinId = skinId;
         saveSettings();
         grid._lastSkinHash = null;
         updateSkinsUI();
@@ -3843,6 +3990,172 @@ function _renderSkinGrid(grid, skins) {
   }
 
   selectSkinForPreview(_shopPreviewSkinId || settings.selectedSkin);
+}
+
+function selectAbilityForPreview(abilityId) {
+  const ability = ABILITY_DEFS.find(a => a.id === abilityId) || ABILITY_DEFS[0];
+  if (!ability) return;
+  const nameEl = document.getElementById('preview-skin-name-ab');
+  const rarityEl = document.getElementById('preview-skin-rarity-ab');
+  const actionsEl = document.getElementById('preview-actions-ab');
+  const infoEl = document.getElementById('preview-ability-info-ab');
+  if (nameEl) nameEl.textContent = ability.name;
+  if (rarityEl) { rarityEl.textContent = ability.rarity; rarityEl.dataset.rarity = ability.rarity; }
+  if (infoEl) {
+    infoEl.hidden = false;
+    infoEl.innerHTML =
+      '<span class="preview-ability-icon">' + (ability.icon || 'AB') + '</span>' +
+      '<span class="preview-ability-name">' + ability.name + '</span>' +
+      '<span class="preview-ability-desc">' + ability.description + '</span>';
+  }
+  if (!actionsEl) return;
+
+  const owned = isAbilityAvailable(ability);
+  const selected = settings.selectedAbility === ability.id && owned;
+  const scoreGateMet = isAbilityScoreGateMet(ability);
+  const canAfford = (settings.coins || 0) >= (ability.coinCost || 0);
+  const coinSpan = '<span class="coin-icon coin-sm" aria-hidden="true"></span>';
+
+  let primaryHTML = '';
+  if (selected) {
+    primaryHTML = '<button class="btn btn-secondary preview-btn-disabled" disabled>Equipped</button>';
+  } else if (owned) {
+    primaryHTML = '<button class="btn btn-primary preview-equip-ability-btn" data-ability="' + ability.id + '">Equip Ability</button>';
+  } else if (!scoreGateMet) {
+    const need = Math.max(0, (ability.lifetimeScoreRequirement || 0) - (settings.lifetimeScore || 0));
+    primaryHTML = '<button class="btn btn-secondary preview-btn-disabled" disabled>Need ' + formatNumber(ability.lifetimeScoreRequirement || 0) + ' Score</button>' +
+      '<div class="preview-score-hint">Need ' + formatNumber(need) + ' Score</div>';
+  } else {
+    primaryHTML = '<button class="btn btn-primary preview-buy-ability-btn' + (canAfford ? '' : ' preview-buy-needcoins') + '" data-ability="' + ability.id + '">Buy Ability ' + coinSpan + ' ' + (ability.coinCost || 0) + '</button>';
+  }
+  actionsEl.innerHTML = primaryHTML;
+
+  const equipBtn = actionsEl.querySelector('.preview-equip-ability-btn');
+  if (equipBtn) {
+    equipBtn.addEventListener('click', () => {
+      settings.selectedAbility = ability.id;
+      settings.equippedAbilityId = ability.id;
+      saveSettings();
+      updateSkinsUI();
+      Audio.uiClick();
+    });
+  }
+  const buyBtn = actionsEl.querySelector('.preview-buy-ability-btn');
+  if (buyBtn) {
+    buyBtn.addEventListener('click', () => {
+      if ((settings.coins || 0) < (ability.coinCost || 0)) {
+        showToast('Not enough coins for ' + ability.name + '.', 2200);
+        return;
+      }
+      settings.coins -= (ability.coinCost || 0);
+      settings.purchasedAbilities = (settings.purchasedAbilities || []).concat([ability.id])
+        .filter((id, i, arr) => arr.indexOf(id) === i);
+      settings.selectedAbility = ability.id;
+      settings.equippedAbilityId = ability.id;
+      saveSettings();
+      updateCoinUI();
+      updateSkinsUI();
+      Audio.uiClick();
+    });
+  }
+}
+
+function _renderAbilityGrid(grid, abilities) {
+  if (!grid) return;
+  const coinSpan = '<span class="coin-icon coin-sm" aria-hidden="true"></span>';
+  const lifetimeScore = settings.lifetimeScore || 0;
+  const coins = settings.coins || 0;
+
+  grid.innerHTML = abilities.map(ability => {
+    const owned = isAbilityAvailable(ability);
+    const selected = owned && settings.selectedAbility === ability.id;
+    const scoreGateMet = isAbilityScoreGateMet(ability);
+    const canAfford = coins >= (ability.coinCost || 0);
+    const scoreReq = ability.lifetimeScoreRequirement || 0;
+    const scorePct = scoreReq ? Math.min(100, Math.round((lifetimeScore / scoreReq) * 100)) : 100;
+
+    let bottomHTML = '';
+    let actionHTML = '';
+    if (selected) {
+      bottomHTML = '<span class="skin-grid-status skin-grid-equipped">Equipped</span>';
+      actionHTML = '<button class="btn btn-secondary skin-card-action" data-action="equipped" disabled>Equipped</button>';
+    } else if (owned) {
+      bottomHTML = '<span class="skin-grid-status skin-grid-owned">Owned</span>';
+      actionHTML = '<button class="btn btn-primary skin-card-action" data-action="equip" data-ability="' + ability.id + '">Equip Ability</button>';
+    } else {
+      const scoreBarHTML = (scoreReq && !scoreGateMet)
+        ? '<div class="skin-prog-row"><span class="skin-prog-lbl">Required Score</span><div class="skin-bar-track"><div class="skin-bar-fill" style="width:' + scorePct + '%"></div></div><span class="skin-prog-val">' + formatNumber(lifetimeScore) + '</span></div>'
+        : '';
+      const coinHTML = '<div class="skin-cost-row' + (canAfford ? ' can-afford' : '') + '">Coins: ' + (ability.coinCost || 0) + '</div>';
+      bottomHTML = scoreBarHTML + coinHTML;
+      if (!scoreGateMet) {
+        actionHTML = '<button class="btn btn-secondary skin-card-action" data-action="locked" disabled>Locked</button>';
+      } else if (canAfford) {
+        actionHTML = '<button class="btn btn-primary skin-card-action" data-action="buy" data-ability="' + ability.id + '">Buy Ability</button>';
+      } else {
+        actionHTML = '<button class="btn btn-secondary skin-card-action" data-action="locked" disabled>Locked</button>';
+      }
+    }
+
+    const cardClasses = [
+      'skin-btn',
+      !owned ? 'skin-locked' : '',
+      selected ? 'skin-selected' : '',
+      (!owned && scoreGateMet && canAfford) ? 'skin-affordable' : '',
+    ].filter(Boolean).join(' ');
+
+    return '<div class="' + cardClasses + '" data-ability="' + ability.id + '" data-rarity="' + ability.rarity + '" role="listitem" tabindex="0">' +
+      '<div class="skin-preview" aria-hidden="true" style="display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;">' + (ability.icon || 'AB') + '</div>' +
+      '<div class="skin-card-meta">' +
+        '<span class="skin-rarity" data-rarity="' + ability.rarity + '">' + ability.rarity + '</span>' +
+        '<span class="skin-name">' + ability.name + '</span>' +
+      '</div>' +
+      '<div class="preview-ability-desc" style="margin:6px 0 4px;">' + ability.description + '</div>' +
+      '<div class="skin-grid-status" style="margin-bottom:6px;">Cooldown: ' + (ability.cooldownMs ? Math.round(ability.cooldownMs / 1000) + 's' : 'Passive') + '</div>' +
+      bottomHTML +
+      '<div class="skin-card-actions">' + actionHTML + '</div>' +
+      (!owned ? '<span class="skin-lock-overlay" aria-hidden="true"><span class="lock-mini-icon"></span></span>' : '') +
+    '</div>';
+  }).join('');
+
+  if (!grid._abilityDelegated) {
+    grid._abilityDelegated = true;
+    grid.addEventListener('click', e => {
+      const card = e.target.closest('.skin-btn');
+      if (!card) return;
+      const abilityId = card.dataset.ability;
+      const ability = ABILITY_DEFS.find(a => a.id === abilityId);
+      if (!ability) return;
+      const actionBtn = e.target.closest('.skin-card-action');
+      selectAbilityForPreview(abilityId);
+      if (actionBtn && actionBtn.dataset.action === 'buy') {
+        if ((settings.coins || 0) < (ability.coinCost || 0)) {
+          showToast('Not enough coins for ' + ability.name + '.', 2200);
+        } else {
+          settings.coins -= (ability.coinCost || 0);
+          settings.purchasedAbilities = (settings.purchasedAbilities || []).concat([ability.id])
+            .filter((id, i, arr) => arr.indexOf(id) === i);
+          settings.selectedAbility = ability.id;
+          settings.equippedAbilityId = ability.id;
+          saveSettings();
+          updateCoinUI();
+          updateSkinsUI();
+        }
+        Audio.uiClick();
+        return;
+      }
+      if ((actionBtn && actionBtn.dataset.action === 'equip') || (isAbilityAvailable(ability) && settings.selectedAbility !== abilityId)) {
+        settings.selectedAbility = abilityId;
+        settings.equippedAbilityId = abilityId;
+        saveSettings();
+        updateSkinsUI();
+      }
+      Audio.uiClick();
+    });
+    grid.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.target.closest('.skin-btn')?.click(); }
+    });
+  }
 }
 
 // -- Try Mode ----------------------------------------------
@@ -3956,12 +4269,14 @@ function confirmBuySkin() {
   if (!skin || !skin.coinCost) return;
   if (settings.purchasedSkins.includes(skinId)) {
     settings.selectedSkin = skinId;
+    settings.equippedSkinId = skinId;
     saveSettings(); updateSkinsUI(); Audio.uiClick(); return;
   }
   if (settings.coins < skin.coinCost) return;
   settings.coins -= skin.coinCost;
   settings.purchasedSkins = settings.purchasedSkins.concat([skinId]);
   settings.selectedSkin   = skinId;
+  settings.equippedSkinId = skinId;
   saveSettings();
   updateCoinUI();
   updateSkinsUI();
@@ -4109,7 +4424,7 @@ const _RewardedAd = (() => {
     clearInterval(_fbTimer);
     const d = _D();
     _setProgress(100, 0);
-    d.statusTxt.textContent  = 'OK Video complete - claim your reward!';
+    d.statusTxt.textContent  = 'Video complete - claim your reward.';
     d.compOvl.hidden         = false;
     d.closeBtn.disabled      = false;
     _setState('completed');
@@ -4272,7 +4587,7 @@ function _showCoinRewardToast(amount) {
 function _showCancelToast() {
   const toast = document.getElementById('coin-reward-toast');
   if (!toast) return;
-  toast.innerHTML = '\ufe0f Reward cancelled &mdash; finish the video to earn coins';
+  toast.innerHTML = 'Reward cancelled - finish the video to earn coins';
   toast.className = 'coin-reward-toast crt-cancelled';
   toast.hidden = false;
   void toast.offsetWidth;
@@ -6083,7 +6398,7 @@ function updateMiniGoalHUD() {
   if (labelEl) labelEl.textContent = runMiniGoal.label;
   const pct = Math.min(1, runMiniGoal.progress / runMiniGoal.goal);
   if (fillEl)  fillEl.style.width  = (pct * 100).toFixed(1) + '%';
-  if (pctEl)   pctEl.textContent   = runMiniGoal.done ? '\u2713' : Math.round(pct * 100) + '%';
+  if (pctEl)   pctEl.textContent   = runMiniGoal.done ? 'DONE' : Math.round(pct * 100) + '%';
   bar.classList.toggle('run-goal-done', !!runMiniGoal.done);
 }
 
@@ -6595,7 +6910,7 @@ function checkCollisions() {
       applyFlowDelta(-FLOW_CONFIG.shieldHitPenalty, 'shield-hit');
       obstacles.splice(i, 1);
       spawnParticles(ob.x + ob.w / 2, ob.y + ob.h / 2, '#38bdf8', settings.reducedMotion ? 8 : 18);
-      addFloating(player.x, player.y - 55, '\uD83D\uDEE1 Shield Broke!', '#38bdf8');
+      addFloating(player.x, player.y - 55, 'Shield Broke!', '#38bdf8');
       triggerShake(6, 0.22);
       if (navigator.vibrate) navigator.vibrate(50);
       Announce.say('Skin shield absorbed a hit.');
@@ -9382,7 +9697,7 @@ const MpSync = (function () {
       titleText = forfeited ? 'You Left' : 'You Lost';
     }
 
-    var icon  = isWinner ? '\uD83C\uDFC6' : '\uD83D\uDC80';
+    var icon  = isWinner ? 'WIN' : 'LOSE';
     var color = isWinner ? '#fbbf24'      : '#f87171';
 
     el.innerHTML =
@@ -9448,7 +9763,7 @@ const MpSync = (function () {
       ctx.fillStyle    = 'rgba(255,255,255,' + t + ')';
       ctx.shadowBlur   = 8;
       ctx.shadowColor  = 'rgba(0,0,0,0.8)';
-      ctx.fillText('\uD83D\uDCA5', x, y);
+      ctx.fillText('X', x, y);
       ctx.restore();
       return;
     }
@@ -9594,8 +9909,9 @@ function init() {
     const keep = {
       bestScore: settings.bestScore, lifetimeScore: settings.lifetimeScore,
       coins: settings.coins, purchasedSkins: settings.purchasedSkins,
+      purchasedAbilities: settings.purchasedAbilities,
       lifetimeRewards: settings.lifetimeRewards, powerupUpgrades: settings.powerupUpgrades,
-      selectedSkin: settings.selectedSkin, streakCount: settings.streakCount,
+      selectedSkin: settings.selectedSkin, selectedAbility: settings.selectedAbility, streakCount: settings.streakCount,
       streakLastDate: settings.streakLastDate, economyVersion: settings.economyVersion,
       skinVersion: settings.skinVersion,
     };
@@ -9619,13 +9935,13 @@ function init() {
     hideModal('modal-progress'); document.getElementById('btn-progress').focus();
   });
 
-  // â”€â”€ Wire Multiplayer button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Wire multiplayer button
   const _btnMp = document.getElementById('btn-multiplayer');
   if (_btnMp) _btnMp.addEventListener('click', () => { Audio.uiClick(); Multiplayer.open(); });
   Multiplayer.bindEvents();
 
 // ============================================================
-// MULTIPLAYER â€” Room Create / Join / Lobby
+// MULTIPLAYER - Room Create / Join / Lobby
 // Uses Firebase Realtime Database (window._fbRtdb)
 // Multiplayer bindEvents is called from inside init() above.
   document.getElementById('btn-resume').addEventListener('click', () => { Audio.uiClick(); resumeGame(); });
@@ -9891,10 +10207,10 @@ const LeaderboardService = (() => {
   async function _fbSubmit(score, name) {
     await (window._fbReady || Promise.resolve(false));
     const db = window._fbDb;
-    if (!db) { console.warn('[ShiftPanic] Firebase not available â€” score not saved.'); return; }
+    if (!db) { console.warn('[ShiftPanic] Firebase not available - score not saved.'); return; }
 
     const pid = window._fbPlayerId;
-    if (!pid) { console.warn('[ShiftPanic] No playerId â€” score not submitted.'); return; }
+    if (!pid) { console.warn('[ShiftPanic] No playerId - score not submitted.'); return; }
 
     const intScore = Math.floor(score);
     if (intScore <= 0) return;
@@ -9968,7 +10284,7 @@ const LeaderboardService = (() => {
 
       const db = window._fbDb;
       if (!db) {
-        console.warn('[ShiftPanic] Firebase unavailable â€” showing client-side fake players only.');
+        console.warn('[ShiftPanic] Firebase unavailable - showing client-side fake players only.');
         return; // Keep showing fake players
       }
 
@@ -10388,7 +10704,7 @@ const LeaderboardUI = (() => {
     const btnClose = document.getElementById('btn-lb-close');
     if (btnClose) btnClose.addEventListener('click', close);
 
-    // Backdrop close â€” ignore events that are scroll-end touches
+    // Backdrop close - ignore events that are scroll-end touches
     const modal = document.getElementById('modal-leaderboard');
     if (modal) {
       let _lbScrolled = false;

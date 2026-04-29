@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head><title>Reset Leaderboard Scores</title>
+<style>
+  body { font-family: monospace; background: #0a0418; color: #e2e8f0; padding: 24px; }
+  button { padding: 14px 28px; background: #7c3aed; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; }
+  button:hover { background: #6d28d9; }
+  #log { margin-top: 20px; white-space: pre-wrap; line-height: 1.6; }
+  .ok { color: #4ade80; } .err { color: #f87171; } .info { color: #93c5fd; }
+</style>
+</head>
+<body>
+<h2>Reset All Real Player Scores</h2>
+<p>This will delete every real player score from all leaderboard collections.</p>
+<button onclick="runReset()">Delete All Real Scores</button>
+<div id="log"></div>
+
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script>
+firebase.initializeApp({
+  apiKey:            "AIzaSyCNGoXm2VaRILMjQtorMaIcUMDlGQpVZ9w",
+  authDomain:        "shiftpanic-1ee68.firebaseapp.com",
+  projectId:         "shiftpanic-1ee68",
+  storageBucket:     "shiftpanic-1ee68.firebasestorage.app",
+  messagingSenderId: "790226285352",
+  appId:             "1:790226285352:web:0773b3ff7678a4959fd61d",
+});
+const db = firebase.firestore();
+
+function log(msg, cls) {
+  const div = document.getElementById('log');
+  div.innerHTML += '<span class="' + (cls||'info') + '">' + msg + '\n</span>';
+}
+
+function getWeekId() {
+  const d = new Date();
+  const thu = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + 3 - ((d.getUTCDay() + 6) % 7)));
+  const ys = new Date(Date.UTC(thu.getUTCFullYear(), 0, 4));
+  const wk = 1 + Math.round(((thu - ys) / 86400000 - 3 + (ys.getUTCDay() + 6) % 7) / 7);
+  return thu.getUTCFullYear() + '-W' + String(wk).padStart(2, '0');
+}
+function getDayId() {
+  const d = new Date();
+  return d.getUTCFullYear() + '-' + String(d.getUTCMonth()+1).padStart(2,'0') + '-' + String(d.getUTCDate()).padStart(2,'0');
+}
+
+async function deleteCollection(path) {
+  log('Checking: ' + path);
+  const snap = await db.collection(path).get();
+  if (snap.empty) { log('  (empty, nothing to delete)', 'ok'); return 0; }
+  const batch = db.batch();
+  snap.docs.forEach(doc => batch.delete(doc.ref));
+  await batch.commit();
+  log('  Deleted ' + snap.docs.length + ' docs', 'ok');
+  return snap.docs.length;
+}
+
+async function runReset() {
+  document.querySelector('button').disabled = true;
+  log('Starting reset...\n', 'info');
+  try {
+    const weekId = getWeekId(), dayId = getDayId();
+    log('Week: ' + weekId + '  Day: ' + dayId);
+    let total = 0;
+    total += await deleteCollection('leaderboards/global/scores');
+    total += await deleteCollection('leaderboards/weekly_' + weekId + '/scores');
+    total += await deleteCollection('leaderboards/daily_' + dayId + '/scores');
+    // Also clean up old-format paths just in case
+    total += await deleteCollection('leaderboards/weekly/' + weekId + '/scores');
+    total += await deleteCollection('leaderboards/daily/' + dayId + '/scores');
+    log('\nDone! ' + total + ' total documents deleted.', 'ok');
+    log('You can close this tab now.', 'ok');
+  } catch (err) {
+    log('Error: ' + err.message, 'err');
+    document.querySelector('button').disabled = false;
+  }
+}
+</script>
+</body>
+</html>
