@@ -7505,19 +7505,43 @@ function pickDeathMessage(score, combo, colorChanges) {
   return msgs[Math.floor(Math.random() * msgs.length)];
 }
 
-function triggerGameOver() {
+function triggerGameOver(mpEndReason) {
   if (tryMode.active) { endTrySkin(); return; }
-  // MP: report this player's death with final stats before stopping sync
+
+  var isMpWin = (mpEndReason === 'mp_win');
+
   if (typeof MpSync !== 'undefined' && MpSync.isActive()) {
-    var _mpElapsed = Math.max(0, Math.floor((performance.now() - gameStartTime - (pausedDuration || 0)) / 1000));
-    MpSync.reportPlayerDied(_mpElapsed, Math.floor(score), roundCoins);
-    MpSync.stop();
+    if (!isMpWin) {
+      // I died — write death stats; MpSync keeps resultRef alive for 6s
+      var _mpElapsed = Math.max(0, Math.floor((performance.now() - gameStartTime - (pausedDuration || 0)) / 1000));
+      MpSync.reportPlayerDied(_mpElapsed, Math.floor(score), roundCoins);
+      // NOTE: do NOT call MpSync.stop() here — reportPlayerDied delays it
+    } else {
+      // I won — opponent already dead. Stop MpSync after banner is shown.
+      setTimeout(function() {
+        if (typeof MpSync !== 'undefined' && MpSync.isActive()) MpSync.stop();
+      }, 7500);
+    }
   }
+
   currentState = STATE.GAMEOVER;
   cancelAnimationFrame(rafHandle); rafHandle = null;
   _dbg.loops = 0;
   clearAllInputs();
   AudioManager.stopMusic();
+
+  if (isMpWin) {
+    // ---- Winner path: no death sound/screen, just auto-return after banner ----
+    console.log('[Game] MP round ended — I won!');
+    if (navigator.vibrate) navigator.vibrate([50, 30, 100]);
+    // Auto-return to home after the result banner auto-hides (7s)
+    setTimeout(function() {
+      if (currentState === STATE.GAMEOVER) returnHome();
+    }, 8500);
+    return; // skip normal death overlay entirely
+  }
+
+  // ---- Loser / single-player death path ----
   AudioManager.playSound('death');
   if (navigator.vibrate) navigator.vibrate([100, 50, 200]);
 
@@ -8805,114 +8829,127 @@ const Multiplayer = (function () {
 
 // ============================================================
 // SECTION: MULTIPLAYER LIVE SYNC (MpSync)
-// Handles: opponent position lerp, forbidden color sync, auto-win,
-//          match result reporting, disconnect detection, rewards.
+// Handles: opponent position lerp, forbidden color sync, round-over
+//          detection, match result, death animation, rewards.
 // Single-player NEVER calls start() so all code here is MP-only.
 // ============================================================
 const MpSync = (function () {
 
-  // -- State --------------------------------------------------
-  var _active        = false;
-  var _roomCode      = null;
-  var _myId          = null;
-  var _opponentId    = null;
-  var _isHost        = false;
+  // ---- State ------------------------------------------------
+  var _active     = false;
+  var _roomCode   = null;
+  var _myId       = null;
+  var _opponentId = null;
+  var _isHost     = false;
 
   // Firebase refs
-  var _opponentRef   = null;
-  var _myPlayerRef   = null;
-  var _forbiddenRef  = null;   // guest reads host-written color changes
-  var _resultRef     = null;   // both read match result
+  var _opponentRef  = null;
+  var _myPlayerRef  = null;
+  var _forbiddenRef = null;
+  var _resultRef    = null;
 
-  // Send throttle: 5/sec, skip if not moved meaningfully
-  var _lastSendTime  = 0;
-  var SEND_INTERVAL  = 200; // ms = 5fps max
-  var MIN_MOVE       = 2;   // px — skip write if not moved enough
-  var _lastSentX     = -9999;
-  var _lastSentY     = -9999;
+  // Position send: 10fps throttle + 2.5s heartbeat so stationary
+  // players keep their position visible on the opponent's screen.
+  var SEND_INTERVAL    = 100;  // ms = 10fps max
+  var HEARTBEAT_MS     = 2500; // force-send even if not moved
+  var _lastSendTime    = 0;
+  var _lastHeartbeat   = 0;
+  var _lastSentX       = -9999;
+  var _lastSentY       = -9999;
 
-  // Opponent interpolation (lerp target vs rendered position)
-  var _targetX       = 0;
-  var _targetY       = 0;
-  var _visualX       = 0;
-  var _visualY       = 0;
-  var LERP           = 0.25;   // fraction of gap closed each frame (~60fps)
+  // Opponent rendering (lerp smoothing)
+  var LERP             = 0.18; // fraction closed per frame at 60fps
+  var _targetX         = 0;
+  var _targetY         = 0;
+  var _visualX         = 0;
+  var _visualY         = 0;
 
-  // Opponent metadata
-  var _opponent      = null;   // { alive, name, score, survivalTime, forfeited }
+  // Opponent live state
+  var _opponent        = null; // { alive, name, score, survivalTime, forfeited }
   var _opponentLastSeen = 0;
-  // No staleInterval — we rely on Firebase onDisconnect instead
+  var _opponentWasAlive = true;     // track alive→dead transition
+  var _opponentDeathShown = false;  // death anim triggered once
+  var _opponentDeathAge   = 0;      // seconds since opponent died (for fade-out)
 
-  // Match result
-  var _myFinalStats  = null;   // set when I die; { survivalTime, score, coins }
-  var _rewarded      = false;  // prevent double rewards
+  // Match state
+  var _matchEndCalled = false; // prevent double triggerGameOver('mp_win')
+  var _myFinalStats   = null;  // { survivalTime, score, coins }
+  var _rewarded       = false; // prevent double coin award
+  var _stopTimer      = null;  // delayed stop after death (keeps resultRef alive)
 
-  // Debug render throttle
   var _renderLogTimer = 0;
 
-  // -- Start --------------------------------------------------
+  // ---- start ------------------------------------------------
   function start(roomCode, myId, opponentId, opponentName, isHost) {
-    stop(); // always clean first
+    stop(); // clean any prior match
     _active      = true;
     _roomCode    = roomCode;
     _myId        = myId;
     _opponentId  = opponentId;
     _isHost      = !!isHost;
     _opponent    = { alive: true, name: opponentName || 'Opponent',
-                     score: 0, survivalTime: 0, disconnected: false };
-    _targetX     = (typeof canvas !== 'undefined' ? canvas.width  / 2 : 200);
-    _targetY     = (typeof canvas !== 'undefined' ? canvas.height / 2 : 300);
-    _visualX     = _targetX;
-    _visualY     = _targetY;
-    _opponentLastSeen    = Date.now();
-    _lastSendTime        = 0;
-    _lastSentX           = -9999;
-    _lastSentY           = -9999;
-    _myFinalStats        = null;
-    _rewarded            = false;
+                     score: 0, survivalTime: 0, forfeited: false };
+    _opponentWasAlive   = true;
+    _opponentDeathShown = false;
+    _opponentDeathAge   = 0;
+    _matchEndCalled     = false;
+    _myFinalStats       = null;
+    _rewarded           = false;
+
+    _targetX = (typeof canvas !== 'undefined' ? canvas.width  / 2 : 200);
+    _targetY = (typeof canvas !== 'undefined' ? canvas.height / 2 : 300);
+    _visualX = _targetX;
+    _visualY = _targetY;
+
+    _opponentLastSeen = Date.now();
+    _lastSendTime     = 0;
+    _lastHeartbeat    = 0;
+    _lastSentX        = -9999;
+    _lastSentY        = -9999;
 
     var rtdb = window._fbRtdb;
-    if (!rtdb) { console.error('[MpSync] No RTDB available'); _active = false; return; }
+    if (!rtdb) { console.error('[MpSync] No RTDB'); _active = false; return; }
 
-    // onDisconnect: immediately marks us as forfeited if tab closes mid-match
+    // onDisconnect: tab-close → instant forfeit for opponent
     _myPlayerRef = rtdb.ref('rooms/' + roomCode + '/players/' + myId);
-    _myPlayerRef.onDisconnect().update({ alive: false, forfeited: true, disconnected: true, updatedAt: Date.now() });
-    // Also write result/status so opponent wins
+    _myPlayerRef.onDisconnect().update({
+      alive: false, forfeited: true, disconnected: true, updatedAt: Date.now()
+    });
     rtdb.ref('rooms/' + roomCode + '/result').onDisconnect().set({
       winnerId: opponentId, loserId: myId, reason: 'forfeit', decidedAt: Date.now()
     });
     rtdb.ref('rooms/' + roomCode + '/status').onDisconnect().set('finished');
 
-    // Listen to opponent's player node (position + alive status)
+    // Listen to opponent position + alive state
     _opponentRef = rtdb.ref('rooms/' + roomCode + '/players/' + opponentId);
-    _opponentRef.on('value', _onOpponentUpdate, function(err) {
-      console.error('[MpSync] Opponent listener error:', err);
+    _opponentRef.on('value', _onOpponentUpdate, function(e) {
+      console.error('[MpSync] Opponent listener error:', e);
     });
 
-    // Guest listens to host-written forbidden color changes
+    // Guest only: sync forbidden color from host
     if (!_isHost) {
       _forbiddenRef = rtdb.ref('rooms/' + roomCode + '/forbidden');
-      _forbiddenRef.on('value', _onForbiddenUpdate, function(err) {
-        console.error('[MpSync] Forbidden listener error:', err);
+      _forbiddenRef.on('value', _onForbiddenUpdate, function(e) {
+        console.error('[MpSync] Forbidden listener error:', e);
       });
     }
 
-    // Both players watch the result node to receive winner + rewards
+    // Both: receive match result (winner/loser + coins)
     _resultRef = rtdb.ref('rooms/' + roomCode + '/result');
-    _resultRef.on('value', _onResultUpdate, function(err) {
-      console.error('[MpSync] Result listener error:', err);
+    _resultRef.on('value', _onResultUpdate, function(e) {
+      console.error('[MpSync] Result listener error:', e);
     });
 
-    // Poll for stale opponent removed — we rely on onDisconnect hooks instead
-
     if (typeof _dbg !== 'undefined') _dbg.fbListeners++;
-    console.log('[MpSync] Started. Room:', roomCode, 'isHost:', _isHost);
+    console.log('[MpSync] Started. room=' + roomCode + ' isHost=' + _isHost);
   }
 
-  // -- Stop ---------------------------------------------------
+  // ---- stop -------------------------------------------------
   function stop() {
     if (!_active) return;
     _active = false;
+
+    if (_stopTimer) { clearTimeout(_stopTimer); _stopTimer = null; }
 
     if (_opponentRef)  { _opponentRef.off('value', _onOpponentUpdate);  _opponentRef  = null; }
     if (_forbiddenRef) { _forbiddenRef.off('value', _onForbiddenUpdate); _forbiddenRef = null; }
@@ -8936,23 +8973,30 @@ const MpSync = (function () {
     console.log('[MpSync] Stopped.');
   }
 
-  // -- Send own position (throttled 10fps) --------------------
+  // ---- sendPosition (10fps + 2.5s heartbeat) ----------------
+  // Heartbeat ensures stationary players stay visible: even if the
+  // player hasn't moved, we re-send their position every 2.5 s.
   function sendPosition() {
     if (!_active || !_roomCode || !_myId) return;
     if (typeof player === 'undefined') return;
-    var now = performance.now();
-    if (now - _lastSendTime < SEND_INTERVAL) return;
 
-    // Skip write if player hasn't moved enough (saves Firebase quota)
-    var dx = player.x - _lastSentX;
-    var dy = player.y - _lastSentY;
-    if (Math.abs(dx) < MIN_MOVE && Math.abs(dy) < MIN_MOVE) return;
+    var now     = performance.now();
+    var elapsed = now - _lastSendTime;
+    if (elapsed < SEND_INTERVAL) return; // respect 10fps cap
+
+    var moved = (Math.abs(player.x - _lastSentX) > 0.5 ||
+                 Math.abs(player.y - _lastSentY) > 0.5);
+    var heartbeat = (now - _lastHeartbeat) >= HEARTBEAT_MS;
+
+    // Only write if something changed OR heartbeat is due
+    if (!moved && !heartbeat) return;
 
     _lastSendTime = now;
     _lastSentX    = player.x;
     _lastSentY    = player.y;
+    if (heartbeat) _lastHeartbeat = now;
 
-    var elapsed = (typeof gameStartTime !== 'undefined' && gameStartTime > 0)
+    var gameElapsed = (typeof gameStartTime !== 'undefined' && gameStartTime > 0)
       ? Math.max(0, Math.floor((now - gameStartTime - (pausedDuration || 0)) / 1000))
       : 0;
 
@@ -8962,75 +9006,83 @@ const MpSync = (function () {
       alive:          (typeof currentState !== 'undefined' && currentState === STATE.PLAYING),
       score:          Math.floor(typeof score !== 'undefined' ? score : 0),
       coinsCollected: typeof roundCoins !== 'undefined' ? roundCoins : 0,
-      survivalTime:   elapsed,
+      survivalTime:   gameElapsed,
       updatedAt:      Date.now(),
     };
 
     if (typeof _dbg !== 'undefined') _dbg._fwCount++;
     window._fbRtdb.ref('rooms/' + _roomCode + '/players/' + _myId)
       .update(data)
-      .catch(function(err) { console.error('[MpSync] Send error:', err); });
+      .catch(function(e) { console.error('[MpSync] sendPosition error:', e); });
   }
 
-  // -- Immediate forfeit (player left / pressed Escape) -------
+  // ---- forfeit (Escape / leave button pressed) ---------------
   function forfeit() {
     if (!_active || !_myId || !_roomCode) return;
-    var roomCode   = _roomCode;
-    var opponentId = _opponentId;
-    var myId       = _myId;
+    var rc  = _roomCode;
+    var oid = _opponentId;
+    var mid = _myId;
 
     var elapsed = (typeof gameStartTime !== 'undefined' && gameStartTime > 0)
       ? Math.max(0, Math.floor((performance.now() - gameStartTime - (pausedDuration || 0)) / 1000))
       : 0;
 
     if (typeof _dbg !== 'undefined') _dbg._fwCount++;
-    window._fbRtdb.ref('rooms/' + roomCode + '/players/' + myId)
+    window._fbRtdb.ref('rooms/' + rc + '/players/' + mid)
       .update({ alive: false, forfeited: true, survivalTime: elapsed,
                 finalScore: Math.floor(typeof score !== 'undefined' ? score : 0),
                 coinsCollected: typeof roundCoins !== 'undefined' ? roundCoins : 0,
                 diedAt: Date.now() })
-      .catch(function(err) { console.error('[MpSync] Forfeit error:', err); });
+      .catch(function(e) { console.error('[MpSync] forfeit write error:', e); });
 
-    _writeMatchResult(opponentId, myId, 'forfeit');
+    _writeMatchResult(oid, mid, 'forfeit');
     stop();
   }
 
-  // -- Host: sync forbidden color change to guest -------------
+  // ---- syncForbiddenColor (host → guest) --------------------
   function syncForbiddenColor(colorIndex) {
     if (!_active || !_isHost || !_roomCode) return;
     if (typeof _dbg !== 'undefined') _dbg._fwCount++;
-    window._fbRtdb.ref('rooms/' + _roomCode + '/forbidden').set({
-      colorIndex: colorIndex,
-      changedAt:  Date.now(),
-    }).catch(function(err) { console.error('[MpSync] Forbidden sync error:', err); });
+    window._fbRtdb.ref('rooms/' + _roomCode + '/forbidden')
+      .set({ colorIndex: colorIndex, changedAt: Date.now() })
+      .catch(function(e) { console.error('[MpSync] syncForbiddenColor error:', e); });
   }
 
-  // -- Report own death (called before MpSync.stop()) ---------
+  // ---- reportPlayerDied (called from triggerGameOver) --------
+  // Writes death stats; keeps resultRef alive so the dead player
+  // still receives the coin-reward result from _onResultUpdate.
   function reportPlayerDied(survivalTime, finalScore, coinsCollected) {
     if (!_myId || !_roomCode) return;
     _myFinalStats = { survivalTime: survivalTime, score: finalScore, coins: coinsCollected };
 
-    var data = {
-      alive:          false,
-      survivalTime:   survivalTime,
-      finalScore:     finalScore,
-      coinsCollected: coinsCollected,
-      diedAt:         Date.now(),
-      forfeited:      false,
-    };
     if (typeof _dbg !== 'undefined') _dbg._fwCount++;
     window._fbRtdb.ref('rooms/' + _roomCode + '/players/' + _myId)
-      .update(data)
-      .catch(function(err) { console.error('[MpSync] Die report error:', err); });
+      .update({ alive: false, survivalTime: survivalTime,
+                finalScore: finalScore, coinsCollected: coinsCollected,
+                diedAt: Date.now(), forfeited: false })
+      .catch(function(e) { console.error('[MpSync] reportPlayerDied write error:', e); });
 
-    // If opponent already dead, we can decide winner now
+    console.log('[MpSync] I died. survival=' + survivalTime + ' score=' + finalScore);
+
+    // If opponent already died, determine winner right now
     _checkBothDied();
+
+    // Keep listeners alive so _onResultUpdate can deliver coin reward.
+    // Fallback: if no result arrives in 6s, show "You Lost" and clean up.
+    if (_stopTimer) clearTimeout(_stopTimer);
+    _stopTimer = setTimeout(function() {
+      if (!_rewarded) {
+        console.warn('[MpSync] No result in 6s — showing fallback "You Lost"');
+        _showResultBanner(false, false, 0, 'timeout');
+      }
+      if (_active) stop();
+    }, 6000);
   }
 
-  // -- Determine winner when both have died -------------------
+  // ---- _checkBothDied (both players dead → decide winner) ---
   function _checkBothDied() {
     if (!_myFinalStats) return;
-    if (!_opponent || _opponent.alive) return; // opponent still alive
+    if (!_opponent || _opponent.alive) return;
 
     var myTime   = _myFinalStats.survivalTime || 0;
     var oppTime  = _opponent.survivalTime     || 0;
@@ -9043,35 +9095,39 @@ const MpSync = (function () {
     else if (myScore >= oppScore) winnerId = _myId;
     else                          winnerId = _opponentId;
 
-    _writeMatchResult(winnerId, null, 'both_finished');
+    var loserId = (winnerId === _myId) ? _opponentId : _myId;
+    _writeMatchResult(winnerId, loserId, 'both_finished');
   }
 
-  // -- Write winner (Firebase transaction prevents duplicates) -
+  // ---- _writeMatchResult (Firebase transaction → idempotent) -
   function _writeMatchResult(winnerId, loserId, reason) {
     var rtdb = window._fbRtdb;
     if (!rtdb || !_roomCode) return;
     if (typeof _dbg !== 'undefined') _dbg._fwCount++;
 
+    console.log('[MpSync] Writing result: winner=' + winnerId + ' reason=' + reason);
+
     rtdb.ref('rooms/' + _roomCode + '/result')
       .transaction(function(current) {
         if (current !== null) return; // already written — abort
-        return { winnerId: winnerId, loserId: loserId || null, reason: reason, decidedAt: Date.now() };
+        return { winnerId: winnerId, loserId: loserId || null,
+                 reason: reason, decidedAt: Date.now() };
       }, null, false)
-      .catch(function(err) { console.error('[MpSync] Write result error:', err); });
+      .catch(function(e) { console.error('[MpSync] _writeMatchResult error:', e); });
 
-    // Set room status to finished
-    rtdb.ref('rooms/' + _roomCode + '/status').set('finished')
-      .catch(function(){});
+    rtdb.ref('rooms/' + _roomCode + '/status').set('finished').catch(function() {});
   }
 
-  // -- Receive opponent updates -------------------------------
+  // ---- _onOpponentUpdate ------------------------------------
   function _onOpponentUpdate(snap) {
     if (!_active) return;
     if (!snap.exists()) return;
     var data = snap.val();
     if (!_opponent) _opponent = {};
 
-    // Update interpolation target (render lerps toward this)
+    var prevAlive = _opponentWasAlive;
+
+    // Always update position (so lerp target stays current)
     if (typeof data.x === 'number') _targetX = data.x;
     if (typeof data.y === 'number') _targetY = data.y;
 
@@ -9080,29 +9136,61 @@ const MpSync = (function () {
     _opponent.score        = data.score || 0;
     _opponent.survivalTime = data.survivalTime || 0;
     _opponent.forfeited    = !!data.forfeited;
-    _opponentLastSeen      = Date.now();
 
-    // Opponent forfeited or disconnected — result node will have been written
-    // by their forfeit()/onDisconnect call. We wait for _onResultUpdate.
-    // For normal death: check if both have died.
+    _opponentLastSeen = Date.now();
+    _opponentWasAlive = _opponent.alive;
+
+    console.log('[MpSync] Opponent update: alive=' + _opponent.alive +
+      ' x=' + (data.x != null ? (+data.x).toFixed(0) : '?') +
+      ' y=' + (data.y != null ? (+data.y).toFixed(0) : '?'));
+
+    // ---- Detect alive → dead transition --------------------
+    if (prevAlive && !_opponent.alive && !_opponentDeathShown) {
+      _opponentDeathShown = true;
+      _opponentDeathAge   = 0;
+      console.log('[MpSync] Opponent just DIED! forfeited=' + _opponent.forfeited);
+
+      // Spawn death particles at last known visual position
+      if (typeof spawnParticles === 'function') {
+        spawnParticles(_visualX, _visualY, '#ff4444',
+          (typeof settings !== 'undefined' && settings.reducedMotion) ? 8 : 24);
+        spawnParticles(_visualX, _visualY, '#ffffff',
+          (typeof settings !== 'undefined' && settings.reducedMotion) ? 4 : 10);
+      }
+
+      // If opponent died normally (not forfeit) and I'm still alive → I win.
+      // Write the result here; _onResultUpdate will call triggerGameOver('mp_win').
+      if (!_opponent.forfeited && !_matchEndCalled) {
+        var iAmAlive = (typeof currentState !== 'undefined' &&
+                        currentState === STATE.PLAYING);
+        if (iAmAlive) {
+          _matchEndCalled = true;
+          console.log('[MpSync] I survived — writing win result (opponent_died)');
+          _writeMatchResult(_myId, _opponentId, 'opponent_died');
+        }
+      }
+    }
+
+    // Also check both-died scenario (covers near-simultaneous deaths)
     if (!_opponent.alive && !_opponent.forfeited) {
       _checkBothDied();
     }
   }
 
-  // -- Guest: receive forbidden color from host ---------------
+  // ---- _onForbiddenUpdate (guest only) ----------------------
   function _onForbiddenUpdate(snap) {
     if (!_active || _isHost) return;
     if (!snap.exists()) return;
     var data = snap.val();
     if (typeof data.colorIndex !== 'number') return;
-    // Apply host's forbidden color on the guest side
     if (typeof changeForbiddenColorToIndex === 'function') {
       changeForbiddenColorToIndex(data.colorIndex);
     }
   }
 
-  // -- Both: receive match result and award coins -------------
+  // ---- _onResultUpdate (both players) -----------------------
+  // This is the single source of truth for ending the round.
+  // It handles ALL cases: opponent_died, both_finished, forfeit.
   function _onResultUpdate(snap) {
     if (!snap.exists()) return;
     var data = snap.val();
@@ -9112,12 +9200,16 @@ const MpSync = (function () {
 
     var myId      = _myId || '';
     var isWinner  = (data.winnerId === myId);
-    var forfeited = !!(data.reason === 'forfeit' && data.loserId === myId);
+    var forfeited = (data.reason === 'forfeit' && data.loserId === myId);
 
     var myTime    = _myFinalStats ? (_myFinalStats.survivalTime || 0) : 0;
     var oppTime   = _opponent     ? (_opponent.survivalTime     || 0) : 0;
     var qualified = (myTime >= 10 || oppTime >= 10) && !forfeited;
     var reward    = isWinner ? 25 : (forfeited ? 0 : (qualified ? 5 : 0));
+
+    console.log('[MpSync] Result received: winner=' + data.winnerId +
+      ' isMe=' + isWinner + ' reason=' + (data.reason || '') +
+      ' reward=' + reward);
 
     if (reward > 0) {
       if (typeof settings !== 'undefined' && typeof saveSettings === 'function') {
@@ -9127,11 +9219,26 @@ const MpSync = (function () {
       }
     }
 
-    var reason = data.reason || '';
-    setTimeout(function() { _showResultBanner(isWinner, forfeited, reward, reason); }, 500);
+    // If I'm still actively playing, end the game now.
+    // This covers: forfeit (opponent leaves) and opponent_died (winner's side).
+    if (typeof currentState !== 'undefined' && currentState === STATE.PLAYING) {
+      var endReason = isWinner ? 'mp_win' : undefined;
+      console.log('[MpSync] Still playing — ending game. isWinner=' + isWinner);
+      setTimeout(function() {
+        if (typeof currentState !== 'undefined' && currentState === STATE.PLAYING) {
+          if (typeof triggerGameOver === 'function') triggerGameOver(endReason);
+        }
+      }, 200);
+    }
+
+    // Show result banner (winner: 800ms delay for particle effect; loser: 400ms)
+    var bannerDelay = isWinner ? 800 : 400;
+    setTimeout(function() {
+      _showResultBanner(isWinner, forfeited, reward, data.reason || '');
+    }, bannerDelay);
   }
 
-  // -- Result banner -----------------------------------------
+  // ---- _showResultBanner ------------------------------------
   function _showResultBanner(isWinner, forfeited, reward, reason) {
     var el = document.getElementById('mp-result-banner');
     if (!el) {
@@ -9146,30 +9253,52 @@ const MpSync = (function () {
         'border:2px solid rgba(255,255,255,0.14);';
       document.body.appendChild(el);
     }
+
     var rewardLine;
     if (reward > 0) {
       rewardLine = '<div style="font-size:13px;color:#94a3b8;margin-top:10px">+' + reward + ' coins awarded</div>';
     } else if (forfeited) {
-      rewardLine = '<div style="font-size:13px;color:#94a3b8;margin-top:10px">No reward (you left)</div>';
+      rewardLine = '<div style="font-size:13px;color:#94a3b8;margin-top:10px">No reward \u2014 you left</div>';
     } else {
-      rewardLine = '<div style="font-size:13px;color:#94a3b8;margin-top:10px">No reward (match too short)</div>';
+      rewardLine = '<div style="font-size:13px;color:#94a3b8;margin-top:10px">No reward \u2014 match too short</div>';
     }
-    var titleText = isWinner
-      ? (reason === 'forfeit' ? 'Opponent Left \u2014 You Win!' : 'You Win!')
-      : (forfeited ? 'You Left' : 'You Lost');
-    var icon = isWinner ? '\uD83C\uDFC6' : '\uD83D\uDC80';
-    var color = isWinner ? '#fbbf24' : '#f87171';
-    el.innerHTML = '<div style="font-size:52px">' + icon + '</div>' +
-                   '<div style="color:' + color + '">' + titleText + '</div>' + rewardLine;
+
+    var titleText;
+    if (isWinner) {
+      titleText = reason === 'forfeit'       ? 'Opponent Left \u2014 You Win!'  :
+                  reason === 'opponent_died' ? 'Opponent Died \u2014 You Win!'  :
+                                               'You Win!';
+    } else {
+      titleText = forfeited ? 'You Left' : 'You Lost';
+    }
+
+    var icon  = isWinner ? '\uD83C\uDFC6' : '\uD83D\uDC80';
+    var color = isWinner ? '#fbbf24'      : '#f87171';
+
+    el.innerHTML =
+      '<div style="font-size:52px">' + icon + '</div>' +
+      '<div style="color:' + color + '">' + titleText + '</div>' +
+      rewardLine;
     el.style.display = 'block';
-    setTimeout(function() { if (el) el.style.display = 'none'; }, 6000);
+    setTimeout(function() { if (el) el.style.display = 'none'; }, 7000);
   }
 
-  // -- Draw opponent ghost (lerp-smoothed) -------------------
+  // ---- drawOpponent (lerp + death animation) ----------------
+  // CRITICAL: opponent is NEVER hidden due to inactivity.
+  // They are only hidden once the 2s death animation finishes.
   function drawOpponent(ctx) {
     if (!_active || !_opponent) return;
     if (typeof _targetX !== 'number' || typeof _targetY !== 'number') return;
-    if (Date.now() - _opponentLastSeen > 4000) return;  // hide if stale
+
+    var isDead = !_opponent.alive;
+
+    // Track how long since death (incremented each frame at ~60fps)
+    if (isDead) {
+      _opponentDeathAge += (1 / 60);
+      if (_opponentDeathAge > 2.5) return; // fully hide after death animation
+    } else {
+      _opponentDeathAge = 0;
+    }
 
     // Lerp visual position toward Firebase target each frame
     _visualX += (_targetX - _visualX) * LERP;
@@ -9182,12 +9311,39 @@ const MpSync = (function () {
 
     var now = performance.now();
     if (now - _renderLogTimer > 5000) {
-      console.log('[MpSync] Opponent at x=' + x.toFixed(1) + ' y=' + y.toFixed(1));
+      console.log('[MpSync] Opponent visual pos: x=' + x.toFixed(1) + ' y=' + y.toFixed(1) +
+        ' alive=' + !isDead + ' lastSeen=' + Math.round((Date.now() - _opponentLastSeen) / 1000) + 's ago');
       _renderLogTimer = now;
     }
 
     ctx.save();
 
+    if (isDead) {
+      // Death animation: expanding red burst that fades out over 2.5s
+      var t = Math.max(0, 1 - (_opponentDeathAge / 2.5));
+      ctx.globalAlpha = t;
+      var expandR = r * (1 + (1 - t) * 2.5);
+
+      ctx.shadowBlur  = 30 * t;
+      ctx.shadowColor = '#ff3333';
+      ctx.beginPath();
+      ctx.arc(x, y, expandR, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255,' + Math.floor(80 * t) + ',0,' + (t * 0.55) + ')';
+      ctx.fill();
+
+      // Skull/explosion icon
+      ctx.font         = (32 + (1 - t) * 20) + 'px system-ui, sans-serif';
+      ctx.textAlign    = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle    = 'rgba(255,255,255,' + t + ')';
+      ctx.shadowBlur   = 8;
+      ctx.shadowColor  = 'rgba(0,0,0,0.8)';
+      ctx.fillText('\uD83D\uDCA5', x, y);
+      ctx.restore();
+      return;
+    }
+
+    // ---- Normal alive ghost rendering -----
     // Glow ring
     ctx.shadowBlur  = 22;
     ctx.shadowColor = 'rgba(99,179,237,0.85)';
@@ -9208,7 +9364,6 @@ const MpSync = (function () {
     ctx.fillStyle = grad;
     ctx.fill();
 
-    // Outline
     ctx.lineWidth   = 2.5;
     ctx.strokeStyle = 'rgba(190,227,248,0.9)';
     ctx.stroke();
