@@ -8,5 +8,8 @@
         { "key": "Accept-Ranges", "value": "bytes" }
       ]
     }
+  ],
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
