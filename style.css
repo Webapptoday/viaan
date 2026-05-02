@@ -1699,37 +1699,7 @@ kbd {
   position: relative; z-index: 2;
   transition: transform .2s ease, border-color .2s, box-shadow .2s;
 }
-.lp-dot-icon {
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: .58rem;
-  font-weight: 900;
-  letter-spacing: .04em;
-  line-height: 1;
-  color: #f8fafc;
-  background: rgba(15,23,42,.75);
-  border: 1px solid rgba(255,255,255,.22);
-}
-.lp-dot-icon.lp-dot-icon-coin {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 30% 30%, #fde68a 0%, #fbbf24 55%, #d97706 100%);
-  border: 1px solid rgba(251,191,36,.9);
-  box-shadow: 0 0 10px rgba(251,191,36,.45);
-}
-.lp-dot-icon.lp-dot-icon-badge {
-  background: linear-gradient(135deg, rgba(167,139,250,.85), rgba(109,40,217,.75));
-  border-color: rgba(196,181,253,.9);
-}
-.lp-dot-icon.lp-dot-icon-skin {
-  background: linear-gradient(135deg, rgba(56,189,248,.85), rgba(14,116,144,.8));
-  border-color: rgba(125,211,252,.95);
-}
+.lp-dot-icon { font-size: 1.3rem; line-height: 1; }
 .lp-claimed .lp-dot {
   background: rgba(10,36,20,.95); border-color: rgba(74,222,128,.6);
   box-shadow: 0 0 14px rgba(74,222,128,.4), 0 0 28px rgba(74,222,128,.18);
@@ -4328,38 +4298,11 @@ body.perf-low .home-blobs::after   { animation: none !important; }
 /* ---------- Lock overlay on card top-right ---------- */
 .skin-lock-overlay {
   position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 20px;
-  height: 20px;
-  border-radius: 999px;
-  background: rgba(15,23,42,.72);
-  border: 1px solid rgba(148,163,184,.42);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  opacity: 0.95;
+  top: 5px;
+  right: 5px;
+  font-size: 13px;
+  opacity: 0.85;
   pointer-events: none;
-}
-.lock-mini-icon {
-  width: 10px;
-  height: 7px;
-  border: 1.5px solid #cbd5e1;
-  border-top: 0;
-  border-radius: 1px;
-  position: relative;
-}
-.lock-mini-icon::before {
-  content: '';
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  top: -6px;
-  width: 6px;
-  height: 5px;
-  border: 1.5px solid #cbd5e1;
-  border-bottom: 0;
-  border-radius: 5px 5px 0 0;
 }
 
 /* ---------- Skin affordable glow ---------- */

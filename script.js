@@ -18,11 +18,11 @@ const GAME_COLORS = [
 ];
 
 const POWERUP_DEFS = {
-  SHIELD: { label: 'Shield',    icon: 'SH', color: '#facc15', duration: 10 },
-  SLOW:   { label: 'Slow Time', icon: 'SL', color: '#38bdf8', duration: 6  },
-  CLEAR:  { label: 'Clear',     icon: 'CL', color: '#e879f9', duration: 0  },
-  BOOST:  { label: 'Score x2',  icon: 'X2', color: '#fb923c', duration: 8  },
-  SMALL:  { label: 'Small Mode',icon: 'SM', color: '#34d399', duration: 5  },
+  SHIELD: { label: 'Shield',    icon: '\uD83D\uDEE1', color: '#facc15', duration: 10 },
+  SLOW:   { label: 'Slow Time', icon: '',        color: '#38bdf8', duration: 6  },
+  CLEAR:  { label: 'Clear',    icon: '',         color: '#e879f9', duration: 0  },
+  BOOST:  { label: 'Score x2',  icon: '',         color: '#fb923c', duration: 8  },
+  SMALL:  { label: 'Small Mode',icon: '\uD83D\uDD35',  color: '#34d399', duration: 5  },
 };
 const POWERUP_KEYS = Object.keys(POWERUP_DEFS);
 const POWERUP_UPGRADE_DEFS = {
@@ -1222,16 +1222,6 @@ function renderLifetimeProgressUI() {
   const RLBL = { common: 'COMMON',  rare: 'RARE',    epic: 'EPIC',    legendary: 'LEGENDARY' };
   const firstUnclaimed = LIFETIME_REWARD_DEFS.find(r => !isLifetimeRewardUnlocked(r.id));
 
-  const rewardIconMarkup = (reward) => {
-    if (reward.type === 'coins') {
-      return '<span class="lp-dot-icon lp-dot-icon-coin" aria-hidden="true"></span>';
-    }
-    if (reward.type === 'skin') {
-      return '<span class="lp-dot-icon lp-dot-icon-skin" aria-hidden="true">SK</span>';
-    }
-    return '<span class="lp-dot-icon lp-dot-icon-badge" aria-hidden="true">BD</span>';
-  };
-
   road.innerHTML = LIFETIME_REWARD_DEFS.map((reward, i) => {
     const claimed   = isLifetimeRewardUnlocked(reward.id);
     const earned    = total >= reward.milestone;
@@ -1271,7 +1261,7 @@ function renderLifetimeProgressUI() {
       '<div class="lp-conn">' +
         '<div class="lp-line lp-line-before' + (isFirst ? ' lp-line-edge' : lineBefore) + '"></div>' +
         '<div class="lp-dot">' +
-          rewardIconMarkup(reward) +
+          '<span class="lp-dot-icon">' + reward.icon + '</span>' +
           (claimed ? '<div class="lp-dot-check">Done</div>' : '') +
         '</div>' +
         '<div class="lp-line lp-line-after' + (isLast ? ' lp-line-edge' : lineAfter) + '"></div>' +
@@ -3541,7 +3531,7 @@ const SkinAbility = (() => {
       case 'shield':
         _skinShield = true;
         _effectTime = -1;
-        addFloating(player.x, player.y - 55, 'Shield Ready!', '#38bdf8', 20);
+        addFloating(player.x, player.y - 55, '\uD83D\uDEE1 Shield Ready!', '#38bdf8', 20);
         break;
       case 'frost':
         _frostActive = true;
@@ -3549,19 +3539,19 @@ const SkinAbility = (() => {
         if (typeof MpSync !== 'undefined' && MpSync.isActive()) {
           MpSync.publishEvent('slow', { durationMs: 3000 });
         }
-        addFloating(player.x, player.y - 55, 'Slow Field Active!', '#93c5fd', 20);
+        addFloating(player.x, player.y - 55, '\u2744 Frost Aura!', '#93c5fd', 20);
         break;
       case 'dash':
         _dashActive = true;
         spawnParticles(player.x, player.y, '#60a5fa', settings.reducedMotion ? 6 : 14);
-        addFloating(player.x, player.y - 55, 'Dash Active!', '#60a5fa', 20);
+        addFloating(player.x, player.y - 55, '\uD83D\uDCA8 Dash!', '#60a5fa', 20);
         break;
       case 'pulse':
         _doPulseWave();
         if (typeof MpSync !== 'undefined' && MpSync.isActive()) {
           MpSync.publishEvent('clear', {});
         }
-        addFloating(player.x, player.y - 55, 'Pulse Wave!', '#c084fc', 20);
+        addFloating(player.x, player.y - 55, '\uD83D\uDCA5 Pulse!', '#c084fc', 20);
         // Instant effect: immediately reset and start cooldown.
         _active     = false;
         _effectTime = 0;
@@ -3579,7 +3569,7 @@ const SkinAbility = (() => {
         break;
       case 'ghost':
         _ghostMode = true;
-        addFloating(player.x, player.y - 55, 'Ghost Mode!', '#e2e8f0', 20);
+        addFloating(player.x, player.y - 55, '\uD83D\uDC7B Ghost Mode!', '#e2e8f0', 20);
         break;
       case 'small':
         _smallActive = true;
@@ -3955,7 +3945,7 @@ function _renderSkinGrid(grid, skins) {
       '</div>' +
       bottomHTML +
       '<div class="skin-card-actions">' + actionHTML + '</div>' +
-      (locked ? '<span class="skin-lock-overlay" aria-hidden="true"><span class="lock-mini-icon"></span></span>' : '') +
+      (locked ? '<span class="skin-lock-overlay" aria-hidden="true">Locked</span>' : '') +
     '</div>';
   }).join('');
 
@@ -4114,7 +4104,7 @@ function _renderAbilityGrid(grid, abilities) {
       '<div class="skin-grid-status" style="margin-bottom:6px;">Cooldown: ' + (ability.cooldownMs ? Math.round(ability.cooldownMs / 1000) + 's' : 'Passive') + '</div>' +
       bottomHTML +
       '<div class="skin-card-actions">' + actionHTML + '</div>' +
-      (!owned ? '<span class="skin-lock-overlay" aria-hidden="true"><span class="lock-mini-icon"></span></span>' : '') +
+      (!owned ? '<span class="skin-lock-overlay" aria-hidden="true">Locked</span>' : '') +
     '</div>';
   }).join('');
 
@@ -6398,7 +6388,7 @@ function updateMiniGoalHUD() {
   if (labelEl) labelEl.textContent = runMiniGoal.label;
   const pct = Math.min(1, runMiniGoal.progress / runMiniGoal.goal);
   if (fillEl)  fillEl.style.width  = (pct * 100).toFixed(1) + '%';
-  if (pctEl)   pctEl.textContent   = runMiniGoal.done ? 'DONE' : Math.round(pct * 100) + '%';
+  if (pctEl)   pctEl.textContent   = runMiniGoal.done ? '\u2713' : Math.round(pct * 100) + '%';
   bar.classList.toggle('run-goal-done', !!runMiniGoal.done);
 }
 
@@ -6910,7 +6900,7 @@ function checkCollisions() {
       applyFlowDelta(-FLOW_CONFIG.shieldHitPenalty, 'shield-hit');
       obstacles.splice(i, 1);
       spawnParticles(ob.x + ob.w / 2, ob.y + ob.h / 2, '#38bdf8', settings.reducedMotion ? 8 : 18);
-      addFloating(player.x, player.y - 55, 'Shield Broke!', '#38bdf8');
+      addFloating(player.x, player.y - 55, '\uD83D\uDEE1 Shield Broke!', '#38bdf8');
       triggerShake(6, 0.22);
       if (navigator.vibrate) navigator.vibrate(50);
       Announce.say('Skin shield absorbed a hit.');
@@ -9697,7 +9687,7 @@ const MpSync = (function () {
       titleText = forfeited ? 'You Left' : 'You Lost';
     }
 
-    var icon  = isWinner ? 'WIN' : 'LOSE';
+    var icon  = isWinner ? '\uD83C\uDFC6' : '\uD83D\uDC80';
     var color = isWinner ? '#fbbf24'      : '#f87171';
 
     el.innerHTML =
@@ -9763,7 +9753,7 @@ const MpSync = (function () {
       ctx.fillStyle    = 'rgba(255,255,255,' + t + ')';
       ctx.shadowBlur   = 8;
       ctx.shadowColor  = 'rgba(0,0,0,0.8)';
-      ctx.fillText('X', x, y);
+      ctx.fillText('\uD83D\uDCA5', x, y);
       ctx.restore();
       return;
     }
