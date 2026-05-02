@@ -125,13 +125,6 @@ const SKIN_DEFS = [
   { id: 'afterglow',    name: 'Afterglow',    coinCost:  700, lifetimeScore:  175000, rarity: 'legendary', effect: 'prism',    color1: '#fef3c7', color2: '#f472b6', glow: '#fb7185', shape: 'circle', trail: true  },
   { id: 'galaxy',       name: 'Galaxy',       coinCost:  900, lifetimeScore:  300000, rarity: 'legendary', effect: 'galaxy',   color1: '#c4b5fd', color2: '#1e1b4b', glow: '#818cf8', shape: 'star',   trail: true  },
   { id: 'eclipse',      name: 'Eclipse',      coinCost: 1200, lifetimeScore:  500000, rarity: 'legendary', effect: 'void',     color1: '#f5f3ff', color2: '#111827', glow: '#a78bfa', shape: 'star',   trail: true  },
-  // Legacy ability-skin visuals retained as cosmetic skins
-  { id: 'coin-magnet',  name: 'Coin Magnet',  coinCost:  500, lifetimeScore:  125000, rarity: 'rare',      effect: 'pulse',    color1: '#fefce8', color2: '#eab308', glow: '#fbbf24', shape: 'circle', trail: false },
-  { id: 'neon-shield',  name: 'Neon Shield',  coinCost:  800, lifetimeScore:  225000, rarity: 'epic',      effect: 'electric', color1: '#e0f2fe', color2: '#0ea5e9', glow: '#38bdf8', shape: 'circle', trail: true  },
-  { id: 'frost-runner', name: 'Frost Runner', coinCost: 1000, lifetimeScore:  350000, rarity: 'epic',      effect: 'shimmer',  color1: '#f0f9ff', color2: '#7dd3fc', glow: '#93c5fd', shape: 'circle', trail: true  },
-  { id: 'dash-core',    name: 'Dash Core',    coinCost: 1400, lifetimeScore:  550000, rarity: 'legendary', effect: 'electric', color1: '#eff6ff', color2: '#3b82f6', glow: '#60a5fa', shape: 'circle', trail: true  },
-  { id: 'pulse-wave',   name: 'Pulse Wave',   coinCost: 1800, lifetimeScore:  800000, rarity: 'legendary', effect: 'prism',    color1: '#faf5ff', color2: '#a855f7', glow: '#c084fc', shape: 'circle', trail: true  },
-  { id: 'ghost-shift',  name: 'Ghost Shift',  coinCost: 3000, lifetimeScore: 1250000, rarity: 'mythic',    effect: 'aura',     color1: '#f8fafc', color2: '#94a3b8', glow: '#cbd5e1', shape: 'star',   trail: true  },
 ];
 
 // Abilities - gameplay powers only
@@ -141,9 +134,7 @@ const ABILITY_DEFS = [
   { id: 'dash', name: 'Dash', rarity: 'epic', coinCost: 1400, lifetimeScoreRequirement: 550000, description: 'Short speed burst with cooldown.', cooldownMs: 20000, effectType: 'personal', icon: 'DA' },
   { id: 'slow-field', name: 'Slow Field', rarity: 'epic', coinCost: 1000, lifetimeScoreRequirement: 350000, description: 'Slows block speed briefly.', cooldownMs: 25000, effectType: 'shared', icon: 'SL' },
   { id: 'pulse', name: 'Pulse Wave', rarity: 'legendary', coinCost: 1800, lifetimeScoreRequirement: 800000, description: 'Pushes nearby blocks away instantly.', cooldownMs: 30000, effectType: 'shared', icon: 'PW' },
-  { id: 'clear-blast', name: 'Clear Blast', rarity: 'legendary', coinCost: 2200, lifetimeScoreRequirement: 900000, description: 'Clears nearby danger blocks instantly.', cooldownMs: 35000, effectType: 'shared', icon: 'CB' },
   { id: 'ghost', name: 'Ghost Shift', rarity: 'mythic', coinCost: 3000, lifetimeScoreRequirement: 1250000, description: 'Pass through danger briefly.', cooldownMs: 40000, effectType: 'personal', icon: 'GH' },
-  { id: 'small-form', name: 'Small Form', rarity: 'rare', coinCost: 900, lifetimeScoreRequirement: 250000, description: 'Become smaller briefly for tighter escapes.', cooldownMs: 28000, effectType: 'personal', icon: 'SM' },
 ];
 
 // Removed skins migration map: old id -> replacement id
@@ -170,9 +161,7 @@ const ABILITY_RUNTIME_DEFS = {
   'slow-field': { abilityId: 'frost', abilityName: 'Slow Field', icon: 'SL', passive: false, cooldown: 25, duration: 3,  desc: 'Slow all blocks 35% for 3s every 25s.' },
   dash:       { abilityId: 'dash',   abilityName: 'Dash',        icon: 'DA', passive: false, cooldown: 20, duration: 1,  desc: '1.75x speed burst for 1s every 20s.' },
   pulse:      { abilityId: 'pulse',  abilityName: 'Pulse Wave',  icon: 'PW', passive: false, cooldown: 30, duration: 0,  desc: 'Blasts nearby blocks outward every 30s.' },
-  'clear-blast': { abilityId: 'clear', abilityName: 'Clear Blast', icon: 'CB', passive: false, cooldown: 35, duration: 0, desc: 'Clears nearby danger blocks instantly.' },
   ghost:      { abilityId: 'ghost',  abilityName: 'Ghost Shift', icon: 'GH', passive: false, cooldown: 40, duration: 1,  desc: 'Phase through danger blocks for 1s every 40s.' },
-  'small-form': { abilityId: 'small', abilityName: 'Small Form', icon: 'SM', passive: false, cooldown: 28, duration: 4,  desc: 'Shrink briefly for tighter movement.' },
 };
 const LIFETIME_REWARD_DEFS = [
   // -- Common ------------------------------------------------------------------
@@ -620,13 +609,9 @@ let settings = {
   lifetimeScore:  0,
   selectedSkin:   'classic',
   selectedAbility: 'magnet',
-  equippedSkinId: 'classic',
-  equippedAbilityId: 'magnet',
   coins:          0,
   purchasedSkins: [],
   purchasedAbilities: [],
-  ownedSkins: [],
-  ownedAbilities: [],
   lifetimeRewards: [],
   powerupUpgrades: {},
   streakCount:    0,
@@ -635,15 +620,6 @@ let settings = {
   economyVersion: 2,  // keep in sync with ECONOMY_VERSION constant
   skinVersion:    1,  // keep in sync with SKIN_VERSION constant
 };
-
-function syncLoadoutModel() {
-  settings.equippedSkinId = settings.selectedSkin;
-  settings.equippedAbilityId = settings.selectedAbility;
-  settings.ownedSkins = ['classic'].concat(settings.purchasedSkins || [])
-    .filter((id, i, arr) => arr.indexOf(id) === i);
-  settings.ownedAbilities = ['magnet'].concat(settings.purchasedAbilities || [])
-    .filter((id, i, arr) => arr.indexOf(id) === i);
-}
 
 let score         = 0;
 let combo         = 0;
@@ -898,17 +874,11 @@ function loadSettings() {
     if (typeof s.selectedSkin === 'string' && SKIN_DEFS.some(sk => sk.id === s.selectedSkin)) {
       settings.selectedSkin = s.selectedSkin;
     }
-    if (typeof s.equippedSkinId === 'string' && SKIN_DEFS.some(sk => sk.id === s.equippedSkinId)) {
-      settings.selectedSkin = s.equippedSkinId;
-    }
     if (typeof s.selectedSkin === 'string' && _ABILITY_FROM_OLD_SKIN[s.selectedSkin]) {
       settings.selectedAbility = _ABILITY_FROM_OLD_SKIN[s.selectedSkin];
     }
     if (typeof s.selectedAbility === 'string' && ABILITY_DEFS.some(ab => ab.id === s.selectedAbility)) {
       settings.selectedAbility = s.selectedAbility;
-    }
-    if (typeof s.equippedAbilityId === 'string' && ABILITY_DEFS.some(ab => ab.id === s.equippedAbilityId)) {
-      settings.selectedAbility = s.equippedAbilityId;
     }
     if (typeof s.bestScore === 'number' && s.bestScore >= 0) settings.bestScore = s.bestScore;
     if (typeof s.lifetimeScore === 'number' && s.lifetimeScore >= 0) settings.lifetimeScore = Math.floor(s.lifetimeScore);
@@ -935,20 +905,9 @@ function loadSettings() {
     if (Array.isArray(s.purchasedAbilities) && !Array.isArray(s.purchasedSkins)) {
       settings.purchasedAbilities = s.purchasedAbilities.filter(id => ABILITY_DEFS.some(ab => ab.id === id));
     }
-    if (Array.isArray(s.ownedSkins)) {
-      settings.purchasedSkins = s.ownedSkins
-        .filter(id => id !== 'classic')
-        .filter(id => SKIN_DEFS.some(sk => sk.id === id));
-    }
-    if (Array.isArray(s.ownedAbilities)) {
-      settings.purchasedAbilities = s.ownedAbilities
-        .filter(id => id !== 'magnet')
-        .filter(id => ABILITY_DEFS.some(ab => ab.id === id));
-    }
     if (Array.isArray(s.lifetimeRewards)) {
       settings.lifetimeRewards = s.lifetimeRewards.filter(id => LIFETIME_REWARD_DEFS.some(reward => reward.id === id));
     }
-    syncLoadoutModel();
     normalizePowerupUpgradeState();
     normalizeLifetimeRewardState();
     if (_migrated) saveSettings();
@@ -956,10 +915,7 @@ function loadSettings() {
 }
 
 function saveSettings() {
-  try {
-    syncLoadoutModel();
-    localStorage.setItem('forbiddenColor_settings', JSON.stringify(settings));
-  } catch (_) {}
+  try { localStorage.setItem('forbiddenColor_settings', JSON.stringify(settings)); } catch (_) {}
 }
 
 function applyColorMode() {
@@ -1197,12 +1153,12 @@ function renderLifetimeProgressUI() {
   headerEl.innerHTML =
     '<div class="lp-header-row">' +
       '<div class="lp-score-block">' +
-        '<div class="lp-score-lbl">Lifetime Score</div>' +
+        '<div class="lp-score-lbl">LIFETIME SCORE</div>' +
         '<div class="lp-score-val" id="lifetime-score-value">' + formatNumber(total) + '</div>' +
       '</div>' +
       '<div class="lp-bar-block">' +
         '<div class="lp-bar-title" id="lifetime-next-target">' + (nextReward
-          ? 'Next Unlock: ' + nextReward.label + ' at ' + formatNumber(nextReward.milestone)
+          ? 'Next: ' + nextReward.label + ' at ' + formatNumber(nextReward.milestone)
           : 'All rewards unlocked!') + '</div>' +
         '<div class="lp-bar-row">' +
           '<div class="lp-bar-track">' +
@@ -1211,11 +1167,11 @@ function renderLifetimeProgressUI() {
           '<span class="lp-bar-pct">' + pct + '%</span>' +
         '</div>' +
         '<div class="lp-bar-sub" id="lifetime-progress-detail">' + (nextReward
-          ? 'Progress: ' + formatNumber(total) + ' / ' + formatNumber(nextReward.milestone)
+          ? formatNumber(total) + ' / ' + formatNumber(nextReward.milestone)
           : 'Every milestone reward claimed') + '</div>' +
       '</div>' +
     '</div>' +
-    '<p class="lp-tagline">Earn lifetime score across all runs to unlock rewards.</p>';
+    '<p class="lp-tagline">Earn lifetime score across all runs to unlock exclusive rewards</p>';
 
   // Reward Road
   const GLOW = { common: '#94a3b8', rare: '#38bdf8', epic: '#a855f7', legendary: '#fbbf24' };
@@ -1249,7 +1205,7 @@ function renderLifetimeProgressUI() {
     } else if (reward.type === 'skin' && earned) {
       actionHtml = '<span class="lp-s-claimed">Unlocked</span>';
     } else {
-      actionHtml = '<span class="lp-s-locked">Need ' + formatNumber(remaining) + ' Score</span>';
+      actionHtml = '<span class="lp-s-locked">Need ' + formatNumber(remaining) + '</span>';
     }
 
     return '<div class="lp-node ' + stateClass + ' lp-r-' + reward.rarity + '"' +
@@ -1269,7 +1225,7 @@ function renderLifetimeProgressUI() {
       '<div class="lp-tile">' +
         '<div class="lp-tile-rarity">' + RLBL[reward.rarity] + '</div>' +
         '<div class="lp-tile-name">' + reward.label + '</div>' +
-        '<div class="lp-tile-score">' + formatNumber(reward.milestone) + ' Score</div>' +
+        '<div class="lp-tile-score">' + formatNumber(reward.milestone) + ' pts</div>' +
         '<div class="lp-tile-desc">' + reward.description + '</div>' +
         '<div class="lp-tile-action">' + actionHtml + '</div>' +
       '</div>' +
@@ -3472,7 +3428,6 @@ const SkinAbility = (() => {
   let _ghostMode   = false;  // Ghost Shift phase-through is active
   let _frostActive = false;  // Frost Aura slow is active
   let _dashActive  = false;  // Dash Boost speed multiplier is active
-  let _smallActive = false;  // Small Form is active
 
   // Call at game start (after initPlayer) to arm the skin's ability.
   function reset() {
@@ -3485,7 +3440,6 @@ const SkinAbility = (() => {
     _ghostMode  = false;
     _frostActive = false;
     _dashActive  = false;
-    _smallActive = false;
     // Neon Shield arms immediately.
     if (_def && _def.abilityId === 'shield') {
       _skinShield = true;
@@ -3557,24 +3511,9 @@ const SkinAbility = (() => {
         _effectTime = 0;
         _cooldown   = _def.cooldown;
         break;
-      case 'clear':
-        obstacles = obstacles.filter(o => o.colorIndex !== forbiddenIndex);
-        if (typeof MpSync !== 'undefined' && MpSync.isActive()) {
-          MpSync.publishEvent('clear', {});
-        }
-        addFloating(player.x, player.y - 55, 'Clear Blast!', '#f472b6', 20);
-        _active     = false;
-        _effectTime = 0;
-        _cooldown   = _def.cooldown;
-        break;
       case 'ghost':
         _ghostMode = true;
         addFloating(player.x, player.y - 55, '\uD83D\uDC7B Ghost Mode!', '#e2e8f0', 20);
-        break;
-      case 'small':
-        _smallActive = true;
-        playerRadiusTarget = Math.round(player.baseRadius * 0.58);
-        addFloating(player.x, player.y - 55, 'Small Form!', '#34d399', 20);
         break;
     }
     _updateHUD();
@@ -3585,10 +3524,6 @@ const SkinAbility = (() => {
       case 'frost':  _frostActive = false; break;
       case 'dash':   _dashActive  = false; break;
       case 'ghost':  _ghostMode   = false; break;
-      case 'small':
-        _smallActive = false;
-        playerRadiusTarget = player.baseRadius;
-        break;
     }
   }
 
@@ -3777,8 +3712,8 @@ function selectSkinForPreview(skinId) {
     primaryHTML = '<button class="btn btn-primary preview-equip-btn" data-skin="' + skin.id + '">Equip Skin</button>';
   } else if (!scoreGateMet) {
     const need = skin.lifetimeScore - (settings.lifetimeScore || 0);
-    primaryHTML = '<button class="btn btn-secondary preview-btn-disabled" disabled>Need ' + formatNumber(skin.lifetimeScore) + ' Score</button>' +
-      '<div class="preview-score-hint">Need ' + formatNumber(need) + ' Score</div>';
+    primaryHTML = '<button class="btn btn-secondary preview-btn-disabled" disabled>Locked: ' + formatNumber(skin.lifetimeScore) + ' score</button>' +
+      '<div class="preview-score-hint">' + formatNumber(need) + ' more lifetime score needed</div>';
   } else if (isCoinSkin) {
     const label = canAfford
       ? 'Buy Skin ' + coinSpan + ' ' + skin.coinCost
@@ -3793,7 +3728,6 @@ function selectSkinForPreview(skinId) {
   if (equipBtn) {
     equipBtn.addEventListener('click', () => {
       settings.selectedSkin = skin.id;
-      settings.equippedSkinId = skin.id;
       saveSettings();
       updateSkinsUI();
       renderLifetimeProgressUI();
@@ -3823,17 +3757,6 @@ function updateSkinsUI() {
   _renderNextUnlock();
   selectSkinForPreview(_shopPreviewSkinId || settings.selectedSkin);
   selectAbilityForPreview(settings.selectedAbility || (ABILITY_DEFS[0] && ABILITY_DEFS[0].id));
-  updateShopLoadoutSummary();
-}
-
-function updateShopLoadoutSummary() {
-  const skinEl = document.getElementById('shop-loadout-skin');
-  const abilityEl = document.getElementById('shop-loadout-ability');
-  if (!skinEl && !abilityEl) return;
-  const skin = SKIN_DEFS.find(s => s.id === settings.selectedSkin);
-  const ability = ABILITY_DEFS.find(a => a.id === settings.selectedAbility);
-  if (skinEl) skinEl.textContent = skin ? skin.name : 'Classic';
-  if (abilityEl) abilityEl.textContent = ability ? ability.name : 'Coin Magnet';
 }
 
 function _renderNextUnlock() {
@@ -3901,33 +3824,23 @@ function _renderSkinGrid(grid, skins) {
     const coinPct       = skin.coinCost      ? Math.min(100, Math.round((coins / skin.coinCost) * 100)) : 100;
 
     let bottomHTML = '';
-    let actionHTML = '';
     if (selected) {
       bottomHTML = '<span class="skin-grid-status skin-grid-equipped">Equipped</span>';
-      actionHTML = '<button class="btn btn-secondary skin-card-action" data-action="equipped" disabled>Equipped</button>';
     } else if (available) {
       bottomHTML = '<span class="skin-grid-status skin-grid-owned">Owned</span>';
-      actionHTML = '<button class="btn btn-primary skin-card-action" data-action="equip" data-skin="' + skin.id + '">Equip Skin</button>';
     } else {
       // Show score progress bar if score-gated and not met
       const scoreBarHTML = (skin.lifetimeScore && !scoreGateMet)
         ? '<div class="skin-prog-row">' +
-            '<span class="skin-prog-lbl">Required Score</span>' +
+            '<span class="skin-prog-lbl">Score</span>' +
             '<div class="skin-bar-track"><div class="skin-bar-fill" style="width:' + scorePct + '%"></div></div>' +
             '<span class="skin-prog-val">' + formatNumber(lifetimeScore) + '</span>' +
           '</div>'
         : '';
       const coinHTML = skin.coinCost
-        ? '<div class="skin-cost-row' + (canAfford ? ' can-afford' : '') + '">Coins: ' + skin.coinCost + '</div>'
+        ? '<div class="skin-cost-row' + (canAfford ? ' can-afford' : '') + '">' + coinSpan + ' ' + skin.coinCost + '</div>'
         : '';
       bottomHTML = scoreBarHTML + coinHTML;
-      if (!scoreGateMet) {
-        actionHTML = '<button class="btn btn-secondary skin-card-action" data-action="locked" disabled>Locked</button>';
-      } else if (canAfford) {
-        actionHTML = '<button class="btn btn-primary skin-card-action" data-action="buy" data-skin="' + skin.id + '">Buy Skin</button>';
-      } else {
-        actionHTML = '<button class="btn btn-secondary skin-card-action" data-action="locked" disabled>Locked</button>';
-      }
     }
 
     const cardClasses = [
@@ -3944,7 +3857,6 @@ function _renderSkinGrid(grid, skins) {
         '<span class="skin-name">' + skin.name + '</span>' +
       '</div>' +
       bottomHTML +
-      '<div class="skin-card-actions">' + actionHTML + '</div>' +
       (locked ? '<span class="skin-lock-overlay" aria-hidden="true">Locked</span>' : '') +
     '</div>';
   }).join('');
@@ -3957,16 +3869,9 @@ function _renderSkinGrid(grid, skins) {
       const skinId = card.dataset.skin;
       const skin = SKIN_DEFS.find(s => s.id === skinId);
       if (!skin) return;
-      const actionBtn = e.target.closest('.skin-card-action');
       selectSkinForPreview(skinId);
-      if (actionBtn && actionBtn.dataset.action === 'buy') {
-        showBuyConfirm(skinId);
-        Audio.uiClick();
-        return;
-      }
-      if ((actionBtn && actionBtn.dataset.action === 'equip') || (isSkinAvailable(skin) && settings.selectedSkin !== skinId)) {
+      if (isSkinAvailable(skin) && settings.selectedSkin !== skinId) {
         settings.selectedSkin = skinId;
-        settings.equippedSkinId = skinId;
         saveSettings();
         grid._lastSkinHash = null;
         updateSkinsUI();
@@ -4013,8 +3918,8 @@ function selectAbilityForPreview(abilityId) {
     primaryHTML = '<button class="btn btn-primary preview-equip-ability-btn" data-ability="' + ability.id + '">Equip Ability</button>';
   } else if (!scoreGateMet) {
     const need = Math.max(0, (ability.lifetimeScoreRequirement || 0) - (settings.lifetimeScore || 0));
-    primaryHTML = '<button class="btn btn-secondary preview-btn-disabled" disabled>Need ' + formatNumber(ability.lifetimeScoreRequirement || 0) + ' Score</button>' +
-      '<div class="preview-score-hint">Need ' + formatNumber(need) + ' Score</div>';
+    primaryHTML = '<button class="btn btn-secondary preview-btn-disabled" disabled>Locked: ' + formatNumber(ability.lifetimeScoreRequirement || 0) + ' score</button>' +
+      '<div class="preview-score-hint">' + formatNumber(need) + ' more lifetime score needed</div>';
   } else {
     primaryHTML = '<button class="btn btn-primary preview-buy-ability-btn' + (canAfford ? '' : ' preview-buy-needcoins') + '" data-ability="' + ability.id + '">Buy Ability ' + coinSpan + ' ' + (ability.coinCost || 0) + '</button>';
   }
@@ -4024,7 +3929,6 @@ function selectAbilityForPreview(abilityId) {
   if (equipBtn) {
     equipBtn.addEventListener('click', () => {
       settings.selectedAbility = ability.id;
-      settings.equippedAbilityId = ability.id;
       saveSettings();
       updateSkinsUI();
       Audio.uiClick();
@@ -4041,7 +3945,6 @@ function selectAbilityForPreview(abilityId) {
       settings.purchasedAbilities = (settings.purchasedAbilities || []).concat([ability.id])
         .filter((id, i, arr) => arr.indexOf(id) === i);
       settings.selectedAbility = ability.id;
-      settings.equippedAbilityId = ability.id;
       saveSettings();
       updateCoinUI();
       updateSkinsUI();
@@ -4065,26 +3968,16 @@ function _renderAbilityGrid(grid, abilities) {
     const scorePct = scoreReq ? Math.min(100, Math.round((lifetimeScore / scoreReq) * 100)) : 100;
 
     let bottomHTML = '';
-    let actionHTML = '';
     if (selected) {
       bottomHTML = '<span class="skin-grid-status skin-grid-equipped">Equipped</span>';
-      actionHTML = '<button class="btn btn-secondary skin-card-action" data-action="equipped" disabled>Equipped</button>';
     } else if (owned) {
       bottomHTML = '<span class="skin-grid-status skin-grid-owned">Owned</span>';
-      actionHTML = '<button class="btn btn-primary skin-card-action" data-action="equip" data-ability="' + ability.id + '">Equip Ability</button>';
     } else {
       const scoreBarHTML = (scoreReq && !scoreGateMet)
-        ? '<div class="skin-prog-row"><span class="skin-prog-lbl">Required Score</span><div class="skin-bar-track"><div class="skin-bar-fill" style="width:' + scorePct + '%"></div></div><span class="skin-prog-val">' + formatNumber(lifetimeScore) + '</span></div>'
+        ? '<div class="skin-prog-row"><span class="skin-prog-lbl">Score</span><div class="skin-bar-track"><div class="skin-bar-fill" style="width:' + scorePct + '%"></div></div><span class="skin-prog-val">' + formatNumber(lifetimeScore) + '</span></div>'
         : '';
-      const coinHTML = '<div class="skin-cost-row' + (canAfford ? ' can-afford' : '') + '">Coins: ' + (ability.coinCost || 0) + '</div>';
+      const coinHTML = '<div class="skin-cost-row' + (canAfford ? ' can-afford' : '') + '">' + coinSpan + ' ' + (ability.coinCost || 0) + '</div>';
       bottomHTML = scoreBarHTML + coinHTML;
-      if (!scoreGateMet) {
-        actionHTML = '<button class="btn btn-secondary skin-card-action" data-action="locked" disabled>Locked</button>';
-      } else if (canAfford) {
-        actionHTML = '<button class="btn btn-primary skin-card-action" data-action="buy" data-ability="' + ability.id + '">Buy Ability</button>';
-      } else {
-        actionHTML = '<button class="btn btn-secondary skin-card-action" data-action="locked" disabled>Locked</button>';
-      }
     }
 
     const cardClasses = [
@@ -4100,10 +3993,7 @@ function _renderAbilityGrid(grid, abilities) {
         '<span class="skin-rarity" data-rarity="' + ability.rarity + '">' + ability.rarity + '</span>' +
         '<span class="skin-name">' + ability.name + '</span>' +
       '</div>' +
-      '<div class="preview-ability-desc" style="margin:6px 0 4px;">' + ability.description + '</div>' +
-      '<div class="skin-grid-status" style="margin-bottom:6px;">Cooldown: ' + (ability.cooldownMs ? Math.round(ability.cooldownMs / 1000) + 's' : 'Passive') + '</div>' +
       bottomHTML +
-      '<div class="skin-card-actions">' + actionHTML + '</div>' +
       (!owned ? '<span class="skin-lock-overlay" aria-hidden="true">Locked</span>' : '') +
     '</div>';
   }).join('');
@@ -4116,27 +4006,9 @@ function _renderAbilityGrid(grid, abilities) {
       const abilityId = card.dataset.ability;
       const ability = ABILITY_DEFS.find(a => a.id === abilityId);
       if (!ability) return;
-      const actionBtn = e.target.closest('.skin-card-action');
       selectAbilityForPreview(abilityId);
-      if (actionBtn && actionBtn.dataset.action === 'buy') {
-        if ((settings.coins || 0) < (ability.coinCost || 0)) {
-          showToast('Not enough coins for ' + ability.name + '.', 2200);
-        } else {
-          settings.coins -= (ability.coinCost || 0);
-          settings.purchasedAbilities = (settings.purchasedAbilities || []).concat([ability.id])
-            .filter((id, i, arr) => arr.indexOf(id) === i);
-          settings.selectedAbility = ability.id;
-          settings.equippedAbilityId = ability.id;
-          saveSettings();
-          updateCoinUI();
-          updateSkinsUI();
-        }
-        Audio.uiClick();
-        return;
-      }
-      if ((actionBtn && actionBtn.dataset.action === 'equip') || (isAbilityAvailable(ability) && settings.selectedAbility !== abilityId)) {
+      if (isAbilityAvailable(ability) && settings.selectedAbility !== abilityId) {
         settings.selectedAbility = abilityId;
-        settings.equippedAbilityId = abilityId;
         saveSettings();
         updateSkinsUI();
       }
@@ -4259,14 +4131,12 @@ function confirmBuySkin() {
   if (!skin || !skin.coinCost) return;
   if (settings.purchasedSkins.includes(skinId)) {
     settings.selectedSkin = skinId;
-    settings.equippedSkinId = skinId;
     saveSettings(); updateSkinsUI(); Audio.uiClick(); return;
   }
   if (settings.coins < skin.coinCost) return;
   settings.coins -= skin.coinCost;
   settings.purchasedSkins = settings.purchasedSkins.concat([skinId]);
   settings.selectedSkin   = skinId;
-  settings.equippedSkinId = skinId;
   saveSettings();
   updateCoinUI();
   updateSkinsUI();
@@ -9925,13 +9795,13 @@ function init() {
     hideModal('modal-progress'); document.getElementById('btn-progress').focus();
   });
 
-  // Wire multiplayer button
+  // â”€â”€ Wire Multiplayer button â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const _btnMp = document.getElementById('btn-multiplayer');
   if (_btnMp) _btnMp.addEventListener('click', () => { Audio.uiClick(); Multiplayer.open(); });
   Multiplayer.bindEvents();
 
 // ============================================================
-// MULTIPLAYER - Room Create / Join / Lobby
+// MULTIPLAYER â€” Room Create / Join / Lobby
 // Uses Firebase Realtime Database (window._fbRtdb)
 // Multiplayer bindEvents is called from inside init() above.
   document.getElementById('btn-resume').addEventListener('click', () => { Audio.uiClick(); resumeGame(); });
@@ -10197,10 +10067,10 @@ const LeaderboardService = (() => {
   async function _fbSubmit(score, name) {
     await (window._fbReady || Promise.resolve(false));
     const db = window._fbDb;
-    if (!db) { console.warn('[ShiftPanic] Firebase not available - score not saved.'); return; }
+    if (!db) { console.warn('[ShiftPanic] Firebase not available â€” score not saved.'); return; }
 
     const pid = window._fbPlayerId;
-    if (!pid) { console.warn('[ShiftPanic] No playerId - score not submitted.'); return; }
+    if (!pid) { console.warn('[ShiftPanic] No playerId â€” score not submitted.'); return; }
 
     const intScore = Math.floor(score);
     if (intScore <= 0) return;
@@ -10274,7 +10144,7 @@ const LeaderboardService = (() => {
 
       const db = window._fbDb;
       if (!db) {
-        console.warn('[ShiftPanic] Firebase unavailable - showing client-side fake players only.');
+        console.warn('[ShiftPanic] Firebase unavailable â€” showing client-side fake players only.');
         return; // Keep showing fake players
       }
 
@@ -10694,7 +10564,7 @@ const LeaderboardUI = (() => {
     const btnClose = document.getElementById('btn-lb-close');
     if (btnClose) btnClose.addEventListener('click', close);
 
-    // Backdrop close - ignore events that are scroll-end touches
+    // Backdrop close â€” ignore events that are scroll-end touches
     const modal = document.getElementById('modal-leaderboard');
     if (modal) {
       let _lbScrolled = false;

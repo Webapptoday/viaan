@@ -147,49 +147,6 @@ body::before {
   color: #e5e7eb;
 }
 
-.shop-loadout-summary {
-  margin: 6px 0 14px;
-  padding: 12px 14px;
-  border: 1px solid rgba(148, 163, 184, 0.28);
-  border-radius: 12px;
-  background: rgba(15, 23, 42, 0.62);
-}
-
-.shop-loadout-title {
-  font-weight: 800;
-  margin-bottom: 6px;
-  color: #f8fafc;
-}
-
-.shop-loadout-row {
-  font-size: 0.95rem;
-  color: #cbd5e1;
-  margin-bottom: 3px;
-}
-
-.shop-loadout-row span {
-  color: #fff;
-  font-weight: 700;
-}
-
-.shop-loadout-help {
-  margin-top: 6px;
-  font-size: 0.85rem;
-  color: #94a3b8;
-}
-
-.skin-card-actions {
-  margin-top: 8px;
-  display: flex;
-  justify-content: center;
-}
-
-.skin-card-actions .skin-card-action {
-  min-width: 120px;
-  padding: 6px 10px;
-  font-size: 0.82rem;
-}
-
 .seo-panel h1 {
   font-family: 'Space Grotesk', 'Inter', sans-serif;
   font-size: clamp(1.7rem, 2.8vw, 2.3rem);
@@ -3358,7 +3315,9 @@ body.perf-low       .lp-dot { animation: none !important; }
 }
 .shop-footer .btn { min-width: 160px; justify-content: center; }
 
-/* ===== SKINS PANEL ===== */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   SKINS PANEL
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 .shop-panel .shop-skin-split { display: flex; align-items: flex-start; gap: 28px; }
 
 /* Featured preview panel */
@@ -3485,7 +3444,9 @@ body.perf-low       .lp-dot { animation: none !important; }
 .skin-grid-lock-label { font-size: .67rem; color: #94a3b8; font-weight: 700; text-align: center; }
 .skin-grid .skin-bar-track { width: 100%; }
 
-/* ===== POWERUPS PANEL ===== */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   POWERUPS PANEL
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 #shop-panel-upgrades .powerup-upgrades-list {
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 22px; margin-top: 0;
@@ -3511,7 +3472,9 @@ body.perf-low       .lp-dot { animation: none !important; }
 #shop-panel-upgrades .powerup-upgrade-meta   { color: #a0c0d8; font-size: .82rem; }
 #shop-panel-upgrades .powerup-upgrade-effect { color: #a0c0d8; font-size: .82rem; }
 
-/* ===== CHALLENGES PANEL ===== */
+/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+   CHALLENGES PANEL
+   â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 #shop-panel-challenges .missions-list { max-width: 860px; }
 #shop-panel-challenges .shop-stats-section { max-width: 700px; }
 

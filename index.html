@@ -97,7 +97,7 @@
           <button id="dc-claim-btn" class="btn btn-primary dc-claim" hidden type="button">
             Claim Reward
           </button>
-          <span id="dc-done-label" class="dc-done-label" hidden>Claimed</span>
+          <span id="dc-done-label" class="dc-done-label" hidden>✓ Claimed</span>
           <span id="dc-progress-label" class="dc-progress-label"></span>
         </div>
       </div>
@@ -108,16 +108,16 @@
           Play
         </button>
         <button id="btn-multiplayer" class="btn btn-secondary btn-mp-open"
-          aria-haspopup="dialog" aria-controls="modal-multiplayer">
-          Multiplayer
+                aria-haspopup="dialog" aria-controls="modal-multiplayer">
+          ⚡ Multiplayer
         </button>
         <button id="btn-progress" class="btn btn-secondary"
                 aria-haspopup="dialog" aria-controls="modal-progress">
           Shop
         </button>
         <button id="btn-leaderboard" class="btn btn-secondary btn-lb-open"
-          aria-haspopup="dialog" aria-controls="modal-leaderboard">
-          Leaderboard
+                aria-haspopup="dialog" aria-controls="modal-leaderboard">
+          🏆 Leaderboard
         </button>
         <button id="btn-help" class="btn btn-secondary btn-help-open"
                 aria-haspopup="dialog" aria-controls="modal-howtoplay"
@@ -181,7 +181,7 @@
 
     <div class="sdr-header">
       <h2 class="sdr-title" id="sdr-title">Settings</h2>
-      <button class="btn-close sdr-close" id="btn-settings-close" aria-label="Close settings">X</button>
+      <button class="btn-close sdr-close" id="btn-settings-close" aria-label="Close settings">✕</button>
     </div>
 
     <div class="sdr-body">
@@ -306,38 +306,38 @@
       <div class="tut-header">
         <span class="tut-step-badge" id="tut-step-badge" aria-live="polite">1 / 5</span>
         <h2 class="tut-title-bar" id="htp-title">How to Play</h2>
-        <button class="btn-close" id="btn-htp-close" aria-label="Close tutorial">X</button>
+        <button class="btn-close" id="btn-htp-close" aria-label="Close tutorial">✕</button>
       </div>
 
       <!-- Step slides (only one visible at a time) -->
       <div class="tut-slides" id="tut-slides">
 
         <div class="tut-slide" data-step="0">
-          <div class="tut-icon" aria-hidden="true">MOVE</div>
+          <div class="tut-icon" aria-hidden="true">🕹️</div>
           <h3 class="tut-slide-title">Move Fast</h3>
           <p class="tut-slide-text">Use <strong>arrow keys</strong> or <strong>WASD</strong> on desktop. On mobile, <strong>drag anywhere</strong> on screen to move your player.</p>
         </div>
 
         <div class="tut-slide" data-step="1" hidden>
-          <div class="tut-icon" aria-hidden="true">AVOID</div>
+          <div class="tut-icon" aria-hidden="true">🚫</div>
           <h3 class="tut-slide-title">Avoid Danger</h3>
           <p class="tut-slide-text">The <strong>forbidden color</strong> is <strong>highlighted as a glowing swatch</strong> at the top of the screen. <em>Never touch blocks of that color.</em> All other colors are safe to pass through.</p>
         </div>
 
         <div class="tut-slide" data-step="2" hidden>
-          <div class="tut-icon" aria-hidden="true">COINS</div>
+          <div class="tut-icon" aria-hidden="true">🪙</div>
           <h3 class="tut-slide-title">Collect Coins</h3>
           <p class="tut-slide-text">Pick up glowing <strong>coins</strong> as you dodge. One pickup = one coin. Spend them in the <strong>Shop</strong> on skins and power-up upgrades.</p>
         </div>
 
         <div class="tut-slide" data-step="3" hidden>
-          <div class="tut-icon" aria-hidden="true">PANIC</div>
+          <div class="tut-icon" aria-hidden="true">⚡</div>
           <h3 class="tut-slide-title">Panic Mode</h3>
           <p class="tut-slide-text">The game gets <strong>faster and harder</strong> as time goes on. The forbidden color shifts periodically — react quickly to every change.</p>
         </div>
 
         <div class="tut-slide" data-step="4" hidden>
-          <div class="tut-icon" aria-hidden="true">RANK</div>
+          <div class="tut-icon" aria-hidden="true">🏆</div>
           <h3 class="tut-slide-title">Climb the Leaderboard</h3>
           <p class="tut-slide-text">Chase your <strong>best score</strong> and compete with players worldwide. Can you reach the top?</p>
         </div>
@@ -355,10 +355,10 @@
 
       <!-- Navigation -->
       <div class="tut-nav">
-        <button class="btn btn-secondary tut-btn-back" id="tut-btn-back" hidden>Back</button>
+        <button class="btn btn-secondary tut-btn-back" id="tut-btn-back" hidden>← Back</button>
         <button class="btn btn-secondary tut-btn-skip" id="tut-btn-skip">Skip</button>
-        <button class="btn btn-primary  tut-btn-next"  id="tut-btn-next">Next</button>
-        <button class="btn btn-primary  tut-btn-start" id="tut-btn-start" hidden>Start Game</button>
+        <button class="btn btn-primary  tut-btn-next"  id="tut-btn-next">Next →</button>
+        <button class="btn btn-primary  tut-btn-start" id="tut-btn-start" hidden>▶ Start Game</button>
       </div>
 
     </div><!-- /.tut-box -->
@@ -391,6 +391,16 @@
             <span class="shop-tab-icon" aria-hidden="true">AB</span> Abilities
           </button>
           <button class="shop-tab-btn" role="tab"
+                  aria-selected="false" aria-controls="shop-panel-upgrades"
+                  data-tab="upgrades" type="button">
+            <span class="shop-tab-icon" aria-hidden="true">PU</span> Powerups
+          </button>
+          <button class="shop-tab-btn" role="tab"
+                  aria-selected="false" aria-controls="shop-panel-challenges"
+                  data-tab="challenges" type="button">
+            <span class="shop-tab-icon" aria-hidden="true">CH</span> Challenges
+          </button>
+          <button class="shop-tab-btn" role="tab"
                   aria-selected="false" aria-controls="shop-panel-lifetime"
                   data-tab="lifetime" type="button">
             <span class="shop-tab-icon" aria-hidden="true">PR</span> Progress
@@ -403,19 +413,12 @@
             <span class="coin-icon" aria-hidden="true"></span>
             <span class="coins-value" id="progress-coins">0</span>
           </div>
-          <button class="btn-close shop-close-btn" id="btn-progress-close" aria-label="Close shop">X</button>
+          <button class="btn-close shop-close-btn" id="btn-progress-close" aria-label="Close shop">✕</button>
         </div>
       </div>
 
       <!-- ── Scrollable panel body ── -->
       <div class="shop-body">
-
-        <div class="shop-loadout-summary" aria-live="polite">
-          <div class="shop-loadout-title">Current Loadout</div>
-          <div class="shop-loadout-row">Skin: <span id="shop-loadout-skin">Classic</span></div>
-          <div class="shop-loadout-row">Ability: <span id="shop-loadout-ability">Coin Magnet</span></div>
-          <div class="shop-loadout-help">Choose one skin for your look and one ability for your power.</div>
-        </div>
 
         <!-- ── SKINS PANEL ── -->
         <div id="shop-panel-skins" class="shop-panel shop-panel-active"
@@ -516,7 +519,7 @@
 
       <!-- Bottom close bar -->
       <div class="shop-footer">
-        <button class="btn btn-secondary" id="btn-progress-close-bottom">Close</button>
+        <button class="btn btn-secondary" id="btn-progress-close-bottom">✕ Close</button>
       </div>
 
     </div><!-- /.shop-fullscreen -->
@@ -543,12 +546,12 @@
         <div class="forbidden-display">
           <div class="forbidden-swatches" aria-label="Forbidden color display">
             <span class="forbidden-swatch"              id="forbidden-swatch" aria-hidden="true"></span>
-            <span class="forbidden-arrow"               id="forbidden-arrow"  aria-hidden="true" hidden>to</span>
+            <span class="forbidden-arrow"               id="forbidden-arrow"  aria-hidden="true" hidden>→</span>
             <span class="forbidden-swatch swatch-next"  id="next-swatch"      aria-hidden="true" hidden></span>
             <span class="dd-plus"                       id="dd-plus"          aria-hidden="true" hidden>+</span>
             <span class="forbidden-swatch dd-swatch"    id="dd-swatch"        aria-hidden="true" hidden></span>
           </div>
-          <span class="forbidden-name" id="forbidden-name">-</span>
+          <span class="forbidden-name" id="forbidden-name">–</span>
         </div>
         <!-- Countdown bar — drains as time runs out -->
         <div class="timer-bar-track" aria-hidden="true">
@@ -625,7 +628,7 @@
 
     <!-- Floating touch pause button (mobile only) -->
     <div id="touch-controls" aria-label="Game touch controls" role="group">
-      <button id="touch-pause" aria-label="Pause game">Pause</button>
+      <button id="touch-pause" aria-label="Pause game">⏸</button>
     </div>
 
     <!-- Pause overlay -->
@@ -691,13 +694,13 @@
           <div class="go-rank-row" id="go-rank-row"></div>
         </div>
         <div class="overlay-btns">
-          <button class="btn btn-primary btn-large" id="btn-restart">Play Again <kbd>R</kbd></button>
+          <button class="btn btn-primary btn-large" id="btn-restart">↺ Play Again <kbd>R</kbd></button>
           <button class="btn btn-secondary"         id="btn-home-from-gameover">Home <kbd>H</kbd></button>
         </div>
         <div class="share-row">
           <button class="btn btn-share" id="btn-share-score" type="button" aria-label="Copy challenge text to clipboard">Copy Score</button>
-          <button class="btn btn-lb-gameover" id="btn-lb-gameover" type="button">Leaderboard</button>
-          <span class="share-copied" id="share-copied" aria-live="polite" hidden>Copied</span>
+          <button class="btn btn-lb-gameover" id="btn-lb-gameover" type="button">🏆 Leaderboard</button>
+          <span class="share-copied" id="share-copied" aria-live="polite" hidden>✓ Copied</span>
         </div>
       </div>
     </div>
@@ -733,7 +736,7 @@
   <div id="nocoins-overlay" class="skin-buy-overlay" hidden aria-hidden="true"></div>
   <div id="nocoins-dialog" class="skin-buy-dialog nocoins-dialog" role="dialog"
        aria-modal="true" aria-labelledby="ncd-title" hidden>
-    <div class="ncd-icon" aria-hidden="true">AD</div>
+    <div class="ncd-icon" aria-hidden="true">🎬</div>
     <p class="sbd-title" id="ncd-title">Not enough coins</p>
     <p class="ncd-body">Watch a short video to earn <strong><span class="coin-icon coin-sm" aria-hidden="true"></span> 100 coins</strong> and unlock this skin!</p>
     <div class="sbd-balance-row">
@@ -747,7 +750,7 @@
     <div class="sbd-actions ncd-actions">
       <button id="ncd-cancel" class="btn btn-secondary">Cancel</button>
       <button id="ncd-watch" class="btn btn-primary ncd-watch-btn">
-        <span class="ncd-play-icon">PLAY</span> Watch Video
+        <span class="ncd-play-icon">▶</span> Watch Video
         <span class="ncd-bonus">+100 <span class="coin-icon coin-sm" aria-hidden="true"></span></span>
       </button>
     </div>
@@ -771,7 +774,7 @@
         <div class="rad-reward-chip" aria-hidden="true">
           +100&nbsp;<span class="coin-icon coin-sm"></span>
         </div>
-        <button id="rad-close" class="rad-close-btn" aria-label="Close">X</button>
+        <button id="rad-close" class="rad-close-btn" aria-label="Close">✕</button>
       </div>
 
       <!-- ── Video / Ad area ─────────────────────────────── -->
@@ -794,7 +797,7 @@
             <div class="rad-fb-logo-ring" aria-hidden="true"></div>
             <span class="rad-fb-game-title">SHIFTPANIC</span>
             <p class="rad-fb-tagline">How long can you survive?</p>
-            <div class="rad-fb-stars" aria-hidden="true">TOP RATED</div>
+            <div class="rad-fb-stars" aria-hidden="true">★★★★★</div>
             <span class="rad-fb-badge">Top Game</span>
           </div>
           <div class="rad-fb-footer">
@@ -808,11 +811,11 @@
         <!-- Idle start overlay (shown before video begins) -->
         <div id="rad-idle-overlay" class="rad-idle-overlay" aria-label="Press start to begin the video">
           <div class="rad-idle-reward-badge" aria-hidden="true">
-            <span class="rad-idle-badge-icon">COIN</span>
+            <span class="rad-idle-badge-icon">🪙</span>
             <span class="rad-idle-badge-text">+100 Coins</span>
           </div>
           <button id="rad-start" class="rad-start-btn">
-            <span class="rad-start-icon" aria-hidden="true">PLAY</span>
+            <span class="rad-start-icon" aria-hidden="true">▶</span>
             Start Video
           </button>
           <p class="rad-idle-hint">Finish the full video to claim your reward</p>
@@ -821,15 +824,15 @@
         <!-- Completion overlay -->
         <div id="rad-complete-overlay" class="rad-complete-overlay" hidden aria-hidden="true">
           <div class="rad-complete-sparks" aria-hidden="true">
-            <span class="rad-spark rad-spark-1">.</span>
-            <span class="rad-spark rad-spark-2">.</span>
-            <span class="rad-spark rad-spark-3">.</span>
-            <span class="rad-spark rad-spark-4">.</span>
-            <span class="rad-spark rad-spark-5">.</span>
-            <span class="rad-spark rad-spark-6">.</span>
+            <span class="rad-spark rad-spark-1">•</span>
+            <span class="rad-spark rad-spark-2">•</span>
+            <span class="rad-spark rad-spark-3">•</span>
+            <span class="rad-spark rad-spark-4">•</span>
+            <span class="rad-spark rad-spark-5">•</span>
+            <span class="rad-spark rad-spark-6">•</span>
           </div>
           <div class="rad-complete-ring" aria-hidden="true">
-            <span class="rad-complete-check">OK</span>
+            <span class="rad-complete-check">✓</span>
           </div>
           <p class="rad-complete-text">Video Complete!</p>
         </div>
@@ -878,13 +881,13 @@
       <!-- Header -->
       <div class="lb-header">
         <div class="lb-header-left">
-          <span class="lb-trophy-icon" aria-hidden="true">LB</span>
+          <span class="lb-trophy-icon" aria-hidden="true">🏆</span>
           <div>
             <h2 class="lb-title" id="lb-title">Leaderboard</h2>
             <p class="lb-subtitle">Compete. Climb. Conquer.</p>
           </div>
         </div>
-        <button class="btn-close lb-close-btn" id="btn-lb-close" aria-label="Close leaderboard">X</button>
+        <button class="btn-close lb-close-btn" id="btn-lb-close" aria-label="Close leaderboard">✕</button>
       </div>
 
       <!-- Your Stats card -->
@@ -931,7 +934,7 @@
 
       <!-- Footer: change name -->
       <div class="lb-footer">
-        <span class="lb-name-label">Playing as: <strong id="lb-player-name-display">-</strong></span>
+        <span class="lb-name-label">Playing as: <strong id="lb-player-name-display">—</strong></span>
         <button id="lb-change-name" class="btn lb-change-name-btn" type="button">Change Name</button>
       </div>
 
@@ -944,9 +947,9 @@
   <div id="name-overlay" class="skin-buy-overlay" hidden aria-hidden="true"></div>
   <div id="name-dialog" class="skin-buy-dialog name-dialog" role="dialog"
        aria-modal="true" aria-labelledby="nd-title" hidden>
-    <div class="ncd-icon" aria-hidden="true">ID</div>
+    <div class="ncd-icon" aria-hidden="true">�</div>
     <p class="sbd-title" id="nd-title">Choose your leaderboard name</p>
-    <p class="ncd-body">Your name will appear on the global leaderboard. 3-12 letters or numbers. You can skip and stay Anonymous.</p>
+    <p class="ncd-body">Your name will appear on the global leaderboard. 3–12 letters or numbers. You can skip and stay Anonymous.</p>
     <input id="nd-input" class="nd-input" type="text" maxlength="12"
            placeholder="YourName" autocomplete="off" spellcheck="false"
            aria-label="Leaderboard name" />
@@ -970,19 +973,19 @@
       <!-- Header -->
       <div class="mp-header">
         <div class="mp-header-left">
-          <span class="mp-icon" aria-hidden="true">MP</span>
+          <span class="mp-icon" aria-hidden="true">⚡</span>
           <div>
             <h2 class="mp-title" id="mp-title">Multiplayer</h2>
             <p class="mp-subtitle">Play with a friend in real-time</p>
           </div>
         </div>
-        <button class="btn-close mp-close-btn" id="btn-mp-close" aria-label="Close multiplayer">X</button>
+        <button class="btn-close mp-close-btn" id="btn-mp-close" aria-label="Close multiplayer">✕</button>
       </div>
 
       <!-- ── VIEW: entry (create or join) ── -->
       <div id="mp-view-entry" class="mp-view">
         <button id="mp-btn-create" class="btn btn-primary mp-action-btn" type="button">
-          Create Room
+          🎮 Create Room
         </button>
         <div class="mp-divider"><span>or</span></div>
         <div class="mp-join-row">
@@ -1007,10 +1010,10 @@
           <!-- rendered by JS -->
         </div>
 
-        <p id="mp-waiting-msg" class="mp-waiting-msg" aria-live="polite">Waiting for friend...</p>
+        <p id="mp-waiting-msg" class="mp-waiting-msg" aria-live="polite">Waiting for friend…</p>
 
         <button id="mp-btn-start" class="btn btn-primary mp-start-btn" type="button" hidden>
-          Start Match
+          ▶ Start Match
         </button>
 
         <button id="mp-btn-leave" class="btn btn-ghost mp-leave-btn" type="button">Leave Room</button>
@@ -1063,7 +1066,7 @@
     <span id="rtdb-test-out" style="color:#68d391; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></span>
     <button onclick="document.getElementById('rtdb-test-bar').remove()" style="
       background:none; border:1px solid #4a5568; color:#718096; border-radius:4px;
-      padding:2px 8px; cursor:pointer; font-size:11px;">X</button>
+      padding:2px 8px; cursor:pointer; font-size:11px;">✕</button>
   </div>
 
   <!-- Vercel Analytics — tracks visitors, page views, countries, devices and traffic sources -->
