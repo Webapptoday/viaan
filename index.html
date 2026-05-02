@@ -1049,25 +1049,54 @@
   <script defer src="firebase-client.js"></script>
   <script defer src="script.js?v=58"></script>
 
-  <!-- ── RTDB debug button (remove after confirming RTDB works) ── -->
-  <div id="rtdb-test-bar" style="
-    position:fixed; bottom:0; left:0; right:0; z-index:99999;
-    background:#1a202c; border-top:2px solid #e879f9;
-    padding:8px 16px; display:flex; align-items:center; gap:12px;
-    font-family:monospace; font-size:12px; color:#a0aec0;">
-    <span>RTDB Debug</span>
-    <button onclick="window._fbRtdbTest && window._fbRtdbTest().then(function(v){
-      document.getElementById('rtdb-test-out').textContent = v ? JSON.stringify(v) : 'null — check console for error';
-    })" style="
-      background:#e879f9; color:#fff; border:none; border-radius:6px;
-      padding:4px 12px; cursor:pointer; font-size:12px; font-weight:700;">
-      Test Write + Read
-    </button>
-    <span id="rtdb-test-out" style="color:#68d391; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></span>
-    <button onclick="document.getElementById('rtdb-test-bar').remove()" style="
-      background:none; border:1px solid #4a5568; color:#718096; border-radius:4px;
-      padding:2px 8px; cursor:pointer; font-size:11px;">✕</button>
-  </div>
+  <!-- RTDB debug bar: injected only when ?debug=true is present (hidden by default) -->
+  <script>
+  (function(){
+    try {
+      var show = /[?&]debug=true(?:&|$)/.test(location.search);
+      if (!show) return;
+      var bar = document.createElement('div');
+      bar.id = 'rtdb-test-bar';
+      bar.style.cssText = "position:fixed; bottom:0; left:0; right:0; z-index:99999; background:#1a202c; border-top:2px solid #e879f9; padding:8px 16px; display:flex; align-items:center; gap:12px; font-family:monospace; font-size:12px; color:#a0aec0;";
+
+      var label = document.createElement('span');
+      label.textContent = 'RTDB Debug';
+      bar.appendChild(label);
+
+      var testBtn = document.createElement('button');
+      testBtn.textContent = 'Test Write + Read';
+      testBtn.style.cssText = 'background:#e879f9; color:#fff; border:none; border-radius:6px; padding:4px 12px; cursor:pointer; font-size:12px; font-weight:700;';
+      testBtn.addEventListener('click', function(){
+        if (window._fbRtdbTest) {
+          window._fbRtdbTest().then(function(v){
+            var out = document.getElementById('rtdb-test-out');
+            if (out) out.textContent = v ? JSON.stringify(v) : 'null - check console for error';
+          }).catch(function(e){
+            console.error('RTDB test error', e);
+            var out = document.getElementById('rtdb-test-out');
+            if (out) out.textContent = 'error - check console';
+          });
+        } else {
+          console.warn('RTDB test helper not available');
+        }
+      });
+      bar.appendChild(testBtn);
+
+      var outSpan = document.createElement('span');
+      outSpan.id = 'rtdb-test-out';
+      outSpan.style.cssText = 'color:#68d391; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;';
+      bar.appendChild(outSpan);
+
+      var closeBtn = document.createElement('button');
+      closeBtn.textContent = 'X';
+      closeBtn.style.cssText = 'background:none; border:1px solid #4a5568; color:#718096; border-radius:4px; padding:2px 8px; cursor:pointer; font-size:11px;';
+      closeBtn.addEventListener('click', function(){ bar.remove(); });
+      bar.appendChild(closeBtn);
+
+      document.body.appendChild(bar);
+    } catch (e) { console.error(e); }
+  })();
+  </script>
 
   <!-- Vercel Analytics — tracks visitors, page views, countries, devices and traffic sources -->
   <script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>
