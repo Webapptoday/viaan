@@ -3559,6 +3559,104 @@ body.perf-low       .lp-dot { animation: none !important; }
 }
 
 
+/* ============================================================
+   ABILITIES PANEL - Visual polish (scoped)
+   ============================================================ */
+#shop-panel-abilities .shop-preview-panel {
+  width: 340px; padding: 28px; border-radius: 18px;
+  background: linear-gradient(180deg, rgba(12,6,36,.96), rgba(6,3,22,.98));
+  border: 1.5px solid rgba(139,92,246,.42);
+  box-shadow: 0 16px 60px rgba(6,4,28,.7), 0 0 30px rgba(139,92,246,.08);
+  display:flex; flex-direction:column; align-items:center; gap:14px;
+}
+#shop-panel-abilities canvas#skin-preview-canvas-ab {
+  width: 220px; height: 220px; border-radius: 14px;
+  background: linear-gradient(135deg, rgba(68,12,129,.50), rgba(15,6,48,.92));
+  border: 1px solid rgba(255,255,255,.04);
+  box-shadow: 0 10px 36px rgba(64,12,140,.28), inset 0 1px 0 rgba(255,255,255,.04);
+}
+#shop-panel-abilities .preview-skin-meta { display:flex; flex-direction:column; align-items:center; gap:6px; }
+#shop-panel-abilities .preview-skin-name { font-size:1.18rem; font-weight:900; color:#ffffff; }
+#shop-panel-abilities .preview-skin-rarity { font-size:.7rem; font-weight:800; padding:6px 12px; border-radius:999px; text-transform:uppercase; letter-spacing:.08em; }
+#shop-panel-abilities .preview-ability-info-ab {
+  width:100%; color:#cfe8ff; font-size:.92rem; line-height:1.45; text-align:center; margin-top:6px;
+}
+
+/* Ability grid card polish */
+#shop-panel-abilities .shop-skin-grid-panel { padding-left: 22px; }
+#shop-panel-abilities .skin-grid .skin-btn {
+  padding: 18px 12px 16px; border-radius: 14px;
+  background: linear-gradient(180deg, rgba(10,6,28,.98), rgba(6,3,18,.98));
+  border: 1px solid rgba(255,255,255,.06); box-shadow: 0 8px 30px rgba(0,0,0,.62);
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+#shop-panel-abilities .skin-grid .skin-btn:hover { transform: translateY(-6px); box-shadow: 0 18px 50px rgba(0,0,0,.7); }
+
+#shop-panel-abilities .skin-btn .skin-preview {
+  width: 78px; height: 78px; border-radius: 12px; position: relative;
+  display:flex; align-items:center; justify-content:center; overflow:hidden;
+  font-size:22px; font-weight:900; color:#fff; text-transform:uppercase;
+  background: linear-gradient(135deg, rgba(32,12,80,.62), rgba(12,4,40,.95));
+  border: 1px solid rgba(255,255,255,.04);
+  box-shadow: 0 8px 28px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.03);
+}
+#shop-panel-abilities .skin-preview::after {
+  content: '';
+  position: absolute; inset: -10% -10% -10% -10%;
+  background: radial-gradient(circle at 30% 25%, rgba(255,255,255,.04), transparent 30%);
+  pointer-events: none; mix-blend-mode: overlay;
+}
+
+/* Name + rarity under icon */
+#shop-panel-abilities .skin-name { display:block; margin-top:10px; font-weight:900; font-size:.98rem; color:#fff; text-align:center; }
+#shop-panel-abilities .skin-rarity { display:block; margin-top:4px; font-size:.72rem; color:#cbd5e1; }
+
+/* Locked overlay */
+#shop-panel-abilities .skin-lock-overlay {
+  position: absolute; top:10px; right:10px; background: rgba(0,0,0,.45);
+  color:#e2e8f0; padding:6px 8px; border-radius:8px; font-weight:800; font-size:.72rem;
+  border: 1px solid rgba(255,255,255,.04);
+}
+
+/* Equipped / selected card emphasis */
+#shop-panel-abilities .skin-btn.skin-selected {
+  transform: translateY(-6px); border-color: rgba(167,139,250,.8);
+  box-shadow: 0 18px 60px rgba(109,40,217,.48), inset 0 1px 0 rgba(255,255,255,.04);
+}
+
+/* Rarity highlights (ability-specific overrides) */
+#shop-panel-abilities .skin-btn[data-rarity="rare"] .skin-preview {
+  box-shadow: 0 8px 28px rgba(56,189,248,.08), 0 0 10px rgba(56,189,248,.06);
+  border-color: rgba(56,189,248,.18);
+}
+#shop-panel-abilities .skin-btn[data-rarity="epic"] .skin-preview {
+  box-shadow: 0 10px 36px rgba(168,85,247,.12), 0 0 18px rgba(248,156,116,.06);
+  border-color: rgba(192,132,252,.22);
+}
+#shop-panel-abilities .skin-btn[data-rarity="legendary"] .skin-preview {
+  box-shadow: 0 12px 46px rgba(255,199,70,.12), 0 0 28px rgba(168,85,247,.12);
+  border: 1px solid rgba(251,191,36,.28);
+}
+#shop-panel-abilities .skin-btn[data-rarity="mythic"] .skin-preview {
+  box-shadow: 0 16px 66px rgba(255,200,100,.14), 0 0 40px rgba(168,85,247,.16);
+  border: 1px solid rgba(251,191,36,.36);
+}
+
+/* Cost / score rows clearer */
+#shop-panel-abilities .skin-cost-row { display:flex; align-items:center; justify-content:center; gap:8px; font-weight:900; color:#fef08a; font-size:.95rem; margin-top:8px; }
+#shop-panel-abilities .skin-prog-row { display:flex; align-items:center; gap:8px; justify-content:center; margin-top:8px; }
+
+/* Make preview actions more prominent */
+#shop-panel-abilities .preview-actions { width:100%; display:flex; flex-direction:column; gap:8px; }
+
+@media (max-width: 900px) {
+  #shop-panel-abilities .shop-preview-panel { width: 100%; padding: 18px; }
+  #shop-panel-abilities canvas#skin-preview-canvas-ab { width: 160px; height:160px; }
+  #shop-panel-abilities .skin-grid .skin-btn { padding: 14px 10px; }
+}
+
+
+
 
 /* ============================================================
    NOCOINS DIALOG
