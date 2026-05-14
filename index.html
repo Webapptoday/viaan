@@ -30,6 +30,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=Space+Grotesk:wght@700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css?v=6" />
+  <link rel="stylesheet" href="campaign.css" />
 </head>
 <body>
 
@@ -105,7 +106,10 @@
       <!-- Two-button home: Start + Settings/Help -->
       <div class="home-actions">
         <button id="btn-start" class="btn btn-primary btn-large">
-          Play
+          Endless
+        </button>
+        <button id="btn-campaign" class="btn btn-secondary btn-large btn-campaign-home">
+          Campaign
         </button>
         <button id="btn-multiplayer" class="btn btn-secondary btn-mp-open"
                 aria-haspopup="dialog" aria-controls="modal-multiplayer">
@@ -455,6 +459,9 @@
           <div class="shop-skin-split">
             <div class="shop-preview-panel">
               <canvas id="skin-preview-canvas-ab" width="160" height="160" aria-hidden="true"></canvas>
+              <div class="ability-preview-image" aria-hidden="true">
+                <img id="ability-preview-img" src="" alt="Ability preview" />
+              </div>
               <div class="preview-skin-meta">
                 <span class="preview-skin-name" id="preview-skin-name-ab">-</span>
                 <span class="preview-skin-rarity" id="preview-skin-rarity-ab" data-rarity="rare">rare</span>
@@ -464,7 +471,7 @@
             </div>
             <div class="shop-skin-grid-panel">
               <div class="shop-section-label">Abilities <span class="shop-section-badge">Equip One</span></div>
-              <p class="shop-panel-hint shop-ability-hint">Choose one ability to pair with your skin. Abilities affect gameplay and are separate from cosmetics.</p>
+              <p class="shop-panel-hint shop-ability-hint">Choose one ability to pair with your current skin.</p>
               <div class="skin-grid" id="skin-stage-ability" role="list" aria-label="Abilities"></div>
             </div>
           </div>
@@ -705,7 +712,35 @@
       </div>
     </div>
 
+    <!-- Campaign canvas overlays (drawn above game canvas) -->
+    <canvas id="boss-canvas" class="boss-canvas-overlay" hidden aria-hidden="true"></canvas>
+    <canvas id="campaign-wall-canvas" class="boss-canvas-overlay" hidden aria-hidden="true"></canvas>
+
   </div><!-- /#game-screen -->
+
+  <!-- Campaign HUD overlay (shown during campaign gameplay) -->
+  <div id="campaign-hud-overlay" class="campaign-hud-overlay" hidden>
+    <div class="cmp-hud-inner">
+      <div class="cmp-hud-name" id="cmp-hud-name"></div>
+      <div class="cmp-hud-progress" id="cmp-hud-progress"></div>
+      <div class="cmp-hud-timer" id="cmp-hud-timer" hidden></div>
+      <div id="cmp-hud-boss" hidden></div>
+      <div id="cmp-hud-dt" class="cmp-hud-dt" hidden>DOUBLE TROUBLE!</div>
+      <div id="cmp-hud-shrink" class="cmp-hud-shrink" hidden>Arena Shrinking!</div>
+    </div>
+  </div>
+
+  <!-- Campaign Level Select screen -->
+  <div id="campaign-levelselect" class="cmp-screen" hidden aria-label="Campaign Level Select"></div>
+
+  <!-- Campaign Intro overlay -->
+  <div id="campaign-intro" class="cmp-screen" hidden></div>
+
+  <!-- Campaign Victory overlay -->
+  <div id="campaign-victory" class="cmp-screen" hidden></div>
+
+  <!-- Campaign Defeat overlay -->
+  <div id="campaign-defeat" class="cmp-screen" hidden></div>
 
   <div id="skin-unlock-toast" class="skin-unlock-toast" role="status" aria-live="polite" hidden></div>
 
@@ -947,7 +982,7 @@
   <div id="name-overlay" class="skin-buy-overlay" hidden aria-hidden="true"></div>
   <div id="name-dialog" class="skin-buy-dialog name-dialog" role="dialog"
        aria-modal="true" aria-labelledby="nd-title" hidden>
-    <div class="ncd-icon" aria-hidden="true">�</div>
+    <div class="ncd-icon" aria-hidden="true"></div>
     <p class="sbd-title" id="nd-title">Choose your leaderboard name</p>
     <p class="ncd-body">Your name will appear on the global leaderboard. 3–12 letters or numbers. You can skip and stay Anonymous.</p>
     <input id="nd-input" class="nd-input" type="text" maxlength="12"
@@ -1101,5 +1136,6 @@
   <!-- Vercel Analytics — tracks visitors, page views, countries, devices and traffic sources -->
   <script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>
   <script defer src="/_vercel/insights/script.js"></script>
+  <script defer src="campaign.js"></script>
 </body>
 </html>

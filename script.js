@@ -18,11 +18,11 @@ const GAME_COLORS = [
 ];
 
 const POWERUP_DEFS = {
-  SHIELD: { label: 'Shield',    icon: '\uD83D\uDEE1', color: '#facc15', duration: 10 },
-  SLOW:   { label: 'Slow Time', icon: '',        color: '#38bdf8', duration: 6  },
+  SHIELD: { label: 'Shield',    icon: '\uD83D\uDEE1', color: '#facc15', duration: 10, image: 'shieldpowerups.png' },
+  SLOW:   { label: 'Slow Time', icon: '',        color: '#38bdf8', duration: 6, image: 'slowpowerups.png'  },
   CLEAR:  { label: 'Clear',    icon: '',         color: '#e879f9', duration: 0  },
   BOOST:  { label: 'Score x2',  icon: '',         color: '#fb923c', duration: 8  },
-  SMALL:  { label: 'Small Mode',icon: '\uD83D\uDD35',  color: '#34d399', duration: 5  },
+  SMALL:  { label: 'Small Mode',icon: '\uD83D\uDD35',  color: '#34d399', duration: 5, image: 'smallpowerups.png' },
 };
 const POWERUP_KEYS = Object.keys(POWERUP_DEFS);
 const POWERUP_UPGRADE_DEFS = {
@@ -129,12 +129,12 @@ const SKIN_DEFS = [
 
 // Abilities - gameplay powers only
 const ABILITY_DEFS = [
-  { id: 'magnet', name: 'Coin Magnet', rarity: 'common', coinCost: 0, lifetimeScoreRequirement: 0, description: 'Pulls nearby coins toward player.', cooldownMs: 0, effectType: 'personal', icon: 'CM' },
-  { id: 'shield', name: 'Shield', rarity: 'epic', coinCost: 800, lifetimeScoreRequirement: 225000, description: 'Blocks one hit and then recharges.', cooldownMs: 45000, effectType: 'personal', icon: 'SH' },
-  { id: 'dash', name: 'Dash', rarity: 'epic', coinCost: 1400, lifetimeScoreRequirement: 550000, description: 'Short speed burst with cooldown.', cooldownMs: 20000, effectType: 'personal', icon: 'DA' },
-  { id: 'slow-field', name: 'Slow Field', rarity: 'epic', coinCost: 1000, lifetimeScoreRequirement: 350000, description: 'Slows block speed briefly.', cooldownMs: 25000, effectType: 'shared', icon: 'SL' },
-  { id: 'pulse', name: 'Pulse Wave', rarity: 'legendary', coinCost: 1800, lifetimeScoreRequirement: 800000, description: 'Pushes nearby blocks away instantly.', cooldownMs: 30000, effectType: 'shared', icon: 'PW' },
-  { id: 'ghost', name: 'Ghost Shift', rarity: 'mythic', coinCost: 3000, lifetimeScoreRequirement: 1250000, description: 'Pass through danger briefly.', cooldownMs: 40000, effectType: 'personal', icon: 'GH' },
+  { id: 'magnet', name: 'Coin Magnet', rarity: 'common', coinCost: 0, lifetimeScoreRequirement: 0, description: 'Pulls nearby coins toward player.', cooldownMs: 0, effectType: 'personal', image: 'Coin-magnet.png', icon: 'CM' },
+  { id: 'shield', name: 'Shield', rarity: 'epic', coinCost: 800, lifetimeScoreRequirement: 225000, description: 'Blocks one hit and then recharges.', cooldownMs: 45000, effectType: 'personal', image: 'shield.png', icon: 'SH' },
+  { id: 'dash', name: 'Dash', rarity: 'epic', coinCost: 1400, lifetimeScoreRequirement: 550000, description: 'Short speed burst with cooldown.', cooldownMs: 20000, effectType: 'personal', image: 'dash.png', icon: 'DA' },
+  { id: 'slow-field', name: 'Slow Field', rarity: 'epic', coinCost: 1000, lifetimeScoreRequirement: 350000, description: 'Slows block speed briefly.', cooldownMs: 25000, effectType: 'shared', image: 'slow-field.png', icon: 'SL' },
+  { id: 'pulse', name: 'Pulse Wave', rarity: 'legendary', coinCost: 1800, lifetimeScoreRequirement: 800000, description: 'Pushes nearby blocks away instantly.', cooldownMs: 30000, effectType: 'shared', image: 'Pulse-wave.png', icon: 'PW' },
+  { id: 'ghost', name: 'Ghost Shift', rarity: 'mythic', coinCost: 3000, lifetimeScoreRequirement: 1250000, description: 'Pass through danger briefly.', cooldownMs: 40000, effectType: 'personal', image: 'Ghost-swish.png', icon: 'GH' },
 ];
 
 // Removed skins migration map: old id -> replacement id
@@ -163,6 +163,22 @@ const ABILITY_RUNTIME_DEFS = {
   pulse:      { abilityId: 'pulse',  abilityName: 'Pulse Wave',  icon: 'PW', passive: false, cooldown: 30, duration: 0,  desc: 'Blasts nearby blocks outward every 30s.' },
   ghost:      { abilityId: 'ghost',  abilityName: 'Ghost Shift', icon: 'GH', passive: false, cooldown: 40, duration: 1,  desc: 'Phase through danger blocks for 1s every 40s.' },
 };
+// Map ability id -> image path (PNG files placed in project root)
+function abilityImageSrc(abilityId) {
+  // Prefer explicit image property on the ability defs (keeps data canonical)
+  const ability = ABILITY_DEFS.find(a => a.id === abilityId);
+  if (ability && ability.image) return ability.image;
+  // Fallback mapping for legacy cases
+  const map = {
+    magnet:     'Coin-magnet.png',
+    shield:     'shield.png',
+    dash:       'dash.png',
+    'slow-field':'slow-field.png',
+    pulse:      'Pulse-wave.png',
+    ghost:      'Ghost-swish.png',
+  };
+  return map[abilityId] || '';
+}
 const LIFETIME_REWARD_DEFS = [
   // -- Common ------------------------------------------------------------------
   { id: 'lt_coins_500',   milestone:    25000, label: '100 Coins',      type: 'coins',  coins: 100,  rarity: 'common',    icon: 'COIN', description: 'A starter coin bundle to kick off your journey.' },
@@ -498,6 +514,8 @@ function claimMission(id) {
     card.classList.add('mission-claim-flash');
     setTimeout(() => card.classList.remove('mission-claim-flash'), 700);
   }
+  // Ensure preview shows something when the grid is rendered
+  selectAbilityForPreview(settings.selectedAbility || (ABILITY_DEFS[0] && ABILITY_DEFS[0].id));
 }
 
 function buildMissionCard(m) {
@@ -1342,9 +1360,13 @@ function updatePowerupUpgradeUI() {
         ' data-upgrade-key="' + key + '">' +
         coinSpan + '<span>' + nextCost.toLocaleString() + '</span></button>';
 
+    // Render icon image when provided, otherwise fall back to def.icon
+    const iconSrc = def.image || '';
+    const iconHTML = '<div class="pup-zone-icon"><div class="pup-icon-ring">' + (iconSrc ? ('<img src="' + iconSrc + '" alt="' + def.label + '"/>') : (def.icon || '')) + '</div></div>';
+
     return '<article class="pup-card" data-powerup-key="' + key + '" data-maxed="' + isMaxed + '"' +
       ' style="--pup-acc:' + def.color + ';--pup-acc-rgb:' + accRgb + '">' +
-      '<div class="pup-zone-icon"><div class="pup-icon-ring">' + def.icon + '</div></div>' +
+      iconHTML +
       '<div class="pup-zone-info">' +
         '<div class="pup-name-row">' +
           '<span class="pup-name">' + def.label + '</span>' +
@@ -3329,7 +3351,13 @@ function updatePowerupDisplay() {
   if (!activePowerupKey) { el.hidden = true; return; }
   el.hidden = false;
   const def = POWERUP_DEFS[activePowerupKey];
-  if (iconEl) iconEl.textContent = def.icon;
+  if (iconEl) {
+    if (def.image) {
+      iconEl.innerHTML = '<img src="' + def.image + '" alt="' + def.label + '"/>';
+    } else {
+      iconEl.textContent = def.icon || '';
+    }
+  }
   if (nameEl) nameEl.textContent = ' ' + def.label;
   if (def.duration > 0 && activePowerupTotal > 0) {
     if (barWrap) barWrap.hidden = false;
@@ -3569,7 +3597,15 @@ const SkinAbility = (() => {
     const nameEl  = el.querySelector('.sa-name');
     const barEl   = el.querySelector('.sa-bar-fill');
     const stateEl = el.querySelector('.sa-state');
-    if (iconEl) iconEl.textContent = _def.icon;
+    if (iconEl) {
+      // Prefer showing the ability image instead of letter initials
+      const img = abilityImageSrc(_def.abilityId || _def.abilityId);
+      if (img) {
+        iconEl.innerHTML = '<img src="' + img + '" alt="" />';
+      } else {
+        iconEl.textContent = '';
+      }
+    }
     if (nameEl) nameEl.textContent = _def.abilityName;
     if (_def.passive) {
       el.dataset.state = 'active';
@@ -3688,6 +3724,15 @@ function selectSkinForPreview(skinId) {
   const nameEl     = document.getElementById('preview-skin-name');
   const rarityEl   = document.getElementById('preview-skin-rarity');
   const actionsEl  = document.getElementById('preview-actions');
+  // When selecting a skin, hide any ability preview image if present
+  try {
+    const abilityImgWrap = document.querySelector('#shop-panel-abilities .ability-preview-image');
+    const previewImg = document.getElementById('ability-preview-img');
+    const abilityCanvas = document.getElementById('skin-preview-canvas-ab');
+    if (previewImg) { previewImg.src = ''; previewImg.style.display = 'none'; }
+    if (abilityImgWrap) abilityImgWrap.setAttribute('aria-hidden', 'true');
+    if (abilityCanvas) abilityCanvas.style.display = '';
+  } catch (e) { /* ignore */ }
   if (nameEl)   nameEl.textContent = skin.name;
   if (rarityEl) { rarityEl.textContent = skin.rarity; rarityEl.dataset.rarity = skin.rarity; }
   // Ability info panel (skins are cosmetic only now)
@@ -3894,12 +3939,30 @@ function selectAbilityForPreview(abilityId) {
   const rarityEl = document.getElementById('preview-skin-rarity-ab');
   const actionsEl = document.getElementById('preview-actions-ab');
   const infoEl = document.getElementById('preview-ability-info-ab');
+  const previewImg = document.getElementById('ability-preview-img');
+  const abilityCanvas = document.getElementById('skin-preview-canvas-ab');
+  const abilityImgWrap = document.querySelector('#shop-panel-abilities .ability-preview-image');
   if (nameEl) nameEl.textContent = ability.name;
   if (rarityEl) { rarityEl.textContent = ability.rarity; rarityEl.dataset.rarity = ability.rarity; }
   if (infoEl) {
     infoEl.hidden = false;
+    // Set preview image if available (hide the ability canvas when showing image)
+    if (previewImg) {
+      const src = abilityImageSrc(ability.id);
+      if (src) {
+        previewImg.src = src;
+        previewImg.alt = ability.name + ' icon';
+        previewImg.style.display = '';
+        if (abilityCanvas) abilityCanvas.style.display = 'none';
+        if (abilityImgWrap) abilityImgWrap.setAttribute('aria-hidden', 'false');
+      } else {
+        previewImg.src = '';
+        previewImg.style.display = 'none';
+        if (abilityCanvas) abilityCanvas.style.display = '';
+        if (abilityImgWrap) abilityImgWrap.setAttribute('aria-hidden', 'true');
+      }
+    }
     infoEl.innerHTML =
-      '<span class="preview-ability-icon">' + (ability.icon || 'AB') + '</span>' +
       '<span class="preview-ability-name">' + ability.name + '</span>' +
       '<span class="preview-ability-desc">' + ability.description + '</span>';
   }
@@ -3987,8 +4050,10 @@ function _renderAbilityGrid(grid, abilities) {
       (!owned && scoreGateMet && canAfford) ? 'skin-affordable' : '',
     ].filter(Boolean).join(' ');
 
+    const _img = abilityImageSrc(ability.id);
+    const iconHTML = '<div class="skin-preview ability-icon" aria-hidden="true">' + (_img ? '<img src="' + _img + '" alt="' + ability.name + '"/>' : '') + '</div>';
     return '<div class="' + cardClasses + '" data-ability="' + ability.id + '" data-rarity="' + ability.rarity + '" role="listitem" tabindex="0">' +
-      '<div class="skin-preview" aria-hidden="true" style="display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;">' + (ability.icon || 'AB') + '</div>' +
+      iconHTML +
       '<div class="skin-card-meta">' +
         '<span class="skin-rarity" data-rarity="' + ability.rarity + '">' + ability.rarity + '</span>' +
         '<span class="skin-name">' + ability.name + '</span>' +
@@ -4007,6 +4072,11 @@ function _renderAbilityGrid(grid, abilities) {
       const ability = ABILITY_DEFS.find(a => a.id === abilityId);
       if (!ability) return;
       selectAbilityForPreview(abilityId);
+      // Visually mark the clicked card as the current preview (temporary highlight)
+      try {
+        grid.querySelectorAll('.skin-btn').forEach(c => c.classList.remove('skin-previewed'));
+        card.classList.add('skin-previewed');
+      } catch (err) { /* ignore in old browsers */ }
       if (isAbilityAvailable(ability) && settings.selectedAbility !== abilityId) {
         settings.selectedAbility = abilityId;
         saveSettings();
@@ -5900,6 +5970,7 @@ function updateObstacles(dt) {
     }
 
     if (ob.y > canvas.height + Math.max(OBSTACLE_CLEANUP_MARGIN, ob.h * 1.25)) {
+      if (window._campaignSettings) window._campaignDodgeCount = (window._campaignDodgeCount || 0) + 1;
       obstacles.splice(i, 1);
     }
   }
@@ -6288,6 +6359,18 @@ function completeMiniGoal() {
 // SECTION 10: POWER-UP SYSTEM
 // ============================================================
 
+// Simple image cache for in-game and UI powerup images
+const __imgCache = {};
+function getCachedImage(src) {
+  if (!src) return null;
+  if (!__imgCache[src]) {
+    const im = new Image();
+    im.src = src;
+    __imgCache[src] = im;
+  }
+  return __imgCache[src];
+}
+
 function spawnPowerup() {
   const key = POWERUP_KEYS[Math.floor(Math.random() * POWERUP_KEYS.length)];
   const def = POWERUP_DEFS[key];
@@ -6297,7 +6380,7 @@ function spawnPowerup() {
   powerups.push({
     id, x: sz / 2 + Math.random() * (canvas.width - sz), y: -sz - 12,
     size: sz, vy: 80, angle: 0,
-    key, icon: def.icon, color: def.color, label: def.label,
+    key, icon: def.icon, image: def.image || null, color: def.color, label: def.label,
   });
 }
 
@@ -6414,7 +6497,19 @@ function drawPowerup(p) {
   ctx.textAlign    = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillStyle    = '#fff';
-  ctx.fillText(p.icon, 0, 1);
+  // If a sprite image exists for this powerup, draw it; otherwise draw the text icon
+  if (p.image) {
+    const im = getCachedImage(p.image);
+    if (im && im.complete) {
+      const iw = p.size * 0.9;
+      const ih = p.size * 0.9;
+      ctx.drawImage(im, -iw / 2, -ih / 2, iw, ih);
+    } else {
+      ctx.fillText(p.icon, 0, 1);
+    }
+  } else {
+    ctx.fillText(p.icon, 0, 1);
+  }
   ctx.restore();
 }
 
@@ -7144,6 +7239,14 @@ function tickDifficulty(dt) {
   spawnRate         = newSpawnRate;
   forbiddenInterval = lerpDiff(elapsed, 'fi');
 
+  // Campaign: cap difficulty scaling to this level's configured limits
+  if (window._campaignSettings && window._campaignSettings.diffCap) {
+    const _dc = window._campaignSettings.diffCap;
+    if (_dc.maxSpeedMult)         speedMultiplier   = Math.min(speedMultiplier, _dc.maxSpeedMult);
+    if (_dc.minSpawnInterval)     spawnRate         = Math.max(spawnRate, _dc.minSpawnInterval);
+    if (_dc.minForbiddenInterval) forbiddenInterval = Math.max(forbiddenInterval, _dc.minForbiddenInterval);
+  }
+
   // Legacy counter used by lane-selection helpers (0-12 range, now reaches max ~48s)
   difficultyBumps = Math.min(12, Math.round(elapsed / DIFF_SCALE_EVERY));
 
@@ -7441,6 +7544,12 @@ function gameLoop(ts) {
     tickPanicWave(dt);
     tickDoubleDanger(dt);
     tickMiniGoal();
+    // Campaign tick: objectives, boss, special mechanics
+    if (window.CampaignManager && window.CampaignManager.isActive()) {
+      const _cElapsed = (performance.now() - gameStartTime - pausedDuration) / 1000;
+      window.CampaignManager.tick(dt, _cElapsed, { roundCoins, score, obstacles, player, canvas, ctx, forbiddenIndex, GAME_COLORS });
+    }
+    if (window._campaignDoubleTrouble) spawnRate = Math.min(spawnRate, 0.22);
     // Music.tick(dt) removed  synthesized game music replaced by ThemePlayer (MP3)
     maybeUpdateHud(ts);
 
@@ -7466,7 +7575,10 @@ function gameLoop(ts) {
     if (powerupTimer >= POWERUP_INTERVAL) { powerupTimer = 0; spawnPowerup(); }
 
     coinItemTimer += dt;
-    if (coinItemTimer >= COIN_ITEM_INTERVAL) { coinItemTimer = 0; spawnCoinItem(); }
+    const _activeCoinInterval = (!window._campaignSettings) ? COIN_ITEM_INTERVAL
+      : (window._campaignSettings.coinsEnabled === false) ? 9999999
+      : (window._campaignSettings.coinItemInterval || COIN_ITEM_INTERVAL);
+    if (coinItemTimer >= _activeCoinInterval) { coinItemTimer = 0; spawnCoinItem(); }
 
     updateObstacles(dt);
     updatePowerups(dt);
@@ -7597,6 +7709,20 @@ function startGame(mpInitialForbiddenIdx) {
   // Head-start timers - first coin ~3s in, first color change ~1.2s in
   forbiddenTimer    = GAME_CONFIG.forbiddenInterval - 1.4;
   coinItemTimer     = COIN_ITEM_INTERVAL - 3.0;
+  // Campaign mode: apply per-level settings overrides
+  if (window._campaignSettings) {
+    const _cs = window._campaignSettings;
+    if (_cs.speedMult)         speedMultiplier   = _cs.speedMult;
+    if (_cs.spawnInterval)     spawnRate         = _cs.spawnInterval;
+    if (_cs.forbiddenInterval) {
+      forbiddenInterval = _cs.forbiddenInterval;
+      forbiddenTimer    = Math.max(0, _cs.forbiddenInterval - 1.4);
+    }
+    if (!_cs.powerupsEnabled)  powerupTimer      = 999999;
+    if (_cs.coinsEnabled === false) coinItemTimer = 9999999;
+    else if (_cs.coinItemInterval)  coinItemTimer = Math.max(0, _cs.coinItemInterval - 3.0);
+    window._campaignDodgeCount = 0;
+  }
   // In multiplayer both players share the host-chosen initial color; SP uses random.
   forbiddenIndex    = (typeof mpInitialForbiddenIdx === 'number')
     ? (mpInitialForbiddenIdx % GAME_COLORS.length)
@@ -7833,6 +7959,9 @@ function triggerGameOver(mpEndReason) {
     if (hsEl) hsEl.textContent = settings.bestScore;
 
     document.getElementById('gameover-overlay').hidden = false;
+    if (window.CampaignManager && window.CampaignManager.isActive()) {
+      window.CampaignManager.onDefeat();
+    }
 
     animateCounter(0, final, settings.reducedMotion ? 0 : 850, document.getElementById('final-score'));
 
@@ -7861,6 +7990,9 @@ function restartGame() {
 }
 
 function returnHome() {
+  // Campaign mode cleanup
+  if (window._campaignSettings) window._campaignSettings = null;
+  if (window.CampaignManager && window.CampaignManager.isActive()) window.CampaignManager.deactivate();
   currentState = STATE.HOME;
   cancelAnimationFrame(rafHandle); rafHandle = null;
   _dbg.loops = 0;
@@ -9728,6 +9860,11 @@ function init() {
     } else {
       startGame();
     }
+  });
+  const _btnCampaign = document.getElementById('btn-campaign');
+  if (_btnCampaign) _btnCampaign.addEventListener('click', () => {
+    Audio.uiClick();
+    CampaignUI.showLevelSelect();
   });
   document.getElementById('btn-progress').addEventListener('click', () => {
     Audio.uiClick();

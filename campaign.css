@@ -1,0 +1,961 @@
+/* ============================================================
+   SHIFTPANIC - CAMPAIGN MODE CSS
+   Dark neon aesthetic matching the main game.
+   ============================================================ */
+
+/* ============================================================
+   SHARED CAMPAIGN SCREEN BASE
+   All campaign screens are fixed full-screen overlays.
+   ============================================================ */
+.cmp-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: #07070f;
+  color: #f8fafc;
+  overflow-y: auto;
+  font-family: 'Inter', 'Space Grotesk', system-ui, sans-serif;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ============================================================
+   HOME SCREEN ADDITIONS
+   Campaign button in the home-actions area.
+   ============================================================ */
+.btn-campaign-home {
+  background: linear-gradient(135deg, #7c3aed 0%, #0ea5e9 100%);
+  border: none;
+  color: #fff;
+  font-weight: 700;
+  position: relative;
+  overflow: hidden;
+}
+.btn-campaign-home::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #a855f7 0%, #38bdf8 100%);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.btn-campaign-home:hover::before,
+.btn-campaign-home:focus-visible::before { opacity: 1; }
+
+/* ============================================================
+   CAMPAIGN LEVEL SELECT SCREEN
+   ============================================================ */
+#campaign-levelselect {
+  background: radial-gradient(ellipse at 50% 0%, #12064088 0%, #07070f 60%);
+}
+
+.cmp-ls-inner {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.cmp-ls-header {
+  text-align: center;
+}
+
+.cmp-ls-title {
+  font-family: 'Space Grotesk', 'Inter', sans-serif;
+  font-size: clamp(2rem, 6vw, 3.2rem);
+  font-weight: 800;
+  background: linear-gradient(135deg, #a855f7 0%, #38bdf8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0 0 0.4rem;
+  letter-spacing: -0.02em;
+}
+
+.cmp-ls-subtitle {
+  color: #94a3b8;
+  font-size: 1rem;
+  margin: 0 0 1rem;
+}
+
+.cmp-ls-stats {
+  display: inline-flex;
+  align-items: center;
+  gap: 1rem;
+  background: #12121f;
+  border: 1px solid #1e1b4b;
+  border-radius: 12px;
+  padding: 0.6rem 1.2rem;
+  margin: 0 auto;
+}
+
+.cmp-ls-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.cmp-stat-val {
+  font-weight: 800;
+  font-size: 1.15rem;
+  color: #f8fafc;
+}
+
+.cmp-stat-lbl {
+  font-size: 0.72rem;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.cmp-ls-stat-sep {
+  width: 1px;
+  height: 32px;
+  background: #1e1b4b;
+}
+
+/* Level grid */
+.cmp-level-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+/* Level cards */
+.cmp-level-card {
+  position: relative;
+  background: #12121f;
+  border: 1px solid #1e1b4b;
+  border-radius: 14px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+  cursor: default;
+  user-select: none;
+}
+
+.cmp-card-unlocked {
+  border-color: #7c3aed66;
+}
+.cmp-card-unlocked:hover {
+  transform: translateY(-3px);
+  border-color: #a855f7;
+  box-shadow: 0 8px 28px #7c3aed44;
+}
+
+.cmp-card-completed {
+  border-color: #22c55e66;
+}
+.cmp-card-completed:hover {
+  transform: translateY(-3px);
+  border-color: #22c55e;
+  box-shadow: 0 8px 28px #22c55e33;
+}
+
+.cmp-card-locked {
+  opacity: 0.45;
+  filter: grayscale(0.6);
+}
+
+.cmp-card-check {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  width: 22px;
+  height: 22px;
+  background: #22c55e;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 900;
+  color: #fff;
+  line-height: 1;
+  box-shadow: 0 0 10px #22c55e88;
+}
+
+.cmp-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cmp-card-num {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #64748b;
+  background: #1a1a2e;
+  border-radius: 6px;
+  padding: 2px 8px;
+}
+
+.cmp-diff-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.cmp-card-name {
+  font-weight: 700;
+  font-size: 1rem;
+  color: #f8fafc;
+  line-height: 1.2;
+}
+
+.cmp-card-obj {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  flex-grow: 1;
+}
+
+.cmp-card-stars {
+  display: flex;
+  gap: 3px;
+  height: 18px;
+}
+
+.cmp-star {
+  color: #334155;
+  font-size: 1.1rem;
+  line-height: 1;
+  transition: color 0.2s;
+}
+.cmp-star-on {
+  color: #f59e0b;
+  text-shadow: 0 0 8px #f59e0b88;
+}
+
+.cmp-card-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.cmp-reward-badge {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #f59e0b;
+}
+
+.cmp-level-play-btn {
+  padding: 0.35rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.cmp-btn-play {
+  background: linear-gradient(135deg, #7c3aed, #a855f7);
+  color: #fff;
+}
+.cmp-btn-play:hover { background: linear-gradient(135deg, #a855f7, #c084fc); transform: scale(1.04); }
+
+.cmp-btn-replay {
+  background: #1e293b;
+  color: #94a3b8;
+  border: 1px solid #334155;
+}
+.cmp-btn-replay:hover { background: #334155; color: #f8fafc; }
+
+.cmp-btn-locked {
+  background: #1e293b;
+  color: #475569;
+  border: 1px solid #1e293b;
+  cursor: not-allowed;
+}
+
+.cmp-back-btn {
+  align-self: center;
+  margin-top: 1rem;
+  padding: 0.6rem 2rem;
+  background: #1e293b;
+  color: #94a3b8;
+  border: 1px solid #334155;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.cmp-back-btn:hover { background: #334155; color: #f8fafc; }
+
+/* ============================================================
+   CAMPAIGN INTRO SCREEN
+   ============================================================ */
+#campaign-intro {
+  background: #07070fcc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 250;
+}
+
+.cmp-intro-box {
+  background: #12121f;
+  border: 1px solid #1e1b4b;
+  border-radius: 20px;
+  padding: 2rem 2rem 1.5rem;
+  max-width: 420px;
+  width: 90%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  box-shadow: 0 0 60px #7c3aed33;
+  position: relative;
+  animation: cmp-intro-in 0.3s ease;
+}
+
+@keyframes cmp-intro-in {
+  from { opacity: 0; transform: translateY(20px) scale(0.96); }
+  to   { opacity: 1; transform: none; }
+}
+
+.cmp-intro-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cmp-intro-num {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #64748b;
+  background: #1a1a2e;
+  border-radius: 8px;
+  padding: 3px 10px;
+}
+
+.cmp-intro-diff {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.cmp-intro-name {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #f8fafc;
+  margin: 0;
+  line-height: 1.1;
+}
+
+.cmp-intro-sub {
+  color: #94a3b8;
+  font-size: 0.9rem;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.cmp-intro-objective {
+  background: #0f0f1a;
+  border: 1px solid #1e1b4b;
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+}
+
+.cmp-intro-obj-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #64748b;
+  margin-bottom: 4px;
+}
+
+.cmp-intro-obj-text {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #e2e8f0;
+}
+
+.cmp-intro-reward {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: #94a3b8;
+}
+
+.cmp-intro-reward-val {
+  font-weight: 800;
+  font-size: 1.1rem;
+  color: #f59e0b;
+}
+
+.cmp-intro-start-btn {
+  margin-top: 0.25rem;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 700;
+  border-radius: 12px;
+}
+
+.cmp-intro-back-btn {
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.cmp-intro-countdown {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #07070fdd;
+  border-radius: 20px;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 5rem;
+  font-weight: 900;
+  color: #a855f7;
+  text-shadow: 0 0 40px #7c3aed;
+  pointer-events: none;
+}
+
+.cmp-cd-pop {
+  animation: cmp-cd-pop 0.35s ease;
+}
+
+@keyframes cmp-cd-pop {
+  0%   { transform: scale(0.5); opacity: 0.4; }
+  60%  { transform: scale(1.25); }
+  100% { transform: scale(1.0); opacity: 1; }
+}
+
+/* ============================================================
+   CAMPAIGN HUD OVERLAY (shown during gameplay)
+   ============================================================ */
+#campaign-hud-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 80;
+  pointer-events: none;
+  padding: 4px 12px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.cmp-hud-inner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.cmp-hud-name {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: #07070fcc;
+  border-radius: 6px;
+  padding: 2px 8px;
+}
+
+.cmp-hud-progress {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #f8fafc;
+  background: #0f0f1acc;
+  border: 1px solid #1e1b4b;
+  border-radius: 8px;
+  padding: 4px 10px;
+  white-space: nowrap;
+  /* Progress bar fill via CSS custom property */
+  position: relative;
+  overflow: hidden;
+}
+.cmp-hud-progress::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: calc(var(--obj-pct, 0) * 100%);
+  background: linear-gradient(90deg, #7c3aed44, #a855f744);
+  transition: width 0.4s ease;
+  z-index: 0;
+}
+.cmp-hud-progress {
+  position: relative;
+  z-index: 1;
+}
+
+.cmp-hud-timer {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #f8fafc;
+  background: #0f0f1acc;
+  border: 1px solid #1e1b4b;
+  border-radius: 8px;
+  padding: 4px 10px;
+  white-space: nowrap;
+}
+
+.cmp-hud-dt {
+  font-size: 0.88rem;
+  font-weight: 900;
+  color: #ef4444;
+  background: #2d0505cc;
+  border: 2px solid #ef4444;
+  border-radius: 8px;
+  padding: 4px 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.cmp-dt-pop {
+  animation: cmp-dt-pop 0.4s ease;
+}
+@keyframes cmp-dt-pop {
+  0%   { transform: scale(0.8); }
+  60%  { transform: scale(1.12); }
+  100% { transform: scale(1.0); }
+}
+
+.cmp-hud-shrink {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #ef4444;
+  background: #2d0505cc;
+  border: 1px solid #ef4444;
+  border-radius: 8px;
+  padding: 3px 10px;
+  animation: cmp-dt-pop 0.3s ease;
+}
+
+/* ============================================================
+   BOSS CANVAS OVERLAY
+   ============================================================ */
+#boss-canvas,
+#campaign-wall-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 15;
+  width: 100%;
+  height: 100%;
+}
+
+/* ============================================================
+   CAMPAIGN VICTORY SCREEN
+   ============================================================ */
+#campaign-victory {
+  background: #07070fdd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 300;
+}
+
+.cmp-v-box {
+  background: #12121f;
+  border: 1px solid #22c55e66;
+  border-radius: 22px;
+  padding: 2.2rem 2rem 1.8rem;
+  max-width: 440px;
+  width: 92%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.85rem;
+  box-shadow: 0 0 80px #22c55e22, 0 0 30px #7c3aed22;
+  position: relative;
+  overflow: hidden;
+  animation: cmp-v-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.cmp-victory-last {
+  border-color: #f59e0b88;
+  box-shadow: 0 0 80px #f59e0b22, 0 0 40px #ec489922;
+}
+
+@keyframes cmp-v-in {
+  from { opacity: 0; transform: scale(0.8) translateY(20px); }
+  to   { opacity: 1; transform: none; }
+}
+
+.cmp-v-confetti {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 100%;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.cmp-confetti-piece {
+  position: absolute;
+  top: -12px;
+  border-radius: 3px;
+  animation: cmp-confetti-fall linear forwards;
+}
+@keyframes cmp-confetti-fall {
+  0%   { transform: translateY(0) rotate(0deg);   opacity: 1; }
+  80%  { opacity: 1; }
+  100% { transform: translateY(110%) rotate(540deg); opacity: 0; }
+}
+
+.cmp-v-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: clamp(1.4rem, 5vw, 2rem);
+  font-weight: 900;
+  background: linear-gradient(135deg, #22c55e, #38bdf8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0;
+  text-align: center;
+  position: relative;
+  z-index: 1;
+}
+
+.cmp-victory-last .cmp-v-title {
+  background: linear-gradient(135deg, #f59e0b, #ec4899);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+.cmp-v-level-name {
+  font-weight: 700;
+  color: #94a3b8;
+  font-size: 0.9rem;
+  position: relative;
+  z-index: 1;
+}
+
+/* Stars row */
+.cmp-v-stars {
+  display: flex;
+  gap: 8px;
+  position: relative;
+  z-index: 1;
+}
+
+.cmp-v-star {
+  font-size: 2.4rem;
+  color: #1e293b;
+  line-height: 1;
+  display: inline-block;
+}
+.cmp-v-star-on {
+  color: #f59e0b;
+  text-shadow: 0 0 16px #f59e0b, 0 0 30px #f59e0b88;
+  animation: cmp-star-pop 0.4s var(--delay, 0s) cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+@keyframes cmp-star-pop {
+  from { transform: scale(0) rotate(-30deg); opacity: 0; }
+  to   { transform: scale(1) rotate(0deg);  opacity: 1; }
+}
+
+/* Reward */
+.cmp-v-reward {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.92rem;
+  color: #94a3b8;
+  background: #0f0f1a;
+  border: 1px solid #1e1b4b;
+  border-radius: 10px;
+  padding: 0.5rem 1rem;
+  position: relative;
+  z-index: 1;
+}
+.cmp-v-reward-icon { font-size: 1.1rem; }
+.cmp-v-reward-amt {
+  font-weight: 900;
+  font-size: 1.25rem;
+  color: #f59e0b;
+}
+.cmp-v-replay-reward { opacity: 0.7; }
+
+/* Victory buttons */
+.cmp-v-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+  width: 100%;
+}
+.cmp-v-btn {
+  flex: 1;
+  min-width: 110px;
+  padding: 0.65rem 1rem;
+  font-size: 0.88rem;
+  font-weight: 700;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  cursor: pointer;
+}
+
+/* ============================================================
+   CAMPAIGN DEFEAT SCREEN
+   ============================================================ */
+#campaign-defeat {
+  background: #07070fdd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 300;
+}
+
+.cmp-d-box {
+  background: #12121f;
+  border: 1px solid #ef444466;
+  border-radius: 22px;
+  padding: 2rem;
+  max-width: 380px;
+  width: 90%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.8rem;
+  box-shadow: 0 0 60px #ef444422;
+  animation: cmp-v-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.cmp-d-icon {
+  font-size: 3rem;
+  color: #ef4444;
+  text-shadow: 0 0 20px #ef444488;
+  line-height: 1;
+  font-weight: 900;
+}
+
+.cmp-d-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.75rem;
+  font-weight: 900;
+  color: #ef4444;
+  margin: 0;
+}
+
+.cmp-d-level {
+  font-weight: 700;
+  color: #94a3b8;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.cmp-d-reason {
+  color: #64748b;
+  font-size: 0.88rem;
+  margin: 0;
+  text-align: center;
+}
+
+.cmp-d-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  justify-content: center;
+  width: 100%;
+}
+
+.cmp-d-btn {
+  flex: 1;
+  min-width: 100px;
+  padding: 0.65rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  border-radius: 11px;
+  cursor: pointer;
+}
+
+.cmp-d-retry {
+  font-size: 1rem;
+  animation: cmp-retry-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes cmp-retry-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.3); }
+  50%       { box-shadow: 0 0 0 8px rgba(124, 58, 237, 0); }
+}
+
+/* ============================================================
+   MODE SELECT SECTION (added to home screen)
+   ============================================================ */
+.home-mode-select {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 460px;
+  margin: 0 auto;
+}
+
+.home-mode-card {
+  background: #12121f;
+  border: 1px solid #1e1b4b;
+  border-radius: 16px;
+  padding: 1.1rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+  text-align: left;
+}
+
+.home-mode-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.home-mode-card-endless {
+  border-color: #0ea5e966;
+}
+.home-mode-card-endless:hover {
+  border-color: #38bdf8;
+  box-shadow: 0 8px 24px #0ea5e922;
+}
+
+.home-mode-card-campaign {
+  border-color: #7c3aed66;
+}
+.home-mode-card-campaign:hover {
+  border-color: #a855f7;
+  box-shadow: 0 8px 24px #7c3aed22;
+}
+
+.home-mode-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.home-mode-icon-endless {
+  background: linear-gradient(135deg, #0ea5e922, #38bdf822);
+  color: #38bdf8;
+  border: 1px solid #0ea5e944;
+}
+
+.home-mode-icon-campaign {
+  background: linear-gradient(135deg, #7c3aed22, #a855f722);
+  color: #a855f7;
+  border: 1px solid #7c3aed44;
+}
+
+.home-mode-text { flex: 1; }
+
+.home-mode-title {
+  font-weight: 800;
+  font-size: 1rem;
+  color: #f8fafc;
+  margin: 0 0 2px;
+}
+
+.home-mode-sub {
+  font-size: 0.78rem;
+  color: #64748b;
+  line-height: 1.3;
+}
+
+.home-mode-arrow {
+  color: #334155;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+  transition: transform 0.15s;
+}
+.home-mode-card:hover .home-mode-arrow {
+  transform: translateX(3px);
+  color: #94a3b8;
+}
+
+/* ============================================================
+   RESPONSIVE ADJUSTMENTS
+   ============================================================ */
+@media (max-width: 480px) {
+  .cmp-ls-inner { padding: 1.25rem 1rem 3rem; }
+  .cmp-level-grid { grid-template-columns: repeat(2, 1fr); gap: 0.65rem; }
+  .cmp-level-card { padding: 0.75rem; }
+  .cmp-card-name  { font-size: 0.88rem; }
+  .cmp-card-obj   { font-size: 0.72rem; }
+  .cmp-level-play-btn { font-size: 0.72rem; padding: 0.3rem 0.55rem; }
+  .cmp-v-box, .cmp-d-box, .cmp-intro-box { padding: 1.5rem 1rem; }
+  .cmp-intro-name { font-size: 1.3rem; }
+  #campaign-hud-overlay { padding: 2px 8px 0; gap: 6px; }
+  .cmp-hud-progress, .cmp-hud-timer { font-size: 0.72rem; padding: 3px 7px; }
+}
+
+@media (max-width: 360px) {
+  .cmp-level-grid { grid-template-columns: 1fr 1fr; }
+  .cmp-v-stars .cmp-v-star { font-size: 1.9rem; }
+}
+
+/* ============================================================
+   ANIMATIONS FOR UNLOCK
+   ============================================================ */
+.cmp-card-unlocked.cmp-newly-unlocked {
+  animation: cmp-unlock-glow 1.2s ease;
+}
+
+@keyframes cmp-unlock-glow {
+  0%   { box-shadow: 0 0 0 0 #a855f7; border-color: #a855f7; transform: scale(1); }
+  30%  { box-shadow: 0 0 30px 8px #a855f766; transform: scale(1.04); }
+  60%  { box-shadow: 0 0 20px 4px #a855f744; }
+  100% { box-shadow: none; border-color: #7c3aed66; transform: scale(1); }
+}
+
+/* ============================================================
+   REDUCED MOTION OVERRIDES
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  .cmp-level-card,
+  .cmp-v-box,
+  .cmp-d-box,
+  .cmp-intro-box,
+  .cmp-v-star-on,
+  .cmp-confetti-piece,
+  .cmp-d-retry {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+.reduced-motion .cmp-level-card,
+.reduced-motion .cmp-v-box,
+.reduced-motion .cmp-d-box,
+.reduced-motion .cmp-intro-box,
+.reduced-motion .cmp-v-star-on,
+.reduced-motion .cmp-confetti-piece,
+.reduced-motion .cmp-d-retry {
+  animation: none !important;
+  transition: none !important;
+}
