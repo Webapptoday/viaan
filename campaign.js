@@ -16,7 +16,7 @@ const CAMPAIGN_LEVELS = [
     difficulty: 'Easy',
     difficultyColor: '#22c55e',
     objectiveType: 'survive_seconds',
-    objectiveTarget: 20,
+    objectiveTarget: 30,
     timeLimit: null,
     rewardCoins: 50,
     replayReward: 5,
@@ -26,13 +26,15 @@ const CAMPAIGN_LEVELS = [
       { stars: 1, label: 'Complete level', check: (data) => true },
     ],
     settings: {
-      speedMult: 0.70,
-      spawnInterval: 0.75,
-      forbiddenInterval: 4.5,
+      speedMult: 0.65,
+      spawnInterval: 0.80,
+      forbiddenInterval: 5.0,
       coinsEnabled: false,
       coinItemInterval: null,
       powerupsEnabled: false,
-      diffCap: { maxSpeedMult: 0.85, minSpawnInterval: 0.65, minForbiddenInterval: 3.8 },
+      diffCap: { maxSpeedMult: 0.78, minSpawnInterval: 0.72, minForbiddenInterval: 4.5 },
+      disablePanic: true,
+      disableDoubleDanger: true,
       doubleTroubleAt: [],
       shrinkingArena: false,
       bossMode: false,
@@ -62,13 +64,9 @@ const CAMPAIGN_LEVELS = [
       coinItemInterval: 3.5,
       powerupsEnabled: false,
       diffCap: { maxSpeedMult: 0.90, minSpawnInterval: 0.55, minForbiddenInterval: 3.5 },
+      disablePanic: true,
+      disableDoubleDanger: true,
       doubleTroubleAt: [],
-      shrinkingArena: false,
-      bossMode: false,
-    },
-  },
-  {
-    id: 3,
     name: 'Dodge School',
     subtitle: 'Dodge blocks and prove your reflexes.',
     difficulty: 'Medium',
@@ -91,13 +89,9 @@ const CAMPAIGN_LEVELS = [
       coinItemInterval: null,
       powerupsEnabled: false,
       diffCap: { maxSpeedMult: 1.0, minSpawnInterval: 0.45, minForbiddenInterval: 3.0 },
+      disablePanic: true,
+      disableDoubleDanger: true,
       doubleTroubleAt: [],
-      shrinkingArena: false,
-      bossMode: false,
-    },
-  },
-  {
-    id: 4,
     name: 'Fast Switch',
     subtitle: 'Colors change fast - stay sharp.',
     difficulty: 'Medium',
@@ -120,13 +114,9 @@ const CAMPAIGN_LEVELS = [
       coinItemInterval: null,
       powerupsEnabled: false,
       diffCap: { maxSpeedMult: 1.05, minSpawnInterval: 0.42, minForbiddenInterval: 2.0 },
+      disablePanic: false,
+      disableDoubleDanger: true,
       doubleTroubleAt: [],
-      shrinkingArena: false,
-      bossMode: false,
-    },
-  },
-  {
-    id: 5,
     name: 'Tight Gaps',
     subtitle: 'Navigate narrow paths without breaking.',
     difficulty: 'Medium',
@@ -149,13 +139,9 @@ const CAMPAIGN_LEVELS = [
       coinItemInterval: null,
       powerupsEnabled: false,
       diffCap: { maxSpeedMult: 1.05, minSpawnInterval: 0.38, minForbiddenInterval: 2.5 },
+      disablePanic: false,
+      disableDoubleDanger: true,
       doubleTroubleAt: [],
-      shrinkingArena: false,
-      bossMode: false,
-    },
-  },
-  {
-    id: 6,
     name: 'Coin Panic',
     subtitle: 'Grab coins while danger closes in.',
     difficulty: 'Hard',
@@ -994,7 +980,7 @@ const CampaignUI = (() => {
     el.innerHTML = `
       <div class="cmp-ls-inner">
         <div class="cmp-ls-header">
-          <h1 class="cmp-ls-title">Challenge Road</h1>
+          <h1 class="cmp-ls-title">Shift Trials</h1>
           <p class="cmp-ls-subtitle">Complete missions to unlock the final boss</p>
           <div class="cmp-ls-stats">
             <div class="cmp-ls-stat">
@@ -1459,6 +1445,9 @@ window.CampaignManager = (() => {
     BossManager.deactivate();
     _hideWallCanvas();
     CampaignUI.hideHUD();
+    // Restore skin ability HUD that may have been hidden for coin-disabled levels
+    const abilityHud = document.getElementById('skin-ability-hud');
+    if (abilityHud) abilityHud.hidden = false;
   }
 
   function selectLevel(lvl) {
@@ -1485,15 +1474,22 @@ window.CampaignManager = (() => {
 
     // Set campaign settings for script.js to pick up in startGame()
     window._campaignSettings = {
-      speedMult:        lvl.settings.speedMult,
-      spawnInterval:    lvl.settings.spawnInterval,
-      forbiddenInterval: lvl.settings.forbiddenInterval,
-      coinsEnabled:     lvl.settings.coinsEnabled,
-      coinItemInterval: lvl.settings.coinItemInterval,
-      powerupsEnabled:  lvl.settings.powerupsEnabled,
-      diffCap:          lvl.settings.diffCap,
+      speedMult:              lvl.settings.speedMult,
+      spawnInterval:          lvl.settings.spawnInterval,
+      forbiddenInterval:      lvl.settings.forbiddenInterval,
+      coinsEnabled:           lvl.settings.coinsEnabled,
+      coinItemInterval:       lvl.settings.coinItemInterval,
+      powerupsEnabled:        lvl.settings.powerupsEnabled,
+      diffCap:                lvl.settings.diffCap,
+      disablePanic:           !!lvl.settings.disablePanic,
+      disableDoubleDanger:    !!lvl.settings.disableDoubleDanger,
     };
     window._campaignDodgeCount = 0;
+
+    // Hide skin ability HUD on levels without coins — it would show "Coin Magnet: Passive"
+    // which confuses players. We restore it in deactivate().
+    const abilityHud = document.getElementById('skin-ability-hud');
+    if (abilityHud && !lvl.settings.coinsEnabled) abilityHud.hidden = true;
 
     // Hide all campaign overlays and show game screen
     ['campaign-levelselect', 'campaign-intro', 'campaign-victory', 'campaign-defeat'].forEach(id => {

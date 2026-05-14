@@ -35,6 +35,9 @@ const POWERUP_UPGRADE_KEYS = Object.keys(POWERUP_UPGRADE_DEFS);
 // Single built-in difficulty - ramps automatically via tickDifficulty()
 const GAME_CONFIG = { playerSpeed: 255, spawnRate: 0.60, forbiddenInterval: 2.6, baseSpeed: 230 };
 
+// Set to true only during local development to show the debug stats overlay.
+const DEBUG_MODE = false;
+
 // ============================================================
 // DIFFICULTY REDESIGN CONFIG
 // All balance tuning lives here. No magic numbers elsewhere.
@@ -6978,6 +6981,8 @@ function currentClusterChance() {
 }
 
 function tickPanicWave(dt) {
+  // Campaign levels can disable panic waves entirely for a fairer experience.
+  if (window._campaignSettings && window._campaignSettings.disablePanic) return;
   if (graceTimer < GRACE_PERIOD + 1.0) return; // never fire in the opening second
   if (panicBlockFromDD > 0) { panicBlockFromDD -= dt; } // count down post-DD buffer
 
@@ -7084,6 +7089,8 @@ function pickDD2ndIndex() {
 }
 
 function tickDoubleDanger(dt) {
+  // Campaign levels can disable Double Danger entirely.
+  if (window._campaignSettings && window._campaignSettings.disableDoubleDanger) return;
   if (ddBlockTimer > 0) { ddBlockTimer -= dt; } // count down post-panic buffer
   // Not enough play time yet
   if (graceTimer < GRACE_PERIOD + DD_MIN_PLAYTIME) return;
@@ -7473,7 +7480,7 @@ function render(ts) {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
   if (DIFFICULTY_CONFIG.debugOverlay) drawDebugOverlay();
-  drawGameDebugHUD();
+  if (DEBUG_MODE) drawGameDebugHUD();
   } finally {
     ctx.restore();
     ctx._saveDepth = Math.max(0, (ctx._saveDepth || 1) - 1);
