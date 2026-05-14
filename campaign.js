@@ -994,7 +994,7 @@ const CampaignUI = (() => {
     el.innerHTML = `
       <div class="cmp-ls-inner">
         <div class="cmp-ls-header">
-          <h1 class="cmp-ls-title">Campaign</h1>
+          <h1 class="cmp-ls-title">Challenge Road</h1>
           <p class="cmp-ls-subtitle">Complete missions to unlock the final boss</p>
           <div class="cmp-ls-stats">
             <div class="cmp-ls-stat">
@@ -1117,7 +1117,6 @@ const CampaignUI = (() => {
         </div>
         <button class="cmp-intro-start-btn btn btn-primary" id="cmp-intro-start">Start Level</button>
         <button class="cmp-intro-back-btn btn btn-secondary" id="cmp-intro-back">Level Select</button>
-        <div class="cmp-intro-countdown" id="cmp-intro-countdown" hidden></div>
       </div>`;
 
     el.hidden = false;
@@ -1131,29 +1130,33 @@ const CampaignUI = (() => {
     });
 
     if (startBtn) startBtn.addEventListener('click', () => {
-      startBtn.disabled = true;
-      startBtn.textContent = 'Starting...';
-      if (backBtn) backBtn.hidden = true;
-      _runCountdown(el, 3, () => {
-        el.hidden = true;
+      // Immediately hide the intro screen so it doesn't show during countdown
+      el.hidden = true;
+      // Run countdown on the dedicated full-screen overlay, then call onStart
+      _runCountdown(3, () => {
         if (onStart) onStart();
       });
     });
   }
 
-  function _runCountdown(container, count, onDone) {
-    const el = container.querySelector('#cmp-intro-countdown');
-    if (!el) { if (onDone) onDone(); return; }
-    el.hidden = false;
+  function _runCountdown(count, onDone) {
+    const overlay = document.getElementById('campaign-countdown-overlay');
+    if (!overlay) { if (onDone) onDone(); return; }
+    overlay.hidden = false;
+    overlay.textContent = '';
 
     let current = count;
     function show() {
-      el.textContent = current > 0 ? current : 'GO!';
-      el.classList.remove('cmp-cd-pop');
-      void el.offsetWidth;
-      el.classList.add('cmp-cd-pop');
+      overlay.textContent = current > 0 ? String(current) : 'GO!';
+      overlay.classList.remove('cmp-cd-pop');
+      void overlay.offsetWidth;
+      overlay.classList.add('cmp-cd-pop');
       if (current <= 0) {
-        setTimeout(() => { el.hidden = true; if (onDone) onDone(); }, 500);
+        setTimeout(() => {
+          overlay.hidden = true;
+          overlay.textContent = '';
+          if (onDone) onDone();
+        }, 500);
       } else {
         current--;
         setTimeout(show, 800);
@@ -1497,8 +1500,6 @@ window.CampaignManager = (() => {
       const e = document.getElementById(id);
       if (e) e.hidden = true;
     });
-    const gear = document.getElementById('btn-gear-settings');
-    if (gear) gear.hidden = false;
 
     // Start the actual game using the existing startGame() function
     if (typeof startGame === 'function') startGame();

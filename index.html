@@ -109,7 +109,7 @@
           Endless
         </button>
         <button id="btn-campaign" class="btn btn-secondary btn-large btn-campaign-home">
-          Campaign
+          Challenge Road
         </button>
         <button id="btn-multiplayer" class="btn btn-secondary btn-mp-open"
                 aria-haspopup="dialog" aria-controls="modal-multiplayer">
@@ -730,11 +730,14 @@
     </div>
   </div>
 
-  <!-- Campaign Level Select screen -->
-  <div id="campaign-levelselect" class="cmp-screen" hidden aria-label="Campaign Level Select"></div>
+  <!-- Challenge Road Level Select screen -->
+  <div id="campaign-levelselect" class="cmp-screen" hidden aria-label="Challenge Road Level Select"></div>
 
   <!-- Campaign Intro overlay -->
   <div id="campaign-intro" class="cmp-screen" hidden></div>
+
+  <!-- Campaign Countdown overlay (full-screen, shown after intro, before game starts) -->
+  <div id="campaign-countdown-overlay" class="cmp-countdown-overlay" hidden aria-live="assertive" aria-atomic="true"></div>
 
   <!-- Campaign Victory overlay -->
   <div id="campaign-victory" class="cmp-screen" hidden></div>
