@@ -12,32 +12,26 @@ const CAMPAIGN_LEVELS = [
   {
     id: 1,
     name: 'First Shift',
-    subtitle: 'Learn to survive the panic.',
+    subtitle: 'Learn to read the colors and survive.',
     difficulty: 'Easy',
     difficultyColor: '#22c55e',
     objectiveType: 'survive_seconds',
-    objectiveTarget: 30,
+    objectiveTarget: 20,
     timeLimit: null,
     rewardCoins: 50,
     replayReward: 5,
+    tip: 'Stay away from the forbidden color block. Watch the color indicator at the top.',
     starConditions: [
-      { stars: 3, label: 'No hits', check: (data) => data.hitsReceived === 0 },
-      { stars: 2, label: 'At most 1 hit', check: (data) => data.hitsReceived <= 1 },
-      { stars: 1, label: 'Complete level', check: (data) => true },
+      { stars: 3, label: 'No hits',       check: (d) => d.hitsReceived === 0 },
+      { stars: 2, label: 'At most 1 hit', check: (d) => d.hitsReceived <= 1 },
+      { stars: 1, label: 'Survive 20s',   check: (d) => true },
     ],
     settings: {
-      speedMult: 0.65,
-      spawnInterval: 0.80,
-      forbiddenInterval: 5.0,
-      coinsEnabled: false,
-      coinItemInterval: null,
-      powerupsEnabled: false,
+      speedMult: 0.65, spawnInterval: 0.80, forbiddenInterval: 5.0,
+      coinsEnabled: false, coinItemInterval: null, powerupsEnabled: false,
       diffCap: { maxSpeedMult: 0.78, minSpawnInterval: 0.72, minForbiddenInterval: 4.5 },
-      disablePanic: true,
-      disableDoubleDanger: true,
-      doubleTroubleAt: [],
-      shrinkingArena: false,
-      bossMode: false,
+      disablePanic: true, disableDoubleDanger: true,
+      doubleTroubleAt: [], shrinkingArena: false, bossMode: false,
     },
   },
   {
@@ -51,24 +45,24 @@ const CAMPAIGN_LEVELS = [
     timeLimit: 35,
     rewardCoins: 75,
     replayReward: 8,
+    tip: 'Gold coins appear regularly — move to them quickly without hitting danger blocks.',
     starConditions: [
-      { stars: 3, label: '12+ seconds left', check: (data) => data.timeRemaining >= 12 },
-      { stars: 2, label: '5+ seconds left',  check: (data) => data.timeRemaining >= 5 },
-      { stars: 1, label: 'Complete level',   check: (data) => true },
+      { stars: 3, label: '12+ sec left',  check: (d) => d.timeRemaining >= 12 },
+      { stars: 2, label: '5+ sec left',   check: (d) => d.timeRemaining >= 5 },
+      { stars: 1, label: 'Collect 15',    check: (d) => true },
     ],
     settings: {
-      speedMult: 0.75,
-      spawnInterval: 0.65,
-      forbiddenInterval: 4.0,
-      coinsEnabled: true,
-      coinItemInterval: 3.5,
-      powerupsEnabled: false,
+      speedMult: 0.75, spawnInterval: 0.65, forbiddenInterval: 4.0,
+      coinsEnabled: true, coinItemInterval: 3.5, powerupsEnabled: false,
       diffCap: { maxSpeedMult: 0.90, minSpawnInterval: 0.55, minForbiddenInterval: 3.5 },
-      disablePanic: true,
-      disableDoubleDanger: true,
-      doubleTroubleAt: [],
+      disablePanic: true, disableDoubleDanger: true,
+      doubleTroubleAt: [], shrinkingArena: false, bossMode: false,
+    },
+  },
+  {
+    id: 3,
     name: 'Dodge School',
-    subtitle: 'Dodge blocks and prove your reflexes.',
+    subtitle: 'Prove your reflexes by dodging 35 blocks.',
     difficulty: 'Medium',
     difficultyColor: '#f59e0b',
     objectiveType: 'dodge_blocks',
@@ -76,24 +70,24 @@ const CAMPAIGN_LEVELS = [
     timeLimit: null,
     rewardCoins: 90,
     replayReward: 9,
+    tip: 'A dodge counts when a block passes safely below you. Keep moving!',
     starConditions: [
-      { stars: 3, label: 'No hits',        check: (data) => data.hitsReceived === 0 },
-      { stars: 2, label: 'At most 1 hit',  check: (data) => data.hitsReceived <= 1 },
-      { stars: 1, label: 'Complete level', check: (data) => true },
+      { stars: 3, label: 'No hits',       check: (d) => d.hitsReceived === 0 },
+      { stars: 2, label: 'At most 1 hit', check: (d) => d.hitsReceived <= 1 },
+      { stars: 1, label: 'Dodge 35',      check: (d) => true },
     ],
     settings: {
-      speedMult: 0.85,
-      spawnInterval: 0.55,
-      forbiddenInterval: 3.5,
-      coinsEnabled: false,
-      coinItemInterval: null,
-      powerupsEnabled: false,
+      speedMult: 0.85, spawnInterval: 0.55, forbiddenInterval: 3.5,
+      coinsEnabled: false, coinItemInterval: null, powerupsEnabled: false,
       diffCap: { maxSpeedMult: 1.0, minSpawnInterval: 0.45, minForbiddenInterval: 3.0 },
-      disablePanic: true,
-      disableDoubleDanger: true,
-      doubleTroubleAt: [],
+      disablePanic: true, disableDoubleDanger: true,
+      doubleTroubleAt: [], shrinkingArena: false, bossMode: false,
+    },
+  },
+  {
+    id: 4,
     name: 'Fast Switch',
-    subtitle: 'Colors change fast - stay sharp.',
+    subtitle: 'Colors change faster — stay sharp.',
     difficulty: 'Medium',
     difficultyColor: '#f59e0b',
     objectiveType: 'survive_seconds',
@@ -101,22 +95,22 @@ const CAMPAIGN_LEVELS = [
     timeLimit: null,
     rewardCoins: 100,
     replayReward: 10,
+    tip: 'Watch the warning timer at the top. When it glows, the forbidden color is about to change.',
     starConditions: [
-      { stars: 3, label: 'No hits',        check: (data) => data.hitsReceived === 0 },
-      { stars: 2, label: 'At most 1 hit',  check: (data) => data.hitsReceived <= 1 },
-      { stars: 1, label: 'Complete level', check: (data) => true },
+      { stars: 3, label: 'No hits',       check: (d) => d.hitsReceived === 0 },
+      { stars: 2, label: 'At most 1 hit', check: (d) => d.hitsReceived <= 1 },
+      { stars: 1, label: 'Survive 35s',   check: (d) => true },
     ],
     settings: {
-      speedMult: 0.90,
-      spawnInterval: 0.50,
-      forbiddenInterval: 2.5,
-      coinsEnabled: false,
-      coinItemInterval: null,
-      powerupsEnabled: false,
+      speedMult: 0.90, spawnInterval: 0.50, forbiddenInterval: 2.5,
+      coinsEnabled: false, coinItemInterval: null, powerupsEnabled: false,
       diffCap: { maxSpeedMult: 1.05, minSpawnInterval: 0.42, minForbiddenInterval: 2.0 },
-      disablePanic: false,
-      disableDoubleDanger: true,
-      doubleTroubleAt: [],
+      disablePanic: false, disableDoubleDanger: true,
+      doubleTroubleAt: [], shrinkingArena: false, bossMode: false,
+    },
+  },
+  {
+    id: 5,
     name: 'Tight Gaps',
     subtitle: 'Navigate narrow paths without breaking.',
     difficulty: 'Medium',
@@ -126,22 +120,22 @@ const CAMPAIGN_LEVELS = [
     timeLimit: null,
     rewardCoins: 125,
     replayReward: 13,
+    tip: 'There is always at least one safe gap. Look ahead and plan your movement.',
     starConditions: [
-      { stars: 3, label: 'No hits',        check: (data) => data.hitsReceived === 0 },
-      { stars: 2, label: 'At most 1 hit',  check: (data) => data.hitsReceived <= 1 },
-      { stars: 1, label: 'Complete level', check: (data) => true },
+      { stars: 3, label: 'No hits',       check: (d) => d.hitsReceived === 0 },
+      { stars: 2, label: 'At most 1 hit', check: (d) => d.hitsReceived <= 1 },
+      { stars: 1, label: 'Survive 45s',   check: (d) => true },
     ],
     settings: {
-      speedMult: 0.90,
-      spawnInterval: 0.44,
-      forbiddenInterval: 3.0,
-      coinsEnabled: false,
-      coinItemInterval: null,
-      powerupsEnabled: false,
+      speedMult: 0.90, spawnInterval: 0.44, forbiddenInterval: 3.0,
+      coinsEnabled: false, coinItemInterval: null, powerupsEnabled: false,
       diffCap: { maxSpeedMult: 1.05, minSpawnInterval: 0.38, minForbiddenInterval: 2.5 },
-      disablePanic: false,
-      disableDoubleDanger: true,
-      doubleTroubleAt: [],
+      disablePanic: false, disableDoubleDanger: true,
+      doubleTroubleAt: [], shrinkingArena: false, bossMode: false,
+    },
+  },
+  {
+    id: 6,
     name: 'Coin Panic',
     subtitle: 'Grab coins while danger closes in.',
     difficulty: 'Hard',
@@ -151,22 +145,18 @@ const CAMPAIGN_LEVELS = [
     timeLimit: 50,
     rewardCoins: 150,
     replayReward: 15,
+    tip: 'Move aggressively to grab coins — but never into a forbidden block.',
     starConditions: [
-      { stars: 3, label: '15+ seconds left', check: (data) => data.timeRemaining >= 15 },
-      { stars: 2, label: '6+ seconds left',  check: (data) => data.timeRemaining >= 6 },
-      { stars: 1, label: 'Complete level',   check: (data) => true },
+      { stars: 3, label: '15+ sec left',  check: (d) => d.timeRemaining >= 15 },
+      { stars: 2, label: '6+ sec left',   check: (d) => d.timeRemaining >= 6 },
+      { stars: 1, label: 'Collect 25',    check: (d) => true },
     ],
     settings: {
-      speedMult: 0.95,
-      spawnInterval: 0.40,
-      forbiddenInterval: 2.5,
-      coinsEnabled: true,
-      coinItemInterval: 3.0,
-      powerupsEnabled: false,
+      speedMult: 0.95, spawnInterval: 0.40, forbiddenInterval: 2.5,
+      coinsEnabled: true, coinItemInterval: 3.0, powerupsEnabled: false,
       diffCap: { maxSpeedMult: 1.10, minSpawnInterval: 0.35, minForbiddenInterval: 2.0 },
-      doubleTroubleAt: [],
-      shrinkingArena: false,
-      bossMode: false,
+      disablePanic: false, disableDoubleDanger: false,
+      doubleTroubleAt: [], shrinkingArena: false, bossMode: false,
     },
   },
   {
@@ -180,22 +170,18 @@ const CAMPAIGN_LEVELS = [
     timeLimit: null,
     rewardCoins: 175,
     replayReward: 18,
+    tip: 'At 15s, 30s and 45s a surge fires. Use the brief warning to find a safe zone.',
     starConditions: [
-      { stars: 3, label: 'No hits',        check: (data) => data.hitsReceived === 0 },
-      { stars: 2, label: 'At most 1 hit',  check: (data) => data.hitsReceived <= 1 },
-      { stars: 1, label: 'Complete level', check: (data) => true },
+      { stars: 3, label: 'No hits',       check: (d) => d.hitsReceived === 0 },
+      { stars: 2, label: 'At most 1 hit', check: (d) => d.hitsReceived <= 1 },
+      { stars: 1, label: 'Survive 60s',   check: (d) => true },
     ],
     settings: {
-      speedMult: 1.0,
-      spawnInterval: 0.42,
-      forbiddenInterval: 2.8,
-      coinsEnabled: false,
-      coinItemInterval: null,
-      powerupsEnabled: false,
+      speedMult: 1.0, spawnInterval: 0.42, forbiddenInterval: 2.8,
+      coinsEnabled: false, coinItemInterval: null, powerupsEnabled: false,
       diffCap: { maxSpeedMult: 1.15, minSpawnInterval: 0.35, minForbiddenInterval: 2.3 },
-      doubleTroubleAt: [15, 30, 45],
-      shrinkingArena: false,
-      bossMode: false,
+      disablePanic: false, disableDoubleDanger: false,
+      doubleTroubleAt: [15, 30, 45], shrinkingArena: false, bossMode: false,
     },
   },
   {
@@ -209,22 +195,18 @@ const CAMPAIGN_LEVELS = [
     timeLimit: null,
     rewardCoins: 200,
     replayReward: 20,
+    tip: 'Watch the red danger zones on the sides. Stay in the center as the arena shrinks.',
     starConditions: [
-      { stars: 3, label: 'No hits',        check: (data) => data.hitsReceived === 0 },
-      { stars: 2, label: 'At most 1 hit',  check: (data) => data.hitsReceived <= 1 },
-      { stars: 1, label: 'Complete level', check: (data) => true },
+      { stars: 3, label: 'No hits',       check: (d) => d.hitsReceived === 0 },
+      { stars: 2, label: 'At most 1 hit', check: (d) => d.hitsReceived <= 1 },
+      { stars: 1, label: 'Survive 50s',   check: (d) => true },
     ],
     settings: {
-      speedMult: 1.0,
-      spawnInterval: 0.38,
-      forbiddenInterval: 2.8,
-      coinsEnabled: false,
-      coinItemInterval: null,
-      powerupsEnabled: false,
+      speedMult: 1.0, spawnInterval: 0.38, forbiddenInterval: 2.8,
+      coinsEnabled: false, coinItemInterval: null, powerupsEnabled: false,
       diffCap: { maxSpeedMult: 1.10, minSpawnInterval: 0.32, minForbiddenInterval: 2.3 },
-      doubleTroubleAt: [],
-      shrinkingArena: true,
-      bossMode: false,
+      disablePanic: false, disableDoubleDanger: false,
+      doubleTroubleAt: [], shrinkingArena: true, bossMode: false,
     },
   },
   {
@@ -238,28 +220,24 @@ const CAMPAIGN_LEVELS = [
     timeLimit: null,
     rewardCoins: 250,
     replayReward: 25,
+    tip: 'All three objectives must be completed. Panic wave fires at 45s — be ready.',
     starConditions: [
-      { stars: 3, label: 'No hits',        check: (data) => data.hitsReceived === 0 },
-      { stars: 2, label: 'At most 1 hit',  check: (data) => data.hitsReceived <= 1 },
-      { stars: 1, label: 'Complete level', check: (data) => true },
+      { stars: 3, label: 'No hits',       check: (d) => d.hitsReceived === 0 },
+      { stars: 2, label: 'At most 1 hit', check: (d) => d.hitsReceived <= 1 },
+      { stars: 1, label: 'All 3 done',    check: (d) => true },
     ],
     settings: {
-      speedMult: 1.05,
-      spawnInterval: 0.35,
-      forbiddenInterval: 2.3,
-      coinsEnabled: true,
-      coinItemInterval: 4.0,
-      powerupsEnabled: false,
+      speedMult: 1.05, spawnInterval: 0.35, forbiddenInterval: 2.3,
+      coinsEnabled: true, coinItemInterval: 4.0, powerupsEnabled: false,
       diffCap: { maxSpeedMult: 1.20, minSpawnInterval: 0.28, minForbiddenInterval: 1.8 },
-      doubleTroubleAt: [25, 55],
-      shrinkingArena: false,
-      bossMode: false,
+      disablePanic: false, disableDoubleDanger: false,
+      doubleTroubleAt: [25, 55], shrinkingArena: false, bossMode: false,
     },
   },
   {
     id: 10,
-    name: 'The Panic Boss',
-    subtitle: 'Face the Panic Core. Collect orbs to deal damage.',
+    name: 'The Panic Core',
+    subtitle: 'Face the boss. Collect orbs to deal damage.',
     difficulty: 'Boss',
     difficultyColor: '#ec4899',
     objectiveType: 'boss_defeat',
@@ -267,25 +245,24 @@ const CAMPAIGN_LEVELS = [
     timeLimit: 120,
     rewardCoins: 500,
     replayReward: 50,
+    tip: 'Collect glowing orbs to damage the boss. Dodge its projectiles — they have warning lines.',
     starConditions: [
-      { stars: 3, label: 'Defeated with no hits',   check: (data) => data.hitsReceived === 0 },
-      { stars: 2, label: 'Defeated boss',            check: (data) => data.bossDefeated === true },
-      { stars: 1, label: 'Defeated boss',            check: (data) => data.bossDefeated === true },
+      { stars: 3, label: 'No hits',       check: (d) => d.hitsReceived === 0 },
+      { stars: 2, label: 'Defeat boss',   check: (d) => d.bossDefeated === true },
+      { stars: 1, label: 'Defeat boss',   check: (d) => d.bossDefeated === true },
     ],
     settings: {
-      speedMult: 0.90,
-      spawnInterval: 0.48,
-      forbiddenInterval: 3.0,
-      coinsEnabled: true,
-      coinItemInterval: 4.5,
-      powerupsEnabled: false,
+      speedMult: 0.90, spawnInterval: 0.48, forbiddenInterval: 3.0,
+      coinsEnabled: true, coinItemInterval: 4.5, powerupsEnabled: false,
       diffCap: { maxSpeedMult: 1.10, minSpawnInterval: 0.38, minForbiddenInterval: 2.5 },
-      doubleTroubleAt: [],
-      shrinkingArena: false,
-      bossMode: true,
+      disablePanic: false, disableDoubleDanger: false,
+      doubleTroubleAt: [], shrinkingArena: false, bossMode: true,
     },
   },
 ];
+
+
+
 
 // ============================================================
 // SECTION 2: CAMPAIGN SAVE MANAGER
@@ -972,97 +949,140 @@ const CampaignUI = (() => {
   function renderLevelSelect() {
     const el = document.getElementById('campaign-levelselect');
     if (!el) return;
-    const saveData = CampaignSave.get();
-    const total    = CAMPAIGN_LEVELS.length;
-    const completed = Object.keys(saveData.completedLevels).length;
+    const saveData   = CampaignSave.get();
+    const total      = CAMPAIGN_LEVELS.length;
+    const nCompleted = Object.keys(saveData.completedLevels).length;
     const totalStars = saveData.totalStars;
+    const coinsEarned = saveData.campaignCoinsEarned || 0;
+
+    // Animated background particles (pure CSS animation)
+    const PARTICLE_COLORS = ['#7c3aed','#0ea5e9','#ec4899','#22c55e','#f59e0b'];
+    const particlesHtml = Array.from({ length: 18 }, (_, i) => {
+      const c = PARTICLE_COLORS[i % PARTICLE_COLORS.length];
+      const sz  = (3 + (i * 1.7) % 5).toFixed(1);
+      const lft = ((i * 17 + 7) % 97).toFixed(1);
+      const dur = (9 + (i * 2.3) % 13).toFixed(1);
+      const del = ((i * 1.9) % 11).toFixed(1);
+      return `<div class="cmp-road-particle" style="left:${lft}%;width:${sz}px;height:${sz}px;background:${c};animation-duration:${dur}s;animation-delay:-${del}s"></div>`;
+    }).join('');
+
+    // Level path nodes
+    const nodesHtml = CAMPAIGN_LEVELS.map((lvl, idx) => {
+      const side = lvl.id === 10 ? 'boss' : (idx % 2 === 0 ? 'left' : 'right');
+      return _buildLevelNode(lvl, saveData, side);
+    }).join('');
 
     el.innerHTML = `
-      <div class="cmp-ls-inner">
-        <div class="cmp-ls-header">
-          <h1 class="cmp-ls-title">Shift Trials</h1>
-          <p class="cmp-ls-subtitle">Complete missions to unlock the final boss</p>
-          <div class="cmp-ls-stats">
-            <div class="cmp-ls-stat">
-              <span class="cmp-stat-val">${completed} / ${total}</span>
-              <span class="cmp-stat-lbl">Levels Complete</span>
+      <div class="cmp-road-outer">
+        <div class="cmp-road-particles" aria-hidden="true">${particlesHtml}</div>
+        <div class="cmp-road-inner">
+          <button class="cmp-road-back" id="cmp-btn-back" aria-label="Back to main menu">&#8592; Menu</button>
+          <header class="cmp-road-header">
+            <h1 class="cmp-road-title">Challenge Road</h1>
+            <p class="cmp-road-subtitle">Clear missions &middot; Earn stars &middot; Defeat the Boss</p>
+            <div class="cmp-road-statsbar">
+              <div class="cmp-road-stat">
+                <span class="cmp-road-stat-val">${nCompleted}/${total}</span>
+                <span class="cmp-road-stat-lbl">Complete</span>
+              </div>
+              <div class="cmp-road-stat-sep"></div>
+              <div class="cmp-road-stat">
+                <span class="cmp-road-stat-val">${totalStars}/${total * 3}</span>
+                <span class="cmp-road-stat-lbl">Stars</span>
+              </div>
+              <div class="cmp-road-stat-sep"></div>
+              <div class="cmp-road-stat">
+                <span class="cmp-road-stat-val" style="color:#f59e0b">${coinsEarned}</span>
+                <span class="cmp-road-stat-lbl">Coins Earned</span>
+              </div>
             </div>
-            <div class="cmp-ls-stat-sep"></div>
-            <div class="cmp-ls-stat">
-              <span class="cmp-stat-val">${totalStars} / ${total * 3}</span>
-              <span class="cmp-stat-lbl">Stars Earned</span>
-            </div>
+          </header>
+          <div class="cmp-road-map" role="list" aria-label="Challenge Road levels">
+            ${nodesHtml}
           </div>
         </div>
-        <div class="cmp-level-grid" id="cmp-level-grid">
-          ${CAMPAIGN_LEVELS.map(lvl => _buildLevelCard(lvl, saveData)).join('')}
-        </div>
-        <button class="cmp-back-btn btn" id="cmp-btn-back">Back to Menu</button>
       </div>`;
 
     // Wire back button
     const backBtn = el.querySelector('#cmp-btn-back');
     if (backBtn) backBtn.addEventListener('click', () => {
-      if (typeof AudioFn !== 'undefined') try { AudioFn.uiClick(); } catch (_) {}
+      try { if (typeof AudioFn !== 'undefined') AudioFn.uiClick(); } catch (_) {}
       hideLevelSelect();
       if (typeof returnHome === 'function') returnHome();
     });
 
-    // Wire level play buttons
-    el.querySelectorAll('.cmp-level-play-btn[data-level-id]').forEach(btn => {
+    // Wire play/replay buttons
+    el.querySelectorAll('.cmp-node-btn[data-level-id]').forEach(btn => {
       btn.addEventListener('click', () => {
-        const id = parseInt(btn.dataset.levelId, 10);
+        const id  = parseInt(btn.dataset.levelId, 10);
         const lvl = CAMPAIGN_LEVELS.find(l => l.id === id);
         if (lvl && CampaignSave.isUnlocked(id)) {
-          if (typeof AudioFn !== 'undefined') try { AudioFn.uiClick(); } catch (_) {}
+          try { if (typeof AudioFn !== 'undefined') AudioFn.uiClick(); } catch (_) {}
           window.CampaignManager.selectLevel(lvl);
         }
       });
     });
   }
 
-  function _buildLevelCard(lvl, saveData) {
+  function _buildLevelNode(lvl, saveData, side) {
     const unlocked  = CampaignSave.isUnlocked(lvl.id);
     const completed = CampaignSave.isCompleted(lvl.id);
     const stars     = CampaignSave.getStars(lvl.id);
-    const stateClass = !unlocked ? 'cmp-card-locked' : completed ? 'cmp-card-completed' : 'cmp-card-unlocked';
+    const isNext    = unlocked && !completed;
 
-    const starsHtml = `<div class="cmp-card-stars" aria-label="${stars} of 3 stars">
-      ${[1,2,3].map(i => `<span class="cmp-star ${i <= stars ? 'cmp-star-on' : ''}" aria-hidden="true">&#9733;</span>`).join('')}
-    </div>`;
+    const diffClass = {
+      'Easy':   'cmp-node--easy',
+      'Medium': 'cmp-node--medium',
+      'Hard':   'cmp-node--hard',
+      'Expert': 'cmp-node--expert',
+      'Boss':   'cmp-node--boss',
+    }[lvl.difficulty] || 'cmp-node--easy';
 
-    const objSummary = _getObjectiveSummary(lvl);
-    const diffBadge  = `<span class="cmp-diff-badge" style="color:${lvl.difficultyColor}">${lvl.difficulty}</span>`;
-    const rewardBadge = `<span class="cmp-reward-badge"><span class="coin-icon coin-sm" aria-hidden="true"></span>${lvl.rewardCoins}</span>`;
+    const stateClass = !unlocked    ? 'cmp-node--locked'
+                     : completed    ? 'cmp-node--completed'
+                     : isNext       ? 'cmp-node--unlocked cmp-node--current'
+                     : 'cmp-node--unlocked';
 
-    let actionHtml;
+    const rowClass = side === 'boss'  ? 'cmp-road-row--boss'
+                   : side === 'left'  ? 'cmp-road-row--left'
+                   : 'cmp-road-row--right';
+
+    const starsHtml = [1,2,3].map(i =>
+      `<span class="cmp-node-star${i <= stars ? ' cmp-node-star--on' : ''}" aria-hidden="true">&#9733;</span>`
+    ).join('');
+
+    const objText = _getObjectiveSummary(lvl);
+
+    let btnHtml;
     if (!unlocked) {
-      actionHtml = `<button class="cmp-level-play-btn cmp-btn-locked" disabled aria-label="Level ${lvl.id} locked">
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
-        Locked</button>`;
+      btnHtml = `<button class="cmp-node-btn cmp-node-btn--locked" disabled aria-label="Level ${lvl.id} locked">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg> Locked</button>`;
+    } else if (completed) {
+      btnHtml = `<button class="cmp-node-btn cmp-node-btn--replay" data-level-id="${lvl.id}" aria-label="Replay Level ${lvl.id}">Replay</button>`;
     } else {
-      const btnLabel = completed ? 'Replay' : 'Play';
-      const btnClass = completed ? 'cmp-btn-replay' : 'cmp-btn-play';
-      actionHtml = `<button class="cmp-level-play-btn ${btnClass}" data-level-id="${lvl.id}" aria-label="${btnLabel} Level ${lvl.id}: ${lvl.name}">
-        ${completed ? '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/></svg> Replay' : '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg> Play'}
-      </button>`;
+      btnHtml = `<button class="cmp-node-btn" data-level-id="${lvl.id}" aria-label="Play Level ${lvl.id}: ${lvl.name}">Play</button>`;
     }
 
-    const checkmark = completed ? '<div class="cmp-card-check" aria-label="Completed">&#10003;</div>' : '';
+    const branchHtml = side === 'boss' ? '' : `<div class="cmp-road-branch" aria-hidden="true"></div>`;
+    const nodeHtml = `
+      <div class="cmp-road-node ${diffClass} ${stateClass}"
+           role="listitem"
+           aria-label="Level ${lvl.id}: ${lvl.name}, ${!unlocked ? 'locked' : completed ? 'completed' : 'available'}">
+        <div class="cmp-node-header">
+          <span class="cmp-node-num">LVL ${lvl.id}</span>
+          <span class="cmp-node-diff" style="color:${lvl.difficultyColor}">${lvl.difficulty}</span>
+        </div>
+        <div class="cmp-node-title">${lvl.name}</div>
+        <div class="cmp-node-obj">${objText}</div>
+        <div class="cmp-node-stars" aria-label="${stars} of 3 stars">${starsHtml}</div>
+        <div class="cmp-node-bottom">
+          <span class="cmp-node-reward"><span class="coin-icon coin-sm" aria-hidden="true"></span>${lvl.rewardCoins}</span>
+          ${btnHtml}
+        </div>
+      </div>`;
 
-    return `<div class="cmp-level-card ${stateClass}" role="listitem" aria-label="Level ${lvl.id}: ${lvl.name}, ${unlocked ? (completed ? 'completed' : 'unlocked') : 'locked'}">
-      ${checkmark}
-      <div class="cmp-card-top">
-        <span class="cmp-card-num">${lvl.id}</span>
-        ${diffBadge}
-      </div>
-      <div class="cmp-card-name">${lvl.name}</div>
-      <div class="cmp-card-obj">${objSummary}</div>
-      ${starsHtml}
-      <div class="cmp-card-bottom">
-        ${rewardBadge}
-        ${actionHtml}
-      </div>
+    return `<div class="cmp-road-row ${rowClass}">
+      ${side === 'right' ? branchHtml + nodeHtml : nodeHtml + branchHtml}
     </div>`;
   }
 

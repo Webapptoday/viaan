@@ -42,130 +42,272 @@
 .btn-campaign-home:focus-visible::before { opacity: 1; }
 
 /* ============================================================
-   CAMPAIGN LEVEL SELECT SCREEN
+   CAMPAIGN LEVEL SELECT — CHALLENGE ROAD DESIGN
+   Winding path map with animated particles, colored nodes,
+   and an arcade-style central spine.
    ============================================================ */
 #campaign-levelselect {
-  background: radial-gradient(ellipse at 50% 0%, #12064088 0%, #07070f 60%);
+  background: #07070f;
+  overflow-y: auto;
 }
 
-.cmp-ls-inner {
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 2rem 1.5rem 4rem;
+/* Outer wrapper: full-screen dark bg */
+.cmp-road-outer {
+  position: relative;
   min-height: 100vh;
+  background: linear-gradient(160deg, #0d0022 0%, #060018 30%, #080026 60%, #0d0022 100%);
+  overflow: hidden;
+}
+
+/* ==========================
+   ANIMATED PARTICLES (BG)
+   ========================== */
+.cmp-road-particles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.cmp-road-particle {
+  position: absolute;
+  bottom: -20px;
+  border-radius: 50%;
+  opacity: 0;
+  animation: cmp-particle-rise linear infinite;
+}
+
+@keyframes cmp-particle-rise {
+  0%   { transform: translateY(0) scale(1);      opacity: 0; }
+  8%   { opacity: 0.55; }
+  88%  { opacity: 0.25; }
+  100% { transform: translateY(-105vh) scale(0.6); opacity: 0; }
+}
+
+/* ==========================
+   INNER CONTENT LAYOUT
+   ========================== */
+.cmp-road-inner {
+  position: relative;
+  z-index: 1;
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 1.4rem 1rem 5rem;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  align-items: center;
+  gap: 1.4rem;
 }
 
-.cmp-ls-header {
-  text-align: center;
+/* ==========================
+   BACK BUTTON
+   ========================== */
+.cmp-road-back {
+  align-self: flex-start;
+  padding: 0.4rem 1rem;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 9px;
+  color: #94a3b8;
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
 }
+.cmp-road-back:hover { background: rgba(255,255,255,0.1); color: #f8fafc; }
 
-.cmp-ls-title {
+/* ==========================
+   HEADER AREA
+   ========================== */
+.cmp-road-header { text-align: center; width: 100%; }
+
+.cmp-road-title {
   font-family: 'Space Grotesk', 'Inter', sans-serif;
-  font-size: clamp(2rem, 6vw, 3.2rem);
-  font-weight: 800;
-  background: linear-gradient(135deg, #a855f7 0%, #38bdf8 100%);
+  font-size: clamp(2.2rem, 7.5vw, 3.6rem);
+  font-weight: 900;
+  background: linear-gradient(135deg, #c084fc 0%, #60a5fa 45%, #f472b6 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  margin: 0 0 0.4rem;
+  margin: 0;
   letter-spacing: -0.02em;
+  line-height: 1.05;
 }
 
-.cmp-ls-subtitle {
-  color: #94a3b8;
-  font-size: 1rem;
-  margin: 0 0 1rem;
+.cmp-road-subtitle {
+  color: #6b7ba4;
+  font-size: 0.93rem;
+  margin: 0.5rem 0 0;
 }
 
-.cmp-ls-stats {
+/* Stats bar */
+.cmp-road-statsbar {
   display: inline-flex;
   align-items: center;
-  gap: 1rem;
-  background: #12121f;
-  border: 1px solid #1e1b4b;
-  border-radius: 12px;
+  gap: 0;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 14px;
   padding: 0.6rem 1.2rem;
-  margin: 0 auto;
+  margin-top: 1rem;
 }
-
-.cmp-ls-stat {
+.cmp-road-stat {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 2px;
+  padding: 0 0.9rem;
 }
-
-.cmp-stat-val {
+.cmp-road-stat-val {
   font-weight: 800;
-  font-size: 1.15rem;
+  font-size: 1.1rem;
   color: #f8fafc;
+  line-height: 1;
 }
-
-.cmp-stat-lbl {
-  font-size: 0.72rem;
-  color: #64748b;
+.cmp-road-stat-lbl {
+  font-size: 0.65rem;
+  color: #475569;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.07em;
+  white-space: nowrap;
 }
-
-.cmp-ls-stat-sep {
+.cmp-road-stat-sep {
   width: 1px;
-  height: 32px;
-  background: #1e1b4b;
+  height: 28px;
+  background: rgba(255,255,255,0.07);
+  flex-shrink: 0;
 }
 
-/* Level grid */
-.cmp-level-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 1rem;
-}
-
-/* Level cards */
-.cmp-level-card {
+/* ==========================
+   ROAD MAP STRUCTURE
+   ========================== */
+.cmp-road-map {
   position: relative;
-  background: #12121f;
-  border: 1px solid #1e1b4b;
-  border-radius: 14px;
-  padding: 1rem;
+  width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
-  cursor: default;
-  user-select: none;
+  align-items: stretch;
 }
 
-.cmp-card-unlocked {
-  border-color: #7c3aed66;
-}
-.cmp-card-unlocked:hover {
-  transform: translateY(-3px);
-  border-color: #a855f7;
-  box-shadow: 0 8px 28px #7c3aed44;
-}
-
-.cmp-card-completed {
-  border-color: #22c55e66;
-}
-.cmp-card-completed:hover {
-  transform: translateY(-3px);
-  border-color: #22c55e;
-  box-shadow: 0 8px 28px #22c55e33;
-}
-
-.cmp-card-locked {
-  opacity: 0.45;
-  filter: grayscale(0.6);
-}
-
-.cmp-card-check {
+/* Central vertical spine */
+.cmp-road-map::before {
+  content: '';
   position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  transform: translateX(-50%);
+  background: linear-gradient(180deg,
+    #7c3aed55 0%,
+    #a855f788 15%,
+    #0ea5e988 35%,
+    #f59e0b88 55%,
+    #ef444488 70%,
+    #a855f7aa 85%,
+    #ec489999 100%
+  );
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+/* Each row = one level */
+.cmp-road-row {
+  position: relative;
+  display: grid;
+  min-height: 144px;
+  align-items: center;
+  padding: 10px 0;
+}
+
+/* Dot on spine at each row */
+.cmp-road-row::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--row-dot, #7c3aed);
+  box-shadow: 0 0 10px var(--row-dot, #7c3aed);
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* Left row: node left, branch right side of node, filler right */
+.cmp-road-row--left  { grid-template-columns: 44% 8% 48%; }
+/* Right row: filler left, branch left of node, node right */
+.cmp-road-row--right { grid-template-columns: 48% 8% 44%; }
+/* Boss row: centered node */
+.cmp-road-row--boss  {
+  grid-template-columns: 1fr;
+  justify-items: center;
+  min-height: 180px;
+}
+
+/* Horizontal branch line */
+.cmp-road-branch {
+  height: 2px;
+  background: var(--row-dot, #7c3aed);
+  opacity: 0.4;
+  align-self: center;
+}
+
+/* ==========================
+   NODE CARDS
+   ========================== */
+.cmp-road-node {
+  position: relative;
+  background: #0c0c1e;
+  border: 2px solid var(--node-color, #7c3aed);
+  border-radius: 16px;
+  padding: 0.85rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  box-shadow: 0 0 18px var(--node-glow, transparent);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s;
+  overflow: visible;
+}
+
+/* Difficulty color custom props */
+.cmp-node--easy   { --node-color: #22c55e; --node-glow: #22c55e1a; --row-dot: #22c55e; }
+.cmp-node--medium { --node-color: #f59e0b; --node-glow: #f59e0b1a; --row-dot: #f59e0b; }
+.cmp-node--hard   { --node-color: #ef4444; --node-glow: #ef44441a; --row-dot: #ef4444; }
+.cmp-node--expert { --node-color: #a855f7; --node-glow: #a855f71a; --row-dot: #a855f7; }
+.cmp-node--boss   {
+  --node-color: #ec4899;
+  --node-glow: #ec489933;
+  --row-dot: #ec4899;
+  width: clamp(240px, 68vw, 380px);
+  border-width: 2px;
+  background: linear-gradient(135deg, #180020 0%, #0c0c1e 100%);
+}
+
+/* Locked */
+.cmp-node--locked {
+  opacity: 0.3;
+  filter: grayscale(0.65);
+  pointer-events: none;
+}
+
+/* Unlocked hover */
+.cmp-node--unlocked:hover {
+  transform: scale(1.04) translateY(-2px);
+  box-shadow: 0 6px 28px var(--node-glow, #7c3aed33), 0 0 40px var(--node-glow, #7c3aed22);
+  border-color: var(--node-color);
+}
+
+/* Completed: green accent + check badge */
+.cmp-node--completed { --node-color: #22c55e; --node-glow: #22c55e22; }
+.cmp-node--completed::after {
+  content: '\2713';
+  position: absolute;
+  top: -10px;
+  right: -10px;
   width: 22px;
   height: 22px;
   background: #22c55e;
@@ -173,116 +315,129 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 900;
   color: #fff;
-  line-height: 1;
-  box-shadow: 0 0 10px #22c55e88;
+  box-shadow: 0 0 10px #22c55eaa;
+  line-height: 22px;
+  text-align: center;
 }
 
-.cmp-card-top {
+/* Current (next to play): pulse animation */
+.cmp-node--current {
+  animation: cmp-node-pulse 2.2s ease-in-out infinite;
+}
+@keyframes cmp-node-pulse {
+  0%, 100% { box-shadow: 0 0 14px var(--node-glow, #7c3aed22); }
+  50%       { box-shadow: 0 0 36px var(--node-glow, #7c3aed55), 0 0 54px var(--node-glow, #7c3aed22); }
+}
+
+/* Boss unlocked: special red/pink pulse */
+.cmp-node--boss.cmp-node--unlocked,
+.cmp-node--boss.cmp-node--completed {
+  animation: cmp-boss-node-pulse 2.8s ease-in-out infinite;
+}
+@keyframes cmp-boss-node-pulse {
+  0%, 100% { box-shadow: 0 0 24px #ec489933, 0 0 48px #7c3aed11; border-color: #ec4899; }
+  50%       { box-shadow: 0 0 48px #ec489966, 0 0 80px #ec489922; border-color: #f97316; }
+}
+
+/* ==========================
+   NODE INNER ELEMENTS
+   ========================== */
+.cmp-node-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
-
-.cmp-card-num {
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: #64748b;
-  background: #1a1a2e;
+.cmp-node-num {
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: var(--node-color, #7c3aed);
+  background: rgba(255,255,255,0.05);
   border-radius: 6px;
-  padding: 2px 8px;
+  padding: 2px 7px;
+  letter-spacing: 0.05em;
 }
-
-.cmp-diff-badge {
-  font-size: 0.72rem;
+.cmp-node-diff {
+  font-size: 0.67rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.07em;
 }
-
-.cmp-card-name {
-  font-weight: 700;
-  font-size: 1rem;
-  color: #f8fafc;
+.cmp-node-title {
+  font-weight: 800;
+  font-size: 0.97rem;
+  color: #f1f5f9;
   line-height: 1.2;
 }
-
-.cmp-card-obj {
-  font-size: 0.8rem;
-  color: #94a3b8;
-  flex-grow: 1;
+.cmp-node--boss .cmp-node-title {
+  font-size: 1.15rem;
+  background: linear-gradient(135deg, #ec4899, #f97316);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
-
-.cmp-card-stars {
-  display: flex;
-  gap: 3px;
-  height: 18px;
+.cmp-node-obj {
+  font-size: 0.76rem;
+  color: #64748b;
+  line-height: 1.3;
 }
+.cmp-node-stars { display: flex; gap: 3px; }
+.cmp-node-star     { font-size: 0.92rem; color: #1e293b; }
+.cmp-node-star--on { color: #f59e0b; text-shadow: 0 0 6px #f59e0b99; }
 
-.cmp-star {
-  color: #334155;
-  font-size: 1.1rem;
-  line-height: 1;
-  transition: color 0.2s;
-}
-.cmp-star-on {
-  color: #f59e0b;
-  text-shadow: 0 0 8px #f59e0b88;
-}
-
-.cmp-card-bottom {
+.cmp-node-bottom {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
-  margin-top: 0.25rem;
+  margin-top: 2px;
 }
-
-.cmp-reward-badge {
+.cmp-node-reward {
   display: flex;
   align-items: center;
   gap: 3px;
-  font-size: 0.78rem;
+  font-size: 0.74rem;
   font-weight: 700;
   color: #f59e0b;
 }
 
-.cmp-level-play-btn {
-  padding: 0.35rem 0.75rem;
+/* Node action buttons */
+.cmp-node-btn {
+  padding: 0.32rem 0.85rem;
   border-radius: 8px;
   font-size: 0.78rem;
-  font-weight: 700;
+  font-weight: 800;
   border: none;
   cursor: pointer;
+  background: var(--node-color, #7c3aed);
+  color: #fff;
+  transition: all 0.14s;
+  white-space: nowrap;
+  letter-spacing: 0.04em;
+  font-family: inherit;
+}
+.cmp-node-btn:hover:not(:disabled) { filter: brightness(1.25); transform: scale(1.05); }
+.cmp-node-btn--replay {
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: #94a3b8;
+}
+.cmp-node-btn--replay:hover { background: rgba(255,255,255,0.13); color: #f8fafc; }
+.cmp-node-btn--locked {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.05);
+  color: #374151;
+  cursor: not-allowed;
   display: flex;
   align-items: center;
   gap: 4px;
-  transition: all 0.15s;
-  white-space: nowrap;
 }
 
-.cmp-btn-play {
-  background: linear-gradient(135deg, #7c3aed, #a855f7);
-  color: #fff;
-}
-.cmp-btn-play:hover { background: linear-gradient(135deg, #a855f7, #c084fc); transform: scale(1.04); }
-
-.cmp-btn-replay {
-  background: #1e293b;
-  color: #94a3b8;
-  border: 1px solid #334155;
-}
-.cmp-btn-replay:hover { background: #334155; color: #f8fafc; }
-
-.cmp-btn-locked {
-  background: #1e293b;
-  color: #475569;
-  border: 1px solid #1e293b;
-  cursor: not-allowed;
-}
-
+/* ============================================================
+   BACK BUTTON (old .cmp-back-btn kept for other screens)
+   ============================================================ */
 .cmp-back-btn {
   align-self: center;
   margin-top: 1rem;
@@ -296,6 +451,8 @@
   transition: all 0.15s;
 }
 .cmp-back-btn:hover { background: #334155; color: #f8fafc; }
+
+
 
 /* ============================================================
    CAMPAIGN INTRO SCREEN
@@ -919,12 +1076,17 @@
    RESPONSIVE ADJUSTMENTS
    ============================================================ */
 @media (max-width: 480px) {
-  .cmp-ls-inner { padding: 1.25rem 1rem 3rem; }
-  .cmp-level-grid { grid-template-columns: repeat(2, 1fr); gap: 0.65rem; }
-  .cmp-level-card { padding: 0.75rem; }
-  .cmp-card-name  { font-size: 0.88rem; }
-  .cmp-card-obj   { font-size: 0.72rem; }
-  .cmp-level-play-btn { font-size: 0.72rem; padding: 0.3rem 0.55rem; }
+  .cmp-road-inner { padding: 1rem 0.75rem 3.5rem; }
+  .cmp-road-title { font-size: 2.1rem; }
+  .cmp-road-statsbar { padding: 0.5rem 0.7rem; }
+  .cmp-road-stat { padding: 0 0.6rem; }
+  .cmp-road-stat-val { font-size: 0.98rem; }
+  .cmp-road-row--left  { grid-template-columns: 48% 6% 46%; }
+  .cmp-road-row--right { grid-template-columns: 46% 6% 48%; }
+  .cmp-road-node { padding: 0.7rem 0.8rem; }
+  .cmp-node-title { font-size: 0.88rem; }
+  .cmp-node-obj   { font-size: 0.7rem; }
+  .cmp-node-btn   { font-size: 0.72rem; padding: 0.28rem 0.65rem; }
   .cmp-v-box, .cmp-d-box, .cmp-intro-box { padding: 1.5rem 1rem; }
   .cmp-intro-name { font-size: 1.3rem; }
   #campaign-hud-overlay { padding: 2px 8px 0; gap: 6px; }
@@ -932,7 +1094,8 @@
 }
 
 @media (max-width: 360px) {
-  .cmp-level-grid { grid-template-columns: 1fr 1fr; }
+  .cmp-road-row--left  { grid-template-columns: 50% 5% 45%; }
+  .cmp-road-row--right { grid-template-columns: 45% 5% 50%; }
   .cmp-v-stars .cmp-v-star { font-size: 1.9rem; }
 }
 
@@ -954,7 +1117,8 @@
    REDUCED MOTION OVERRIDES
    ============================================================ */
 @media (prefers-reduced-motion: reduce) {
-  .cmp-level-card,
+  .cmp-road-node,
+  .cmp-road-particle,
   .cmp-v-box,
   .cmp-d-box,
   .cmp-intro-box,
@@ -966,7 +1130,8 @@
   }
 }
 
-.reduced-motion .cmp-level-card,
+.reduced-motion .cmp-road-node,
+.reduced-motion .cmp-road-particle,
 .reduced-motion .cmp-v-box,
 .reduced-motion .cmp-d-box,
 .reduced-motion .cmp-intro-box,
