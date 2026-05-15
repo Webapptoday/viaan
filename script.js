@@ -6491,6 +6491,24 @@ function tickActivePowerup(dt) {
 function drawPowerup(p) {
   ctx.save();
   ctx.translate(p.x, p.y);
+
+  if (p.image) {
+    // Powerup has a sprite image: draw it with a coloured glow, no star behind it
+    const im = getCachedImage(p.image);
+    if (im && im.complete && im.naturalWidth > 0) {
+      const sz = p.size * 1.15;   // slightly larger than the collectible hitbox
+      ctx.shadowColor  = p.color;
+      ctx.shadowBlur   = 26;
+      ctx.globalAlpha  = 0.97;
+      // Gentle slow rotation so it feels "alive"
+      ctx.rotate(p.angle * 0.25);
+      ctx.drawImage(im, -sz / 2, -sz / 2, sz, sz);
+      ctx.restore();
+      return;
+    }
+  }
+
+  // Fallback: no image (CLEAR / BOOST) — draw classic spinning star + icon
   ctx.rotate(p.angle);
   ctx.shadowColor = p.color;
   ctx.shadowBlur  = 24;
@@ -6507,19 +6525,7 @@ function drawPowerup(p) {
   ctx.textAlign    = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillStyle    = '#fff';
-  // If a sprite image exists for this powerup, draw it; otherwise draw the text icon
-  if (p.image) {
-    const im = getCachedImage(p.image);
-    if (im && im.complete) {
-      const iw = p.size * 0.9;
-      const ih = p.size * 0.9;
-      ctx.drawImage(im, -iw / 2, -ih / 2, iw, ih);
-    } else {
-      ctx.fillText(p.icon, 0, 1);
-    }
-  } else {
-    ctx.fillText(p.icon, 0, 1);
-  }
+  ctx.fillText(p.icon, 0, 1);
   ctx.restore();
 }
 
