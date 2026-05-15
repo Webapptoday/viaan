@@ -271,7 +271,10 @@ const CAMPAIGN_LEVELS = [
 // ============================================================
 const CampaignSave = (() => {
   const LS_KEY  = 'shiftPanicCampaign';
-  const VERSION = 1;
+  // Bump this VERSION to force older clients to reset their campaign save
+  // to the defaults in `_default()` on next load. Incrementing clears
+  // `localStorage.shiftPanicCampaign` for all players when the new code runs.
+  const VERSION = 2;
 
   const _default = () => ({
     version: VERSION,
