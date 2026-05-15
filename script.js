@@ -6479,6 +6479,12 @@ function updateMiniGoalHUD() {
   const fillEl   = document.getElementById('run-goal-fill');
   const pctEl    = document.getElementById('run-goal-pct');
   if (!bar) return;
+  // Hide mini-run goals during Campaign/Challenge runs
+  try {
+    if (window._campaignSettings || (window.CampaignManager && typeof window.CampaignManager.isActive === 'function' && window.CampaignManager.isActive())) {
+      bar.hidden = true; return;
+    }
+  } catch (_) {}
   if (!runMiniGoal || currentState !== STATE.PLAYING) { bar.hidden = true; return; }
   bar.hidden = false;
   if (iconEl)  iconEl.textContent  = runMiniGoal.icon;
@@ -8077,7 +8083,15 @@ function startGame(mpInitialForbiddenIdx) {
   // Reset per-run mission counters (cumulative stat handled separately in evaluateMissions)
   missionRun = { seconds: 0, score: 0, colorChanges: 0, powerupsThisRun: 0, nearMissesThisRun: 0, panicWavesSurvived: 0, maxCombo: 0 };
   // Pick a fresh mini goal for this run
-  pickMiniGoal();
+  // Do not pick a mini-goal when starting a Campaign/Challenge run
+  try {
+    if (!window._campaignSettings) {
+      pickMiniGoal();
+    } else {
+      runMiniGoal = null;
+      try { const rg = document.getElementById('run-goal-bar'); if (rg) rg.hidden = true; } catch(_) {}
+    }
+  } catch (e) { try { pickMiniGoal(); } catch(_) {} }
   // Apply any pending mission bonus
   if (pendingMissionBonus > 0) {
     const bonus = pendingMissionBonus;

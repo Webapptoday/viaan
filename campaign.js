@@ -1487,13 +1487,25 @@ const CampaignUI = (() => {
       }
     }
 
-    // Time limit countdown
+    // Time limit countdown (or show remaining time for survive_seconds objectives)
     if (timer) {
       if (timeLimit !== null && timeLimit !== undefined) {
         const remaining = Math.max(0, timeLimit - elapsed);
         timer.textContent = remaining > 0 ? `Time: ${Math.ceil(remaining)}s` : 'Time: 0s';
         timer.hidden = false;
         timer.style.color = remaining < 8 ? '#ef4444' : '#f8fafc';
+      } else if (type === 'survive_seconds') {
+        const remaining = Math.max(0, lvl.objectiveTarget - elapsed);
+        const remInt = Math.ceil(remaining);
+        timer.textContent = remInt > 0 ? `Time left: ${remInt}s` : 'Time: 0s';
+        timer.hidden = false;
+        timer.style.color = remaining < 8 ? '#ef4444' : '#f8fafc';
+        try {
+          if ((!timer._lastRemaining || remInt < timer._lastRemaining) && remInt <= 3) {
+            if (typeof AudioManager !== 'undefined') AudioManager.playSound('countdown');
+          }
+        } catch (_) {}
+        try { timer._lastRemaining = remInt; } catch (_) {}
       } else {
         timer.hidden = true;
       }
@@ -1509,6 +1521,8 @@ const CampaignUI = (() => {
     el.hidden = false;
     const nameEl = document.getElementById('cmp-hud-name');
     if (nameEl) nameEl.textContent = `Level ${lvl.id}: ${lvl.name}`;
+    // reset countdown announcer state
+    try { const t = document.getElementById('cmp-hud-timer'); if (t) t._lastRemaining = null; } catch(_) {}
   }
 
   function hideHUD() {
