@@ -341,6 +341,7 @@ const CampaignSave = (() => {
     bestTimesByLevel: {},
     totalStars: 0,
     campaignCoinsEarned: 0,
+    disabledBriefings: {},
   });
 
   let _data = null;
@@ -407,7 +408,20 @@ const CampaignSave = (() => {
     save();
   }
 
-  return { load, save, get, isUnlocked, isCompleted, getStars, completeLevelResult };
+  function isBriefingDisabled(levelId) {
+    const d = load();
+    return !!(d.disabledBriefings && d.disabledBriefings[levelId]);
+  }
+
+  function setBriefingDisabled(levelId, disabled) {
+    const d = load();
+    d.disabledBriefings = d.disabledBriefings || {};
+    if (disabled) d.disabledBriefings[levelId] = true;
+    else delete d.disabledBriefings[levelId];
+    save();
+  }
+
+  return { load, save, get, isUnlocked, isCompleted, getStars, completeLevelResult, isBriefingDisabled, setBriefingDisabled };
 })();
 
 // Developer helpers: quick test utilities for local testing.
@@ -425,6 +439,78 @@ window.unlockAllCampaignLevels = function() {
     CampaignSave.save();
     console.info('[Campaign] All levels unlocked');
   } catch (e) { console.error(e); }
+};
+
+// Developer: debug helpers to validate and optionally start levels programmatically.
+window.debugStartLevel = function(id) {
+  try {
+    window.DEBUG_CHALLENGE = true;
+    const lvl = CAMPAIGN_LEVELS.find(l => l.id === id);
+    if (!lvl) { console.error('[CampaignDebug] unknown level', id); return; }
+    console.info('[CampaignDebug] Starting level', id, lvl.name);
+    window.CampaignManager.selectLevel(lvl);
+  } catch (e) { console.error('[CampaignDebug] debugStartLevel error', e); }
+};
+
+window.debugChallengeLevels = async function(runStart) {
+  console.info('[CampaignDebug] Validating all campaign levels');
+  for (const lvl of CAMPAIGN_LEVELS) {
+    try {
+      const problems = validateChallengeLevelStrict(lvl);
+      const ok = !problems || problems.length === 0;
+      console.log('[CampaignDebug] Level', lvl.id, '-', lvl.name, 'configValid=', ok, (ok ? '' : problems));
+      if (runStart && ok) {
+        console.log('[CampaignDebug] Attempting to start level', lvl.id);
+        try {
+          window.CampaignManager.selectLevel(lvl);
+          // allow short startup time to observe spawns
+          await new Promise(r => setTimeout(r, 1400));
+          const obsCt = (typeof obstacles !== 'undefined') ? obstacles.length : 'n/a';
+          const playerOk = (typeof player !== 'undefined');
+          console.log('[CampaignDebug] afterStart', lvl.id, 'obstacles:', obsCt, 'playerPresent:', playerOk, 'state:', (typeof currentState !== 'undefined' ? currentState : 'n/a'));
+        } catch (e) { console.error('[CampaignDebug] start failed for', lvl.id, e); }
+        try { if (typeof CampaignUI !== 'undefined' && typeof CampaignUI.showLevelSelect === 'function') CampaignUI.showLevelSelect(); } catch (_) {}
+        await new Promise(r => setTimeout(r, 300));
+      }
+    } catch (e) { console.error('[CampaignDebug] validation error for', lvl && lvl.id, e); }
+  }
+  console.info('[CampaignDebug] Validation complete');
+};
+
+// Developer: debug helpers to validate and optionally start levels programmatically.
+window.debugStartLevel = function(id) {
+  try {
+    window.DEBUG_CHALLENGE = true;
+    const lvl = CAMPAIGN_LEVELS.find(l => l.id === id);
+    if (!lvl) { console.error('[CampaignDebug] unknown level', id); return; }
+    console.info('[CampaignDebug] Starting level', id, lvl.name);
+    window.CampaignManager.selectLevel(lvl);
+  } catch (e) { console.error('[CampaignDebug] debugStartLevel error', e); }
+};
+
+window.debugChallengeLevels = async function(runStart) {
+  console.info('[CampaignDebug] Validating all campaign levels');
+  for (const lvl of CAMPAIGN_LEVELS) {
+    try {
+      const problems = validateChallengeLevelStrict(lvl);
+      const ok = !problems || problems.length === 0;
+      console.log('[CampaignDebug] Level', lvl.id, '-', lvl.name, 'configValid=', ok, (ok ? '' : problems));
+      if (runStart && ok) {
+        console.log('[CampaignDebug] Attempting to start level', lvl.id);
+        try {
+          window.CampaignManager.selectLevel(lvl);
+          // allow short startup time to observe spawns
+          await new Promise(r => setTimeout(r, 1400));
+          const obsCt = (typeof obstacles !== 'undefined') ? obstacles.length : 'n/a';
+          const playerOk = (typeof player !== 'undefined');
+          console.log('[CampaignDebug] afterStart', lvl.id, 'obstacles:', obsCt, 'playerPresent:', playerOk, 'state:', (typeof currentState !== 'undefined' ? currentState : 'n/a'));
+        } catch (e) { console.error('[CampaignDebug] start failed for', lvl.id, e); }
+        try { if (typeof CampaignUI !== 'undefined' && typeof CampaignUI.showLevelSelect === 'function') CampaignUI.showLevelSelect(); } catch (_) {}
+        await new Promise(r => setTimeout(r, 300));
+      }
+    } catch (e) { console.error('[CampaignDebug] validation error for', lvl && lvl.id, e); }
+  }
+  console.info('[CampaignDebug] Validation complete');
 };
 
 window.validateCampaignLevels = function() {
@@ -474,14 +560,17 @@ const ObjectiveTracker = (() => {
   function onCoinCollected() {
     if (!_level) return;
     if (_level.objectiveType === 'hybrid') _hybridCoins++;
+    try { if (window.CAMPAIGN_DEBUG) console.log('[Challenge] ObjectiveTracker.onCoinCollected', _level && _level.id, 'hybridCoins:', _hybridCoins); } catch (_) {}
   }
 
   function onBlockDodged() {
     if (!_level) return;
     if (_level.objectiveType === 'hybrid') _hybridDodges++;
+    try { if (window.CAMPAIGN_DEBUG) console.log('[Challenge] ObjectiveTracker.onBlockDodged', _level && _level.id, 'hybridDodges:', _hybridDodges); } catch (_) {}
   }
 
   function onHit() { _hitsReceived++; }
+  try { if (window.CAMPAIGN_DEBUG) console.log('[Challenge] ObjectiveTracker ready'); } catch (_) {}
 
   function getProgress(elapsed, roundCoins, dodgeCount) {
     if (!_level) return null;
@@ -1067,8 +1156,8 @@ const CampaignUI = (() => {
         <div class="cmp-road-inner">
           <button class="cmp-road-back" id="cmp-btn-back" aria-label="Back to main menu">&#8592; Menu</button>
           <header class="cmp-road-header">
-            <h1 class="cmp-road-title">Challenge Road</h1>
-            <p class="cmp-road-subtitle">Clear missions &middot; Earn stars &middot; Defeat the Boss</p>
+            <h1 class="cmp-road-title">Panic Quest</h1>
+            <p class="cmp-road-subtitle">Clear missions. Earn stars. Unlock the Panic Boss.</p>
             <div class="cmp-road-statsbar">
               <div class="cmp-road-stat">
                 <span class="cmp-road-stat-val">${nCompleted}/${total}</span>
@@ -1086,7 +1175,7 @@ const CampaignUI = (() => {
               </div>
             </div>
           </header>
-          <div class="cmp-road-map" role="list" aria-label="Challenge Road levels">
+          <div class="cmp-road-map" role="list" aria-label="Panic Quest levels">
             ${nodesHtml}
           </div>
         </div>
@@ -1239,11 +1328,14 @@ const CampaignUI = (() => {
       console.log('[Challenge] intro start pressed', lvl && lvl.id, lvl && lvl.name);
       // stop preview animation if running
       if (el._previewCancel) { try { el._previewCancel(); } catch (_) {} el._previewCancel = null; }
-
       // Ensure all other UI is hidden and show the game screen so the
       // player can be primed (visible) during the countdown. Do NOT start
       // the game loop yet — that happens after the countdown completes.
+      // Also cancel any running game loop to avoid ghost RAFs during the
+      // countdown (we will start the canonical loop after GO).
       try { _hideAllGameScreens(); } catch (_) {}
+      try { if (typeof hideLevelSelect === 'function') hideLevelSelect(); } catch (_) {}
+      try { if (typeof cleanupGameLoop === 'function') cleanupGameLoop(); } catch (_) {}
       try { showScreen('game-screen'); } catch (_) {}
       // Prime canvas + player so a static frame is visible under the countdown
       try { resizeCanvas(); } catch (_) {}
@@ -1269,9 +1361,29 @@ const CampaignUI = (() => {
   function _runCountdown(count, onDone) {
     const overlay = document.getElementById('campaign-countdown-overlay');
     if (!overlay) { if (onDone) onDone(); return; }
+
+    // Cancel any prior countdown timeouts (safety for re-entrant calls)
+    try {
+      if (window._cmpCountdownTimerIds) {
+        window._cmpCountdownTimerIds.forEach(id => clearTimeout(id));
+      }
+    } catch (_) {}
+    window._cmpCountdownTimerIds = [];
+
     // Global flag for other systems/tests
     try { window._campaignCountdownActive = true; } catch (_) {}
+
+    // Ensure no live game loop is running while counting down
+    try { if (typeof cleanupGameLoop === 'function') cleanupGameLoop(); } catch (_) {}
+
+    // Ensure level select is hidden (avoid flashes)
+    try { const ls = document.getElementById('campaign-levelselect'); if (ls) ls.hidden = true; } catch (_) {}
+
+    // Reveal overlay and lock interactions
     overlay.hidden = false;
+    overlay.style.zIndex = '99999';
+    overlay.style.pointerEvents = 'auto';
+    overlay.classList.add('cmp-countdown-active');
     overlay.innerHTML = '<span class="cmp-cd-num" id="cmp-cd-num-el"></span>';
     const numEl = document.getElementById('cmp-cd-num-el');
 
@@ -1292,17 +1404,26 @@ const CampaignUI = (() => {
         overlay.setAttribute('aria-live', 'assertive');
       }
 
+      // audio hook for countdown ticks (no-op if AudioManager doesn't provide 'countdown')
+      try { if (typeof AudioManager !== 'undefined') AudioManager.playSound('countdown'); } catch (_) {}
+
       if (current <= 0) {
         // Leave the GO! visible for one step then hide
-        setTimeout(() => {
+        const hid = setTimeout(() => {
+          try { window._campaignCountdownActive = false; } catch (_) {}
+          try { overlay.classList.remove('cmp-countdown-active'); } catch (_) {}
+          try { overlay.style.pointerEvents = 'none'; } catch (_) {}
           overlay.hidden = true;
           overlay.innerHTML = '';
-          try { window._campaignCountdownActive = false; } catch (_) {}
+          // clear any stray timers
+          try { if (window._cmpCountdownTimerIds) { window._cmpCountdownTimerIds.forEach(id => clearTimeout(id)); window._cmpCountdownTimerIds = []; } } catch (_) {}
           if (onDone) onDone();
         }, STEP_MS);
+        window._cmpCountdownTimerIds.push(hid);
       } else {
         current--;
-        setTimeout(step, STEP_MS);
+        const t = setTimeout(step, STEP_MS);
+        window._cmpCountdownTimerIds.push(t);
       }
     }
     step();
@@ -1528,7 +1649,7 @@ const CampaignUI = (() => {
   }
 
   function _hideAllGameScreens() {
-    ['home-screen', 'game-screen'].forEach(id => {
+    ['home-screen', 'game-screen', 'campaign-levelselect'].forEach(id => {
       const e = document.getElementById(id);
       if (e) e.hidden = true;
     });
@@ -1567,6 +1688,11 @@ window.CampaignManager = (() => {
   let _defeatFired     = false;
   let _startCoins      = 0;
 
+  // Input diagnostics for challenge debug mode
+  let _lastPlayerPosForInputCheck = { x: 0, y: 0 };
+  let _inputStallAccum = 0;
+  let _inputStallWarned = false;
+
   // Shrinking arena state
   let _arenaLeft     = 0;       // px from left  (0 = no restriction)
   let _arenaRight    = 0;       // px from right (0 = no restriction)
@@ -1592,6 +1718,7 @@ window.CampaignManager = (() => {
   let _failsafeTimer = 0;
   let _debugTicker = 0;
   let _lastRoundCoins = 0;
+  let _sideSpawnTimer = 0;
   let _debugOverlayEl = null;
 
   function validateChallengeLevel(lvl) {
@@ -1600,6 +1727,46 @@ window.CampaignManager = (() => {
     if (!lvl.name || !lvl.objectiveType) return false;
     if (typeof lvl.objectiveTarget === 'undefined') return false;
     return true;
+  }
+
+  // More thorough validator that returns an array of problems (empty = OK)
+  function validateChallengeLevelStrict(lvl) {
+    const problems = [];
+    if (!lvl) { problems.push('Level definition is missing'); return problems; }
+    if (!Number.isInteger(lvl.id) || lvl.id <= 0) problems.push('Invalid or missing `id`');
+    if (!lvl.name) problems.push('Missing `name`');
+    if (!lvl.objectiveType) problems.push('Missing `objectiveType`');
+    if (typeof lvl.objectiveTarget === 'undefined') problems.push('Missing `objectiveTarget`');
+
+    // Type-specific checks
+    try {
+      const t = lvl.objectiveType;
+      const target = lvl.objectiveTarget;
+      if (t === 'collect_coins') {
+        if (typeof target !== 'number' || target <= 0) problems.push('`objectiveTarget` must be a positive number for collect_coins');
+      } else if (t === 'survive_seconds') {
+        if (typeof target !== 'number' || target <= 0) problems.push('`objectiveTarget` must be a positive number for survive_seconds');
+      } else if (t === 'dodge_blocks') {
+        if (typeof target !== 'number' || target <= 0) problems.push('`objectiveTarget` must be a positive number for dodge_blocks');
+      } else if (t === 'boss_defeat') {
+        if (!lvl.settings && !lvl.rules) problems.push('boss_defeat requires `settings.bossMode = true` (missing settings/rules)');
+      } else if (t === 'hybrid') {
+        if (!target || typeof target !== 'object') problems.push('hybrid requires an object `{ seconds, coins, dodges }`');
+        else {
+          if (typeof target.seconds !== 'number' || target.seconds <= 0) problems.push('hybrid.seconds must be a positive number');
+          if (typeof target.coins !== 'number'   || target.coins <= 0)   problems.push('hybrid.coins must be a positive number');
+          if (typeof target.dodges !== 'number'  || target.dodges <= 0)  problems.push('hybrid.dodges must be a positive number');
+        }
+      }
+    } catch (e) { problems.push('Error validating objectiveTarget: ' + String(e)); }
+
+    // Basic settings presence checks (rules can be converted to settings, so allow that path)
+    if (!lvl.settings && !lvl.rules) problems.push('Missing `settings` and no `rules` to convert');
+    if (lvl.settings) {
+      if (typeof lvl.settings.spawnInterval === 'undefined') problems.push('settings.spawnInterval missing');
+      if (typeof lvl.settings.speedMult === 'undefined') problems.push('settings.speedMult missing');
+    }
+    return problems;
   }
 
   function resetGameForChallenge(lvl) {
@@ -1659,18 +1826,36 @@ window.CampaignManager = (() => {
 
   function selectLevel(lvl) {
     console.log('[Challenge] selected level', lvl && lvl.id, lvl && lvl.name);
-    if (!validateChallengeLevel(lvl)) {
-      console.error('[Challenge] Invalid level config', lvl);
-      // Friendly fallback: return to level select
-      try { alert('Unable to start level: invalid configuration. Returning to level select.'); } catch (_) {}
+    // Run strict validation and refuse to start if problems found
+    try {
+      const problems = validateChallengeLevelStrict(lvl);
+      if (problems && problems.length > 0) {
+        console.error('[Challenge] Level config validation failed for level', lvl && lvl.id, problems);
+        try { alert('Level configuration error:\n' + problems.join('\n')); } catch (_) {}
+        try { CampaignUI.showLevelSelect(); } catch (_) {}
+        return;
+      }
+    } catch (e) {
+      console.error('[Challenge] validation threw', e);
+      try { alert('Level validation error — check console. Returning to select.'); } catch (_) {}
       try { CampaignUI.showLevelSelect(); } catch (_) {}
       return;
     }
+
+    // Fall back to legacy check just in case
+    if (!validateChallengeLevel(lvl)) {
+      console.error('[Challenge] Invalid level config (basic)', lvl);
+      try { alert('Invalid level configuration. Returning to level select.'); } catch (_) {}
+      try { CampaignUI.showLevelSelect(); } catch (_) {}
+      return;
+    }
+
     _currentLevel = lvl;
     CampaignUI.showLevelIntro(lvl, () => _startLevel(lvl));
   }
 
   function _startLevel(lvl) {
+    console.log('[Challenge] _startLevel invoked', lvl && lvl.id, lvl && lvl.name, 'objective:', lvl && lvl.objectiveType, 'target:', lvl && lvl.objectiveTarget);
     _active       = true;
     _victoryFired = false;
     _defeatFired  = false;
@@ -1694,6 +1879,18 @@ window.CampaignManager = (() => {
       }
     } catch (_) {}
 
+    // Re-validate after attempting rules -> settings conversion
+    try {
+      const postProblems = validateChallengeLevelStrict(lvl);
+      if (postProblems && postProblems.length > 0) {
+        console.error('[Challenge] Aborting start: level settings invalid', lvl && lvl.id, postProblems);
+        try { alert('Cannot start level due to configuration problems:\n' + postProblems.join('\n')); } catch (_) {}
+        try { CampaignUI.showLevelSelect(); } catch (_) {}
+        _active = false;
+        return;
+      }
+    } catch (e) { console.error('[Challenge] validation error after conversion', e); }
+
     // Guarantee a clean runtime state before starting
     try { resetGameForChallenge(lvl); } catch (_) {}
     ObjectiveTracker.reset(lvl);
@@ -1713,6 +1910,22 @@ window.CampaignManager = (() => {
     };
     window._campaignDodgeCount = 0;
 
+    // Build a lightweight spawn config consumed by script.js spawners.
+    try {
+      const spawnRules = (lvl.rules && lvl.rules.spawn) || (lvl.settings && lvl.settings.spawn) || {};
+      window._campaignSpawnConfig = {
+        obstacleSpawnRate:      (typeof spawnRules.obstacleSpawnRate === 'number') ? spawnRules.obstacleSpawnRate : (lvl.settings.spawnInterval || null),
+        coinSpawnRate:          (typeof spawnRules.coinSpawnRate === 'number')     ? spawnRules.coinSpawnRate     : (lvl.settings.coinItemInterval || null),
+        sideObstacleSpawnRate:  (typeof spawnRules.sideObstacleSpawnRate === 'number') ? spawnRules.sideObstacleSpawnRate : null,
+        sideObstacleCount:      (typeof spawnRules.sideObstacleCount === 'number') ? spawnRules.sideObstacleCount : 5,
+        maxObstaclesOnScreen:   (typeof spawnRules.maxObstaclesOnScreen === 'number') ? spawnRules.maxObstaclesOnScreen : null,
+        maxCoinsOnScreen:       (typeof spawnRules.maxCoinsOnScreen === 'number')   ? spawnRules.maxCoinsOnScreen : 12,
+        obstacleSpeedMin:       (typeof spawnRules.obstacleSpeedMin === 'number') ? spawnRules.obstacleSpeedMin : null,
+        obstacleSpeedMax:       (typeof spawnRules.obstacleSpeedMax === 'number') ? spawnRules.obstacleSpeedMax : null,
+        safeStartSeconds:       (typeof spawnRules.safeStartSeconds === 'number') ? spawnRules.safeStartSeconds : 0.8,
+      };
+    } catch (_) { window._campaignSpawnConfig = null; }
+
     // Mark that the countdown finished and we're about to start the challenge
     window._challengeRunning = false; // will be set true right after startGame()
 
@@ -1730,9 +1943,86 @@ window.CampaignManager = (() => {
     // Start the actual game using the existing startGame() function
     if (typeof startGame === 'function') {
       console.log('[Challenge] starting engine via startGame()');
-      startGame();
+      // Mark when start was requested so spawners can honor safe-start windows
+      try { window._campaignStartRequestedAt = performance.now(); } catch (_) { window._campaignStartRequestedAt = Date.now(); }
+      try { console.log('[Challenge] spawnConfig pre-start', window._campaignSpawnConfig); } catch (_) {}
+      try {
+        startGame();
+      } catch (e) {
+        console.error('[Challenge] startGame threw', e);
+      }
+      // Defensive: ensure input handlers are present and RAF is running.
+      try {
+        if (!window._campaignInputRebound) {
+          try { window.removeEventListener('keydown', onKeyDown); window.removeEventListener('keyup', onKeyUp); } catch (_) {}
+          try { window.addEventListener('keydown', onKeyDown, { passive: false }); window.addEventListener('keyup', onKeyUp, { passive: false }); } catch (_) {}
+          window._campaignInputRebound = true;
+        }
+      } catch (_) {}
+
+      // Fallback: if startGame did not activate the loop or no obstacles spawned,
+      // attempt a safe recovery after a short delay so first-level players aren't stuck.
+      setTimeout(() => {
+        try {
+          if (typeof currentState === 'undefined' || currentState !== STATE.PLAYING) {
+            console.warn('[Challenge] Forcing gameLoop start (fallback) — currentState:', currentState);
+            try { currentState = STATE.PLAYING; } catch (_) {}
+            try { if (rafHandle) { cancelAnimationFrame(rafHandle); rafHandle = null; } } catch (_) {}
+            try { lastFrameTime = performance.now(); rafHandle = requestAnimationFrame(gameLoop); } catch (_) {}
+          }
+          const obsCt = (typeof obstacles !== 'undefined') ? obstacles.length : 0;
+          if (obsCt === 0) {
+            console.warn('[Challenge] Fallback: no obstacles after start — spawning one');
+            try { if (typeof spawnObstacle === 'function') spawnObstacle(); } catch (_) {}
+          }
+          if (lvl.objectiveType === 'collect_coins') {
+            const coinCt = (typeof coinItems !== 'undefined') ? coinItems.length : 0;
+            if (coinCt === 0) try { if (typeof spawnCoinItem === 'function') spawnCoinItem(); } catch (_) {}
+          }
+        } catch (e) { console.error('[Challenge] post-start fallback error', e); }
+      }, 1100);
       window._challengeRunning = true;
+
+      // Setup optional side-spawn timer from spawn config
+      try {
+        const cfg = window._campaignSpawnConfig;
+        _sideSpawnTimer = (cfg && cfg.sideObstacleSpawnRate) ? cfg.sideObstacleSpawnRate : 0;
+      } catch (_) { _sideSpawnTimer = 0; }
+
+      try { console.log('[Challenge] startRequestedAt', window._campaignStartRequestedAt, 'state:', (typeof currentState !== 'undefined' ? currentState : 'n/a')); } catch (_) {}
     }
+
+    // Post-start failsafe: ensure coins present quickly, and obstacles sooner to make level responsive
+    setTimeout(() => {
+      try {
+        const coinCt = (typeof coinItems !== 'undefined') ? coinItems.length : 0;
+        if (lvl.objectiveType === 'collect_coins' && coinCt === 0) {
+          console.warn('[Challenge] Post-start failsafe (450ms): no coins — spawning coin item');
+          if (typeof spawnCoinItem === 'function') spawnCoinItem();
+        }
+      } catch (e) { console.error('[Challenge] post-start coin failsafe error', e); }
+    }, 450);
+
+    // So earlier-levels feel responsive, ensure at least one obstacle within ~1s
+    setTimeout(() => {
+      try {
+        const obsCt  = (typeof obstacles !== 'undefined') ? obstacles.length : 0;
+        if ((lvl.objectiveType === 'survive_seconds' || lvl.objectiveType === 'dodge_blocks' || lvl.objectiveType === 'hybrid') && obsCt === 0) {
+          console.warn('[Challenge] Post-start failsafe (900ms): no obstacles — spawning');
+          if (typeof spawnObstacle === 'function') spawnObstacle();
+        }
+      } catch (e) { console.error('[Challenge] post-start obstacle failsafe error', e); }
+    }, 900);
+
+    // If still no obstacles after 3s, surface an error for diagnosis
+    setTimeout(() => {
+      try {
+        const obsCt = (typeof obstacles !== 'undefined') ? obstacles.length : 0;
+        if (obsCt === 0) {
+          console.error('[Challenge] No obstacles spawned after 3 seconds - check spawn system');
+        }
+      } catch (_) {}
+    }, 3000);
 
     console.log('[Challenge] spawners enabled');
 
@@ -1753,7 +2043,7 @@ window.CampaignManager = (() => {
       }
       // Debug overlay (optional)
       try {
-        if (window.CAMPAIGN_DEBUG) {
+        if (window.CAMPAIGN_DEBUG || window.CAMPAIGN_DEV || window.DEBUG_CHALLENGE) {
           if (!_debugOverlayEl) {
             const d = document.createElement('div');
             d.id = 'campaign-debug-overlay';
@@ -1767,6 +2057,7 @@ window.CampaignManager = (() => {
             d.style.fontSize = '12px';
             d.style.zIndex = 9999;
             d.style.borderRadius = '6px';
+            d.style.pointerEvents = 'none';
             document.body.appendChild(d);
             _debugOverlayEl = d;
           }
@@ -1860,6 +2151,23 @@ window.CampaignManager = (() => {
       }
     }
 
+    // ---- Side-attack spawner (optional) ----
+    try {
+      if (window._campaignSpawnConfig && window._campaignSpawnConfig.sideObstacleSpawnRate && _sideSpawnTimer !== null) {
+        _sideSpawnTimer -= dt;
+        if (_sideSpawnTimer <= 0) {
+          _sideSpawnTimer = window._campaignSpawnConfig.sideObstacleSpawnRate;
+          try {
+            const side = Math.random() < 0.5 ? 'left' : 'right';
+            const count = window._campaignSpawnConfig.sideObstacleCount || 5;
+            if (window.CampaignPatterns && typeof window.CampaignPatterns.spawnSideSwipePattern === 'function') {
+              window.CampaignPatterns.spawnSideSwipePattern({ side, count });
+            }
+          } catch (_) {}
+        }
+      }
+    } catch (_) {}
+
     // ---- HUD update ----
     CampaignUI.updateHUD(
       lvl, elapsed, roundCoins, dodgeCount,
@@ -1874,22 +2182,78 @@ window.CampaignManager = (() => {
         _debugTicker = 0;
         const obsCt = gameState.obstacles ? gameState.obstacles.length : (typeof obstacles !== 'undefined' ? obstacles.length : 0);
         const coinCt = typeof coinItems !== 'undefined' ? coinItems.length : 0;
-        console.log('[Challenge] tick', Math.floor(elapsed) + 's', 'obstacles:' + obsCt, 'coinsPicked:' + roundCoins, 'coinItems:' + coinCt, 'challengeRunning:' + !!window._challengeRunning, 'countdown:' + !!window._campaignCountdownActive);
+        let projCt = 0;
+        try {
+          if (typeof BossManager !== 'undefined' && typeof BossManager.getProjectilesCount === 'function') projCt = BossManager.getProjectilesCount();
+          else if (typeof BossManager !== 'undefined' && BossManager._projectiles) projCt = BossManager._projectiles.length;
+        } catch (_) { projCt = 0; }
+        let objProgStr = 'n/a';
+        try {
+          const prog = ObjectiveTracker.getProgress(elapsed, roundCoins, dodgeCount);
+          if (prog) {
+            if (prog.hybrid) objProgStr = 'hybrid ' + Math.round((prog.overall || 0) * 100) + '%';
+            else objProgStr = Math.round((prog.pct || 0) * 100) + '%';
+          }
+        } catch (_) {}
+        console.log('[Challenge] tick', Math.floor(elapsed) + 's', 'obs:' + obsCt, 'coinsPicked:' + roundCoins, 'coinItems:' + coinCt, 'proj:' + projCt, 'obj:' + objProgStr, 'running:' + !!window._challengeRunning, 'countdown:' + !!window._campaignCountdownActive);
         if (_debugOverlayEl) {
           try {
+            let pState = 'none';
+            let pPos = '';
+            let pVel = '';
+            try {
+              if (gameState && gameState.player) {
+                pState = 'ok';
+                pPos = 'x:' + Math.round(gameState.player.x) + ' y:' + Math.round(gameState.player.y);
+                pVel = 'vx:' + (gameState.player.vx ? gameState.player.vx.toFixed(1) : '0') + ' vy:' + (gameState.player.vy ? gameState.player.vy.toFixed(1) : '0');
+              }
+            } catch (_) {}
+            const inputStr = (typeof keys !== 'undefined') ? ('L:' + (keys.left?1:0) + ' R:' + (keys.right?1:0) + ' U:' + (keys.up?1:0) + ' D:' + (keys.down?1:0)) : '';
+            const spawnInt = (typeof getActiveSpawnInterval === 'function') ? getActiveSpawnInterval().toFixed(2) : 'n/a';
             _debugOverlayEl.innerHTML =
               'Level: ' + (lvl ? lvl.id + ' - ' + lvl.name : 'n/a') + '<br>' +
-              'Objective: ' + (lvl ? lvl.objectiveType : 'n/a') + '<br>' +
+              'Objective: ' + (lvl ? lvl.objectiveType : 'n/a') + ' (' + objProgStr + ')<br>' +
               'Elapsed: ' + Math.floor(elapsed) + 's<br>' +
-              'Player: ' + (!!gameState.player) + '<br>' +
+              'Player: ' + pState + ' ' + pPos + ' ' + pVel + '<br>' +
+              'Input: ' + inputStr + '<br>' +
+              'SpawnInt: ' + spawnInt + 's<br>' +
               'Obstacles: ' + obsCt + '<br>' +
               'Coins(active): ' + coinCt + '<br>' +
               'RoundCoins: ' + roundCoins + '<br>' +
+              'Projectiles: ' + projCt + '<br>' +
               'Running: ' + (!!window._challengeRunning) + '<br>' +
               'Countdown: ' + (!!window._campaignCountdownActive);
           } catch (_) {}
         }
       }
+
+      // Input-stall detection for diagnostics
+      try {
+        if (window.DEBUG_CHALLENGE && gameState && gameState.player) {
+          const hasInput = (typeof keys !== 'undefined') && (keys.left || keys.right || keys.up || keys.down || !!touchTarget);
+          if (hasInput) {
+            if (Math.abs(gameState.player.x - _lastPlayerPosForInputCheck.x) < 1) {
+              _inputStallAccum += dt;
+            } else {
+              _inputStallAccum = 0;
+              _inputStallWarned = false;
+            }
+            _lastPlayerPosForInputCheck.x = gameState.player.x;
+            _lastPlayerPosForInputCheck.y = gameState.player.y;
+            if (_inputStallAccum >= 0.6 && !_inputStallWarned) {
+              console.error('[Challenge] Input detected but player position is not updating');
+              _inputStallWarned = true;
+            }
+          } else {
+            _inputStallAccum = 0;
+            _inputStallWarned = false;
+            if (gameState.player) {
+              _lastPlayerPosForInputCheck.x = gameState.player.x;
+              _lastPlayerPosForInputCheck.y = gameState.player.y;
+            }
+          }
+        }
+      } catch (_) {}
 
       // Detect coin pickups and spawn replacements shortly after pickup
       if (lvl.objectiveType === 'collect_coins') {

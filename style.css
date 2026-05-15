@@ -1342,6 +1342,17 @@ kbd {
   box-shadow: 0 0 34px rgba(var(--pup-acc-rgb), .45), inset 0 1px 0 rgba(255,255,255,.18);
 }
 
+/* IconImage component - consistent icon rendering with optional rarity glow */
+.icon-image { display: inline-flex; align-items: center; justify-content: center; background: transparent; border-radius: 6px; }
+.icon-image img { display: block; width: 100%; height: 100%; object-fit: contain; background: transparent; }
+.icon-image.size-sm { width: 28px; height: 28px; }
+.icon-image.size-md { width: 46px; height: 46px; }
+.icon-image.size-lg { width: 72px; height: 72px; }
+.icon-image[data-rarity="rare"] { box-shadow: 0 0 12px rgba(125,211,252,0.12); }
+.icon-image[data-rarity="epic"] { box-shadow: 0 0 18px rgba(251,191,36,0.18); }
+.icon-image[data-rarity="legendary"] { box-shadow: 0 0 26px rgba(167,139,250,0.22); }
+.icon-image[data-rarity="mythic"] { box-shadow: 0 0 30px rgba(255,105,180,0.22); }
+
 /* Zone B: Info */
 .pup-zone-info {
   min-width: 0;

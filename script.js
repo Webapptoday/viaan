@@ -37,6 +37,8 @@ const GAME_CONFIG = { playerSpeed: 255, spawnRate: 0.60, forbiddenInterval: 2.6,
 
 // Set to true only during local development to show the debug stats overlay.
 const DEBUG_MODE = false;
+// Toggle Challenge-mode diagnostics at runtime by setting `window.DEBUG_CHALLENGE = true` in console.
+window.DEBUG_CHALLENGE = window.DEBUG_CHALLENGE || false;
 
 // ============================================================
 // DIFFICULTY REDESIGN CONFIG
@@ -1365,7 +1367,7 @@ function updatePowerupUpgradeUI() {
 
     // Render icon image when provided, otherwise fall back to def.icon
     const iconSrc = def.image || '';
-    const iconHTML = '<div class="pup-zone-icon"><div class="pup-icon-ring">' + (iconSrc ? ('<img src="' + iconSrc + '" alt="' + def.label + '"/>') : (def.icon || '')) + '</div></div>';
+    const iconHTML = '<div class="pup-zone-icon"><div class="pup-icon-ring" data-icon-src="' + iconSrc + '" data-icon-alt="' + def.label + '" data-icon-rarity="' + (def.rarity || '') + '"></div></div>';
 
     return '<article class="pup-card" data-powerup-key="' + key + '" data-maxed="' + isMaxed + '"' +
       ' style="--pup-acc:' + def.color + ';--pup-acc-rgb:' + accRgb + '">' +
@@ -1388,6 +1390,8 @@ function updatePowerupUpgradeUI() {
       '</div>' +
     '</article>';
   }).join('');
+  // After injecting HTML, initialize IconImage elements and sanitize PNGs
+  try { initIconImages(list); } catch (e) { /* ignore */ }
 }
 
 function buyPowerupUpgrade(key) {
@@ -3355,8 +3359,9 @@ function updatePowerupDisplay() {
   el.hidden = false;
   const def = POWERUP_DEFS[activePowerupKey];
   if (iconEl) {
+    iconEl.innerHTML = '';
     if (def.image) {
-      iconEl.innerHTML = '<img src="' + def.image + '" alt="' + def.label + '"/>';
+      try { iconEl.appendChild(createIconImage(def.image, def.label, 20, def.rarity)); } catch (e) { iconEl.innerHTML = '<img src="' + def.image + '" alt="' + def.label + '"/>'; }
     } else {
       iconEl.textContent = def.icon || '';
     }
@@ -3381,6 +3386,7 @@ function showModal(id) {
     HomePreview.stop();
     startShopPreviewLoop();
     AudioManager.startShopMusic();
+    try { initIconImages(m); } catch (e) { /* ignore */ }
   }
   requestAnimationFrame(() => {
     const first = m.querySelector('button,[href],input,select,[tabindex]:not([tabindex="-1"])');
@@ -3960,11 +3966,23 @@ function selectAbilityForPreview(abilityId) {
     if (previewImg) {
       const src = abilityImageSrc(ability.id);
       if (src) {
-        previewImg.src = src;
-        previewImg.alt = ability.name + ' icon';
-        previewImg.style.display = '';
-        if (abilityCanvas) abilityCanvas.style.display = 'none';
-        if (abilityImgWrap) abilityImgWrap.setAttribute('aria-hidden', 'false');
+        // Use IconImage inside the preview wrapper so styling & glow are consistent
+        if (abilityImgWrap) {
+          try {
+            abilityImgWrap.innerHTML = '';
+            abilityImgWrap.appendChild(createIconImage(src, ability.name + ' icon', 112, ability.rarity || 'common'));
+            abilityImgWrap.setAttribute('aria-hidden', 'false');
+            if (abilityCanvas) abilityCanvas.style.display = 'none';
+          } catch (e) {
+            previewImg.src = src; previewImg.alt = ability.name + ' icon'; previewImg.style.display = '';
+            if (abilityCanvas) abilityCanvas.style.display = 'none';
+            abilityImgWrap && abilityImgWrap.setAttribute('aria-hidden', 'false');
+          }
+        } else {
+          previewImg.src = src; previewImg.alt = ability.name + ' icon'; previewImg.style.display = '';
+          if (abilityCanvas) abilityCanvas.style.display = 'none';
+          abilityImgWrap && abilityImgWrap.setAttribute('aria-hidden', 'false');
+        }
       } else {
         previewImg.src = '';
         previewImg.style.display = 'none';
@@ -5494,7 +5512,13 @@ function pickObstacleColorIndex() {
 }
 
 function spawnObstacle() {
-  if (obstacles.length >= getPhaseMaxObstacles()) return;
+  if (window.DEBUG_CHALLENGE) {
+    try { console.log('[Challenge][Spawn] spawnObstacle called — obstacles:', (typeof obstacles !== 'undefined' ? obstacles.length : 'n/a'), 'spawnRate:', spawnRate); } catch (_) {}
+  }
+  // Respect per-level max obstacles when running a campaign
+  const _ccfg = (typeof window !== 'undefined' && window._campaignSpawnConfig) ? window._campaignSpawnConfig : null;
+  const _maxOb = (_ccfg && Number.isFinite(_ccfg.maxObstaclesOnScreen)) ? _ccfg.maxObstaclesOnScreen : getPhaseMaxObstacles();
+  if (obstacles.length >= _maxOb) return;
 
   // Color: centralised logic handles grace, warning, panic, and Double Danger.
   let colorIndex = pickObstacleColorIndex();
@@ -5532,7 +5556,12 @@ function spawnObstacle() {
   const _laneW      = canvas.width / NUM_LANES;
   const flowTargeting = getFlowTargetingBonus();
   // During panic: very small safe radius -- blocks can spawn right next to player
-  const spawnSafeR  = Math.max(4, player.radius + (shieldPlayerLane ? 26 : (isPanic ? 2 : (isCamping ? 6 : 10))) - flowTargeting * 18);
+  let spawnSafeR  = Math.max(4, player.radius + (shieldPlayerLane ? 26 : (isPanic ? 2 : (isCamping ? 6 : 10))) - flowTargeting * 18);
+  // If campaign requests an initial safe window, increase the safety radius
+  try { if (_ccfg && _ccfg.safeStartSeconds && typeof window._campaignStartRequestedAt !== 'undefined') {
+    const since = (typeof gameStartTime === 'number' && gameStartTime > 0) ? Math.min((performance.now() - gameStartTime) / 1000, (performance.now() - window._campaignStartRequestedAt) / 1000) : (performance.now() - window._campaignStartRequestedAt) / 1000;
+    if (since < (_ccfg.safeStartSeconds || 0)) spawnSafeR = Math.max(spawnSafeR, player.radius + 48);
+  } } catch (_) {}
   const _candidates = getPressuredLaneOrder(_playerLane, !shieldPlayerLane);
   let pickedLane = _candidates[0] ?? Math.floor(Math.random() * NUM_LANES);
   let ox = _spawnLanes[pickedLane];
@@ -5544,6 +5573,9 @@ function spawnObstacle() {
   _playerLaneShieldStreak = pickedLane === _playerLane ? 0 : (_playerLaneShieldStreak + 1);
   // Clamp so block stays fully on screen regardless of its width
   ox = Math.max(w / 2 + 2, Math.min(canvas.width - w / 2 - 2, ox));
+
+  // Final safety: if this would spawn too close to the player during safe-start, skip spawn
+  try { if (Math.abs(ox - player.x) < spawnSafeR) return; } catch (_) {}
 
   const isForbiddenSpawn = graceTimer >= GRACE_PERIOD;
 
@@ -5579,6 +5611,22 @@ function spawnObstacle() {
     trickVx: 0,
   });
 
+  // Clamp obstacle speed to campaign-specified min/max if present
+  try {
+    const cfg = _ccfg;
+    if (cfg) {
+      if (Number.isFinite(cfg.obstacleSpeedMin) && obstacles.length > 0) {
+        const last = obstacles[obstacles.length - 1];
+        last.vy = Math.max(last.vy, cfg.obstacleSpeedMin);
+        last.baseVy = Math.max(last.baseVy, cfg.obstacleSpeedMin);
+      }
+      if (Number.isFinite(cfg.obstacleSpeedMax) && obstacles.length > 0) {
+        const last = obstacles[obstacles.length - 1];
+        last.vy = Math.min(last.vy, cfg.obstacleSpeedMax);
+        last.baseVy = Math.min(last.baseVy, cfg.obstacleSpeedMax);
+      }
+    }
+  } catch (_) {}
   // Path safety check: if the new block would leave no viable corridor at the player row,
   // remove it immediately. Cull decisions happen top-of-screen so the player never sees a pop.
   if (graceTimer >= GRACE_PERIOD && largestClearGap(player.y) < currentRequiredClearGap()) {
@@ -5590,7 +5638,10 @@ function spawnObstacle() {
 // Spawns 2-4 blocks using a named lane pattern that always leaves open corridors.
 // Replaces old random-X cluster patterns with a controlled, fair wave system.
 function spawnWave() {
-  if (obstacles.length >= getPhaseMaxObstacles()) return;
+  // Respect campaign max obstacles override if present
+  const _ccfg_w = (typeof window !== 'undefined' && window._campaignSpawnConfig) ? window._campaignSpawnConfig : null;
+  const _maxOb_w = (_ccfg_w && Number.isFinite(_ccfg_w.maxObstaclesOnScreen)) ? _ccfg_w.maxObstaclesOnScreen : getPhaseMaxObstacles();
+  if (obstacles.length >= _maxOb_w) return;
   const cw        = canvas.width;
   const lw        = cw / NUM_LANES;
   const lanes     = getLaneCenters();
@@ -5627,7 +5678,11 @@ function spawnWave() {
     if (obstacles.length >= MAX_OBSTACLES) break;
     const cx = Math.max(4, Math.min(cw - 4, getTargetedLaneX(lanes[laneIdx], lw, player.x, wavePressure)));
     // Never spawn inside player safe radius (smaller radius during panic for tighter targeting)
-    const waveMinSafeR = Math.max(4, player.radius + (isPanic ? 2 : (isCamping ? 10 : 18)) - flowTargeting * 14);
+    let waveMinSafeR = Math.max(4, player.radius + (isPanic ? 2 : (isCamping ? 10 : 18)) - flowTargeting * 14);
+    try { if (_ccfg_w && _ccfg_w.safeStartSeconds && typeof window._campaignStartRequestedAt !== 'undefined') {
+      const since = (typeof gameStartTime === 'number' && gameStartTime > 0) ? Math.min((performance.now() - gameStartTime) / 1000, (performance.now() - window._campaignStartRequestedAt) / 1000) : (performance.now() - window._campaignStartRequestedAt) / 1000;
+      if (since < (_ccfg_w.safeStartSeconds || 0)) waveMinSafeR = Math.max(waveMinSafeR, player.radius + 48);
+    } } catch (_) {}
     if (Math.abs(cx - player.x) < waveMinSafeR) continue;
 
     // Block size variety - mix of small darts, medium, tall bullets, wide fills, rare large
@@ -5648,8 +5703,16 @@ function spawnWave() {
     }
     const speedScale = DIFFICULTY_CONFIG.typeSpeedMults[wType] ?? 1.0;
     const speedRandV = DIFFICULTY_CONFIG.typeSpeedRand[wType] ?? 28;
-    const vyR = base * speedScale + Math.random() * speedRandV;
-    const vy  = slow ? vyR * 0.4 : vyR;
+    let vyR = base * speedScale + Math.random() * speedRandV;
+    let vy  = slow ? vyR * 0.4 : vyR;
+    // Clamp to campaign speed bounds when provided
+    try {
+      if (_ccfg_w) {
+        if (Number.isFinite(_ccfg_w.obstacleSpeedMin)) vy = Math.max(vy, _ccfg_w.obstacleSpeedMin);
+        if (Number.isFinite(_ccfg_w.obstacleSpeedMax)) vy = Math.min(vy, _ccfg_w.obstacleSpeedMax);
+        vyR = vy; // keep baseVy consistent
+      }
+    } catch (_) {}
 
     // Color: centralised logic handles grace, warning, panic, and Double Danger.
     let colorIndex = pickObstacleColorIndex();
@@ -6130,6 +6193,10 @@ function findRiskyCoinLane() {
 // Coins are spaced 64px apart so players can collect them in a satisfying sequence.
 // Lane selection is biased toward the player's current lane (reward movement) or adjacent.
 function spawnCoinColumn() {
+  const _ccfg_c = (typeof window !== 'undefined' && window._campaignSpawnConfig) ? window._campaignSpawnConfig : null;
+  const maxCoins = (_ccfg_c && Number.isFinite(_ccfg_c.maxCoinsOnScreen)) ? _ccfg_c.maxCoinsOnScreen : 30;
+  if (coinItems.length >= maxCoins) return;
+
   const lanes  = getLaneCenters();
   const pLane  = getPlayerLane();
   const roll   = Math.random();
@@ -6152,6 +6219,17 @@ function spawnCoinColumn() {
     laneIdx = Math.floor(Math.random() * NUM_LANES);
   }
 
+  // If a campaign safe-start window is active, avoid spawning coins directly in the player's lane
+  try {
+    if (_ccfg_c && _ccfg_c.safeStartSeconds && typeof window._campaignStartRequestedAt !== 'undefined') {
+      const since = (typeof gameStartTime === 'number' && gameStartTime > 0) ? Math.min((performance.now() - gameStartTime) / 1000, (performance.now() - window._campaignStartRequestedAt) / 1000) : (performance.now() - window._campaignStartRequestedAt) / 1000;
+      if (since < (_ccfg_c.safeStartSeconds || 0) && laneIdx === pLane) {
+        // choose adjacent lane when possible
+        laneIdx = (pLane < NUM_LANES - 1) ? (pLane + 1) : Math.max(0, pLane - 1);
+      }
+    }
+  } catch (_) {}
+
   const cx      = lanes[laneIdx];
   const sz      = 22;
   const spacing = 64;   // px between each coin center vertically
@@ -6169,6 +6247,56 @@ function spawnCoinColumn() {
       colId,
     });
   }
+}
+
+// Campaign pattern helpers: side-swipe attack
+if (typeof window !== 'undefined') {
+  window.CampaignPatterns = window.CampaignPatterns || {};
+  window.CampaignPatterns.spawnSideSwipePattern = function(opts) {
+    try {
+      opts = opts || {};
+      const side = opts.side === 'right' ? 'right' : 'left';
+      const count = Math.max(1, Math.min(12, opts.count || 5));
+      const lanes = getLaneCenters();
+      const cfg = (typeof window !== 'undefined' && window._campaignSpawnConfig) ? window._campaignSpawnConfig : null;
+      const base = GAME_CONFIG.baseSpeed * speedMultiplier * panicSpeedMult();
+      const maxOb = (cfg && Number.isFinite(cfg.maxObstaclesOnScreen)) ? cfg.maxObstaclesOnScreen : getPhaseMaxObstacles();
+      if (obstacles.length >= maxOb) return;
+      for (let i = 0; i < count; i++) {
+        if (obstacles.length >= maxOb) break;
+        const laneIdx = side === 'left' ? (i % NUM_LANES) : (NUM_LANES - 1 - (i % NUM_LANES));
+        const w = 64; const h = 40; const cx = lanes[laneIdx];
+        const vyBase = base * (1 + 0.04 * i) + (Math.random() * 0.2 - 0.1) * base;
+        let vy = vyBase * (Math.random() < 0.4 ? 0.72 : 1);
+        if (cfg) {
+          if (Number.isFinite(cfg.obstacleSpeedMin)) vy = Math.max(vy, cfg.obstacleSpeedMin);
+          if (Number.isFinite(cfg.obstacleSpeedMax)) vy = Math.min(vy, cfg.obstacleSpeedMax);
+        }
+        const originX = Math.max(0, Math.min(canvas.width - w, cx));
+        obstacles.push({
+          x: originX - w / 2,
+          originX: originX,
+          y: -40 - i * 10,
+          cy: -40 - i * 10,
+          w: w,
+          h: h,
+          baseW: w,
+          baseH: h,
+          baseVy: vy,
+          vy: activePowerupKey === 'SLOW' ? vy * 0.4 : vy,
+          colorIndex: Math.floor(Math.random() * GAME_COLORS.length),
+          swayAmp: 0,
+          swayFreq: 0.6 + Math.random() * 0.6,
+          swayPhase: Math.random() * Math.PI * 2,
+          pulseAmp: 0,
+          pulseFreq: 2,
+          pulsePhase: Math.random() * Math.PI * 2,
+          trickType: null,
+          nearMissIdx: -1,
+        });
+      }
+    } catch (_) {}
+  };
 }
 
 // Kept for compatibility - delegates to column spawner
@@ -6373,14 +6501,191 @@ function completeMiniGoal() {
 
 // Simple image cache for in-game and UI powerup images
 const __imgCache = {};
+// Cache for sanitized data URLs (originalSrc -> cleanSrc)
+const __imgCleanCache = {};
+
+// Sanitize an image source by removing baked checkerboard/white backgrounds when possible.
+// Calls cb(cleanSrc) with either the original src or a generated dataURL with transparency.
+function sanitizeImageSrc(src, cb) {
+  if (!src) { cb(src); return; }
+  if (__imgCleanCache[src]) { cb(__imgCleanCache[src]); return; }
+  const img = new Image();
+  // try anonymous CORS so canvas can read pixels when hosted
+  img.crossOrigin = 'anonymous';
+  img.onload = () => {
+    try {
+      const w = img.naturalWidth;
+      const h = img.naturalHeight;
+      if (!w || !h) { __imgCleanCache[src] = src; cb(src); return; }
+      // Limit processing size for performance
+      const maxDim = 512;
+      const scale = Math.max(1, Math.ceil(Math.max(w, h) / maxDim));
+      const cw = Math.max(1, Math.floor(w / scale));
+      const ch = Math.max(1, Math.floor(h / scale));
+      const cnv = document.createElement('canvas');
+      cnv.width = cw; cnv.height = ch;
+      const ctx = cnv.getContext('2d');
+      ctx.drawImage(img, 0, 0, cw, ch);
+      const imgData = ctx.getImageData(0, 0, cw, ch);
+      const data = imgData.data;
+
+      // If image already has transparency, keep original
+      let hasAlpha = false;
+      for (let i = 3; i < data.length; i += 4) { if (data[i] < 250) { hasAlpha = true; break; } }
+      if (hasAlpha) { __imgCleanCache[src] = src; cb(src); return; }
+
+      // Sample a small grid to detect checkerboard-like or white backgrounds
+      const cols = 8, rows = 8; const samples = [];
+      for (let gy = 0; gy < rows; gy++) {
+        const y = Math.floor((gy + 0.5) * ch / rows);
+        for (let gx = 0; gx < cols; gx++) {
+          const x = Math.floor((gx + 0.5) * cw / cols);
+          const idx = (y * cw + x) * 4;
+          samples.push([data[idx], data[idx+1], data[idx+2]]);
+        }
+      }
+
+      // Quick 2-cluster (k=2) on samples
+      let centers = [samples[0].slice(), samples[1].slice()];
+      for (let iter = 0; iter < 3; iter++) {
+        const sums = [{r:0,g:0,b:0,c:0},{r:0,g:0,b:0,c:0}];
+        for (const s of samples) {
+          const d0 = (s[0]-centers[0][0])**2 + (s[1]-centers[0][1])**2 + (s[2]-centers[0][2])**2;
+          const d1 = (s[0]-centers[1][0])**2 + (s[1]-centers[1][1])**2 + (s[2]-centers[1][2])**2;
+          const ci = d0 <= d1 ? 0 : 1;
+          sums[ci].r += s[0]; sums[ci].g += s[1]; sums[ci].b += s[2]; sums[ci].c += 1;
+        }
+        for (let ci = 0; ci < 2; ci++) if (sums[ci].c) centers[ci] = [Math.round(sums[ci].r / sums[ci].c), Math.round(sums[ci].g / sums[ci].c), Math.round(sums[ci].b / sums[ci].c)];
+      }
+
+      const bright = c => (0.2126*c[0] + 0.7152*c[1] + 0.0722*c[2]);
+      const b0 = bright(centers[0]), b1 = bright(centers[1]);
+      const avgBright = (b0 + b1) / 2;
+
+      // Check alternation pattern to detect checkerboard
+      let alternations = 0, comparisons = 0;
+      for (let gy = 0; gy < rows; gy++) {
+        for (let gx = 0; gx < cols; gx++) {
+          const idx = gy*cols + gx; const s = samples[idx];
+          const d0 = (s[0]-centers[0][0])**2 + (s[1]-centers[0][1])**2 + (s[2]-centers[0][2])**2;
+          const d1 = (s[0]-centers[1][0])**2 + (s[1]-centers[1][1])**2 + (s[2]-centers[1][2])**2;
+          const ci = d0 <= d1 ? 0 : 1;
+          if (gx + 1 < cols) {
+            const s2 = samples[idx+1];
+            const d20 = (s2[0]-centers[0][0])**2 + (s2[1]-centers[0][1])**2 + (s2[2]-centers[0][2])**2;
+            const d21 = (s2[0]-centers[1][0])**2 + (s2[1]-centers[1][1])**2 + (s2[2]-centers[1][2])**2;
+            const ci2 = d20 <= d21 ? 0 : 1;
+            if (ci !== ci2) alternations++; comparisons++;
+          }
+          if (gy + 1 < rows) {
+            const s2 = samples[idx+cols];
+            const d20 = (s2[0]-centers[0][0])**2 + (s2[1]-centers[0][1])**2 + (s2[2]-centers[0][2])**2;
+            const d21 = (s2[0]-centers[1][0])**2 + (s2[1]-centers[1][1])**2 + (s2[2]-centers[1][2])**2;
+            const ci2 = d20 <= d21 ? 0 : 1;
+            if (ci !== ci2) alternations++; comparisons++;
+          }
+        }
+      }
+      const altRatio = comparisons ? (alternations / comparisons) : 0;
+
+      // Heuristics: if average brightness is high (white-ish) OR checkerboard detected with light centers
+      const shouldClean = (avgBright > 220) || (altRatio > 0.55 && b0 > 100 && b1 > 100);
+      if (!shouldClean) { __imgCleanCache[src] = src; cb(src); return; }
+
+      // Perform cleanup: make pixels near either center transparent
+      const thresh = 1000; // squared color distance threshold
+      for (let y = 0; y < ch; y++) {
+        for (let x = 0; x < cw; x++) {
+          const i = (y * cw + x) * 4;
+          const r = data[i], g = data[i+1], b = data[i+2];
+          const d0 = (r-centers[0][0])**2 + (g-centers[0][1])**2 + (b-centers[0][2])**2;
+          const d1 = (r-centers[1][0])**2 + (g-centers[1][1])**2 + (b-centers[1][2])**2;
+          const mind = Math.min(d0, d1);
+          if (mind <= thresh) data[i+3] = 0;
+        }
+      }
+      ctx.putImageData(imgData, 0, 0);
+      const out = cnv.toDataURL('image/png');
+      __imgCleanCache[src] = out;
+      cb(out);
+    } catch (e) {
+      __imgCleanCache[src] = src; cb(src);
+    }
+  };
+  img.onerror = () => { __imgCleanCache[src] = src; cb(src); };
+  // start load
+  try { img.src = src; } catch (e) { __imgCleanCache[src] = src; cb(src); }
+}
 function getCachedImage(src) {
   if (!src) return null;
   if (!__imgCache[src]) {
     const im = new Image();
+    im.crossOrigin = 'anonymous';
     im.src = src;
     __imgCache[src] = im;
+    // Kick off sanitizer in background to replace the image src when ready
+    sanitizeImageSrc(src, (cleanSrc) => {
+      try { if (cleanSrc && cleanSrc !== src) im.src = cleanSrc; } catch (_) {}
+    });
   }
   return __imgCache[src];
+}
+
+// Create a reusable IconImage DOM element: {src, alt, size(px), rarity}
+function createIconImage(src, alt, size, rarity) {
+  const wrap = document.createElement('span');
+  wrap.className = 'icon-image';
+  wrap.dataset.rarity = rarity || 'common';
+  if (size) { wrap.style.width = size + 'px'; wrap.style.height = size + 'px'; }
+  const img = document.createElement('img');
+  img.alt = alt || '';
+  img.src = src || '';
+  img.style.width = '100%'; img.style.height = '100%'; img.style.objectFit = 'contain'; img.style.display = 'block'; img.style.background = 'transparent';
+  wrap.appendChild(img);
+  // sanitize and replace src if needed
+  if (src) sanitizeImageSrc(src, (clean) => { try { if (clean && clean !== src) img.src = clean; } catch (_) {} });
+  return wrap;
+}
+
+// Initialize IconImage elements inside a root node. Looks for containers with data-icon-src
+function initIconImages(root) {
+  root = root || document;
+  // Containers with data-icon-src (preferred)
+  const nodes = root.querySelectorAll('[data-icon-src]');
+  nodes.forEach(node => {
+    if (node._iconInit) return; node._iconInit = true;
+    const src = node.getAttribute('data-icon-src');
+    const alt = node.getAttribute('data-icon-alt') || '';
+    const rarity = node.getAttribute('data-icon-rarity') || node.dataset.rarity || 'common';
+    // Determine size from parent (.pup-icon-ring typical size)
+    let size = 40;
+    try {
+      const rect = node.getBoundingClientRect();
+      if (rect && rect.width) size = Math.round(Math.min(rect.width, rect.height) * 0.78);
+    } catch (_) {}
+    node.innerHTML = '';
+    const iconEl = createIconImage(src, alt, size, rarity);
+    node.appendChild(iconEl);
+  });
+
+  // Sanitize existing <img> targets in common UI spots
+  const sel = [
+    '#modal-progress img',
+    '#shop-panel-upgrades img',
+    '#shop-panel-abilities img',
+    '.pup-icon-ring img',
+    '#ability-preview-img',
+    '#powerup-status img',
+    '#powerup-icon img',
+  ].join(',');
+  const imgs = root.querySelectorAll(sel);
+  imgs.forEach(img => {
+    try {
+      const s = img.getAttribute('src');
+      if (!s) return;
+      sanitizeImageSrc(s, (clean) => { if (clean && clean !== s) img.src = clean; });
+    } catch (_) {}
+  });
 }
 
 function spawnPowerup() {
@@ -7554,11 +7859,16 @@ function cleanupGameLoop() {
   if (rafHandle) { cancelAnimationFrame(rafHandle); rafHandle = null; }
   if (typeof MpSync !== 'undefined' && MpSync.isActive()) MpSync.stop();
   _dbg.loops = 0;
+  try { if (typeof startGame !== 'undefined') startGame._inProgress = false; } catch (_) {}
 }
 
 function gameLoop(ts) {
   if (currentState !== STATE.PLAYING) { _dbg.loops = Math.max(0, _dbg.loops - 1); return; }
   const _myGen = gameLoop._generation;
+  if (gameLoop._firstLoggedGen !== _myGen) {
+    gameLoop._firstLoggedGen = _myGen;
+    try { console.log('[Game] gameLoop running generation', _myGen, 'state:', currentState, 'campaign:', !!window._campaignSettings); } catch (_) {}
+  }
   try {
     const dt = Math.min((ts - lastFrameTime) / 1000, 0.033); // cap at ~30 fps step to prevent lag-spike tunnelling
     lastFrameTime = ts;
@@ -7606,7 +7916,14 @@ function gameLoop(ts) {
     tickPanicWave(dt);
     tickDoubleDanger(dt);
     tickMiniGoal();
-    tickCampaignHelpers(dt);
+    // Campaign helper tick - guard against missing/global scope issues
+    try {
+      if (typeof window !== 'undefined' && typeof window.tickCampaignHelpers === 'function') {
+        window.tickCampaignHelpers(dt);
+      }
+    } catch (e) {
+      console.error('[Game] tickCampaignHelpers error', e);
+    }
     // Campaign tick: objectives, boss, special mechanics
     if (window.CampaignManager && window.CampaignManager.isActive()) {
       const _cElapsed = (performance.now() - gameStartTime - pausedDuration) / 1000;
@@ -7651,6 +7968,11 @@ function gameLoop(ts) {
   } catch (err) {
     // Surface the error but do NOT try to draw on a potentially broken ctx.
     console.error('[ForbiddenColor] gameLoop runtime error', err);
+    try {
+      window._gameErrorLog = window._gameErrorLog || [];
+      window._gameErrorLog.push({ t: Date.now(), msg: (err && err.message) ? err.message : String(err), stack: (err && err.stack) ? err.stack.split('\n').slice(0,6).join('\n') : null });
+      if (window._gameErrorLog.length > 75) window._gameErrorLog.shift();
+    } catch (_) {}
     // Reset ctx state to safe baseline so next frame starts clean.
     try { while (ctx._saveDepth > 0) { ctx.restore(); ctx._saveDepth--; } } catch (_) {}
     try { ctx.restore(); } catch (_) {} // one extra safety restore
@@ -7709,6 +8031,12 @@ function drawGameDebugHUD() {
 }
 
 function startGame(mpInitialForbiddenIdx) {
+  // Prevent duplicate rapid starts from overlapping (can cause ghost RAFs)
+  if (startGame._inProgress) {
+    try { console.warn('[Game] startGame already in progress; ignoring duplicate call'); } catch (_) {}
+    return;
+  }
+  startGame._inProgress = true;
   // ---- Must be first: kill any running loop before touching state ----
   cleanupGameLoop();
   _loopGeneration++; // invalidate all in-flight rAF handles
@@ -7792,6 +8120,18 @@ function startGame(mpInitialForbiddenIdx) {
     else if (_cs.coinItemInterval)  coinItemTimer = Math.max(0, _cs.coinItemInterval - 3.0);
     window._campaignDodgeCount = 0;
   }
+  // Sanitize campaign-provided numeric overrides to safe defaults
+  try {
+    if (!Number.isFinite(spawnRate) || spawnRate <= 0) {
+      console.warn('[Game] Invalid spawnRate detected, resetting to default', GAME_CONFIG.spawnRate);
+      spawnRate = GAME_CONFIG.spawnRate;
+    }
+    if (!Number.isFinite(forbiddenInterval) || forbiddenInterval <= 0) {
+      console.warn('[Game] Invalid forbiddenInterval detected, resetting to default', GAME_CONFIG.forbiddenInterval);
+      forbiddenInterval = GAME_CONFIG.forbiddenInterval;
+    }
+    if (!Number.isFinite(coinItemTimer) || coinItemTimer < 0) coinItemTimer = COIN_ITEM_INTERVAL - 3.0;
+  } catch (e) { console.error('[Game] spawn setting sanitization error', e); }
   // In multiplayer both players share the host-chosen initial color; SP uses random.
   forbiddenIndex    = (typeof mpInitialForbiddenIdx === 'number')
     ? (mpInitialForbiddenIdx % GAME_COLORS.length)
@@ -7840,7 +8180,22 @@ function startGame(mpInitialForbiddenIdx) {
     if (rafHandle) { cancelAnimationFrame(rafHandle); rafHandle = null; }
     _dbg.loops++;
     gameLoop._generation = _loopGeneration; // stamp the generation
+    try { console.log('[Game] scheduling RAF generation', _loopGeneration, 'campaign?', !!window._campaignSettings); } catch (_) {}
+    // Warn if multiple loops appear to be active
+    if (_dbg.loops > 1) {
+      try { console.warn('[Game] scheduling RAF but _dbg.loops > 1 — possible duplicate loops:', _dbg.loops); } catch (_) {}
+    }
     rafHandle = requestAnimationFrame(gameLoop);
+    // Ensure keyboard focus is on the canvas so key events reach the game reliably.
+    try {
+      const gc = document.getElementById('game-canvas');
+      if (gc && typeof gc.focus === 'function') {
+        // small timeout to allow DOM updates, then focus
+        setTimeout(() => { try { gc.focus(); } catch (_) {} }, 20);
+      }
+    } catch (_) {}
+    // Allow short window for subsequent start attempts to be ignored
+    setTimeout(() => { try { startGame._inProgress = false; } catch (_) {} }, 250);
   }, 50);
 }
 
@@ -8125,6 +8480,7 @@ function clearAllInputs() {
 function onKeyDown(e) {
   const dir = KEY_MAP[e.key];
   if (dir) {
+    if (window.DEBUG_CHALLENGE) try { console.log('[Challenge][Input] onKeyDown', e.key, 'dir=', dir, 'state=', currentState); } catch (_) {}
     if (currentState === STATE.PLAYING) { e.preventDefault(); keys[dir] = true; }
     return;
   }
@@ -8162,6 +8518,7 @@ function onKeyDown(e) {
 function onKeyUp(e) {
   const dir = KEY_MAP[e.key];
   if (dir) {
+    if (window.DEBUG_CHALLENGE) try { console.log('[Challenge][Input] onKeyUp', e.key, 'dir=', dir, 'state=', currentState); } catch (_) {}
     if (currentState === STATE.PLAYING) e.preventDefault();
     keys[dir] = false;
   }
@@ -8301,6 +8658,7 @@ function _canvasPointerToGamePos(e) {
 function onCanvasPointerDown(e) {
   if (e.pointerType === 'touch') return; // handled by touch events
   if (currentState !== STATE.PLAYING) return;
+  if (window.DEBUG_CHALLENGE) try { console.log('[Challenge][Input] pointerDown', e.pointerType, e.clientX, e.clientY); } catch (_) {}
   touchTarget = _canvasPointerToGamePos(e);
   canvas.setPointerCapture(e.pointerId);
 }
@@ -8313,6 +8671,7 @@ function onCanvasPointerMove(e) {
 
 function onCanvasPointerUp(e) {
   if (e.pointerType === 'touch') return;
+  if (window.DEBUG_CHALLENGE) try { console.log('[Challenge][Input] pointerUp', e.pointerType); } catch (_) {}
   touchTarget = null;
 }
 
@@ -9969,7 +10328,10 @@ const MpSync = (function () {
     return () => { if (raf) cancelAnimationFrame(raf); };
   };
 
-  function tickCampaignHelpers(dt) {
+  // Expose campaign helper tick to the global scope so gameLoop can call it.
+  // This was previously declared inside a module closure which caused a
+  // ReferenceError when gameLoop tried to call `tickCampaignHelpers`.
+  window.tickCampaignHelpers = function(dt) {
     if (window._campaignWarningLanes) {
       for (let i = window._campaignWarningLanes.length - 1; i >= 0; i--) {
         const w = window._campaignWarningLanes[i];
@@ -9982,7 +10344,7 @@ const MpSync = (function () {
         s.t -= dt; if (s.t <= 0) window._campaignSafeZones.splice(i, 1);
       }
     }
-  }
+  };
 
 
   function isActive()  { return _active; }
