@@ -627,7 +627,7 @@
 }
 
 .cmp-cd-num.cmp-cd-pop {
-  animation: cmp-cd-pop 0.35s ease;
+  animation: cmp-cd-pop 0.46s cubic-bezier(.2,.9,.2,1);
 }
 
 @keyframes cmp-cd-pop {

@@ -261,6 +261,62 @@ const CAMPAIGN_LEVELS = [
   },
 ];
 
+// Normalize level definitions to a single `rules` schema while keeping
+// `settings` available for backwards compatibility. This lets designers
+// author levels using `rules` going forward while the runtime can still
+// use `lvl.settings` until all code is migrated.
+function _convertRulesToSettings(r) {
+  if (!r) r = {};
+  const settings = {
+    speedMult:         typeof r.speedMult === 'number' ? r.speedMult : (r.engine && r.engine.speedMult) || 1.0,
+    spawnInterval:     typeof r.spawnInterval === 'number' ? r.spawnInterval : (r.engine && r.engine.spawnInterval) || 0.45,
+    forbiddenInterval: typeof r.forbiddenInterval === 'number' ? r.forbiddenInterval : (r.engine && r.engine.forbiddenInterval) || 3.0,
+    coinsEnabled:      typeof r.coinsEnabled === 'boolean' ? r.coinsEnabled : !!(r.coins && r.coins.enabled),
+    coinItemInterval:  (r.coinItemInterval != null) ? r.coinItemInterval : (r.coins && r.coins.coinItemInterval) || null,
+    powerupsEnabled:   typeof r.powerupsEnabled === 'boolean' ? r.powerupsEnabled : !!(r.powerups && r.powerups.enabled),
+    diffCap:           r.diffCap || (r.engine && r.engine.diffCap) || null,
+    disablePanic:      !!r.disablePanic || !!(r.flags && r.flags.disablePanic),
+    disableDoubleDanger: !!r.disableDoubleDanger || !!(r.flags && r.flags.disableDoubleDanger),
+    doubleTroubleAt:   (r.doubleTroubleAt || (r.flags && r.flags.doubleTroubleAt) || []).slice(),
+    shrinkingArena:    !!r.shrinkingArena || !!(r.flags && r.flags.shrinkingArena),
+    bossMode:          !!r.bossMode || !!(r.flags && r.flags.bossMode),
+  };
+  return settings;
+}
+
+// If old-style `settings` are present, create a `rules` object so new
+// tooling can read a single canonical shape. Also ensure `settings` is
+// always present for existing runtime code.
+CAMPAIGN_LEVELS.forEach(lvl => {
+  if (!lvl.rules && lvl.settings) {
+    lvl.rules = {
+      engine: {
+        speedMult: lvl.settings.speedMult,
+        spawnInterval: lvl.settings.spawnInterval,
+        forbiddenInterval: lvl.settings.forbiddenInterval,
+        diffCap: lvl.settings.diffCap || null,
+      },
+      coins: { enabled: !!lvl.settings.coinsEnabled, coinItemInterval: lvl.settings.coinItemInterval },
+      powerups: { enabled: !!lvl.settings.powerupsEnabled },
+      flags: {
+        disablePanic: !!lvl.settings.disablePanic,
+        disableDoubleDanger: !!lvl.settings.disableDoubleDanger,
+        doubleTroubleAt: (lvl.settings.doubleTroubleAt || []).slice(),
+        shrinkingArena: !!lvl.settings.shrinkingArena,
+        bossMode: !!lvl.settings.bossMode,
+      },
+      previewPattern: lvl.previewPattern || null,
+    };
+  }
+  // Ensure runtime-friendly `settings` exists (derived from rules when possible)
+  if (!lvl.settings && lvl.rules) {
+    lvl.settings = _convertRulesToSettings(Object.assign({}, lvl.rules.engine || {}, lvl.rules));
+  } else if (lvl.rules) {
+    // Keep settings in sync with rules for safety
+    lvl.settings = Object.assign({}, lvl.settings || {}, _convertRulesToSettings(Object.assign({}, lvl.rules.engine || {}, lvl.rules)));
+  }
+});
+
 
 
 
@@ -353,6 +409,36 @@ const CampaignSave = (() => {
 
   return { load, save, get, isUnlocked, isCompleted, getStars, completeLevelResult };
 })();
+
+// Developer helpers: quick test utilities for local testing.
+window.testLevel = function(id) {
+  const lvl = CAMPAIGN_LEVELS.find(l => l.id === id);
+  if (!lvl) { console.warn('[Campaign] testLevel: unknown id', id); return; }
+  console.info('[Campaign] testLevel:', id, lvl.name);
+  try { window.CampaignManager.selectLevel(lvl); } catch (e) { console.error(e); }
+};
+
+window.unlockAllCampaignLevels = function() {
+  try {
+    const d = CampaignSave.get();
+    d.highestUnlockedLevel = CAMPAIGN_LEVELS.length;
+    CampaignSave.save();
+    console.info('[Campaign] All levels unlocked');
+  } catch (e) { console.error(e); }
+};
+
+window.validateCampaignLevels = function() {
+  const problems = [];
+  CAMPAIGN_LEVELS.forEach(l => {
+    if (!Number.isInteger(l.id) || l.id <= 0) problems.push(`Level missing id or invalid: ${l.name}`);
+    if (!l.name) problems.push(`Level ${l.id} missing name`);
+    if (!l.objectiveType) problems.push(`Level ${l.id} missing objectiveType`);
+    if (l.rules == null) problems.push(`Level ${l.id} missing rules/config`);
+  });
+  if (problems.length === 0) console.info('[Campaign] validate: OK');
+  else problems.forEach(p => console.warn('[Campaign] validate:', p));
+  return problems;
+};
 
 // ============================================================
 // SECTION 3: OBJECTIVE TRACKER
@@ -1150,10 +1236,20 @@ const CampaignUI = (() => {
     });
 
     if (startBtn) startBtn.addEventListener('click', () => {
+      console.log('[Challenge] intro start pressed', lvl && lvl.id, lvl && lvl.name);
       // stop preview animation if running
       if (el._previewCancel) { try { el._previewCancel(); } catch (_) {} el._previewCancel = null; }
-      // Immediately hide the intro screen so it doesn't show during countdown
-      el.hidden = true;
+
+      // Ensure all other UI is hidden and show the game screen so the
+      // player can be primed (visible) during the countdown. Do NOT start
+      // the game loop yet — that happens after the countdown completes.
+      try { _hideAllGameScreens(); } catch (_) {}
+      try { showScreen('game-screen'); } catch (_) {}
+      // Prime canvas + player so a static frame is visible under the countdown
+      try { resizeCanvas(); } catch (_) {}
+      try { initPlayer(); } catch (_) {}
+      try { render(performance.now()); } catch (_) {}
+
       // Run countdown on the dedicated full-screen overlay, then call onStart
       _runCountdown(3, () => {
         if (onStart) onStart();
@@ -1163,7 +1259,7 @@ const CampaignUI = (() => {
     // Start a small animated preview illustrating the primary mechanic for this level
     try {
       const previewEl = el.querySelector('#cmp-intro-preview');
-      const pattern = lvl.previewPattern || (lvl.settings && lvl.settings.coinsEnabled ? 'coinTrail' : 'sideSwipe');
+      const pattern = lvl.previewPattern || (lvl.rules && lvl.rules.previewPattern) || (lvl.settings && lvl.settings.coinsEnabled ? 'coinTrail' : 'sideSwipe');
       if (window.CampaignPatterns && previewEl) {
         el._previewCancel = window.CampaignPatterns.previewPattern(previewEl, pattern);
       }
@@ -1173,32 +1269,43 @@ const CampaignUI = (() => {
   function _runCountdown(count, onDone) {
     const overlay = document.getElementById('campaign-countdown-overlay');
     if (!overlay) { if (onDone) onDone(); return; }
+    // Global flag for other systems/tests
+    try { window._campaignCountdownActive = true; } catch (_) {}
     overlay.hidden = false;
     overlay.innerHTML = '<span class="cmp-cd-num" id="cmp-cd-num-el"></span>';
     const numEl = document.getElementById('cmp-cd-num-el');
 
     let current = count;
-    function show() {
+    // 700ms per step for consistent rhythm
+    const STEP_MS = 700;
+
+    function step() {
       const text = current > 0 ? String(current) : 'GO!';
       if (numEl) {
         numEl.textContent = text;
         numEl.style.color = current <= 0 ? '#22c55e' : '#a855f7';
+        // trigger pop animation
         numEl.classList.remove('cmp-cd-pop');
         void numEl.offsetWidth;
         numEl.classList.add('cmp-cd-pop');
+        // announce for screen readers
+        overlay.setAttribute('aria-live', 'assertive');
       }
+
       if (current <= 0) {
+        // Leave the GO! visible for one step then hide
         setTimeout(() => {
           overlay.hidden = true;
           overlay.innerHTML = '';
+          try { window._campaignCountdownActive = false; } catch (_) {}
           if (onDone) onDone();
-        }, 500);
+        }, STEP_MS);
       } else {
         current--;
-        setTimeout(show, 800);
+        setTimeout(step, STEP_MS);
       }
     }
-    show();
+    step();
   }
 
   // ---- Campaign HUD Overlay (during gameplay) ----
@@ -1481,6 +1588,56 @@ window.CampaignManager = (() => {
 
   function isActive() { return _active; }
 
+  // Internal debug / failsafe timers
+  let _failsafeTimer = 0;
+  let _debugTicker = 0;
+  let _lastRoundCoins = 0;
+  let _debugOverlayEl = null;
+
+  function validateChallengeLevel(lvl) {
+    if (!lvl) return false;
+    if (!Number.isInteger(lvl.id) || lvl.id <= 0) return false;
+    if (!lvl.name || !lvl.objectiveType) return false;
+    if (typeof lvl.objectiveTarget === 'undefined') return false;
+    return true;
+  }
+
+  function resetGameForChallenge(lvl) {
+    console.log('[Challenge] reset game state');
+    try { if (typeof cleanupGameLoop === 'function') cleanupGameLoop(); } catch (_) {}
+    try {
+      // Clear runtime arrays
+      obstacles = [];
+      particles = [];
+      powerups = [];
+      coinItems = [];
+      floatingTexts = [];
+      ringBursts = [];
+      // Reset timers and counters
+      spawnTimer = 0; powerupTimer = 0; coinItemTimer = 0; difficultyTimer = 0;
+      difficultyBumps = 0; difficultyPhase = 0;
+      score = 0; combo = 0; maxCombo = 0; roundCoins = 0;
+      missionRun = { seconds: 0, score: 0, colorChanges: 0, powerupsThisRun: 0, nearMissesThisRun: 0, panicWavesSurvived: 0, maxCombo: 0 };
+      // Powerup state
+      activePowerupKey = null; activePowerupTimer = 0; activePowerupTotal = 0;
+      player.hasShield = false; playerRadiusTarget = player.baseRadius; player.radius = player.baseRadius;
+      // Boss + campaign auxiliary state
+      window._campaignDefeatReason = null; window._campaignDodgeCount = 0;
+      try { BossManager.deactivate(); } catch (_) {}
+      try { _hideWallCanvas(); } catch (_) {}
+      // Ensure UI is hidden and canvas updated
+      try { CampaignUI.hideHUD(); } catch (_) {}
+      try { document.getElementById('gameover-overlay').hidden = true; } catch (_) {}
+      try { document.getElementById('pause-overlay').hidden = true; } catch (_) {}
+      // Make sure player is positioned visibly
+      try { resizeCanvas(); initPlayer(); render(performance.now()); } catch (_) {}
+      // Reset skin abilities (do not auto-activate any ability)
+      try { if (typeof SkinAbility !== 'undefined' && SkinAbility.reset) SkinAbility.reset(); } catch (_) {}
+    } catch (err) {
+      console.error('[Challenge] resetGameForChallenge error', err);
+    }
+  }
+
   function deactivate() {
     _active       = false;
     _currentLevel = null;
@@ -1501,6 +1658,14 @@ window.CampaignManager = (() => {
   }
 
   function selectLevel(lvl) {
+    console.log('[Challenge] selected level', lvl && lvl.id, lvl && lvl.name);
+    if (!validateChallengeLevel(lvl)) {
+      console.error('[Challenge] Invalid level config', lvl);
+      // Friendly fallback: return to level select
+      try { alert('Unable to start level: invalid configuration. Returning to level select.'); } catch (_) {}
+      try { CampaignUI.showLevelSelect(); } catch (_) {}
+      return;
+    }
     _currentLevel = lvl;
     CampaignUI.showLevelIntro(lvl, () => _startLevel(lvl));
   }
@@ -1520,7 +1685,19 @@ window.CampaignManager = (() => {
     _dtPhase      = 'idle';
     _dtTimer      = 0;
 
+    // Prefer canonical `rules` when present and derive runtime settings
+    try {
+      if (lvl && lvl.rules) {
+        try {
+          lvl.settings = _convertRulesToSettings(Object.assign({}, lvl.rules.engine || {}, lvl.rules));
+        } catch (e) { console.error('[Campaign] error converting rules to settings', e); }
+      }
+    } catch (_) {}
+
+    // Guarantee a clean runtime state before starting
+    try { resetGameForChallenge(lvl); } catch (_) {}
     ObjectiveTracker.reset(lvl);
+    console.log('[Challenge] objective initialized', lvl.id, lvl.objectiveType, lvl.objectiveTarget);
 
     // Set campaign settings for script.js to pick up in startGame()
     window._campaignSettings = {
@@ -1536,6 +1713,9 @@ window.CampaignManager = (() => {
     };
     window._campaignDodgeCount = 0;
 
+    // Mark that the countdown finished and we're about to start the challenge
+    window._challengeRunning = false; // will be set true right after startGame()
+
     // Hide skin ability HUD on levels without coins — it would show "Coin Magnet: Passive"
     // which confuses players. We restore it in deactivate().
     const abilityHud = document.getElementById('skin-ability-hud');
@@ -1548,11 +1728,18 @@ window.CampaignManager = (() => {
     });
 
     // Start the actual game using the existing startGame() function
-    if (typeof startGame === 'function') startGame();
+    if (typeof startGame === 'function') {
+      console.log('[Challenge] starting engine via startGame()');
+      startGame();
+      window._challengeRunning = true;
+    }
+
+    console.log('[Challenge] spawners enabled');
 
     // After startGame, show campaign HUD
     setTimeout(() => {
       CampaignUI.showHUD(lvl);
+      console.log('[Challenge] player initialized', player && { x: player.x, y: player.y, radius: player.radius });
       if (lvl.settings.bossMode) {
         const gameCanvas = document.getElementById('game-canvas');
         BossManager.init(
@@ -1564,6 +1751,35 @@ window.CampaignManager = (() => {
       if (lvl.settings.shrinkingArena) {
         _initWallCanvas();
       }
+      // Debug overlay (optional)
+      try {
+        if (window.CAMPAIGN_DEBUG) {
+          if (!_debugOverlayEl) {
+            const d = document.createElement('div');
+            d.id = 'campaign-debug-overlay';
+            d.style.position = 'fixed';
+            d.style.left = '8px';
+            d.style.bottom = '8px';
+            d.style.padding = '8px 10px';
+            d.style.background = 'rgba(0,0,0,0.6)';
+            d.style.color = '#fff';
+            d.style.fontFamily = 'monospace';
+            d.style.fontSize = '12px';
+            d.style.zIndex = 9999;
+            d.style.borderRadius = '6px';
+            document.body.appendChild(d);
+            _debugOverlayEl = d;
+          }
+        }
+      } catch (_) {}
+      // Collect-coin levels: ensure initial coins are present quickly
+      try {
+        if (lvl.objectiveType === 'collect_coins') {
+          // Spawn an initial column (4-6 coins) and ensure at least 3 visible
+          spawnCoinItem();
+          setTimeout(() => { if (coinItems.length < 3) spawnCoinItem(); }, 180);
+        }
+      } catch (e) { console.error('[Challenge] initial coin spawn error', e); }
     }, 120);
   }
 
@@ -1650,6 +1866,61 @@ window.CampaignManager = (() => {
       lvl.settings.bossMode ? BossManager.getHp() : 100,
       lvl.timeLimit
     );
+
+    // ---- Debug logging & failsafe checks (runs ~once/sec) ----
+    try {
+      _debugTicker += dt;
+      if (_debugTicker >= 1.0) {
+        _debugTicker = 0;
+        const obsCt = gameState.obstacles ? gameState.obstacles.length : (typeof obstacles !== 'undefined' ? obstacles.length : 0);
+        const coinCt = typeof coinItems !== 'undefined' ? coinItems.length : 0;
+        console.log('[Challenge] tick', Math.floor(elapsed) + 's', 'obstacles:' + obsCt, 'coinsPicked:' + roundCoins, 'coinItems:' + coinCt, 'challengeRunning:' + !!window._challengeRunning, 'countdown:' + !!window._campaignCountdownActive);
+        if (_debugOverlayEl) {
+          try {
+            _debugOverlayEl.innerHTML =
+              'Level: ' + (lvl ? lvl.id + ' - ' + lvl.name : 'n/a') + '<br>' +
+              'Objective: ' + (lvl ? lvl.objectiveType : 'n/a') + '<br>' +
+              'Elapsed: ' + Math.floor(elapsed) + 's<br>' +
+              'Player: ' + (!!gameState.player) + '<br>' +
+              'Obstacles: ' + obsCt + '<br>' +
+              'Coins(active): ' + coinCt + '<br>' +
+              'RoundCoins: ' + roundCoins + '<br>' +
+              'Running: ' + (!!window._challengeRunning) + '<br>' +
+              'Countdown: ' + (!!window._campaignCountdownActive);
+          } catch (_) {}
+        }
+      }
+
+      // Detect coin pickups and spawn replacements shortly after pickup
+      if (lvl.objectiveType === 'collect_coins') {
+        if (roundCoins > _lastRoundCoins) {
+          const picked = roundCoins - _lastRoundCoins;
+          for (let i = 0; i < picked; i++) setTimeout(() => { try { if (typeof spawnCoinItem === 'function') spawnCoinItem(); } catch (_) {} }, 300);
+          console.log('[Challenge] coin pickup detected, scheduled replacement(s):', picked);
+        }
+        _lastRoundCoins = roundCoins;
+      }
+
+      // Failsafe: ensure coins/obstacles/player present
+      _failsafeTimer += dt;
+      if (_failsafeTimer >= 1.0) {
+        _failsafeTimer = 0;
+        try {
+          if (lvl.objectiveType === 'collect_coins' && (typeof coinItems === 'undefined' || coinItems.length === 0)) {
+            console.warn('[Challenge] Failsafe triggered: no coins — spawning');
+            if (typeof spawnCoinItem === 'function') spawnCoinItem();
+          }
+          if ((lvl.objectiveType === 'survive_seconds' || lvl.objectiveType === 'dodge_blocks' || lvl.objectiveType === 'hybrid') && (typeof obstacles === 'undefined' || obstacles.length === 0) && elapsed > 2.0) {
+            console.warn('[Challenge] Failsafe triggered: no obstacles — spawning');
+            if (typeof spawnObstacle === 'function') spawnObstacle();
+          }
+          if (!gameState.player || typeof gameState.player.x === 'undefined') {
+            console.warn('[Challenge] Failsafe triggered: missing player — recreating');
+            try { resizeCanvas(); initPlayer(); render(performance.now()); } catch (_) {}
+          }
+        } catch (e) { console.error('[Challenge] failsafe error', e); }
+      }
+    } catch (e) { console.error('[Challenge] tick debug error', e); }
   }
 
   function _tickDoubleTrouble(dt, elapsed, gameState) {
@@ -1805,6 +2076,7 @@ window.CampaignManager = (() => {
 
       _active = false;
       window._campaignSettings = null;
+      try { window._challengeRunning = false; } catch (_) {}
     }, 400);
   }
 
@@ -1818,6 +2090,7 @@ window.CampaignManager = (() => {
     const lvl = _currentLevel;
     _active = false;
     window._campaignSettings = null;
+    try { window._challengeRunning = false; } catch (_) {}
     BossManager.deactivate();
     _hideWallCanvas();
     CampaignUI.hideHUD();

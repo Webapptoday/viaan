@@ -7714,6 +7714,12 @@ function startGame(mpInitialForbiddenIdx) {
   _loopGeneration++; // invalidate all in-flight rAF handles
   gameLoop._generation = _loopGeneration;
 
+  // Debug: indicate whether this start is for Campaign or Endless
+  try {
+    if (window._campaignSettings) console.log('[Game] startGame called (Campaign) settings:', window._campaignSettings);
+    else console.log('[Game] startGame called (Endless)');
+  } catch (_) {}
+
   Audio.init();
   score = 0; combo = 0; maxCombo = 0; graceTimer = 0;
   obstacles = []; particles = []; powerups = []; coinItems = []; floatingTexts = []; ringBursts = [];
