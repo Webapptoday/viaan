@@ -90,13 +90,13 @@
 .cmp-road-inner {
   position: relative;
   z-index: 1;
-  max-width: 700px;
+  max-width: 900px;
   margin: 0 auto;
-  padding: 1.4rem 1rem 5rem;
+  padding: 1.5rem 1.25rem 6rem;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1.4rem;
+  gap: 1.5rem;
 }
 
 /* ==========================
@@ -212,48 +212,56 @@
   pointer-events: none;
 }
 
-/* Each row = one level */
+/* Each row = one level: 3-column grid (card | connector | card) */
 .cmp-road-row {
   position: relative;
   display: grid;
-  min-height: 144px;
+  grid-template-columns: 1fr 52px 1fr;
   align-items: center;
-  padding: 10px 0;
+  min-height: 160px;
+  padding: 12px 0;
+  z-index: 1;
 }
 
-/* Dot on spine at each row */
-.cmp-road-row::before {
-  content: '';
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  background: var(--row-dot, #7c3aed);
-  box-shadow: 0 0 10px var(--row-dot, #7c3aed);
-  z-index: 2;
-  pointer-events: none;
-}
-
-/* Left row: node left, branch right side of node, filler right */
-.cmp-road-row--left  { grid-template-columns: 44% 8% 48%; }
-/* Right row: filler left, branch left of node, node right */
-.cmp-road-row--right { grid-template-columns: 48% 8% 44%; }
-/* Boss row: centered node */
+.cmp-road-row--left  { grid-template-columns: 1fr 52px 1fr; }
+.cmp-road-row--right { grid-template-columns: 1fr 52px 1fr; }
 .cmp-road-row--boss  {
   grid-template-columns: 1fr;
   justify-items: center;
   min-height: 180px;
 }
 
-/* Horizontal branch line */
-.cmp-road-branch {
-  height: 2px;
+/* Card cell wrappers */
+.cmp-road-cell--card {
+  display: flex;
+  align-items: center;
+}
+.cmp-road-row--left  .cmp-road-cell--card { justify-content: flex-end;   padding-right: 10px; }
+.cmp-road-row--right .cmp-road-cell--card { justify-content: flex-start;  padding-left:  10px; }
+
+/* Connector — spine dot in center column */
+.cmp-road-connector {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  position: relative;
+  z-index: 2;
+}
+.cmp-road-connector-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
   background: var(--row-dot, #7c3aed);
-  opacity: 0.4;
-  align-self: center;
+  box-shadow: 0 0 12px var(--row-dot, #7c3aed);
+  flex-shrink: 0;
+}
+.cmp-road-row.cmp-node--current .cmp-road-connector-dot {
+  animation: cmp-dot-current-pulse 2s ease-in-out infinite;
+}
+@keyframes cmp-dot-current-pulse {
+  0%, 100% { box-shadow: 0 0 8px var(--row-dot, #7c3aed); transform: scale(1); }
+  50%       { box-shadow: 0 0 22px var(--row-dot, #7c3aed), 0 0 40px var(--row-dot, #7c3aed44); transform: scale(1.25); }
 }
 
 /* ==========================
@@ -261,15 +269,20 @@
    ========================== */
 .cmp-road-node {
   position: relative;
+  width: 100%;
+  max-width: 320px;
+  min-width: 220px;
+  min-height: 150px;
   background: #0c0c1e;
   border: 2px solid var(--node-color, #7c3aed);
   border-radius: 16px;
-  padding: 0.85rem 1rem;
+  padding: 0.9rem 1rem;
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
-  box-shadow: 0 0 18px var(--node-glow, transparent);
+  gap: 0.45rem;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.35), 0 0 18px var(--node-glow, transparent);
   transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s;
+  box-sizing: border-box;
   overflow: visible;
 }
 
@@ -282,15 +295,17 @@
   --node-color: #ec4899;
   --node-glow: #ec489933;
   --row-dot: #ec4899;
-  width: clamp(240px, 68vw, 380px);
+  max-width: 420px;
+  min-width: 260px;
+  width: clamp(260px, 68vw, 420px);
   border-width: 2px;
   background: linear-gradient(135deg, #180020 0%, #0c0c1e 100%);
 }
 
 /* Locked */
 .cmp-node--locked {
-  opacity: 0.3;
-  filter: grayscale(0.65);
+  opacity: 0.5;
+  filter: grayscale(0.5);
   pointer-events: none;
 }
 
@@ -1081,14 +1096,31 @@
 /* ============================================================
    RESPONSIVE ADJUSTMENTS
    ============================================================ */
+
+/* Single-column road layout below 760px */
+@media (max-width: 760px) {
+  .cmp-road-inner { max-width: 100%; padding: 1rem 0.75rem 4.5rem; }
+  .cmp-road-map::before { left: 22px; transform: none; }
+  .cmp-road-row         { grid-template-columns: 48px 1fr; min-height: 140px; padding: 10px 0; }
+  .cmp-road-row--left   { grid-template-columns: 48px 1fr; }
+  .cmp-road-row--right  { grid-template-columns: 48px 1fr; }
+  .cmp-road-connector   { order: -1; }
+  .cmp-road-row--left  .cmp-road-cell--card,
+  .cmp-road-row--right .cmp-road-cell--card {
+    order: 0;
+    justify-content: flex-start;
+    padding-left: 8px;
+    padding-right: 0;
+  }
+  .cmp-road-cell--spacer { display: none; }
+  .cmp-road-node { max-width: 100%; min-width: 0; }
+}
+
 @media (max-width: 480px) {
-  .cmp-road-inner { padding: 1rem 0.75rem 3.5rem; }
   .cmp-road-title { font-size: 2.1rem; }
   .cmp-road-statsbar { padding: 0.5rem 0.7rem; }
   .cmp-road-stat { padding: 0 0.6rem; }
   .cmp-road-stat-val { font-size: 0.98rem; }
-  .cmp-road-row--left  { grid-template-columns: 48% 6% 46%; }
-  .cmp-road-row--right { grid-template-columns: 46% 6% 48%; }
   .cmp-road-node { padding: 0.7rem 0.8rem; }
   .cmp-node-title { font-size: 0.88rem; }
   .cmp-node-obj   { font-size: 0.7rem; }
@@ -1100,8 +1132,6 @@
 }
 
 @media (max-width: 360px) {
-  .cmp-road-row--left  { grid-template-columns: 50% 5% 45%; }
-  .cmp-road-row--right { grid-template-columns: 45% 5% 50%; }
   .cmp-v-stars .cmp-v-star { font-size: 1.9rem; }
 }
 
@@ -1124,6 +1154,7 @@
    ============================================================ */
 @media (prefers-reduced-motion: reduce) {
   .cmp-road-node,
+  .cmp-road-connector-dot,
   .cmp-road-particle,
   .cmp-v-box,
   .cmp-d-box,
@@ -1137,6 +1168,7 @@
 }
 
 .reduced-motion .cmp-road-node,
+.reduced-motion .cmp-road-connector-dot,
 .reduced-motion .cmp-road-particle,
 .reduced-motion .cmp-v-box,
 .reduced-motion .cmp-d-box,

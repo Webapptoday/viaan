@@ -1063,7 +1063,6 @@ const CampaignUI = (() => {
       btnHtml = `<button class="cmp-node-btn" data-level-id="${lvl.id}" aria-label="Play Level ${lvl.id}: ${lvl.name}">Play</button>`;
     }
 
-    const branchHtml = side === 'boss' ? '' : `<div class="cmp-road-branch" aria-hidden="true"></div>`;
     const nodeHtml = `
       <div class="cmp-road-node ${diffClass} ${stateClass}"
            role="listitem"
@@ -1081,8 +1080,14 @@ const CampaignUI = (() => {
         </div>
       </div>`;
 
-    return `<div class="cmp-road-row ${rowClass}">
-      ${side === 'right' ? branchHtml + nodeHtml : nodeHtml + branchHtml}
+    if (side === 'boss') {
+      return `<div class="cmp-road-row ${rowClass} ${diffClass} ${stateClass}">${nodeHtml}</div>`;
+    }
+    const connectorHtml = `<div class="cmp-road-connector" aria-hidden="true"><div class="cmp-road-connector-dot"></div></div>`;
+    const cardCell   = `<div class="cmp-road-cell cmp-road-cell--card">${nodeHtml}</div>`;
+    const spacerCell = `<div class="cmp-road-cell cmp-road-cell--spacer" aria-hidden="true"></div>`;
+    return `<div class="cmp-road-row ${rowClass} ${diffClass} ${stateClass}">
+      ${side === 'left' ? cardCell + connectorHtml + spacerCell : spacerCell + connectorHtml + cardCell}
     </div>`;
   }
 
