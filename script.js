@@ -40,6 +40,22 @@ const DEBUG_MODE = false;
 // Toggle Challenge-mode diagnostics at runtime by setting `window.DEBUG_CHALLENGE = true` in console.
 window.DEBUG_CHALLENGE = window.DEBUG_CHALLENGE || false;
 
+// Simple seeded RNG (LCG) for deterministic campaign patterns.
+function seededRng(seed) {
+  // Ensure seed is a 32-bit unsigned int
+  let s = (seed >>> 0) || 1;
+  return function() {
+    s = (s * 1664525 + 1013904223) >>> 0;
+    return s / 4294967296;
+  };
+}
+
+// Helper to get campaign RNG (set when a level starts). Falls back to Math.random.
+window.campaignRandom = function() {
+  if (window._campaignRng && typeof window._campaignRng === 'function') return window._campaignRng();
+  return Math.random();
+};
+
 // ============================================================
 // DIFFICULTY REDESIGN CONFIG
 // All balance tuning lives here. No magic numbers elsewhere.
@@ -10328,6 +10344,150 @@ const MpSync = (function () {
     return () => { if (raf) cancelAnimationFrame(raf); };
   };
 
+  // Spawn pattern factory: returns a per-frame tick(dt) function for the requested level
+  window.CampaignPatterns.getSpawnPattern = function(lvl) {
+    if (!lvl) return function() {};
+    const name = lvl.spawnPattern || lvl.id;
+    // Helpers
+    function spawnCoinsAtLane(laneIdx, count, speed, jitter) {
+      const lanes = getLaneCenters();
+      const cx = lanes[Math.max(0, Math.min(NUM_LANES - 1, laneIdx))];
+      const sz = 22; const spacing = 64;
+      const colId = Date.now() + Math.floor(window.campaignRandom() * 1000);
+      for (let i = 0; i < count; i++) {
+        const x = cx + (window.campaignRandom() - 0.5) * (jitter || 6);
+        const vy = (speed || 100) + Math.floor(window.campaignRandom() * 22);
+        coinItems.push({ x: x, y: -sz - 10 - i * spacing, size: sz, vy: vy, vx: 0, value: 1, colId });
+      }
+    }
+
+    // Factory for patterns
+    if (name === 'firstShiftPressure' || lvl.id === 1) {
+      // First Shift: timed pressure windows
+      let t = 0, acc = 0, inWave = false;
+      return function(dt) {
+        t += dt; acc += dt;
+        // 0-5s: ensure steady medium spawns
+        if (t < 5) {
+          if (acc >= 0.65) { acc = 0; if (window.campaignRandom() < 0.95) spawnObstacle(); }
+        } else if (t < 15) {
+          if (acc >= 0.5) { acc = 0; if (window.campaignRandom() < 0.85) spawnWave(); }
+        } else if (t < 22) {
+          // Pressure wave
+          if (!inWave) { inWave = true; try { console.log('[Pattern] FirstShift pressure wave start'); } catch(_) {} }
+          if (acc >= 0.28) { acc = 0; spawnWave(); // buff last spawned obstacle speed
+            try { const last = obstacles[obstacles.length-1]; if (last) { last.vy *= 1.28; last.baseVy *= 1.28; } } catch(_) {}
+          }
+        } else if (t < 25) {
+          // cooldown
+          if (acc >= 0.9) { acc = 0; if (window.campaignRandom() < 0.6) spawnObstacle(); }
+        }
+      };
+    }
+
+    if (name === 'coinCollectorRoute' || lvl.id === 2) {
+      // Deterministic coin waves schedule (timestamps in seconds)
+      const schedule = [ {at:0, cnt:2, lane:1}, {at:4, cnt:3, lane:4}, {at:8, cnt:2, lane:0}, {at:12, cnt:3, lane:2}, {at:17, cnt:2, lane:4}, {at:22, cnt:3, lane:0}, {at:28, cnt:3, lane:2} ];
+      let t = 0; let idx = 0;
+      return function(dt) {
+        t += dt;
+        while (idx < schedule.length && t >= schedule[idx].at) {
+          const ev = schedule[idx++]; spawnCoinsAtLane(ev.lane, ev.cnt, 110, 4);
+        }
+      };
+    }
+
+    if (name === 'dodgeSchoolPhases' || lvl.id === 3) {
+      // Dodge School: phase-based spawning tied to dodge count
+      let lastDodge = 0; let acc = 0;
+      return function(dt) {
+        acc += dt;
+        const dodges = window._campaignDodgeCount || 0;
+        // Phase decisions
+        if (dodges < 25) {
+          if (acc >= 0.6) { acc = 0; spawnObstacle(); if (window.campaignRandom() < 0.25) spawnObstacle(); }
+        } else if (dodges < 60) {
+          if (acc >= 0.5) { acc = 0; spawnWave(); }
+        } else if (dodges < 85) {
+          if (acc >= 0.45) { acc = 0; spawnWave(); if (window.campaignRandom() < 0.3) spawnSideSwipePattern({side: window.campaignRandom()<0.5?'left':'right', count:2}); }
+        } else {
+          if (acc >= 0.36) { acc = 0; spawnWave(); spawnWave(); }
+        }
+      };
+    }
+
+    if (name === 'fastSwitchWaves' || lvl.id === 4) {
+      // Fast Switch: warnings and speed waves at 15,30,45s
+      const waves = [15,30,45]; let t=0; let acc=0; let waveIdx=0; let inWave=false; let waveEnd=0;
+      return function(dt) {
+        t += dt; acc += dt;
+        // warning 3s before
+        for (let i=waveIdx; i<waves.length; i++) {
+          const w = waves[i];
+          if (t >= w - 3 && t < w && !window._campaignNextWaveShown) {
+            window._campaignNextWaveShown = true;
+            try {
+              const dtEl = document.getElementById('cmp-hud-dt'); if (dtEl) { dtEl.textContent = 'FAST SWITCH IN 3'; dtEl.hidden = false; dtEl.classList.remove('cmp-dt-pop'); void dtEl.offsetWidth; dtEl.classList.add('cmp-dt-pop'); setTimeout(()=>{ try{ dtEl.hidden=true }catch(_){} }, 2900); }
+            } catch(_){}
+          }
+        }
+        // start waves
+        if (waveIdx < waves.length && t >= waves[waveIdx]) {
+          inWave = true; waveEnd = t + 5.0; try { console.log('[Pattern] FastSwitch wave', waveIdx+1); } catch(_) {}
+          waveIdx++;
+        }
+        if (inWave) {
+          if (acc >= 0.38) { acc = 0; spawnWave(); try { const last = obstacles[obstacles.length-1]; if (last) { last.vy *= 1.32; last.baseVy *= 1.32; } } catch(_){} }
+          if (t >= waveEnd) { inWave = false; }
+        }
+      };
+    }
+
+    if (name === 'tightGaps' || lvl.id === 5) {
+      // Tight Gaps: spawn full rows with a single gap
+      let acc = 0; let gapIdx = 0;
+      return function(dt) {
+        acc += dt;
+        if (acc >= 1.2) {
+          acc = 0; gapIdx = (gapIdx + 1) % NUM_LANES;
+          // spawn row with gap at gapIdx
+          const lanes = getLaneCenters();
+          const w = Math.max(20, canvas.width / NUM_LANES - 8);
+          for (let li=0; li<NUM_LANES; li++) {
+            if (li === gapIdx) continue;
+            const x = Math.max(w/2 + 2, Math.min(canvas.width - w/2 - 2, lanes[li] - w/2));
+            obstacles.push({ x: x, y: -40 - li*6, w: w, h: 32, baseVy: GAME_CONFIG.baseSpeed * 1.1, vy: GAME_CONFIG.baseSpeed * 1.1, type:0, colorIndex: pickObstacleColorIndex(), originX: x + w/2, nearMissIdx:-1, swayAmp:0, swayFreq:0, swayPhase:0, pulseAmp:0, pulseFreq:0, pulsePhase:0, baseW:w, baseH:32, cy:-16, trickType:null, trickTriggered:false, trickTimer:0, trickVx:0 });
+          }
+        }
+      };
+    }
+
+    if (name === 'coinPanicRoutes' || lvl.id === 6) {
+      // Coin Panic: deterministic coin waves with trails and a mid panic
+      const schedule = [ {at:0,cnt:3,lane:2}, {at:6,cnt:4,lane:4}, {at:12,cnt:3,lane:0}, {at:20,cnt:4,lane:2}, {at:28,cnt:4,lane:3}, {at:35,cnt:6,lane:2} ];
+      let t=0, idx=0;
+      return function(dt){ t+=dt; while(idx<schedule.length && t>=schedule[idx].at){ const ev=schedule[idx++]; spawnCoinsAtLane(ev.lane, ev.cnt, 120, 6); } };
+    }
+
+    if (name === 'doubleTrouble' || lvl.id === 7) {
+      // Double Trouble: side attacks activate over time; rely on existing CampaignManager dtQueue
+      let t=0, triggered=false;
+      return function(dt) { t+=dt; if (t >= 15 && !triggered) { triggered = true; // allow CampaignManager's dt queue to handle side spawns + also spawn side swipe occasionally
+          window.CampaignPatterns.spawnSideSwipePattern({side:'left', count:3}); window.CampaignPatterns.spawnSideSwipePattern({side:'right', count:3}); }
+      };
+    }
+
+    if (name === 'shrinkingArena' || lvl.id === 8) {
+      // Shrinking Arena: only provide a hook; actual shrink handled by CampaignManager via settings
+      return function(dt) {
+        // nothing to do here; CampaignManager will manage arena shrink based on lvl.settings
+      };
+    }
+
+    // Default: no-op
+    return function() {};
+  };
+
   // Expose campaign helper tick to the global scope so gameLoop can call it.
   // This was previously declared inside a module closure which caused a
   // ReferenceError when gameLoop tried to call `tickCampaignHelpers`.
@@ -10343,6 +10503,14 @@ const MpSync = (function () {
         const s = window._campaignSafeZones[i];
         s.t -= dt; if (s.t <= 0) window._campaignSafeZones.splice(i, 1);
       }
+    }
+    // Campaign pattern tick (optional) - runs per-frame when a campaign level is active
+    try {
+      if (typeof window._campaignPatternTick === 'function') {
+        window._campaignPatternTick(dt);
+      }
+    } catch (e) {
+      console.error('[CampaignPattern] tick error', e);
     }
   };
 

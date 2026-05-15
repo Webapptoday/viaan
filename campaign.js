@@ -1348,6 +1348,25 @@ const CampaignUI = (() => {
       });
     });
 
+    // Auto-start after a short delay (2.4s) unless player cancels or presses Start
+    try {
+      let autoStartId = null;
+      const triggerStart = () => { try { if (startBtn) startBtn.click(); } catch (_) {} };
+      autoStartId = setTimeout(triggerStart, 2400);
+      // Clear timer when start is manually pressed
+      if (startBtn) startBtn.addEventListener('click', () => { try { if (autoStartId) clearTimeout(autoStartId); autoStartId = null; } catch (_) {} });
+      // Spacebar should also start immediately
+      const onSpace = (ev) => {
+        if (ev && (ev.code === 'Space' || ev.key === ' ' || ev.keyCode === 32)) {
+          ev.preventDefault(); try { triggerStart(); } catch(_) {}
+          try { window.removeEventListener('keydown', onSpace); } catch(_) {}
+        }
+      };
+      window.addEventListener('keydown', onSpace, { passive: false });
+      // Ensure back button cancels auto-start and key handler
+      if (backBtn) backBtn.addEventListener('click', () => { try { if (autoStartId) clearTimeout(autoStartId); window.removeEventListener('keydown', onSpace); } catch(_) {} });
+    } catch (_) {}
+
     // Start a small animated preview illustrating the primary mechanic for this level
     try {
       const previewEl = el.querySelector('#cmp-intro-preview');
@@ -1816,6 +1835,10 @@ window.CampaignManager = (() => {
     _arenaShrinkStep = 0;
     window._campaignSettings  = null;
     window._campaignDodgeCount = 0;
+    // Clear pattern tick and deterministic RNG when exiting campaign
+    try { window._campaignPatternTick = null; } catch(_) {}
+    try { window._campaignRng = null; } catch(_) {}
+    try { window._campaignNextWaveShown = false; } catch(_) {}
     BossManager.deactivate();
     _hideWallCanvas();
     CampaignUI.hideHUD();
@@ -1982,6 +2005,25 @@ window.CampaignManager = (() => {
         } catch (e) { console.error('[Challenge] post-start fallback error', e); }
       }, 1100);
       window._challengeRunning = true;
+
+      // Initialize deterministic campaign RNG and pattern tick for this level
+      try {
+        window._campaignAttempt = (window._campaignAttempt || 0) + 1;
+        const seed = (typeof lvl.id === 'number' ? lvl.id : 0) * 1009 + (window._campaignAttempt * 7919);
+        try { window._campaignRng = seededRng(seed); } catch (_) { window._campaignRng = null; }
+        try { window._campaignPatternTick = window.CampaignPatterns.getSpawnPattern(lvl); } catch (e) { window._campaignPatternTick = null; console.error('[Campaign] pattern factory error', e); }
+        window._campaignNextWaveShown = false;
+        window._campaignShrinkFactor = 1.0;
+        // If this level requests a shrinking arena, compute default step count
+        try {
+          if (lvl.settings && lvl.settings.shrinkingArena) {
+            const ttl = (typeof lvl.timeLimit === 'number' && lvl.timeLimit > 10) ? lvl.timeLimit : 50;
+            window._campaignShrinkSteps = lvl.settings.shrinkSteps || Math.max(4, Math.floor(Math.max(1, ttl - 5)));
+          } else {
+            window._campaignShrinkSteps = null;
+          }
+        } catch (_) { window._campaignShrinkSteps = null; }
+      } catch (e) { console.error('[Campaign] failed to init campaign pattern tick', e); }
 
       // Setup optional side-spawn timer from spawn config
       try {
@@ -2314,13 +2356,14 @@ window.CampaignManager = (() => {
 
   function _tickShrinkingArena(dt, elapsed, gameState) {
     _arenaTimer += dt;
-    if (_arenaShrinkStep < ARENA_SHRINK_STEPS && _arenaTimer >= _arenaShrinkInterval) {
+    const shrinkSteps = (window._campaignShrinkSteps && Number.isInteger(window._campaignShrinkSteps)) ? window._campaignShrinkSteps : ARENA_SHRINK_STEPS;
+    if (_arenaShrinkStep < shrinkSteps && _arenaTimer >= _arenaShrinkInterval) {
       _arenaTimer = 0;
       _arenaShrinkStep++;
       const canvas = gameState.canvas;
       if (canvas) {
         const maxShrink = canvas.width * 0.15; // max 15% per side
-        const stepSize  = maxShrink / ARENA_SHRINK_STEPS;
+        const stepSize  = maxShrink / shrinkSteps;
         _arenaLeft  = _arenaShrinkStep * stepSize;
         _arenaRight = canvas.width - _arenaShrinkStep * stepSize;
         _drawWallOverlay(canvas, _arenaLeft, _arenaRight);
