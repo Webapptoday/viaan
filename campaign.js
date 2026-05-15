@@ -1117,6 +1117,7 @@ const CampaignUI = (() => {
         </div>
         <h2 class="cmp-intro-name">${lvl.name}</h2>
         <p class="cmp-intro-sub">${lvl.subtitle}</p>
+        <div class="cmp-intro-preview" id="cmp-intro-preview" aria-hidden="true"><canvas id="cmp-intro-preview-canvas" width="300" height="140"></canvas></div>
         <div class="cmp-intro-objective">
           <div class="cmp-intro-obj-label">Objective</div>
           <div class="cmp-intro-obj-text">${objText}</div>
@@ -1126,8 +1127,11 @@ const CampaignUI = (() => {
           <span class="cmp-intro-reward-val">${lvl.rewardCoins} coins</span>
           <span class="cmp-intro-reward-lbl">on completion</span>
         </div>
-        <button class="cmp-intro-start-btn btn btn-primary" id="cmp-intro-start">Start Level</button>
-        <button class="cmp-intro-back-btn btn btn-secondary" id="cmp-intro-back">Level Select</button>
+        <div class="cmp-intro-tip">${lvl.tip || ''}</div>
+        <div class="cmp-intro-actions">
+          <button class="cmp-intro-start-btn btn btn-primary" id="cmp-intro-start">Start Level</button>
+          <button class="cmp-intro-back-btn btn btn-secondary" id="cmp-intro-back">Level Select</button>
+        </div>
       </div>`;
 
     el.hidden = false;
@@ -1136,11 +1140,15 @@ const CampaignUI = (() => {
     const backBtn  = el.querySelector('#cmp-intro-back');
 
     if (backBtn) backBtn.addEventListener('click', () => {
+      // stop preview animation if running
+      if (el._previewCancel) { try { el._previewCancel(); } catch (_) {} el._previewCancel = null; }
       el.hidden = true;
       showLevelSelect();
     });
 
     if (startBtn) startBtn.addEventListener('click', () => {
+      // stop preview animation if running
+      if (el._previewCancel) { try { el._previewCancel(); } catch (_) {} el._previewCancel = null; }
       // Immediately hide the intro screen so it doesn't show during countdown
       el.hidden = true;
       // Run countdown on the dedicated full-screen overlay, then call onStart
@@ -1148,6 +1156,15 @@ const CampaignUI = (() => {
         if (onStart) onStart();
       });
     });
+
+    // Start a small animated preview illustrating the primary mechanic for this level
+    try {
+      const previewEl = el.querySelector('#cmp-intro-preview');
+      const pattern = lvl.previewPattern || (lvl.settings && lvl.settings.coinsEnabled ? 'coinTrail' : 'sideSwipe');
+      if (window.CampaignPatterns && previewEl) {
+        el._previewCancel = window.CampaignPatterns.previewPattern(previewEl, pattern);
+      }
+    } catch (_) {}
   }
 
   function _runCountdown(count, onDone) {

@@ -6182,8 +6182,10 @@ function updateCoinItems(dt) {
   }
 
   for (let i = coinItems.length - 1; i >= 0; i--) {
-    const c = coinItems[i];
-    c.y += c.vy * dt;
+  const c = coinItems[i];
+  c.y += c.vy * dt;
+  // optional lateral velocity for coin trails
+  c.x += (c.vx || 0) * dt;
     // -- Coin Magnet ability: pull coins toward player when active ---------------
     if (SkinAbility.hasMagnet()) {
       const mdx = player.x - c.x;
@@ -7442,6 +7444,37 @@ function render(ts) {
   ctx.translate(shakeX, shakeY);
   drawBackground();
   obstacles.forEach(drawObstacle);
+  // Campaign overlays: lane warnings and safe zones
+  if (window._campaignWarningLanes && window._campaignWarningLanes.length) {
+    const laneCenters = getLaneCenters();
+    const laneW = canvas.width / NUM_LANES;
+    ctx.save();
+    for (const w of window._campaignWarningLanes) {
+      const idx = Math.max(0, Math.min(NUM_LANES - 1, w.lane));
+      const x = laneCenters[idx] - laneW / 2;
+      const alpha = Math.max(0, Math.min(1, (w.t / (w.max || 1))));
+      ctx.fillStyle = `rgba(167,139,250,${0.20 * alpha})`;
+      ctx.fillRect(x, 0, laneW, canvas.height);
+      ctx.globalAlpha = 0.12 * alpha;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(x, 0, laneW, canvas.height);
+      ctx.globalAlpha = 1;
+    }
+    ctx.restore();
+  }
+  if (window._campaignSafeZones && window._campaignSafeZones.length) {
+    ctx.save();
+    for (const s of window._campaignSafeZones) {
+      const grad = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.r);
+      grad.addColorStop(0, 'rgba(34,197,94,0.26)');
+      grad.addColorStop(1, 'rgba(34,197,94,0)');
+      ctx.fillStyle = grad;
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = 'rgba(34,197,94,0.6)'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.stroke();
+    }
+    ctx.restore();
+  }
   // Frost Aura: subtle blue screen wash while the slow is active
   if (SkinAbility.hasFrost() && !settings.reducedMotion) {
     ctx.globalAlpha = 0.07;
@@ -7573,6 +7606,7 @@ function gameLoop(ts) {
     tickPanicWave(dt);
     tickDoubleDanger(dt);
     tickMiniGoal();
+    tickCampaignHelpers(dt);
     // Campaign tick: objectives, boss, special mechanics
     if (window.CampaignManager && window.CampaignManager.isActive()) {
       const _cElapsed = (performance.now() - gameStartTime - pausedDuration) / 1000;
@@ -9826,6 +9860,124 @@ const MpSync = (function () {
 
     ctx.restore();
   }
+
+  // ============================================================
+  // CAMPAIGN: lightweight spawn pattern helpers (preview + patterns)
+  // These are intentionally conservative: they reuse existing obstacle/coin arrays
+  // and avoid changing core physics. CampaignManager can call these to create
+  // readable patterns for mission levels.
+  // ============================================================
+  window.CampaignPatterns = window.CampaignPatterns || {};
+
+  window.CampaignPatterns.spawnWarningLane = function(laneIdx, duration) {
+    window._campaignWarningLanes = window._campaignWarningLanes || [];
+    window._campaignWarningLanes.push({ lane: laneIdx, t: duration || 1.0, max: duration || 1.0 });
+  };
+
+  window.CampaignPatterns.spawnSideSwipePattern = function(opts) {
+    opts = opts || {};
+    const side = opts.side || 'left';
+    const count = opts.count || 5;
+    const base = GAME_CONFIG.baseSpeed * (window._campaignSettings?.speedMult || 1);
+    const lanes = getLaneCenters();
+    for (let i = 0; i < count; i++) {
+      if (obstacles.length >= getPhaseMaxObstacles()) break;
+      const w = 18 + Math.random() * 22;
+      const h = w;
+      const vy = base * 0.42 + Math.random() * 22;
+      const x = side === 'left' ? 6 + Math.random() * 28 : canvas.width - w - (6 + Math.random() * 28);
+      const colorIndex = typeof pickObstacleColorIndex === 'function' ? pickObstacleColorIndex() : 0;
+      const trickVx = side === 'left' ? (90 + Math.random() * 120) : -(90 + Math.random() * 120);
+      const trickTimer = 3.2 + Math.random() * 1.6;
+      obstacles.push({
+        x, y: -h - i * 14, w, h, vy, baseVy: vy, type: 0,
+        colorIndex,
+        originX: x + w / 2, nearMissIdx: -1, gravityPull: false,
+        swayAmp: 0, swayFreq: 0, swayPhase: 0, swayTime: 0,
+        pulseAmp: 0, pulseFreq: 0, pulsePhase: 0, pulseTime: 0,
+        baseW: w, baseH: h, cy: -h / 2 - 12,
+        trickType: null, trickTriggered: false, trickTimer, trickVx
+      });
+    }
+  };
+
+  window.CampaignPatterns.spawnCoinTrail = function(opts) {
+    opts = opts || {};
+    const pattern = opts.pattern || 'curve';
+    const centerLane = opts.centerLane === undefined ? Math.floor(Math.random() * NUM_LANES) : opts.centerLane;
+    const count = opts.count || 6;
+    const lanes = getLaneCenters();
+    const cx = lanes[Math.max(0, Math.min(NUM_LANES - 1, centerLane))];
+    const colId = Date.now();
+    for (let i = 0; i < count; i++) {
+      const baseY = -10 - i * 34;
+      let vx = 0;
+      let x = cx + (Math.random() - 0.5) * 6;
+      if (pattern === 'zigzag') vx = (i % 2 === 0) ? -42 : 42;
+      else if (pattern === 'curve') vx = (i - count / 2) * 6;
+      coinItems.push({ x: x, y: baseY, size: 22, vy: 100 + i * 6, vx: vx, value: 1, colId });
+    }
+  };
+
+  window.CampaignPatterns.spawnSafeZone = function(opts) {
+    opts = opts || {};
+    window._campaignSafeZones = window._campaignSafeZones || [];
+    const x = opts.x || (canvas ? canvas.width / 2 : 300);
+    const y = opts.y || (canvas ? canvas.height * 0.6 : 240);
+    const r = opts.r || 72;
+    const t = opts.t || 6.0;
+    window._campaignSafeZones.push({ x, y, r, t });
+  };
+
+  window.CampaignPatterns.previewPattern = function(containerEl, pattern) {
+    if (!containerEl) return;
+    // Lightweight preview: simple canvas animation that runs for ~2.4s
+    const canvasEl = containerEl.querySelector('canvas') || (function(){ const c = document.createElement('canvas'); c.width = 280; c.height = 140; containerEl.appendChild(c); return c; })();
+    const ctx2 = canvasEl.getContext('2d');
+    let t0 = performance.now();
+    let raf = null;
+    function loop() {
+      const now = performance.now();
+      const dt = (now - t0) / 1000; // seconds since start
+      ctx2.clearRect(0, 0, canvasEl.width, canvasEl.height);
+      // simple moving bars or coins to illustrate mechanic
+      if (pattern === 'sideSwipe') {
+        const x = (dt % 1) * (canvasEl.width + 60) - 30;
+        ctx2.fillStyle = '#a78bfa'; ctx2.fillRect(x, 28, 36, 36);
+        ctx2.fillStyle = '#ef4444'; ctx2.fillRect(canvasEl.width - x - 36, 74, 36, 36);
+      } else if (pattern === 'coinTrail') {
+        for (let i = 0; i < 6; i++) {
+          const px = 24 + (i * 36) + Math.sin(dt * 3 + i) * 6;
+          ctx2.beginPath(); ctx2.fillStyle = '#fde047'; ctx2.arc(px, 70 + Math.sin(dt * 2 + i) * 6, 9, 0, Math.PI * 2); ctx2.fill();
+        }
+      } else {
+        // default: color warning + block
+        const p = (Math.sin(dt * 3) + 1) * 0.5;
+        ctx2.fillStyle = `rgba(168,85,247,${0.35 + 0.5 * p})`;
+        ctx2.fillRect(10, 18, canvasEl.width - 20, 22);
+        ctx2.fillStyle = '#fff'; ctx2.fillRect(40 + Math.sin(dt * 2) * 16, 56, 30, 30);
+      }
+      if (dt < 2.4) raf = requestAnimationFrame(loop); else { cancelAnimationFrame(raf); }
+    }
+    t0 = performance.now(); raf = requestAnimationFrame(loop);
+    return () => { if (raf) cancelAnimationFrame(raf); };
+  };
+
+  function tickCampaignHelpers(dt) {
+    if (window._campaignWarningLanes) {
+      for (let i = window._campaignWarningLanes.length - 1; i >= 0; i--) {
+        const w = window._campaignWarningLanes[i];
+        w.t -= dt; if (w.t <= 0) window._campaignWarningLanes.splice(i, 1);
+      }
+    }
+    if (window._campaignSafeZones) {
+      for (let i = window._campaignSafeZones.length - 1; i >= 0; i--) {
+        const s = window._campaignSafeZones[i];
+        s.t -= dt; if (s.t <= 0) window._campaignSafeZones.splice(i, 1);
+      }
+    }
+  }
+
 
   function isActive()  { return _active; }
   function getIsHost() { return _isHost; }
