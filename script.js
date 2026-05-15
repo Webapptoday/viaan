@@ -4047,7 +4047,7 @@ function _renderAbilityGrid(grid, abilities) {
       bottomHTML = '<span class="skin-grid-status skin-grid-owned">Owned</span>';
     } else {
       const scoreBarHTML = (scoreReq && !scoreGateMet)
-        ? '<div class="skin-prog-row"><span class="skin-prog-lbl">Score</span><div class="skin-bar-track"><div class="skin-bar-fill" style="width:' + scorePct + '%"></div></div><span class="skin-prog-val">' + formatNumber(lifetimeScore) + '</span></div>'
+        ? '<div class="skin-prog-row"><span class="skin-prog-lbl">Score&nbsp;' + scorePct + '%</span><div class="skin-bar-track"><div class="skin-bar-fill" style="width:' + scorePct + '%"></div></div></div>'
         : '';
       const coinHTML = '<div class="skin-cost-row' + (canAfford ? ' can-afford' : '') + '">' + coinSpan + ' ' + (ability.coinCost || 0) + '</div>';
       bottomHTML = scoreBarHTML + coinHTML;

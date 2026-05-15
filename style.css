@@ -1336,7 +1336,7 @@ kbd {
     inset 0 1px 0 rgba(255,255,255,.15);
   transition: transform .2s, box-shadow .2s;
 }
-.pup-icon-ring img { max-width: 72%; max-height: 72%; object-fit: contain; display: block; }
+.pup-icon-ring img { width: 70%; height: 70%; max-width: none; max-height: none; object-fit: contain; display: block; background: transparent; }
 .pup-card:hover .pup-icon-ring {
   transform: scale(1.1) rotate(-4deg);
   box-shadow: 0 0 34px rgba(var(--pup-acc-rgb), .45), inset 0 1px 0 rgba(255,255,255,.18);
@@ -3595,12 +3595,12 @@ body.perf-low       .lp-dot { animation: none !important; }
 #shop-panel-abilities .skin-grid .skin-btn:hover { transform: translateY(-6px); box-shadow: 0 18px 50px rgba(0,0,0,.7); }
 
 #shop-panel-abilities .skin-btn .skin-preview {
-  width: 78px; height: 78px; border-radius: 12px; position: relative;
+  width: 84px; height: 84px; border-radius: 18px; position: relative;
   display:flex; align-items:center; justify-content:center; overflow:hidden;
   font-size:22px; font-weight:900; color:#fff; text-transform:uppercase;
-  background: linear-gradient(135deg, rgba(32,12,80,.62), rgba(12,4,40,.95));
-  border: 1px solid rgba(255,255,255,.04);
-  box-shadow: 0 8px 28px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.03);
+  background: radial-gradient(circle at 42% 36%, rgba(124,58,237,.30) 0%, rgba(8,5,22,.97) 62%);
+  border: 1.5px solid rgba(139,92,246,.45);
+  box-shadow: 0 0 22px rgba(139,92,246,.18), 0 6px 22px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.07);
 }
 #shop-panel-abilities .skin-preview::after {
   content: '';
@@ -3615,15 +3615,20 @@ body.perf-low       .lp-dot { animation: none !important; }
 
 /* Locked overlay */
 #shop-panel-abilities .skin-lock-overlay {
-  position: absolute; top:10px; right:10px; background: rgba(0,0,0,.45);
-  color:#e2e8f0; padding:6px 8px; border-radius:8px; font-weight:800; font-size:.72rem;
-  border: 1px solid rgba(255,255,255,.04);
+  position: absolute; top: 8px; right: 8px; background: rgba(6,4,20,.78);
+  color: #94a3b8; padding: 5px 8px; border-radius: 8px; font-weight: 800; font-size: .7rem;
+  border: 1px solid rgba(255,255,255,.08); letter-spacing: .04em;
+  backdrop-filter: blur(4px);
 }
 
 /* Equipped / selected card emphasis */
 #shop-panel-abilities .skin-btn.skin-selected {
   transform: translateY(-6px); border-color: rgba(167,139,250,.8);
   box-shadow: 0 18px 60px rgba(109,40,217,.48), inset 0 1px 0 rgba(255,255,255,.04);
+}
+/* Locked ability card: dimmed but icon still readable */
+#shop-panel-abilities .skin-btn.skin-locked .skin-preview {
+  opacity: 0.58; filter: saturate(0.55) brightness(0.85);
 }
 
 /* Temporary preview highlight when a card is clicked */
@@ -3633,22 +3638,30 @@ body.perf-low       .lp-dot { animation: none !important; }
   box-shadow: 0 12px 40px rgba(0,0,0,.36);
 }
 
-/* Rarity highlights (ability-specific overrides) */
+/* Rarity highlights on icon frames — ability cards */
+#shop-panel-abilities .skin-btn[data-rarity="common"] .skin-preview {
+  border-color: rgba(148,163,184,.55);
+  box-shadow: 0 0 14px rgba(148,163,184,.12), 0 6px 22px rgba(0,0,0,.6);
+}
 #shop-panel-abilities .skin-btn[data-rarity="rare"] .skin-preview {
-  box-shadow: 0 8px 28px rgba(56,189,248,.08), 0 0 10px rgba(56,189,248,.06);
-  border-color: rgba(56,189,248,.18);
+  border-color: rgba(56,189,248,.65);
+  background: radial-gradient(circle at 42% 36%, rgba(56,189,248,.22) 0%, rgba(8,5,22,.97) 62%);
+  box-shadow: 0 0 24px rgba(56,189,248,.28), 0 6px 22px rgba(0,0,0,.5);
 }
 #shop-panel-abilities .skin-btn[data-rarity="epic"] .skin-preview {
-  box-shadow: 0 10px 36px rgba(168,85,247,.12), 0 0 18px rgba(248,156,116,.06);
-  border-color: rgba(192,132,252,.22);
+  border-color: rgba(168,85,247,.65);
+  background: radial-gradient(circle at 42% 36%, rgba(168,85,247,.24) 0%, rgba(8,5,22,.97) 62%);
+  box-shadow: 0 0 26px rgba(168,85,247,.30), 0 6px 22px rgba(0,0,0,.5);
 }
 #shop-panel-abilities .skin-btn[data-rarity="legendary"] .skin-preview {
-  box-shadow: 0 12px 46px rgba(255,199,70,.12), 0 0 28px rgba(168,85,247,.12);
-  border: 1px solid rgba(251,191,36,.28);
+  border-color: rgba(251,191,36,.65);
+  background: radial-gradient(circle at 42% 36%, rgba(251,191,36,.22) 0%, rgba(8,5,22,.97) 62%);
+  box-shadow: 0 0 28px rgba(251,191,36,.30), 0 6px 22px rgba(0,0,0,.5);
 }
 #shop-panel-abilities .skin-btn[data-rarity="mythic"] .skin-preview {
-  box-shadow: 0 16px 66px rgba(255,200,100,.14), 0 0 40px rgba(168,85,247,.16);
-  border: 1px solid rgba(251,191,36,.36);
+  border-color: rgba(34,211,153,.65);
+  background: radial-gradient(circle at 42% 36%, rgba(34,211,153,.24) 0%, rgba(8,5,22,.97) 62%);
+  box-shadow: 0 0 28px rgba(34,211,153,.30), 0 6px 22px rgba(0,0,0,.5), 0 0 40px rgba(168,85,247,.12);
 }
 
 /* Cost / score rows clearer */
@@ -3672,24 +3685,28 @@ body.perf-low       .lp-dot { animation: none !important; }
   overflow: hidden;
 }
 #shop-panel-abilities .ability-icon img {
-  max-width: 85%;
-  max-height: 85%;
-  object-fit: contain;
-  display: block;
+  width: 76%; height: 76%;
+  max-width: none; max-height: none;
+  object-fit: contain; display: block;
+  background: transparent;
 }
+/* Large selected-item preview frame */
 #shop-panel-abilities .ability-preview-image {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: 160px; height: 160px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
   overflow: hidden;
+  background: radial-gradient(circle at 42% 36%, rgba(124,58,237,.28) 0%, rgba(15,6,48,.97) 60%);
+  border-radius: 18px;
+  border: 1.5px solid rgba(139,92,246,.48);
+  box-shadow: 0 0 30px rgba(139,92,246,.22), inset 0 1px 0 rgba(255,255,255,.06);
 }
 #shop-panel-abilities .ability-preview-image img {
-  max-width: 90%;
-  max-height: 90%;
-  object-fit: contain;
-  display: block;
+  width: 80%; height: 80%;
+  max-width: none; max-height: none;
+  object-fit: contain; display: block;
+  background: transparent;
 }
-#shop-panel-abilities #ability-preview-img { max-width:90%; max-height:90%; object-fit:contain; display:block; }
+#shop-panel-abilities #ability-preview-img { width:80%; height:80%; max-width:none; max-height:none; object-fit:contain; display:block; background:transparent; }
 
 
 
