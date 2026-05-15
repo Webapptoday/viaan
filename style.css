@@ -2547,6 +2547,7 @@ body.perf-low       .lp-dot { animation: none !important; }
   pointer-events: none; min-width: 110px;
 }
 #powerup-status[hidden] { display: none; }
+#powerup-icon img { width: 20px; height: 20px; object-fit: contain; display: block; }
 .pu-top { display: flex; align-items: center; gap: 5px; white-space: nowrap; }
 
 #powerup-duration-bar-wrap {

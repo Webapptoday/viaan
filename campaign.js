@@ -1149,18 +1149,23 @@ const CampaignUI = (() => {
     const overlay = document.getElementById('campaign-countdown-overlay');
     if (!overlay) { if (onDone) onDone(); return; }
     overlay.hidden = false;
-    overlay.textContent = '';
+    overlay.innerHTML = '<span class="cmp-cd-num" id="cmp-cd-num-el"></span>';
+    const numEl = document.getElementById('cmp-cd-num-el');
 
     let current = count;
     function show() {
-      overlay.textContent = current > 0 ? String(current) : 'GO!';
-      overlay.classList.remove('cmp-cd-pop');
-      void overlay.offsetWidth;
-      overlay.classList.add('cmp-cd-pop');
+      const text = current > 0 ? String(current) : 'GO!';
+      if (numEl) {
+        numEl.textContent = text;
+        numEl.style.color = current <= 0 ? '#22c55e' : '#a855f7';
+        numEl.classList.remove('cmp-cd-pop');
+        void numEl.offsetWidth;
+        numEl.classList.add('cmp-cd-pop');
+      }
       if (current <= 0) {
         setTimeout(() => {
           overlay.hidden = true;
-          overlay.textContent = '';
+          overlay.innerHTML = '';
           if (onDone) onDone();
         }, 500);
       } else {

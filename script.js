@@ -3462,8 +3462,6 @@ const SkinAbility = (() => {
 
   // Call at game start (after initPlayer) to arm the skin's ability.
   function reset() {
-    const ability = getAbility();
-    _def        = ability ? (ABILITY_RUNTIME_DEFS[ability.id] || null) : null;
     _cooldown   = 0;
     _effectTime = 0;
     _active     = false;
@@ -3471,6 +3469,15 @@ const SkinAbility = (() => {
     _ghostMode  = false;
     _frostActive = false;
     _dashActive  = false;
+    // In campaign levels without coins, disable abilities entirely to avoid
+    // "Coin Magnet: Passive" HUD appearing when coins are disabled.
+    if (window._campaignSettings && !window._campaignSettings.coinsEnabled) {
+      _def = null;
+      _updateHUD();
+      return;
+    }
+    const ability = getAbility();
+    _def        = ability ? (ABILITY_RUNTIME_DEFS[ability.id] || null) : null;
     // Neon Shield arms immediately.
     if (_def && _def.abilityId === 'shield') {
       _skinShield = true;
@@ -7229,8 +7236,17 @@ function tickDifficulty(dt) {
   const prevPhase  = difficultyPhase;
   difficultyPhase  = getDiffPhase(elapsed);
 
-  const newSpeedMult = Math.min(lerpDiff(elapsed, 'spd'), DIFFICULTY_CONFIG.speedMultHardCap);
   const newSpawnRate = Math.max(lerpDiff(elapsed, 'si'),  DIFFICULTY_CONFIG.spawnIntervalFloor);
+
+  // Apply campaign speed cap BEFORE computing the rescale ratio.
+  // Without this, starting a campaign level at speedMult 0.65 and having
+  // Phase-0 return 1.12 would give ratio = 1.72 -- pre-filled blocks shoot
+  // across the screen instantly.  The cap is re-applied below for safety.
+  let newSpeedMult = Math.min(lerpDiff(elapsed, 'spd'), DIFFICULTY_CONFIG.speedMultHardCap);
+  if (window._campaignSettings && window._campaignSettings.diffCap &&
+      window._campaignSettings.diffCap.maxSpeedMult) {
+    newSpeedMult = Math.min(newSpeedMult, window._campaignSettings.diffCap.maxSpeedMult);
+  }
 
   // Rescale on-screen obstacles when speed increases
   if (newSpeedMult > speedMultiplier && speedMultiplier > 0) {
@@ -7753,7 +7769,7 @@ function startGame(mpInitialForbiddenIdx) {
     resetFlowState(player.x, player.y);
     updateComboDisplay();
     // Pre-fill obstacles so there's immediate on-screen pressure
-    const preCount = 8;  // was 24 -- gentle opening so the first 2s are readable
+    const preCount = window._campaignSettings ? 3 : 8;  // fewer blocks on level start
     for (let _i = 0; _i < preCount; _i++) {
       spawnObstacle();
       if (obstacles.length > 0) {
