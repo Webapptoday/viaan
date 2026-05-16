@@ -8,6 +8,7 @@
 // SECTION 1: LEVEL CONFIG
 // All 10 levels defined here. Add more by pushing to this array.
 // ============================================================
+const CAMPAIGN_LEVELS = [
     {
       id: 1,
       name: 'First Shift',
@@ -437,26 +438,6 @@
       },
     },
   ];
-    tip: 'Collect glowing orbs to damage the boss. Dodge its projectiles — they have warning lines.',
-    starConditions: [
-      { stars: 3, label: 'No hits',       check: (d) => d.hitsReceived === 0 },
-      { stars: 2, label: 'Defeat boss',   check: (d) => d.bossDefeated === true },
-      { stars: 1, label: 'Defeat boss',   check: (d) => d.bossDefeated === true },
-    ],
-    spawnScript: [
-      { time: 2.0, type: 'bossAttack' },
-      { time: 10.0, type: 'fallingWave', pattern: 'tight' },
-      { time: 30.0, type: 'pressureWave', duration: 5 }
-    ],
-    settings: {
-      speedMult: 0.90, spawnInterval: 0.48, forbiddenInterval: 3.0,
-      coinsEnabled: true, coinItemInterval: 4.5, powerupsEnabled: false,
-      diffCap: { maxSpeedMult: 1.10, minSpawnInterval: 0.38, minForbiddenInterval: 2.5 },
-      disablePanic: false, disableDoubleDanger: false,
-      doubleTroubleAt: [], shrinkingArena: false, bossMode: true,
-    },
-  },
-];
 
 // Normalize level definitions to a single `rules` schema while keeping
 // `settings` available for backwards compatibility. This lets designers
