@@ -11075,12 +11075,32 @@ function init() {
   });
   const _btnCampaign = document.getElementById('btn-campaign');
   if (_btnCampaign) _btnCampaign.addEventListener('click', () => {
+    console.log('[Menu] Panic Quest clicked – window.CampaignUI:', typeof window.CampaignUI);
     Audio.uiClick();
     const _ui = window.CampaignUI;
     if (_ui && typeof _ui.showLevelSelect === 'function') {
-      try { _ui.showLevelSelect(); } catch (e) { console.error('[Menu] Panic Quest open failed:', e); }
+      try {
+        _ui.showLevelSelect();
+        return;
+      } catch (e) {
+        console.error('[Menu] CampaignUI.showLevelSelect threw:', e);
+      }
     } else {
-      console.error('[Menu] CampaignUI not available (window.CampaignUI =', _ui, '). Check campaign.js loaded without errors.');
+      console.error('[Menu] CampaignUI not available – campaign.js may not have loaded correctly.');
+    }
+    // DOM fallback: directly switch screens so the user can always enter Panic Quest
+    console.warn('[Menu] Using direct DOM fallback to show campaign-levelselect');
+    ['home-screen', 'game-screen', 'campaign-intro', 'campaign-victory', 'campaign-defeat'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.hidden = true;
+    });
+    const _lsEl = document.getElementById('campaign-levelselect');
+    if (_lsEl) {
+      _lsEl.hidden = false;
+      // If campaign.js loads later, try to render the level map
+      if (window.CampaignUI && typeof window.CampaignUI.renderLevelSelect === 'function') {
+        try { window.CampaignUI.renderLevelSelect(); } catch (_) {}
+      }
     }
   });
   document.getElementById('btn-progress').addEventListener('click', () => {
