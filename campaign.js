@@ -1839,7 +1839,7 @@ const CampaignUI = (() => {
         timer.style.color = (total - elapsed) < 8 ? '#ef4444' : '#f8fafc';
         try { if (typeof window !== 'undefined' && window._campaignShrinkFactor) {
           if (arenaEl) { arenaEl.textContent = `Arena: ${Math.round(window._campaignShrinkFactor * 100)}%`; arenaEl.hidden = false; }
-        } catch(_) {} }
+        } } catch(_) {}
       } else if (timeLimit !== null && timeLimit !== undefined) {
         const remaining = Math.max(0, timeLimit - elapsed);
         timer.textContent = remaining > 0 ? `Time: ${Math.ceil(remaining)}s` : 'Time: 0s';
