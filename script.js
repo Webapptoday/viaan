@@ -18,11 +18,11 @@ const GAME_COLORS = [
 ];
 
 const POWERUP_DEFS = {
-  SHIELD: { label: 'Shield',    icon: '\uD83D\uDEE1', color: '#facc15', duration: 10, image: 'shieldpowerups.png' },
+  SHIELD: { label: 'Shield',    icon: '', color: '#facc15', duration: 10, image: 'shieldpowerups.png' },
   SLOW:   { label: 'Slow Time', icon: '',        color: '#38bdf8', duration: 6, image: 'slowpowerups.png'  },
   CLEAR:  { label: 'Clear',    icon: '',         color: '#e879f9', duration: 0  },
   BOOST:  { label: 'Score x2',  icon: '',         color: '#fb923c', duration: 8  },
-  SMALL:  { label: 'Small Mode',icon: '\uD83D\uDD35',  color: '#34d399', duration: 5, image: 'smallpowerups.png' },
+  SMALL:  { label: 'Small Mode',icon: '',  color: '#34d399', duration: 5, image: 'smallpowerups.png' },
 };
 const POWERUP_KEYS = Object.keys(POWERUP_DEFS);
 const POWERUP_UPGRADE_DEFS = {
@@ -218,7 +218,17 @@ const LIFETIME_REWARD_DEFS = [
   { id: 'lt_mythic',      milestone:  5000000, label: 'Mythic',         type: 'badge',               rarity: 'mythic',    icon: 'BADGE', description: 'The pinnacle of ShiftPanic mastery.' },
 ];
 
-const STATE = { HOME: 'home', PLAYING: 'playing', PAUSED: 'paused', GAMEOVER: 'gameover' };
+const STATE = {
+  HOME: 'home',
+  LEVELMAP: 'levelMap',
+  BRIEFING: 'briefing',
+  COUNTDOWN: 'countdown',
+  PLAYING: 'playing',
+  PAUSED: 'paused',
+  VICTORY: 'victory',
+  DEFEAT: 'defeat',
+  GAMEOVER: 'gameover'
+};
 
 const WARNING_DURATION    = 0.8;  // short flash warning - just enough to react
 const NEAR_MISS_DIST      = 65;   // px (from player center to nearest rect edge)
@@ -715,6 +725,7 @@ let coinPickupFlashTimer = 0; // 0->1 - brief gold screen pulse on coin collect
 let coinStreakCount         = 0;   // consecutive coins collected without gap
 let coinStreakTimer         = 0;   // countdown (s) until streak resets
 let roundCoins = 0;  // coins earned from in-run pickups
+let roundOrbs = 0;   // orbs collected (special boss pickups)
 
 // -- Mini run goal --------------------------------------------
 let runMiniGoal = null; // { ...def, progress: 0, done: false }
@@ -1213,7 +1224,7 @@ function renderLifetimeProgressUI() {
     '<p class="lp-tagline">Earn lifetime score across all runs to unlock exclusive rewards</p>';
 
   // Reward Road
-  const GLOW = { common: '#94a3b8', rare: '#38bdf8', epic: '#a855f7', legendary: '#fbbf24' };
+  const GLOW = { common: 'rgba(255,255,255,0.78)', rare: '#38bdf8', epic: '#a855f7', legendary: '#fbbf24' };
   const RLBL = { common: 'COMMON',  rare: 'RARE',    epic: 'EPIC',    legendary: 'LEGENDARY' };
   const firstUnclaimed = LIFETIME_REWARD_DEFS.find(r => !isLifetimeRewardUnlocked(r.id));
 
@@ -3545,7 +3556,7 @@ const SkinAbility = (() => {
       case 'shield':
         _skinShield = true;
         _effectTime = -1;
-        addFloating(player.x, player.y - 55, '\uD83D\uDEE1 Shield Ready!', '#38bdf8', 20);
+        addFloating(player.x, player.y - 55, 'Shield Ready!', '#38bdf8', 20);
         break;
       case 'frost':
         _frostActive = true;
@@ -3553,19 +3564,19 @@ const SkinAbility = (() => {
         if (typeof MpSync !== 'undefined' && MpSync.isActive()) {
           MpSync.publishEvent('slow', { durationMs: 3000 });
         }
-        addFloating(player.x, player.y - 55, '\u2744 Frost Aura!', '#93c5fd', 20);
+        addFloating(player.x, player.y - 55, 'Frost Aura!', '#93c5fd', 20);
         break;
       case 'dash':
         _dashActive = true;
         spawnParticles(player.x, player.y, '#60a5fa', settings.reducedMotion ? 6 : 14);
-        addFloating(player.x, player.y - 55, '\uD83D\uDCA8 Dash!', '#60a5fa', 20);
+        addFloating(player.x, player.y - 55, 'Dash!', '#60a5fa', 20);
         break;
       case 'pulse':
         _doPulseWave();
         if (typeof MpSync !== 'undefined' && MpSync.isActive()) {
           MpSync.publishEvent('clear', {});
         }
-        addFloating(player.x, player.y - 55, '\uD83D\uDCA5 Pulse!', '#c084fc', 20);
+        addFloating(player.x, player.y - 55, 'Pulse!', '#c084fc', 20);
         // Instant effect: immediately reset and start cooldown.
         _active     = false;
         _effectTime = 0;
@@ -3573,7 +3584,7 @@ const SkinAbility = (() => {
         break;
       case 'ghost':
         _ghostMode = true;
-        addFloating(player.x, player.y - 55, '\uD83D\uDC7B Ghost Mode!', '#e2e8f0', 20);
+        addFloating(player.x, player.y - 55, 'Ghost Mode!', '#e2e8f0', 20);
         break;
     }
     _updateHUD();
@@ -4330,7 +4341,7 @@ function showCantAffordPowerupFlow(key) {
 
   if (title)     title.textContent  = 'Not enough coins to upgrade ' + def.label;
   if (balanceEl) balanceEl.textContent = settings.coins;
-  if (needEl)    needEl.innerHTML   = 'You need ' + coinSpan + '\u202f' + need + ' more coins. Watch a short video to earn 100 coins!';
+  if (needEl)    needEl.innerHTML   = 'You need ' + coinSpan + ' ' + need + ' more coins. Watch a short video to earn 100 coins!';
 
   if (overlay) { overlay.hidden = false; overlay.setAttribute('aria-hidden', 'false'); }
   if (dialog)  { dialog.hidden  = false; }
@@ -4546,7 +4557,7 @@ function _showCoinRewardToast(amount) {
   const toast = document.getElementById('coin-reward-toast');
   if (!toast) return;
   const coinSpan = '<span class="coin-icon coin-sm" aria-hidden="true"></span>';
-  toast.innerHTML = '+' + amount + '\u202f' + coinSpan + '\u202fCoins!';
+  toast.innerHTML = '+' + amount + ' ' + coinSpan + ' Coins!';
   toast.className = 'coin-reward-toast';
   toast.hidden = false;
   void toast.offsetWidth;
@@ -5528,6 +5539,12 @@ function pickObstacleColorIndex() {
 }
 
 function spawnObstacle() {
+  // Only spawn obstacles when the main game state is PLAYING.
+  if (typeof currentState !== 'undefined' && currentState !== STATE.PLAYING) {
+    if (window.DEBUG_CHALLENGE) try { console.log('[Spawn] spawnObstacle blocked during state', currentState); } catch(_) {}
+    return;
+  }
+
   if (window.DEBUG_CHALLENGE) {
     try { console.log('[Challenge][Spawn] spawnObstacle called — obstacles:', (typeof obstacles !== 'undefined' ? obstacles.length : 'n/a'), 'spawnRate:', spawnRate); } catch (_) {}
   }
@@ -5589,6 +5606,17 @@ function spawnObstacle() {
   _playerLaneShieldStreak = pickedLane === _playerLane ? 0 : (_playerLaneShieldStreak + 1);
   // Clamp so block stays fully on screen regardless of its width
   ox = Math.max(w / 2 + 2, Math.min(canvas.width - w / 2 - 2, ox));
+
+  // If campaign shrinking arena active, clamp spawn X to inner arena bounds
+  try {
+    const ab = (typeof window !== 'undefined' && window._campaignArenaBounds) ? window._campaignArenaBounds : null;
+    if (ab && Number.isFinite(ab.left) && Number.isFinite(ab.right)) {
+      const minX = ab.left + w / 2 + 6;
+      const maxX = ab.right - w / 2 - 6;
+      if (maxX <= minX) return; // arena too narrow for this obstacle
+      ox = Math.max(minX, Math.min(maxX, ox));
+    }
+  } catch(_) {}
 
   // Final safety: if this would spawn too close to the player during safe-start, skip spawn
   try { if (Math.abs(ox - player.x) < spawnSafeR) return; } catch (_) {}
@@ -5654,6 +5682,11 @@ function spawnObstacle() {
 // Spawns 2-4 blocks using a named lane pattern that always leaves open corridors.
 // Replaces old random-X cluster patterns with a controlled, fair wave system.
 function spawnWave() {
+  // Only spawn waves when actively playing
+  if (typeof currentState !== 'undefined' && currentState !== STATE.PLAYING) {
+    if (window.DEBUG_CHALLENGE) try { console.log('[Spawn] spawnWave blocked during state', currentState); } catch(_) {}
+    return;
+  }
   // Respect campaign max obstacles override if present
   const _ccfg_w = (typeof window !== 'undefined' && window._campaignSpawnConfig) ? window._campaignSpawnConfig : null;
   const _maxOb_w = (_ccfg_w && Number.isFinite(_ccfg_w.maxObstaclesOnScreen)) ? _ccfg_w.maxObstaclesOnScreen : getPhaseMaxObstacles();
@@ -5692,7 +5725,17 @@ function spawnWave() {
   const wavePressure = Math.min(0.98, (isPanic ? 0.97 : (isCamping ? 0.90 : 0.78)) + flowTargeting);
   for (const laneIdx of blocked) {
     if (obstacles.length >= MAX_OBSTACLES) break;
-    const cx = Math.max(4, Math.min(cw - 4, getTargetedLaneX(lanes[laneIdx], lw, player.x, wavePressure)));
+    let cx = Math.max(4, Math.min(cw - 4, getTargetedLaneX(lanes[laneIdx], lw, player.x, wavePressure)));
+    // Respect shrinking arena bounds if present
+    try {
+      const ab = (typeof window !== 'undefined' && window._campaignArenaBounds) ? window._campaignArenaBounds : null;
+      if (ab && Number.isFinite(ab.left) && Number.isFinite(ab.right)) {
+        const minCX = ab.left + 8;
+        const maxCX = ab.right - 8;
+        if (maxCX <= minCX) continue; // no room
+        cx = Math.max(minCX, Math.min(maxCX, cx));
+      }
+    } catch(_) {}
     // Never spawn inside player safe radius (smaller radius during panic for tighter targeting)
     let waveMinSafeR = Math.max(4, player.radius + (isPanic ? 2 : (isCamping ? 10 : 18)) - flowTargeting * 14);
     try { if (_ccfg_w && _ccfg_w.safeStartSeconds && typeof window._campaignStartRequestedAt !== 'undefined') {
@@ -6044,6 +6087,11 @@ function updateObstacles(dt) {
       ob.originX = ob.x + ob.w / 2;
     }
 
+    // -- X advance for side-blocks (horizontal movement) ------------------
+    if (typeof ob.vx === 'number' && Math.abs(ob.vx) > 0.001) {
+      ob.x += ob.vx * dt;
+    }
+
     // Near-miss: record the forbiddenIndex active at the moment of the close pass.
     // Storing the index (not a boolean) means the award at exit is independent of
     // whatever forbiddenIndex happens to be current then - prevents both false-positives
@@ -6059,8 +6107,25 @@ function updateObstacles(dt) {
     }
 
     if (ob.y > canvas.height + Math.max(OBSTACLE_CLEANUP_MARGIN, ob.h * 1.25)) {
-      if (window._campaignSettings) window._campaignDodgeCount = (window._campaignDodgeCount || 0) + 1;
+      // Count dodges only for dangerous blocks (for campaign dodge objectives)
+      try {
+        if (window._campaignSettings && typeof isDangerous === 'function' && isDangerous(ob)) {
+          window._campaignDodgeCount = (window._campaignDodgeCount || 0) + 1;
+        }
+      } catch (_) {}
       obstacles.splice(i, 1);
+      continue;
+    }
+
+    // Horizontal cleanup: side-blocks exiting left/right
+    if (typeof ob.vx === 'number' && (ob.x > canvas.width + Math.max(OBSTACLE_CLEANUP_MARGIN, ob.w * 1.25) || ob.x < -Math.max(OBSTACLE_CLEANUP_MARGIN, ob.w * 1.25))) {
+      try {
+        if (window._campaignSettings && typeof isDangerous === 'function' && isDangerous(ob)) {
+          window._campaignDodgeCount = (window._campaignDodgeCount || 0) + 1;
+        }
+      } catch (_) {}
+      obstacles.splice(i, 1);
+      continue;
     }
   }
 }
@@ -6209,6 +6274,11 @@ function findRiskyCoinLane() {
 // Coins are spaced 64px apart so players can collect them in a satisfying sequence.
 // Lane selection is biased toward the player's current lane (reward movement) or adjacent.
 function spawnCoinColumn() {
+  // Only spawn coins when the main game is in PLAYING state
+  if (typeof currentState !== 'undefined' && currentState !== STATE.PLAYING) {
+    if (window.DEBUG_CHALLENGE) try { console.log('[Spawn] spawnCoinColumn blocked during state', currentState); } catch(_) {}
+    return;
+  }
   const _ccfg_c = (typeof window !== 'undefined' && window._campaignSpawnConfig) ? window._campaignSpawnConfig : null;
   const maxCoins = (_ccfg_c && Number.isFinite(_ccfg_c.maxCoinsOnScreen)) ? _ccfg_c.maxCoinsOnScreen : 30;
   if (coinItems.length >= maxCoins) return;
@@ -6313,6 +6383,90 @@ if (typeof window !== 'undefined') {
       }
     } catch (_) {}
   };
+
+  // Campaign pattern helper: side-block attack (horizontal from left or right)
+  window.CampaignPatterns.spawnSideBlock = function(opts) {
+    try {
+      opts = opts || {};
+      const side = opts.side === 'right' ? 'right' : (opts.side === 'left' ? 'left' : (Math.random() < 0.5 ? 'left' : 'right'));
+      const warnTime = (typeof opts.warnTime === 'number') ? opts.warnTime : 0.7;
+      const minY = canvas.height * 0.22;
+      const maxY = canvas.height * 0.84;
+      let y = (typeof opts.y === 'number') ? opts.y : (player && player.y ? player.y : canvas.height * 0.72);
+      y = Math.max(minY, Math.min(maxY, y + (Math.random() - 0.5) * 80));
+
+      // Ensure runtime arrays exist
+      window._campaignSideWarnings = window._campaignSideWarnings || [];
+      const warnId = 'sw_' + Date.now() + '_' + Math.floor(Math.random() * 1e6);
+      window._campaignSideWarnings.push({ id: warnId, side: side, y: y, t: warnTime, max: warnTime });
+
+      // Audible/visual cue at warning start
+      try { if (typeof Audio !== 'undefined' && Audio.warning) Audio.warning(); } catch(_){}
+      try { triggerShake(1.8, 0.12); spawnParticles(side === 'left' ? 28 : canvas.width - 28, y, '#ff8a50', settings.reducedMotion ? 6 : 14); } catch(_){}
+
+      // Schedule actual spawn after the warning window
+      setTimeout(() => {
+        try {
+          try { if (window._campaignSideWarnings) {
+            for (let i = window._campaignSideWarnings.length - 1; i >= 0; i--) {
+              if (window._campaignSideWarnings[i] && window._campaignSideWarnings[i].id === warnId) {
+                window._campaignSideWarnings.splice(i, 1); break;
+              }
+            }
+          } } catch(_){}
+
+          const cfg = (typeof window !== 'undefined' && window._campaignSpawnConfig) ? window._campaignSpawnConfig : null;
+          const maxOb = (cfg && Number.isFinite(cfg.maxObstaclesOnScreen)) ? cfg.maxObstaclesOnScreen : getPhaseMaxObstacles();
+          if (obstacles.length >= maxOb) return;
+
+          const w = opts.w || (56 + Math.random() * 18);
+          const h = opts.h || (28 + Math.random() * 14);
+          const base = GAME_CONFIG.baseSpeed * Math.max(0.9, speedMultiplier) * panicSpeedMult();
+          let vx = opts.speed || (base * (1.0 + Math.random() * 0.6));
+          // normalize direction
+          let startX = 0;
+          if (side === 'left') { vx = Math.abs(vx); startX = -w - 8; }
+          else { vx = -Math.abs(vx); startX = canvas.width + 8; }
+
+          // Clamp by campaign spawn config speed if provided (treat as magnitude)
+          try {
+            if (cfg) {
+              if (Number.isFinite(cfg.obstacleSpeedMin)) vx = (vx < 0 ? -Math.max(Math.abs(vx), cfg.obstacleSpeedMin) : Math.max(Math.abs(vx), cfg.obstacleSpeedMin)) * Math.sign(vx);
+              if (Number.isFinite(cfg.obstacleSpeedMax)) vx = (vx < 0 ? -Math.min(Math.abs(vx), cfg.obstacleSpeedMax) : Math.min(Math.abs(vx), cfg.obstacleSpeedMax)) * Math.sign(vx);
+            }
+          } catch(_){}
+
+          const colorIndex = pickObstacleColorIndex();
+
+          obstacles.push({
+            x: startX,
+            y: y - h / 2,
+            w: w,
+            h: h,
+            baseW: w,
+            baseH: h,
+            vx: vx,
+            baseVx: vx,
+            vy: 0,
+            baseVy: 0,
+            colorIndex: colorIndex,
+            nearMissIdx: -1,
+            swayAmp: 0,
+            swayFreq: 0,
+            swayPhase: 0,
+            pulseAmp: 0,
+            pulseFreq: 0,
+            pulsePhase: 0,
+            trickType: 'side_block',
+          });
+
+          // Visual + audio flourish on spawn
+          try { AudioManager.playSound && AudioManager.playSound('panicRiser'); } catch(_){}
+          try { triggerShake(2.6, 0.16); spawnParticles(side === 'left' ? 24 : canvas.width - 24, y, '#ff6a00', settings.reducedMotion ? 8 : 20); } catch(_){}
+        } catch (_) {}
+      }, Math.max(0, warnTime) * 1000);
+    } catch (_) {}
+  };
 }
 
 // Kept for compatibility - delegates to column spawner
@@ -6345,30 +6499,49 @@ function updateCoinItems(dt) {
     const dy   = player.y - c.y;
     const dist = Math.sqrt(dx * dx + dy * dy);
     if (dist < player.radius + c.size / 2 + 8) {
-      AudioManager.playSound('coin');
+      const prevCombo = combo;
+      if (c.orb) {
+        try { AudioManager.playSound('powerup'); } catch(_) { try { AudioManager.playSound('coin'); } catch(_) {} }
+      } else {
+        AudioManager.playSound('coin');
+      }
       applyFlowDelta(FLOW_CONFIG.coinGainPerCoin * c.value, 'coin');
 
       // Exactly +1 coin per physical pickup  no multipliers, no flow scaling
       roundCoins += 1;
+      if (c.orb) { roundOrbs += 1; }
       updateRoundCoinHUD();
 
       // Streak tracking  visual feedback only, no extra coins
       coinStreakCount++;
       coinStreakTimer = 0.65; // window to extend the streak
       if (coinStreakCount === 3) {
-        addFloating(c.x, c.y - 48, '\xd73 Streak!', '#fde047', 21, true);
+        addFloating(c.x, c.y - 48, '3x Streak!', '#fde047', 21, true);
       } else if (coinStreakCount === 5) {
-        addFloating(c.x, c.y - 48, '\xd75 Streak!', '#fb923c', 23, true);
+        addFloating(c.x, c.y - 48, '5x Streak!', '#fb923c', 23, true);
       } else if (coinStreakCount === 8) {
-        addFloating(c.x, c.y - 48, '\xd78 Streak!', '#c084fc', 26, true);
+        addFloating(c.x, c.y - 48, '8x Streak!', '#c084fc', 26, true);
         triggerShake(2, 0.08);
       } else if (coinStreakCount > 8 && coinStreakCount % 4 === 0) {
-        addFloating(c.x, c.y - 48, '\xd7' + coinStreakCount + '!', '#e879f9', 24, true);
+        addFloating(c.x, c.y - 48, coinStreakCount + 'x Streak!', '#e879f9', 24, true);
       }
 
-      // Floating "+1 coin" popup near the coin
-      addFloating(c.x, c.y - 20, '+1 coin', '#fde047', 20, true);
-      coinPickupFlashTimer = 1;
+      // Floating popup near the coin (orb uses different styling)
+      if (c.orb) {
+        addFloating(c.x, c.y - 20, '+1 orb', '#f472b6', 20, false);
+      } else {
+        addFloating(c.x, c.y - 20, '+1 coin', '#fde047', 20, true);
+        coinPickupFlashTimer = 1;
+      }
+
+      // Brief combo badge when coin pickup bumped combo
+      if (combo > prevCombo && combo >= 2) {
+        if (combo === 2 || combo === 3 || combo === 5) {
+          addFloating(player.x, player.y - 90, 'x' + combo, '#f97316', 22);
+        } else {
+          addFloating(player.x, player.y - 90, 'x' + combo, '#f97316', 18);
+        }
+      }
 
       // Update mini goal progress for coin collection
       if (runMiniGoal && !runMiniGoal.done && runMiniGoal.stat === 'pickupCoins') {
@@ -6377,10 +6550,16 @@ function updateCoinItems(dt) {
         else updateMiniGoalHUD();
       }
 
-      // Ring burst + particles
-      ringBursts.push({ x: c.x, y: c.y, r: c.size * 0.4, maxR: c.size * 3.5, color: '#fbbf24', alpha: 0.9, speed: 200 });
-      ringBursts.push({ x: c.x, y: c.y, r: 0,            maxR: c.size * 2.2, color: '#fff',    alpha: 0.5, speed: 280 });
-      spawnParticles(c.x, c.y, '#fde047', settings.reducedMotion ? 5 : 14);
+      // Ring burst + particles (different color for orbs)
+      if (c.orb) {
+        ringBursts.push({ x: c.x, y: c.y, r: c.size * 0.4, maxR: c.size * 3.5, color: '#f472b6', alpha: 0.95, speed: 220 });
+        ringBursts.push({ x: c.x, y: c.y, r: 0,            maxR: c.size * 2.2, color: '#fff',    alpha: 0.6, speed: 320 });
+        spawnParticles(c.x, c.y, '#f472b6', settings.reducedMotion ? 4 : 12);
+      } else {
+        ringBursts.push({ x: c.x, y: c.y, r: c.size * 0.4, maxR: c.size * 3.5, color: '#fbbf24', alpha: 0.9, speed: 200 });
+        ringBursts.push({ x: c.x, y: c.y, r: 0,            maxR: c.size * 2.2, color: '#fff',    alpha: 0.5, speed: 280 });
+        spawnParticles(c.x, c.y, '#fde047', settings.reducedMotion ? 5 : 14);
+      }
       coinItems.splice(i, 1);
       continue;
     }
@@ -6401,31 +6580,57 @@ function drawCoinItem(c) {
 
   ctx.save();
 
-  // Outer halo - large, bright, unmissable
+  // Outer halo + disc (coin vs orb styling)
   const haloR = r * 2.2;
   const halo  = ctx.createRadialGradient(c.x, c.y, r * 0.8, c.x, c.y, haloR);
-  halo.addColorStop(0,   'rgba(253,224,71,0.40)');
-  halo.addColorStop(0.5, 'rgba(251,191,36,0.18)');
-  halo.addColorStop(1,   'rgba(251,191,36,0)');
-  ctx.fillStyle = halo;
-  ctx.beginPath();
-  ctx.arc(c.x, c.y, haloR, 0, Math.PI * 2);
-  ctx.fill();
+  let g;
+  if (c.orb) {
+    halo.addColorStop(0,   'rgba(244,114,182,0.40)');
+    halo.addColorStop(0.5, 'rgba(244,114,182,0.14)');
+    halo.addColorStop(1,   'rgba(244,114,182,0)');
+    ctx.fillStyle = halo;
+    ctx.beginPath();
+    ctx.arc(c.x, c.y, haloR, 0, Math.PI * 2);
+    ctx.fill();
 
-  // Glow shadow
-  ctx.shadowColor = '#fde047';
-  ctx.shadowBlur  = 22 + 10 * Math.sin(t / 500 + c.x); // breathes
+    // Glow shadow (orb)
+    ctx.shadowColor = '#f472b6';
+    ctx.shadowBlur  = 18 + 8 * Math.sin(t / 500 + c.x);
 
-  // Coin disc - brighter, high-saturation gold
-  const g = ctx.createRadialGradient(
-    c.x - r * 0.38, c.y - r * 0.32, 0,
-    c.x,             c.y,            r * pulse
-  );
-  g.addColorStop(0,    '#fffde7');
-  g.addColorStop(0.18, '#fef08a');
-  g.addColorStop(0.45, '#facc15');
-  g.addColorStop(0.78, '#d97706');
-  g.addColorStop(1,    '#92400e');
+    // Orb disc - pink/purple gradient
+    g = ctx.createRadialGradient(
+      c.x - r * 0.28, c.y - r * 0.28, 0,
+      c.x,             c.y,            r * pulse
+    );
+    g.addColorStop(0,    '#fff0f6');
+    g.addColorStop(0.18, '#ffdef0');
+    g.addColorStop(0.45, '#f472b6');
+    g.addColorStop(0.78, '#ec4899');
+    g.addColorStop(1,    '#831843');
+  } else {
+    halo.addColorStop(0,   'rgba(253,224,71,0.40)');
+    halo.addColorStop(0.5, 'rgba(251,191,36,0.18)');
+    halo.addColorStop(1,   'rgba(251,191,36,0)');
+    ctx.fillStyle = halo;
+    ctx.beginPath();
+    ctx.arc(c.x, c.y, haloR, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Glow shadow (coin)
+    ctx.shadowColor = '#fde047';
+    ctx.shadowBlur  = 22 + 10 * Math.sin(t / 500 + c.x);
+
+    // Coin disc - brighter, high-saturation gold
+    g = ctx.createRadialGradient(
+      c.x - r * 0.38, c.y - r * 0.32, 0,
+      c.x,             c.y,            r * pulse
+    );
+    g.addColorStop(0,    '#fffde7');
+    g.addColorStop(0.18, '#fef08a');
+    g.addColorStop(0.45, '#facc15');
+    g.addColorStop(0.78, '#d97706');
+    g.addColorStop(1,    '#92400e');
+  }
   ctx.beginPath();
   ctx.arc(c.x, c.y, r * pulse, 0, Math.PI * 2);
   ctx.fillStyle = g;
@@ -6491,7 +6696,7 @@ function updateMiniGoalHUD() {
   if (labelEl) labelEl.textContent = runMiniGoal.label;
   const pct = Math.min(1, runMiniGoal.progress / runMiniGoal.goal);
   if (fillEl)  fillEl.style.width  = (pct * 100).toFixed(1) + '%';
-  if (pctEl)   pctEl.textContent   = runMiniGoal.done ? '\u2713' : Math.round(pct * 100) + '%';
+  if (pctEl)   pctEl.textContent   = runMiniGoal.done ? 'Done' : Math.round(pct * 100) + '%';
   bar.classList.toggle('run-goal-done', !!runMiniGoal.done);
 }
 
@@ -7210,7 +7415,7 @@ function checkCollisions() {
       applyFlowDelta(-FLOW_CONFIG.shieldHitPenalty, 'shield-hit');
       obstacles.splice(i, 1);
       spawnParticles(ob.x + ob.w / 2, ob.y + ob.h / 2, '#38bdf8', settings.reducedMotion ? 8 : 18);
-      addFloating(player.x, player.y - 55, '\uD83D\uDEE1 Shield Broke!', '#38bdf8');
+      addFloating(player.x, player.y - 55, 'Shield Broke!', '#38bdf8');
       triggerShake(6, 0.22);
       if (navigator.vibrate) navigator.vibrate(50);
       Announce.say('Skin shield absorbed a hit.');
@@ -7228,6 +7433,13 @@ function checkCollisions() {
       if (navigator.vibrate) navigator.vibrate(50);
       Announce.say('Shield absorbed a hit.');
     } else {
+      try {
+        // Provide a campaign-aware defeat reason when possible
+        if (typeof window !== 'undefined') {
+          if (ob && ob.trickType === 'side_block') window._campaignDefeatReason = 'side_block';
+          else window._campaignDefeatReason = 'hit_forbidden';
+        }
+      } catch(_) {}
       triggerGameOver();
       return;
     }
@@ -7280,6 +7492,7 @@ function tickScoreOverTime(dt) {
 
 function awardNearMiss(ob) {
   if (nearMissCooldownTimer > 0) return; // global spam guard - 300 ms between near misses
+  const prevCombo = combo;
   nearMissCooldownTimer = 0.30;
   nearMissGlowTimer     = 1; // flash player glow bright
   applyFlowDelta(FLOW_CONFIG.nearMissGain, 'near-miss');
@@ -7287,12 +7500,22 @@ function awardNearMiss(ob) {
   missionRun.nearMissesThisRun++;
   const cx = ob.x + ob.w / 2;
   const cy = ob.y + ob.h / 2;
-  addFloating(cx, ob.y - 18, 'Close Call', '#34d399', 20);
+  addFloating(cx, ob.y - 18, 'Near Miss!', '#34d399', 20);
   // Small particle burst at the miss point
   spawnParticles(cx, cy, '#34d399', settings.reducedMotion ? 4 : 10);
   // Gentle shake - confirms the danger without being disorienting
   triggerShake(3.5, 0.18);
   addScore(NEAR_MISS_BONUS);
+  // Floating score feedback near player
+  addFloating(player.x, player.y - 60, '+' + NEAR_MISS_BONUS, '#fde047', 18);
+  // Quick combo badge when the near-miss bumped combo
+  if (combo > prevCombo && combo >= 2) {
+    if (combo === 2 || combo === 3 || combo === 5) {
+      addFloating(player.x, player.y - 90, 'x' + combo, '#f59e0b', 22);
+    } else {
+      addFloating(player.x, player.y - 90, 'x' + combo, '#f59e0b', 18);
+    }
+  }
   if (navigator.vibrate) navigator.vibrate(25);
 }
 
@@ -7349,10 +7572,29 @@ function tickPanicWave(dt) {
 
   } else if (panicPhase === 'announce') {
     panicTimer += dt;
-    if (panicTimer >= PANIC_ANNOUNCE) {
+    const _announce = (window._campaignPanic && Number.isFinite(window._campaignPanic.announce)) ? window._campaignPanic.announce : PANIC_ANNOUNCE;
+    if (panicTimer >= _announce) {
       panicTimer = 0;
       panicPhase = 'wave';
-      Announce.say('Surge active. Obstacles are faster.');
+      try {
+        const label = (window._campaignPanic && window._campaignPanic.label) ? window._campaignPanic.label : 'Surge active. Obstacles are faster.';
+        Announce.say(label);
+      } catch(_) { Announce.say('Surge active. Obstacles are faster.'); }
+
+      // If campaign supplied temporary overrides (speed, forbidden interval, spawnInterval), apply them for the wave
+      try {
+        const nowSec = (typeof performance !== 'undefined') ? performance.now() / 1000 : Date.now() / 1000;
+        if (window._campaignPanic) {
+          const ovr = {};
+          if (Number.isFinite(window._campaignPanic.speedMult)) ovr.speedMult = window._campaignPanic.speedMult;
+          if (Number.isFinite(window._campaignPanic.forbiddenInterval)) ovr.forbiddenInterval = window._campaignPanic.forbiddenInterval;
+          if (Number.isFinite(window._campaignPanic.spawnInterval)) ovr.spawnInterval = window._campaignPanic.spawnInterval;
+          if (Object.keys(ovr).length > 0) {
+            ovr.expireAt = nowSec + (Number.isFinite(panicDuration) ? panicDuration : (window._campaignPanic.duration || 6.0)) + 0.15;
+            try { window._campaignOverride = Object.assign(window._campaignOverride || {}, ovr); } catch(_) { window._campaignOverride = ovr; }
+          }
+        }
+      } catch(_) {}
     }
 
   } else if (panicPhase === 'wave') {
@@ -7363,6 +7605,8 @@ function tickPanicWave(dt) {
       panicCooldown = PANIC_COOLDOWN_BASE + Math.random() * PANIC_COOLDOWN_VAR;
       ddBlockTimer  = EVENT_POST_BUFFER; // prevent DD for 5 s after a panic wave
       missionRun.panicWavesSurvived++; // stats tracking
+      // Cleanup any campaign-specific panic metadata
+      try { if (window._campaignPanic) delete window._campaignPanic; } catch(_) { window._campaignPanic = null; }
     }
   }
 }
@@ -7371,7 +7615,8 @@ function drawPanicBanner() {
   if (panicPhase !== 'announce' && panicPhase !== 'wave') return;
 
   const isWave      = panicPhase === 'wave';
-  const progress    = isWave ? 1 - panicTimer / panicDuration : panicTimer / PANIC_ANNOUNCE;
+  const announceDur = (window._campaignPanic && Number.isFinite(window._campaignPanic.announce)) ? window._campaignPanic.announce : PANIC_ANNOUNCE;
+  const progress    = isWave ? 1 - panicTimer / panicDuration : panicTimer / announceDur;
   // Fade in during announce, fade out in last 0.3 s of wave
   let alpha;
   if (!isWave) {
@@ -7413,10 +7658,61 @@ function drawPanicBanner() {
   ctx.fillStyle    = isWave ? '#ff3333' : '#ff8800';
   ctx.shadowColor  = isWave ? '#ff0000' : '#ff6600';
   ctx.shadowBlur   = isWave ? 18 : 8;
-  ctx.fillText(isWave ? 'PANIC WAVE' : 'PANIC INCOMING', cx, cy);
+  const _label = (window._campaignPanic && window._campaignPanic.label) ? window._campaignPanic.label : (isWave ? 'PANIC WAVE' : 'PANIC INCOMING');
+  ctx.fillText(_label, cx, cy);
 
   ctx.restore();
 }
+
+// Campaign API: trigger a Panic Wave with optional announce/duration/label and temporary overrides.
+// opts: { announce, duration, label, text, speedMult, forbiddenInterval, spawnInterval, force }
+window.triggerPanicWave = function(opts) {
+  try {
+    if (!opts) opts = {};
+    if (window._campaignSettings && window._campaignSettings.disablePanic) return;
+    // Respect Double Danger blocking unless forced
+    if (!opts.force && (ddPhase !== 'idle' || panicBlockFromDD > 0)) return;
+    // If already announcing/waving, extend duration if provided, otherwise ignore
+    if (!opts.force && (panicPhase === 'announce' || panicPhase === 'wave')) {
+      if (typeof opts.duration === 'number') panicDuration = Math.max(panicDuration || 0, opts.duration);
+      return;
+    }
+    // Set up campaign panic metadata used by tickPanicWave/drawPanicBanner
+    window._campaignPanic = Object.assign({}, opts);
+    // Ensure a sensible duration
+    const dur = (typeof opts.duration === 'number') ? opts.duration : (5.0 + Math.random() * 2.0);
+    panicDuration = dur;
+    window._campaignPanic.duration = dur;
+    // Start announce phase
+    panicPhase = 'announce';
+    panicTimer = 0;
+
+    // Audible riser + visual flash
+    try { if (typeof AudioManager !== 'undefined') AudioManager.playSound && AudioManager.playSound('panicRiser'); } catch(_){}
+    try {
+      const _panicFlash = document.getElementById('color-flash-overlay');
+      if (_panicFlash && !settings.reducedMotion) {
+        _panicFlash.style.setProperty('--flash-color', '#ff1111');
+        _panicFlash.classList.remove('flash-active');
+        void _panicFlash.offsetWidth;
+        _panicFlash.classList.add('flash-active');
+      }
+    } catch(_){}
+    // HUD callout
+    try {
+      const dtEl = document.getElementById('cmp-hud-dt');
+      const lbl = opts.text || opts.label || '';
+      if (dtEl && lbl) {
+        dtEl.textContent = lbl;
+        dtEl.hidden = false;
+        dtEl.classList.remove('cmp-dt-pop');
+        void dtEl.offsetWidth;
+        dtEl.classList.add('cmp-dt-pop');
+        setTimeout(()=>{ try{ dtEl.hidden=true }catch(_){ } }, Math.max(2600, (opts.announce || PANIC_ANNOUNCE) * 1000 + 200));
+      }
+    } catch(_){}
+  } catch (e) { console.error('[Game] triggerPanicWave error', e); }
+};
 
 // -- Double Danger -----------------------------------------------------------
 // Rare event: two colors become lethal simultaneously for 2-4 s.
@@ -7593,9 +7889,30 @@ function tickDifficulty(dt) {
     });
   }
 
-  speedMultiplier   = newSpeedMult;
-  spawnRate         = newSpawnRate;
-  forbiddenInterval = lerpDiff(elapsed, 'fi');
+  // Campaign override: allow short-lived campaign-driven waves to override
+  // spawn and forbidden intervals (used by Fast Switch waves).
+  try {
+    const nowSec = (typeof performance !== 'undefined') ? performance.now() / 1000 : Date.now() / 1000;
+    const ovr = (typeof window !== 'undefined') ? window._campaignOverride : null;
+    if (ovr && ovr.expireAt && ovr.expireAt > nowSec) {
+      // Use override values when present
+      if (typeof ovr.speedMult === 'number') newSpeedMult = ovr.speedMult;
+      speedMultiplier = newSpeedMult;
+      spawnRate = (typeof ovr.spawnInterval === 'number') ? ovr.spawnInterval : newSpawnRate;
+      forbiddenInterval = (typeof ovr.forbiddenInterval === 'number') ? ovr.forbiddenInterval : lerpDiff(elapsed, 'fi');
+    } else {
+      // Normal difficulty progression
+      speedMultiplier   = newSpeedMult;
+      spawnRate         = newSpawnRate;
+      forbiddenInterval = lerpDiff(elapsed, 'fi');
+      // Cleanup expired override
+      if (ovr && ovr.expireAt && ovr.expireAt <= nowSec) try { delete window._campaignOverride; } catch(_){}
+    }
+  } catch (e) {
+    speedMultiplier   = newSpeedMult;
+    spawnRate         = newSpawnRate;
+    forbiddenInterval = lerpDiff(elapsed, 'fi');
+  }
 
   // Campaign: cap difficulty scaling to this level's configured limits
   if (window._campaignSettings && window._campaignSettings.diffCap) {
@@ -7757,7 +8074,7 @@ function drawDebugOverlay() {
   ctx.lineWidth = 1;
   ctx.strokeRect(2, 2, bw, bh);
   lines.forEach((line, i) => {
-    ctx.fillStyle = i === 0 ? '#f97316' : i >= 5 ? '#94a3b8' : '#e2e8f0';
+    ctx.fillStyle = i === 0 ? '#f97316' : i >= 5 ? 'rgba(255,255,255,0.78)' : '#e2e8f0';
     ctx.fillText(line, 2 + pad, 2 + pad + i * lh);
   });
   ctx.restore();
@@ -7786,6 +8103,33 @@ function render(ts) {
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(x, 0, laneW, canvas.height);
       ctx.globalAlpha = 1;
+    }
+    ctx.restore();
+  }
+  // Side-attack horizontal warnings (0.7s default)
+  if (window._campaignSideWarnings && window._campaignSideWarnings.length) {
+    ctx.save();
+    for (const w of window._campaignSideWarnings) {
+      const alpha = Math.max(0, Math.min(1, (w.t / (w.max || 1))));
+      const stripH = Math.max(34, Math.min(86, canvas.height * 0.08));
+      const y = Math.max(stripH/2 + 6, Math.min(canvas.height - stripH/2 - 6, w.y || canvas.height * 0.72));
+      // gradient band
+      const g = ctx.createLinearGradient(0, y - stripH/2, 0, y + stripH/2);
+      g.addColorStop(0, `rgba(255,110,40,${0.92 * alpha})`);
+      g.addColorStop(1, `rgba(255,60,20,${0.78 * alpha})`);
+      ctx.globalAlpha = 0.95 * alpha;
+      ctx.fillStyle = g;
+      ctx.fillRect(0, y - stripH/2, canvas.width, stripH);
+
+      // direction arrow at the edge
+      ctx.fillStyle = `rgba(255,255,255,${0.95 * alpha})`;
+      ctx.beginPath();
+      if (w.side === 'left') {
+        const ax = 28; const ay = y; ctx.moveTo(ax - 10, ay); ctx.lineTo(ax + 10, ay - 12); ctx.lineTo(ax + 10, ay + 12);
+      } else {
+        const ax = canvas.width - 28; const ay = y; ctx.moveTo(ax + 10, ay); ctx.lineTo(ax - 10, ay - 12); ctx.lineTo(ax - 10, ay + 12);
+      }
+      ctx.closePath(); ctx.fill();
     }
     ctx.restore();
   }
@@ -8294,6 +8638,19 @@ function triggerGameOver(mpEndReason) {
         if (typeof MpSync !== 'undefined' && MpSync.isActive()) MpSync.stop();
       }, 7500);
     }
+  }
+
+  // If we're running a Campaign/Challenge run, treat this as a campaign defeat
+  // and let CampaignManager / CampaignUI show the campaign-specific defeat UI.
+  if (window._challengeRunning) {
+    try { cancelAnimationFrame(rafHandle); rafHandle = null; } catch(_) {}
+    _dbg.loops = 0;
+    try { clearAllInputs(); } catch(_) {}
+    try { AudioManager.stopMusic(); } catch(_) {}
+    try { currentState = STATE.DEFEAT; } catch(_) { currentState = STATE.GAMEOVER; }
+    // Notify CampaignManager so it can show its defeat UI
+    try { if (window.CampaignManager && typeof window.CampaignManager.onDefeat === 'function') window.CampaignManager.onDefeat(); } catch(_) {}
+    return;
   }
 
   currentState = STATE.GAMEOVER;
@@ -10131,23 +10488,23 @@ const MpSync = (function () {
 
     var rewardLine;
     if (reward > 0) {
-      rewardLine = '<div style="font-size:13px;color:#94a3b8;margin-top:10px">+' + reward + ' coins awarded</div>';
+      rewardLine = '<div style="font-size:13px;color:rgba(255,255,255,0.78);margin-top:10px">+' + reward + ' coins awarded</div>';
     } else if (forfeited) {
-      rewardLine = '<div style="font-size:13px;color:#94a3b8;margin-top:10px">No reward \u2014 you left</div>';
+      rewardLine = '<div style="font-size:13px;color:rgba(255,255,255,0.78);margin-top:10px">No reward - you left</div>';
     } else {
-      rewardLine = '<div style="font-size:13px;color:#94a3b8;margin-top:10px">No reward \u2014 match too short</div>';
+      rewardLine = '<div style="font-size:13px;color:rgba(255,255,255,0.78);margin-top:10px">No reward - match too short</div>';
     }
 
     var titleText;
     if (isWinner) {
-      titleText = reason === 'forfeit'       ? 'Opponent Left \u2014 You Win!'  :
-                  reason === 'opponent_died' ? 'Opponent Died \u2014 You Win!'  :
+      titleText = reason === 'forfeit'       ? 'Opponent Left - You Win!'  :
+                  reason === 'opponent_died' ? 'Opponent Died - You Win!'  :
                                                'You Win!';
     } else {
       titleText = forfeited ? 'You Left' : 'You Lost';
     }
 
-    var icon  = isWinner ? '\uD83C\uDFC6' : '\uD83D\uDC80';
+    var icon  = isWinner ? '' : '';
     var color = isWinner ? '#fbbf24'      : '#f87171';
 
     el.innerHTML =
@@ -10213,7 +10570,7 @@ const MpSync = (function () {
       ctx.fillStyle    = 'rgba(255,255,255,' + t + ')';
       ctx.shadowBlur   = 8;
       ctx.shadowColor  = 'rgba(0,0,0,0.8)';
-      ctx.fillText('\uD83D\uDCA5', x, y);
+      ctx.fillText('BOOM', x, y);
       ctx.restore();
       return;
     }
@@ -10364,6 +10721,11 @@ const MpSync = (function () {
     const name = lvl.spawnPattern || lvl.id;
     // Helpers
     function spawnCoinsAtLane(laneIdx, count, speed, jitter) {
+      // Only spawn campaign coins when actively playing
+      if (typeof currentState !== 'undefined' && currentState !== STATE.PLAYING) {
+        if (window.DEBUG_CHALLENGE) try { console.log('[Spawn] spawnCoinsAtLane blocked during state', currentState); } catch(_) {}
+        return;
+      }
       const lanes = getLaneCenters();
       const cx = lanes[Math.max(0, Math.min(NUM_LANES - 1, laneIdx))];
       const sz = 22; const spacing = 64;
@@ -10413,46 +10775,159 @@ const MpSync = (function () {
 
     if (name === 'dodgeSchoolPhases' || lvl.id === 3) {
       // Dodge School: phase-based spawning tied to dodge count
-      let lastDodge = 0; let acc = 0;
+      // Phases: 1 (0-25), 2 (26-60), 3 (61-85), 4 (86-100)
+      let acc = 0; let lastPhase = 0;
+      function _rand() { return (typeof window !== 'undefined' && typeof window.campaignRandom === 'function') ? window.campaignRandom() : Math.random(); }
+      function applyPhaseConfig(p) {
+        if (p === lastPhase) return; lastPhase = p;
+        try {
+          window._campaignSpawnConfig = window._campaignSpawnConfig || {};
+          if (p === 1) {
+            window._campaignSpawnConfig.obstacleSpeedMin = 300;
+            window._campaignSpawnConfig.obstacleSpeedMax = 340;
+            window._campaignSpawnConfig.maxObstaclesOnScreen = 12;
+          } else if (p === 2) {
+            window._campaignSpawnConfig.obstacleSpeedMin = 320;
+            window._campaignSpawnConfig.obstacleSpeedMax = 370;
+            window._campaignSpawnConfig.maxObstaclesOnScreen = 12;
+          } else if (p === 3) {
+            window._campaignSpawnConfig.obstacleSpeedMin = 350;
+            window._campaignSpawnConfig.obstacleSpeedMax = 400;
+            window._campaignSpawnConfig.maxObstaclesOnScreen = 14;
+          } else {
+            window._campaignSpawnConfig.obstacleSpeedMin = 380;
+            window._campaignSpawnConfig.obstacleSpeedMax = 430;
+            window._campaignSpawnConfig.maxObstaclesOnScreen = 16;
+            try {
+              const dtEl = document.getElementById('cmp-hud-dt');
+              if (dtEl) { dtEl.textContent = 'Final Drill!'; dtEl.hidden = false; dtEl.classList.remove('cmp-dt-pop'); void dtEl.offsetWidth; dtEl.classList.add('cmp-dt-pop'); setTimeout(()=>{ try{ dtEl.hidden=true }catch(_){} }, 2600); }
+            } catch(_){}
+          }
+        } catch(_){}
+      }
       return function(dt) {
         acc += dt;
         const dodges = window._campaignDodgeCount || 0;
-        // Phase decisions
-        if (dodges < 25) {
-          if (acc >= 0.6) { acc = 0; spawnObstacle(); if (window.campaignRandom() < 0.25) spawnObstacle(); }
-        } else if (dodges < 60) {
-          if (acc >= 0.5) { acc = 0; spawnWave(); }
-        } else if (dodges < 85) {
-          if (acc >= 0.45) { acc = 0; spawnWave(); if (window.campaignRandom() < 0.3) spawnSideSwipePattern({side: window.campaignRandom()<0.5?'left':'right', count:2}); }
+        const phase = (dodges < 25) ? 1 : (dodges < 60) ? 2 : (dodges < 85) ? 3 : 4;
+        applyPhaseConfig(phase);
+        // spawn cadence per phase (respecting user tuning: 500-700ms range)
+        if (phase === 1) {
+          if (acc >= 0.70) { acc = 0; spawnObstacle(); if (_rand() < 0.20) spawnObstacle(); }
+        } else if (phase === 2) {
+          if (acc >= 0.60) { acc = 0; spawnWave(); if (_rand() < 0.25) spawnObstacle(); }
+        } else if (phase === 3) {
+          if (acc >= 0.55) { acc = 0; spawnWave(); if (_rand() < 0.33) window.CampaignPatterns.spawnSideSwipePattern({ side: _rand()<0.5 ? 'left' : 'right', count: 2 }); }
         } else {
-          if (acc >= 0.36) { acc = 0; spawnWave(); spawnWave(); }
+          if (acc >= 0.50) { acc = 0; spawnWave(); if (_rand() < 0.55) spawnWave(); if (_rand() < 0.40) window.CampaignPatterns.spawnSideSwipePattern({ side: _rand()<0.5 ? 'left' : 'right', count: 3 }); }
         }
       };
     }
 
     if (name === 'fastSwitchWaves' || lvl.id === 4) {
-      // Fast Switch: warnings and speed waves at 15,30,45s
-      const waves = [15,30,45]; let t=0; let acc=0; let waveIdx=0; let inWave=false; let waveEnd=0;
+      // Fast Switch: 3 timed waves with 3s countdowns and temporary overrides
+      const waves = [15, 30, 45];
+      const waveMsgs = [ 'WAVE 1 - FAST BLOCKS', 'WAVE 2 - COLOR PANIC', 'FINAL WAVE - HOLD ON' ];
+      const baseWaveSpawn = 0.38; // seconds between wave spawns
+      const baseWaveDuration = 5.0; // seconds per wave
+      const waveForbidden = 2.5; // color switch interval during waves
+      const waveSpeedMin = 430;
+      const waveSpeedMax = 520;
+      let t = 0, acc = 0, waveIdx = 0, inWave = false, waveEnd = 0;
+      const shownCountdown = {}; // per-wave countdown tracker
+
       return function(dt) {
         t += dt; acc += dt;
-        // warning 3s before
-        for (let i=waveIdx; i<waves.length; i++) {
-          const w = waves[i];
-          if (t >= w - 3 && t < w && !window._campaignNextWaveShown) {
-            window._campaignNextWaveShown = true;
-            try {
-              const dtEl = document.getElementById('cmp-hud-dt'); if (dtEl) { dtEl.textContent = 'FAST SWITCH IN 3'; dtEl.hidden = false; dtEl.classList.remove('cmp-dt-pop'); void dtEl.offsetWidth; dtEl.classList.add('cmp-dt-pop'); setTimeout(()=>{ try{ dtEl.hidden=true }catch(_){} }, 2900); }
-            } catch(_){}
+
+        // Per-wave countdown messages (3,2,1) shown individually per wave
+        if (waveIdx < waves.length) {
+          const w = waves[waveIdx];
+          for (let s = 3; s >= 1; s--) {
+            if (t >= w - s && t < w - (s - 1)) {
+              shownCountdown[waveIdx] = shownCountdown[waveIdx] || {};
+              if (!shownCountdown[waveIdx][s]) {
+                shownCountdown[waveIdx][s] = true;
+                try {
+                  const dtEl = document.getElementById('cmp-hud-dt');
+                  if (dtEl) {
+                    dtEl.textContent = 'FAST SWITCH IN ' + s;
+                    dtEl.hidden = false;
+                    dtEl.classList.remove('cmp-dt-pop');
+                    void dtEl.offsetWidth;
+                    dtEl.classList.add('cmp-dt-pop');
+                    setTimeout(()=>{ try{ dtEl.hidden = true; }catch(_){} }, 900);
+                  }
+                } catch(_){}
+              }
+            }
           }
         }
-        // start waves
+
+        // Start wave when time reached
         if (waveIdx < waves.length && t >= waves[waveIdx]) {
-          inWave = true; waveEnd = t + 5.0; try { console.log('[Pattern] FastSwitch wave', waveIdx+1); } catch(_) {}
+          inWave = true;
+          waveEnd = t + baseWaveDuration;
+          try { console.log('[Pattern] FastSwitch wave', waveIdx+1); } catch(_){}
+
+          // Set a temporary campaign override so tickDifficulty uses these values
+          try {
+            const nowSec = (typeof performance !== 'undefined') ? performance.now() / 1000 : Date.now() / 1000;
+            window._campaignOverride = window._campaignOverride || {};
+            // Snapshot previous spawn config so we can restore it on wave end
+            const prevCfg = window._campaignSpawnConfig || {};
+            window._campaignOverride.prevSpawnCfg = { obstacleSpeedMin: prevCfg.obstacleSpeedMin, obstacleSpeedMax: prevCfg.obstacleSpeedMax, maxOnScreen: prevCfg.maxOnScreen };
+            // Apply spawn config for wave
+            window._campaignSpawnConfig = window._campaignSpawnConfig || {};
+            window._campaignSpawnConfig.obstacleSpeedMin = waveSpeedMin;
+            window._campaignSpawnConfig.obstacleSpeedMax = waveSpeedMax;
+            // Override global spawn & forbidden intervals for the duration of the wave
+            window._campaignOverride.spawnInterval = baseWaveSpawn;
+            window._campaignOverride.forbiddenInterval = waveForbidden;
+            window._campaignOverride.expireAt = nowSec + baseWaveDuration + 0.05;
+          } catch(_){}
+
+          // HUD wave title
+          try {
+            const dtEl = document.getElementById('cmp-hud-dt');
+            if (dtEl) {
+              const label = waveMsgs[Math.min(waveIdx, waveMsgs.length-1)];
+              dtEl.textContent = label;
+              dtEl.hidden = false;
+              dtEl.classList.remove('cmp-dt-pop');
+              void dtEl.offsetWidth;
+              dtEl.classList.add('cmp-dt-pop');
+              setTimeout(()=>{ try{ dtEl.hidden = true; }catch(_){} }, 2000);
+            }
+          } catch(_){}
+
           waveIdx++;
         }
+
+        // Wave behavior: spawn denser/faster obstacles on its own cadence
         if (inWave) {
-          if (acc >= 0.38) { acc = 0; spawnWave(); try { const last = obstacles[obstacles.length-1]; if (last) { last.vy *= 1.32; last.baseVy *= 1.32; } } catch(_){} }
-          if (t >= waveEnd) { inWave = false; }
+          if (acc >= baseWaveSpawn) {
+            acc = 0;
+            spawnWave();
+            // nudge the just-spawned obstacles to be slightly faster (in case clamping missed)
+            try {
+              for (let i = Math.max(0, obstacles.length - 3); i < obstacles.length; i++) {
+                const o = obstacles[i]; if (!o) continue;
+                o.vy = (o.vy || o.baseVy || GAME_CONFIG.baseSpeed) * 1.12;
+                o.baseVy = (o.baseVy || GAME_CONFIG.baseSpeed) * 1.12;
+              }
+            } catch(_){}
+          }
+          if (t >= waveEnd) {
+            inWave = false;
+            // restore previous spawn config if we snapped it
+            try {
+              const prev = (window._campaignOverride && window._campaignOverride.prevSpawnCfg) ? window._campaignOverride.prevSpawnCfg : null;
+              if (prev && window._campaignSpawnConfig) {
+                if (typeof prev.obstacleSpeedMin !== 'undefined') window._campaignSpawnConfig.obstacleSpeedMin = prev.obstacleSpeedMin;
+                if (typeof prev.obstacleSpeedMax !== 'undefined') window._campaignSpawnConfig.obstacleSpeedMax = prev.obstacleSpeedMax;
+                if (typeof prev.maxOnScreen !== 'undefined') window._campaignSpawnConfig.maxOnScreen = prev.maxOnScreen;
+              }
+            } catch(_){}
+          }
         }
       };
     }
@@ -10516,6 +10991,12 @@ const MpSync = (function () {
       for (let i = window._campaignSafeZones.length - 1; i >= 0; i--) {
         const s = window._campaignSafeZones[i];
         s.t -= dt; if (s.t <= 0) window._campaignSafeZones.splice(i, 1);
+      }
+    }
+    if (window._campaignSideWarnings) {
+      for (let i = window._campaignSideWarnings.length - 1; i >= 0; i--) {
+        const s = window._campaignSideWarnings[i];
+        s.t -= dt; if (s.t <= 0) window._campaignSideWarnings.splice(i, 1);
       }
     }
     // Campaign pattern tick (optional) - runs per-frame when a campaign level is active

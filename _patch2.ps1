@@ -342,7 +342,7 @@ $debugFn = $n +
   '  ctx.lineWidth = 1;' + $n +
   '  ctx.strokeRect(2, 2, bw, bh);' + $n +
   '  lines.forEach((line, i) => {' + $n +
-  '    ctx.fillStyle = i === 0 ? ' + [char]39 + '#f97316' + [char]39 + ' : i >= 5 ? ' + [char]39 + '#94a3b8' + [char]39 + ' : ' + [char]39 + '#e2e8f0' + [char]39 + ';' + $n +
+  '    ctx.fillStyle = i === 0 ? ' + [char]39 + '#f97316' + [char]39 + ' : i >= 5 ? ' + [char]39 + 'rgba(255,255,255,0.78)' + [char]39 + ' : ' + [char]39 + '#e2e8f0' + [char]39 + ';' + $n +
   '    ctx.fillText(line, 2 + pad, 2 + pad + i * lh);' + $n +
   '  });' + $n +
   '  ctx.restore();' + $n +

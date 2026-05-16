@@ -342,7 +342,7 @@ function drawDebugOverlay() {
   ctx.lineWidth   = 1;
   ctx.strokeRect(2, 2, bw, bh);
   lines.forEach((line, i) => {
-    ctx.fillStyle = i === 0 ? '#f97316' : i >= 5 ? '#94a3b8' : '#e2e8f0';
+    ctx.fillStyle = i === 0 ? '#f97316' : i >= 5 ? 'rgba(255,255,255,0.78)' : '#e2e8f0';
     ctx.fillText(line, 2 + pad, 2 + pad + i * lh);
   });
   ctx.restore();

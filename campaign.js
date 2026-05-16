@@ -8,248 +8,445 @@
 // SECTION 1: LEVEL CONFIG
 // All 10 levels defined here. Add more by pushing to this array.
 // ============================================================
-const CAMPAIGN_LEVELS = [
-  {
-    id: 1,
-    name: 'First Shift',
-    subtitle: 'Learn to read the colors and survive.',
-    difficulty: 'Easy',
-    difficultyColor: '#22c55e',
-    objectiveType: 'survive_seconds',
-    objectiveTarget: 20,
-    timeLimit: null,
-    rewardCoins: 50,
-    replayReward: 5,
-    tip: 'Stay away from the forbidden color block. Watch the color indicator at the top.',
-    starConditions: [
-      { stars: 3, label: 'No hits',       check: (d) => d.hitsReceived === 0 },
-      { stars: 2, label: 'At most 1 hit', check: (d) => d.hitsReceived <= 1 },
-      { stars: 1, label: 'Survive 20s',   check: (d) => true },
-    ],
-    settings: {
-      speedMult: 0.65, spawnInterval: 0.80, forbiddenInterval: 5.0,
-      coinsEnabled: false, coinItemInterval: null, powerupsEnabled: false,
-      diffCap: { maxSpeedMult: 0.78, minSpawnInterval: 0.72, minForbiddenInterval: 4.5 },
-      disablePanic: true, disableDoubleDanger: true,
-      doubleTroubleAt: [], shrinkingArena: false, bossMode: false,
+    {
+      id: 1,
+      name: 'First Shift',
+      subtitle: 'Learn to read the colors and survive.',
+      difficulty: 'Easy',
+      difficultyColor: '#22c55e',
+      objectiveType: 'survive_seconds',
+      objectiveTarget: 25,
+      timeLimit: 25,
+      rewardCoins: 25,
+      replayReward: 5,
+      tip: 'Quick bursts force early movement — read the color indicator and react fast.',
+      starConditions: [
+        { stars: 3, label: 'No hits',       check: (d) => d.hitsReceived === 0 },
+        { stars: 2, label: 'At most 1 hit', check: (d) => d.hitsReceived <= 1 },
+        { stars: 1, label: 'Survive 25s',   check: (d) => true },
+      ],
+      // Spawn script implements the requested timeline and safety events
+      spawnScript: [
+        // 0-5s: simple blocks, medium speed, force basic movement
+        { time: 0.2, type: 'fallingWave', pattern: 'wideGaps', duration: 1.0 },
+        { time: 1.0, type: 'safeGap', duration: 2.0 },
+        // 5-15s: denser but fair falling blocks, wider variety
+        { time: 5.0, type: 'fallingWave', pattern: 'default', duration: 10.0 },
+        // 15s: warning then pressure wave (15-21s)
+        { time: 15.0, type: 'warning', text: 'Pressure Wave!' },
+        { time: 15.0, type: 'pressureWave', duration: 6 },
+        // At the start of the pressure window, raise obstacle speeds/pressure
+        { time: 15.0, handler: function(ev) { try { window._campaignSpawnConfig = window._campaignSpawnConfig || {}; window._campaignSpawnConfig.obstacleSpeedMin = 320; window._campaignSpawnConfig.obstacleSpeedMax = 360; window._campaignSpawnConfig.maxObstaclesOnScreen = 10; } catch(_){} } },
+        // 21s: ease slightly for last few seconds
+        { time: 21.0, handler: function(ev) { try { if (window._campaignSpawnConfig) { window._campaignSpawnConfig.obstacleSpeedMin = 260; window._campaignSpawnConfig.obstacleSpeedMax = 320; window._campaignSpawnConfig.maxObstaclesOnScreen = 10; } } catch(_){} } },
+        { time: 22.5, type: 'safeGap', duration: 3.0 }
+        ,{ time: 6.5, handler: function(ev) { try { window.CampaignPatterns && window.CampaignPatterns.singleGapWall && window.CampaignPatterns.singleGapWall({}); } catch(_){} } }
+        ,{ time: 12.0, handler: function(ev) { try { window.CampaignPatterns && window.CampaignPatterns.staggeredGapRows && window.CampaignPatterns.staggeredGapRows({}); } catch(_){} } }
+        ,{ time: 19.0, handler: function(ev) { try { window.CampaignPatterns && window.CampaignPatterns.finalGapRush && window.CampaignPatterns.finalGapRush({}); } catch(_){} } }
+      ],
+      settings: {
+        // tuning: spawnInterval in seconds (650ms), slightly higher base speed multiplier
+        speedMult: 0.78, spawnInterval: 0.65, forbiddenInterval: 7.0,
+        coinsEnabled: false, coinItemInterval: null, powerupsEnabled: false,
+        // seed spawn overrides used by the spawn director (initial values)
+        spawn: { obstacleSpeedMin: 280, obstacleSpeedMax: 320, maxObstaclesOnScreen: 10 },
+        diffCap: { maxSpeedMult: 0.90, minSpawnInterval: 0.65, minForbiddenInterval: 5.5 },
+        disablePanic: false, disableDoubleDanger: true,
+        doubleTroubleAt: [], shrinkingArena: false, bossMode: false,
+      },
     },
-  },
-  {
-    id: 2,
-    name: 'Coin Collector',
-    subtitle: 'Collect coins before time runs out.',
-    difficulty: 'Easy',
-    difficultyColor: '#22c55e',
-    objectiveType: 'collect_coins',
-    objectiveTarget: 15,
-    timeLimit: 35,
-    rewardCoins: 75,
-    replayReward: 8,
-    tip: 'Gold coins appear regularly — move to them quickly without hitting danger blocks.',
-    starConditions: [
-      { stars: 3, label: '12+ sec left',  check: (d) => d.timeRemaining >= 12 },
-      { stars: 2, label: '5+ sec left',   check: (d) => d.timeRemaining >= 5 },
-      { stars: 1, label: 'Collect 15',    check: (d) => true },
-    ],
-    settings: {
-      speedMult: 0.75, spawnInterval: 0.65, forbiddenInterval: 4.0,
-      coinsEnabled: true, coinItemInterval: 3.5, powerupsEnabled: false,
-      diffCap: { maxSpeedMult: 0.90, minSpawnInterval: 0.55, minForbiddenInterval: 3.5 },
-      disablePanic: true, disableDoubleDanger: true,
-      doubleTroubleAt: [], shrinkingArena: false, bossMode: false,
+    {
+      id: 2,
+      name: 'Coin Collector',
+      subtitle: 'Collect coins before time runs out.',
+      difficulty: 'Easy',
+      difficultyColor: '#22c55e',
+      objectiveType: 'collect_coins',
+      objectiveTarget: 15,
+      timeLimit: 35,
+      rewardCoins: 30,
+      replayReward: 8,
+      tip: 'Gold coins appear regularly — move to them quickly without hitting danger blocks.',
+      starConditions: [
+        { stars: 3, label: '12+ sec left',  check: (d) => d.timeRemaining >= 12 },
+        { stars: 2, label: '5+ sec left',   check: (d) => d.timeRemaining >= 5 },
+        { stars: 1, label: 'Collect 15',    check: (d) => true },
+      ],
+      // Deterministic coin waves (total possible coins = 18)
+      spawnScript: [
+        // 0s: 2 coins center-left
+        { time: 0.6, handler: function(ev) {
+          try {
+            const lanesCount = typeof numLanes === 'function' ? numLanes() : 5;
+            const center = Math.floor(lanesCount/2);
+            const lane = Math.max(0, center - 1);
+            window._campaignSafeZones = window._campaignSafeZones || [];
+            const cx = (typeof laneX === 'function') ? laneX(lane) : (canvas?canvas.width*0.35:240);
+            window._campaignSafeZones.push({ x: cx, y: (canvas?canvas.height*0.6:240), r: 72, t: 6.0 });
+            for (let i=0;i<2;i++) {
+              const jitter = (seeded() - 0.5) * 0.04;
+              _schedule(i * 0.12 + jitter, () => _createCoinAtLane(lane, { count: 1 }));
+            }
+          } catch(_) {}
+        } },
+        // 4s: 3 coins right arc
+        { time: 4.0, handler: function(ev) {
+          try {
+            const lanesCount = typeof numLanes === 'function' ? numLanes() : 5;
+            const start = Math.max(0, lanesCount - 1);
+            window._campaignSafeZones = window._campaignSafeZones || [];
+            const cx = (typeof laneX === 'function') ? laneX(start) : (canvas?canvas.width*0.85:560);
+            window._campaignSafeZones.push({ x: cx, y: (canvas?canvas.height*0.6:240), r: 72, t: 6.0 });
+            for (let i=0;i<3;i++) {
+              const jitter = (seeded() - 0.5) * 0.035;
+              _schedule(i * 0.12 + jitter, () => _createCoinAtLane(start - i, { count: 1 }));
+            }
+          } catch(_) {}
+        } },
+        // 8s: 2 coins left side
+        { time: 8.0, handler: function(ev) {
+          try {
+            const lane = 0;
+            window._campaignSafeZones = window._campaignSafeZones || [];
+            const cx = (typeof laneX === 'function') ? laneX(lane) : (canvas?canvas.width*0.12:80);
+            window._campaignSafeZones.push({ x: cx, y: (canvas?canvas.height*0.6:240), r: 72, t: 6.0 });
+            for (let i=0;i<2;i++) _schedule(i * 0.12 + (seeded()-0.5)*0.03, () => _createCoinAtLane(lane, { count: 1 }));
+          } catch(_) {}
+        } },
+        // 12s: 3 coins center zigzag
+        { time: 12.0, handler: function(ev) {
+          try {
+            const lanesCount = typeof numLanes === 'function' ? numLanes() : 5;
+            const center = Math.floor(lanesCount/2);
+            const seq = [center, Math.max(0, center-1), Math.min(lanesCount-1, center+1)];
+            window._campaignSafeZones = window._campaignSafeZones || [];
+            const cx = (typeof laneX === 'function') ? laneX(center) : (canvas?canvas.width*0.5:400);
+            window._campaignSafeZones.push({ x: cx, y: (canvas?canvas.height*0.6:240), r: 72, t: 6.0 });
+            for (let i=0;i<seq.length;i++) _schedule(i * 0.12 + (seeded()-0.5)*0.03, () => _createCoinAtLane(seq[i], { count: 1 }));
+          } catch(_) {}
+        } },
+        // 17s: 2 coins right lane
+        { time: 17.0, handler: function(ev) {
+          try {
+            const lanesCount = typeof numLanes === 'function' ? numLanes() : 5;
+            const lane = Math.max(0, lanesCount - 1);
+            window._campaignSafeZones = window._campaignSafeZones || [];
+            const cx = (typeof laneX === 'function') ? laneX(lane) : (canvas?canvas.width*0.85:560);
+            window._campaignSafeZones.push({ x: cx, y: (canvas?canvas.height*0.6:240), r: 72, t: 6.0 });
+            for (let i=0;i<2;i++) _schedule(i * 0.12 + (seeded()-0.5)*0.03, () => _createCoinAtLane(lane, { count: 1 }));
+          } catch(_) {}
+        } },
+        // 22s: 3 coins left-to-right trail
+        { time: 22.0, handler: function(ev) {
+          try {
+            const lanesCount = typeof numLanes === 'function' ? numLanes() : 5;
+            const start = 0;
+            window._campaignSafeZones = window._campaignSafeZones || [];
+            const cx = (typeof laneX === 'function') ? laneX(start) : (canvas?canvas.width*0.12:80);
+            window._campaignSafeZones.push({ x: cx, y: (canvas?canvas.height*0.6:240), r: 72, t: 6.0 });
+            for (let i=0;i<3;i++) _schedule(i * 0.12 + (seeded()-0.5)*0.03, () => _createCoinAtLane(start + i, { count: 1 }));
+          } catch(_) {}
+        } },
+        // 28s: 3 coins final center spread
+        { time: 28.0, handler: function(ev) {
+          try {
+            const lanesCount = typeof numLanes === 'function' ? numLanes() : 5;
+            const center = Math.floor(lanesCount/2);
+            const seq = [Math.max(0, center-1), center, Math.min(lanesCount-1, center+1)];
+            window._campaignSafeZones = window._campaignSafeZones || [];
+            const cx = (typeof laneX === 'function') ? laneX(center) : (canvas?canvas.width*0.5:400);
+            window._campaignSafeZones.push({ x: cx, y: (canvas?canvas.height*0.6:240), r: 80, t: 6.0 });
+            for (let i=0;i<seq.length;i++) _schedule(i * 0.12 + (seeded()-0.5)*0.03, () => _createCoinAtLane(seq[i], { count: 1 }));
+          } catch(_) {}
+        } }
+      ],
+      settings: {
+        speedMult: 0.75, spawnInterval: 0.65, forbiddenInterval: 4.0,
+        coinsEnabled: true, coinItemInterval: null, powerupsEnabled: false,
+        // ensure main spawner does not randomly inject coins during this level; deterministic waves above control coin count
+        diffCap: { maxSpeedMult: 0.90, minSpawnInterval: 0.55, minForbiddenInterval: 3.5 },
+        disablePanic: true, disableDoubleDanger: true,
+        doubleTroubleAt: [], shrinkingArena: false, bossMode: false,
+      },
     },
-  },
-  {
-    id: 3,
-    name: 'Dodge School',
-    subtitle: 'Prove your reflexes by dodging 35 blocks.',
-    difficulty: 'Medium',
-    difficultyColor: '#f59e0b',
-    objectiveType: 'dodge_blocks',
-    objectiveTarget: 35,
-    timeLimit: null,
-    rewardCoins: 90,
-    replayReward: 9,
-    tip: 'A dodge counts when a block passes safely below you. Keep moving!',
-    starConditions: [
-      { stars: 3, label: 'No hits',       check: (d) => d.hitsReceived === 0 },
-      { stars: 2, label: 'At most 1 hit', check: (d) => d.hitsReceived <= 1 },
-      { stars: 1, label: 'Dodge 35',      check: (d) => true },
-    ],
-    settings: {
-      speedMult: 0.85, spawnInterval: 0.55, forbiddenInterval: 3.5,
-      coinsEnabled: false, coinItemInterval: null, powerupsEnabled: false,
-      diffCap: { maxSpeedMult: 1.0, minSpawnInterval: 0.45, minForbiddenInterval: 3.0 },
-      disablePanic: true, disableDoubleDanger: true,
-      doubleTroubleAt: [], shrinkingArena: false, bossMode: false,
+    {
+      id: 3,
+      name: 'Dodge School',
+      subtitle: 'Prove your reflexes by dodging 100 blocks.',
+      difficulty: 'Medium',
+      difficultyColor: '#f59e0b',
+      objectiveType: 'dodge_blocks',
+      objectiveTarget: 100,
+      timeLimit: 75,
+      rewardCoins: 40,
+      replayReward: 9,
+      tip: 'A dodge counts when a danger block fully passes below you. Focus on gaps, not hits.',
+      starConditions: [
+        { stars: 3, label: 'No hits',       check: (d) => d.hitsReceived === 0 },
+        { stars: 2, label: '≤ 2 hits',      check: (d) => d.hitsReceived <= 2 },
+        { stars: 1, label: 'Dodge 100',     check: (d) => true },
+      ],
+      // Use the named spawn pattern so the campaign pattern factory can enable phase logic
+      spawnPattern: 'dodgeSchoolPhases',
+      settings: {
+        // Base tuning; pattern will adjust speeds and cadence during phases
+        speedMult: 0.85, spawnInterval: 0.70, forbiddenInterval: 3.5,
+        coinsEnabled: false, coinItemInterval: null, powerupsEnabled: false,
+        // seed spawn overrides used by spawners (initial values)
+        spawn: { obstacleSpeedMin: 300, obstacleSpeedMax: 340, maxObstaclesOnScreen: 12 },
+        diffCap: { maxSpeedMult: 1.10, minSpawnInterval: 0.50, minForbiddenInterval: 3.0 },
+        disablePanic: true, disableDoubleDanger: true,
+        doubleTroubleAt: [], shrinkingArena: false, bossMode: false,
+      },
     },
-  },
-  {
-    id: 4,
-    name: 'Fast Switch',
-    subtitle: 'Colors change faster — stay sharp.',
-    difficulty: 'Medium',
-    difficultyColor: '#f59e0b',
-    objectiveType: 'survive_seconds',
-    objectiveTarget: 35,
-    timeLimit: null,
-    rewardCoins: 100,
-    replayReward: 10,
-    tip: 'Watch the warning timer at the top. When it glows, the forbidden color is about to change.',
-    starConditions: [
-      { stars: 3, label: 'No hits',       check: (d) => d.hitsReceived === 0 },
-      { stars: 2, label: 'At most 1 hit', check: (d) => d.hitsReceived <= 1 },
-      { stars: 1, label: 'Survive 35s',   check: (d) => true },
-    ],
-    settings: {
-      speedMult: 0.90, spawnInterval: 0.50, forbiddenInterval: 2.5,
-      coinsEnabled: false, coinItemInterval: null, powerupsEnabled: false,
-      diffCap: { maxSpeedMult: 1.05, minSpawnInterval: 0.42, minForbiddenInterval: 2.0 },
-      disablePanic: false, disableDoubleDanger: true,
-      doubleTroubleAt: [], shrinkingArena: false, bossMode: false,
+    {
+      id: 4,
+      name: 'Fast Switch',
+      subtitle: 'Colors change faster — stay sharp.',
+      difficulty: 'Medium',
+      difficultyColor: '#f59e0b',
+      objectiveType: 'survive_seconds',
+      objectiveTarget: 50,
+      timeLimit: 50,
+      rewardCoins: 45,
+      replayReward: 10,
+      tip: 'Watch the warning timer at the top. When it glows, the forbidden color is about to change.',
+      starConditions: [
+        { stars: 3, label: 'No hits',       check: (d) => d.hitsReceived === 0 },
+        { stars: 2, label: 'At most 1 hit', check: (d) => d.hitsReceived <= 1 },
+        { stars: 1, label: 'Survive 50s',   check: (d) => true },
+      ],
+      // Use the named spawn pattern implemented in script.js
+      spawnPattern: 'fastSwitchWaves',
+      settings: {
+        // Base tuning: normal cadence 650ms, base obstacle speeds 300-360, slow color switch
+        speedMult: 0.85, spawnInterval: 0.65, forbiddenInterval: 7.0,
+        coinsEnabled: false, coinItemInterval: null, powerupsEnabled: false,
+        // seed spawn overrides used by spawners (initial values)
+        spawn: { obstacleSpeedMin: 300, obstacleSpeedMax: 360, maxObstaclesOnScreen: 12 },
+        // Allow waves to temporarily reduce spawn interval below base
+        diffCap: { maxSpeedMult: 1.25, minSpawnInterval: 0.32, minForbiddenInterval: 1.8 },
+        disablePanic: false, disableDoubleDanger: true,
+        doubleTroubleAt: [], shrinkingArena: false, bossMode: false,
+      },
     },
-  },
-  {
-    id: 5,
-    name: 'Tight Gaps',
-    subtitle: 'Navigate narrow paths without breaking.',
-    difficulty: 'Medium',
-    difficultyColor: '#f59e0b',
-    objectiveType: 'survive_seconds',
-    objectiveTarget: 45,
-    timeLimit: null,
-    rewardCoins: 125,
-    replayReward: 13,
-    tip: 'There is always at least one safe gap. Look ahead and plan your movement.',
-    starConditions: [
-      { stars: 3, label: 'No hits',       check: (d) => d.hitsReceived === 0 },
-      { stars: 2, label: 'At most 1 hit', check: (d) => d.hitsReceived <= 1 },
-      { stars: 1, label: 'Survive 45s',   check: (d) => true },
-    ],
-    settings: {
-      speedMult: 0.90, spawnInterval: 0.44, forbiddenInterval: 3.0,
-      coinsEnabled: false, coinItemInterval: null, powerupsEnabled: false,
-      diffCap: { maxSpeedMult: 1.05, minSpawnInterval: 0.38, minForbiddenInterval: 2.5 },
-      disablePanic: false, disableDoubleDanger: true,
-      doubleTroubleAt: [], shrinkingArena: false, bossMode: false,
+    {
+      id: 5,
+      name: 'Tight Gaps',
+      subtitle: 'Navigate narrow paths without breaking.',
+      difficulty: 'Medium',
+      difficultyColor: '#f59e0b',
+      objectiveType: 'survive_seconds',
+      objectiveTarget: 25,
+      timeLimit: 25,
+      rewardCoins: 25,
+      replayReward: 5,
+      tip: 'Quick bursts force early movement — read the color indicator and react fast.',
+      starConditions: [
+        { stars: 3, label: 'No hits',       check: (d) => d.hitsReceived === 0 },
+        { stars: 2, label: 'At most 1 hit', check: (d) => d.hitsReceived <= 1 },
+        { stars: 1, label: 'Survive 25s',   check: (d) => true },
+      ],
+      // Spawn script implements the requested timeline and safety events
+      spawnScript: [
+        // 0-5s: simple blocks, medium speed, force basic movement
+        { time: 0.2, type: 'fallingWave', pattern: 'wideGaps', duration: 1.0 },
+        { time: 1.0, type: 'safeGap', duration: 2.0 },
+        // 5-15s: denser but fair falling blocks, wider variety
+        { time: 5.0, type: 'fallingWave', pattern: 'default', duration: 10.0 },
+        // 15s: warning then pressure wave (15-21s)
+        { time: 15.0, type: 'warning', text: 'Pressure Wave!' },
+        { time: 15.0, type: 'pressureWave', duration: 6 },
+        // At the start of the pressure window, raise obstacle speeds/pressure
+        { time: 15.0, handler: function(ev) { try { window._campaignSpawnConfig = window._campaignSpawnConfig || {}; window._campaignSpawnConfig.obstacleSpeedMin = 320; window._campaignSpawnConfig.obstacleSpeedMax = 360; window._campaignSpawnConfig.maxObstaclesOnScreen = 10; } catch(_){} } },
+        // 21s: ease slightly for last few seconds
+        { time: 21.0, handler: function(ev) { try { if (window._campaignSpawnConfig) { window._campaignSpawnConfig.obstacleSpeedMin = 260; window._campaignSpawnConfig.obstacleSpeedMax = 320; window._campaignSpawnConfig.maxObstaclesOnScreen = 10; } } catch(_){} } },
+        { time: 22.5, type: 'safeGap', duration: 3.0 }
+      ],
+      settings: {
+        // tuning: spawnInterval in seconds (650ms), slightly higher base speed multiplier
+        speedMult: 0.78, spawnInterval: 0.65, forbiddenInterval: 7.0,
+        coinsEnabled: false, coinItemInterval: null, powerupsEnabled: false,
+        // seed spawn overrides used by the spawn director (initial values)
+        spawn: { obstacleSpeedMin: 280, obstacleSpeedMax: 320, maxObstaclesOnScreen: 10 },
+        diffCap: { maxSpeedMult: 0.90, minSpawnInterval: 0.65, minForbiddenInterval: 5.5 },
+        disablePanic: false, disableDoubleDanger: true,
+        doubleTroubleAt: [], shrinkingArena: false, bossMode: false,
+      },
     },
-  },
-  {
-    id: 6,
-    name: 'Coin Panic',
-    subtitle: 'Grab coins while danger closes in.',
-    difficulty: 'Hard',
-    difficultyColor: '#ef4444',
-    objectiveType: 'collect_coins',
-    objectiveTarget: 25,
-    timeLimit: 50,
-    rewardCoins: 150,
-    replayReward: 15,
-    tip: 'Move aggressively to grab coins — but never into a forbidden block.',
-    starConditions: [
-      { stars: 3, label: '15+ sec left',  check: (d) => d.timeRemaining >= 15 },
-      { stars: 2, label: '6+ sec left',   check: (d) => d.timeRemaining >= 6 },
-      { stars: 1, label: 'Collect 25',    check: (d) => true },
-    ],
-    settings: {
-      speedMult: 0.95, spawnInterval: 0.40, forbiddenInterval: 2.5,
-      coinsEnabled: true, coinItemInterval: 3.0, powerupsEnabled: false,
-      diffCap: { maxSpeedMult: 1.10, minSpawnInterval: 0.35, minForbiddenInterval: 2.0 },
-      disablePanic: false, disableDoubleDanger: false,
-      doubleTroubleAt: [], shrinkingArena: false, bossMode: false,
+    {
+      id: 6,
+      name: 'Coin Panic',
+      subtitle: 'Grab coins while danger closes in.',
+      difficulty: 'Hard',
+      difficultyColor: '#ef4444',
+      objectiveType: 'collect_coins',
+      objectiveTarget: 25,
+      timeLimit: 50,
+      rewardCoins: 150,
+      replayReward: 15,
+      tip: 'Move aggressively to grab coins — but never into a forbidden block.',
+      starConditions: [
+        { stars: 3, label: '15+ sec left',  check: (d) => d.timeRemaining >= 15 },
+        { stars: 2, label: '6+ sec left',   check: (d) => d.timeRemaining >= 6 },
+        { stars: 1, label: 'Collect 25',    check: (d) => true },
+      ],
+      spawnScript: [
+        { time: 0.8, type: 'coinTrail', pattern: 'leftToRightArc', lane: 1, count:5 },
+        { time: 12.0, type: 'coinTrail', pattern: 'rightToLeftArc', lane: 4, count:4 },
+        { time: 35.0, type: 'panicWave', duration: 5 }
+      ],
+      settings: {
+        speedMult: 0.95, spawnInterval: 0.40, forbiddenInterval: 2.5,
+        coinsEnabled: true, coinItemInterval: 3.0, powerupsEnabled: false,
+        diffCap: { maxSpeedMult: 1.10, minSpawnInterval: 0.35, minForbiddenInterval: 2.0 },
+        disablePanic: false, disableDoubleDanger: false,
+        doubleTroubleAt: [], shrinkingArena: false, bossMode: false,
+      },
     },
-  },
-  {
-    id: 7,
-    name: 'Double Trouble',
-    subtitle: 'Survive waves of chaos every 15 seconds.',
-    difficulty: 'Hard',
-    difficultyColor: '#ef4444',
-    objectiveType: 'survive_seconds',
-    objectiveTarget: 60,
-    timeLimit: null,
-    rewardCoins: 175,
-    replayReward: 18,
-    tip: 'At 15s, 30s and 45s a surge fires. Use the brief warning to find a safe zone.',
-    starConditions: [
-      { stars: 3, label: 'No hits',       check: (d) => d.hitsReceived === 0 },
-      { stars: 2, label: 'At most 1 hit', check: (d) => d.hitsReceived <= 1 },
-      { stars: 1, label: 'Survive 60s',   check: (d) => true },
-    ],
-    settings: {
-      speedMult: 1.0, spawnInterval: 0.42, forbiddenInterval: 2.8,
-      coinsEnabled: false, coinItemInterval: null, powerupsEnabled: false,
-      diffCap: { maxSpeedMult: 1.15, minSpawnInterval: 0.35, minForbiddenInterval: 2.3 },
-      disablePanic: false, disableDoubleDanger: false,
-      doubleTroubleAt: [15, 30, 45], shrinkingArena: false, bossMode: false,
+    {
+      id: 7,
+      name: 'Double Trouble',
+      subtitle: 'Survive waves of chaos every 15 seconds.',
+      difficulty: 'Hard',
+      difficultyColor: '#ef4444',
+      objectiveType: 'survive_seconds',
+      objectiveTarget: 60,
+      timeLimit: null,
+      rewardCoins: 175,
+      replayReward: 18,
+      tip: 'At 15s, 30s and 45s a surge fires. Use the brief warning to find a safe zone.',
+      starConditions: [
+        { stars: 3, label: 'No hits',       check: (d) => d.hitsReceived === 0 },
+        { stars: 2, label: 'At most 1 hit', check: (d) => d.hitsReceived <= 1 },
+        { stars: 1, label: 'Survive 60s',   check: (d) => true },
+      ],
+      spawnScript: [
+        { time: 12.0, type: 'warning', text: 'Double Trouble imminent' },
+        { time: 15.0, type: 'panicWave', duration: 4 },
+        { time: 30.0, type: 'panicWave', duration: 4 },
+        { time: 45.0, type: 'panicWave', duration: 4 }
+        ,{ time: 16.0, handler: function(ev) { try { window.CampaignPatterns && window.CampaignPatterns.spawnSideBlock && window.CampaignPatterns.spawnSideBlock({ side: 'left' }); } catch(_){} } },
+        { time: 34.0, handler: function(ev) { try { window.CampaignPatterns && window.CampaignPatterns.spawnSideBlock && window.CampaignPatterns.spawnSideBlock({ side: 'right' }); } catch(_){} } }
+      ],
+      settings: {
+        speedMult: 1.0, spawnInterval: 0.42, forbiddenInterval: 2.8,
+        coinsEnabled: false, coinItemInterval: null, powerupsEnabled: false,
+        diffCap: { maxSpeedMult: 1.15, minSpawnInterval: 0.35, minForbiddenInterval: 2.3 },
+        disablePanic: false, disableDoubleDanger: false,
+        doubleTroubleAt: [15, 30, 45], shrinkingArena: false, bossMode: false,
+      },
     },
-  },
-  {
-    id: 8,
-    name: 'Shrinking Arena',
-    subtitle: 'The walls are closing in. Stay alive.',
-    difficulty: 'Hard',
-    difficultyColor: '#ef4444',
-    objectiveType: 'survive_seconds',
-    objectiveTarget: 50,
-    timeLimit: null,
-    rewardCoins: 200,
-    replayReward: 20,
-    tip: 'Watch the red danger zones on the sides. Stay in the center as the arena shrinks.',
-    starConditions: [
-      { stars: 3, label: 'No hits',       check: (d) => d.hitsReceived === 0 },
-      { stars: 2, label: 'At most 1 hit', check: (d) => d.hitsReceived <= 1 },
-      { stars: 1, label: 'Survive 50s',   check: (d) => true },
-    ],
-    settings: {
-      speedMult: 1.0, spawnInterval: 0.38, forbiddenInterval: 2.8,
-      coinsEnabled: false, coinItemInterval: null, powerupsEnabled: false,
-      diffCap: { maxSpeedMult: 1.10, minSpawnInterval: 0.32, minForbiddenInterval: 2.3 },
-      disablePanic: false, disableDoubleDanger: false,
-      doubleTroubleAt: [], shrinkingArena: true, bossMode: false,
+    {
+      id: 8,
+      name: 'Shrinking Arena',
+      subtitle: 'The walls are closing in. Stay alive.',
+      difficulty: 'Hard',
+      difficultyColor: '#ef4444',
+      objectiveType: 'survive_seconds',
+      objectiveTarget: 50,
+      timeLimit: 50,
+      rewardCoins: 200,
+      replayReward: 20,
+      tip: 'Watch the glowing boundaries. Move early and keep to the inner arena.',
+      starConditions: [
+        { stars: 3, label: 'No hits',       check: (d) => d.hitsReceived === 0 },
+        { stars: 2, label: 'At most 1 hit', check: (d) => d.hitsReceived <= 1 },
+        { stars: 1, label: 'Survive 50s',   check: (d) => true },
+      ],
+      spawnScript: [
+        { time: 2.0, type: 'fallingWave', pattern: 'tight' },
+        { time: 6.0, handler: function(ev) { try { window.CampaignPatterns && window.CampaignPatterns.movingGapWall && window.CampaignPatterns.movingGapWall({}); } catch(_){} } },
+        { time: 14.0, type: 'pressureWave', duration: 3 }
+        ,{ time: 28.0, handler: function(ev) { try { window.CampaignPatterns && window.CampaignPatterns.doubleGapWall && window.CampaignPatterns.doubleGapWall({}); } catch(_){} } }
+      ],
+      settings: {
+        speedMult: 1.0, spawnInterval: 0.38, forbiddenInterval: 2.8,
+        coinsEnabled: false, coinItemInterval: null, powerupsEnabled: false,
+        diffCap: { maxSpeedMult: 1.10, minSpawnInterval: 0.32, minForbiddenInterval: 2.3 },
+        disablePanic: false, disableDoubleDanger: false,
+        doubleTroubleAt: [], shrinkingArena: true, bossMode: false,
+      },
     },
-  },
-  {
-    id: 9,
-    name: 'Final Trial',
-    subtitle: 'Three objectives. One chance. No mercy.',
-    difficulty: 'Expert',
-    difficultyColor: '#a855f7',
-    objectiveType: 'hybrid',
-    objectiveTarget: { seconds: 75, coins: 20, dodges: 60 },
-    timeLimit: null,
-    rewardCoins: 250,
-    replayReward: 25,
-    tip: 'All three objectives must be completed. Panic wave fires at 45s — be ready.',
-    starConditions: [
-      { stars: 3, label: 'No hits',       check: (d) => d.hitsReceived === 0 },
-      { stars: 2, label: 'At most 1 hit', check: (d) => d.hitsReceived <= 1 },
-      { stars: 1, label: 'All 3 done',    check: (d) => true },
-    ],
-    settings: {
-      speedMult: 1.05, spawnInterval: 0.35, forbiddenInterval: 2.3,
-      coinsEnabled: true, coinItemInterval: 4.0, powerupsEnabled: false,
-      diffCap: { maxSpeedMult: 1.20, minSpawnInterval: 0.28, minForbiddenInterval: 1.8 },
-      disablePanic: false, disableDoubleDanger: false,
-      doubleTroubleAt: [25, 55], shrinkingArena: false, bossMode: false,
+    {
+      id: 9,
+      name: 'Final Trial',
+      subtitle: 'Three objectives. One chance. No mercy.',
+      difficulty: 'Expert',
+      difficultyColor: '#a855f7',
+      objectiveType: 'hybrid',
+      objectiveTarget: { seconds: 75, coins: 20, dodges: 60 },
+      timeLimit: null,
+      rewardCoins: 250,
+      replayReward: 25,
+      tip: 'All three objectives must be completed. Panic wave fires at 45s — be ready.',
+      starConditions: [
+        { stars: 3, label: 'No hits',       check: (d) => d.hitsReceived === 0 },
+        { stars: 2, label: 'At most 1 hit', check: (d) => d.hitsReceived <= 1 },
+        { stars: 1, label: 'All 3 done',    check: (d) => true },
+      ],
+      spawnScript: [
+        { time: 5.0, type: 'fallingWave', pattern: 'default' },
+        { time: 12.0, handler: function(ev) { try { window.CampaignPatterns && window.CampaignPatterns.doubleGapWall && window.CampaignPatterns.doubleGapWall({}); } catch(_){} } },
+        { time: 20.0, type: 'pressureWave', duration: 4 },
+        { time: 45.0, type: 'panicWave', duration: 6 }
+        ,{ time: 28.0, handler: function(ev) { try { window.CampaignPatterns && window.CampaignPatterns.spawnSideBlock && window.CampaignPatterns.spawnSideBlock({ side: (window.campaignRandom() < 0.5 ? 'left' : 'right') }); } catch(_){} } }
+        ,{ time: 36.0, handler: function(ev) { try { window.CampaignPatterns && window.CampaignPatterns.fakeEasyGapRiskyCoin && window.CampaignPatterns.fakeEasyGapRiskyCoin({}); } catch(_){} } }
+      ],
+      settings: {
+        speedMult: 1.05, spawnInterval: 0.35, forbiddenInterval: 2.3,
+        coinsEnabled: true, coinItemInterval: 4.0, powerupsEnabled: false,
+        diffCap: { maxSpeedMult: 1.20, minSpawnInterval: 0.28, minForbiddenInterval: 1.8 },
+        disablePanic: false, disableDoubleDanger: false,
+        doubleTroubleAt: [25, 55], shrinkingArena: false, bossMode: false,
+      },
     },
-  },
-  {
-    id: 10,
-    name: 'The Panic Core',
-    subtitle: 'Face the boss. Collect orbs to deal damage.',
-    difficulty: 'Boss',
-    difficultyColor: '#ec4899',
-    objectiveType: 'boss_defeat',
-    objectiveTarget: 10,
-    timeLimit: 120,
-    rewardCoins: 500,
-    replayReward: 50,
+    {
+      id: 10,
+      name: 'The Panic Core',
+      subtitle: 'Face the boss. Collect orbs to deal damage.',
+      difficulty: 'Boss',
+      difficultyColor: '#ec4899',
+      objectiveType: 'boss_defeat',
+      objectiveTarget: 10,
+      timeLimit: 120,
+      rewardCoins: 500,
+      replayReward: 50,
+      tip: 'Collect glowing orbs to damage the boss. Dodge its projectiles — they have warning lines.',
+      starConditions: [
+        { stars: 3, label: 'No hits',       check: (d) => d.hitsReceived === 0 },
+        { stars: 2, label: 'Defeat boss',   check: (d) => d.bossDefeated === true },
+        { stars: 1, label: 'Defeat boss',   check: (d) => d.bossDefeated === true },
+      ],
+      spawnScript: [
+        { time: 2.0, type: 'bossAttack' },
+        { time: 6.0, type: 'coinTrail', pattern: 'leftToRightArc', lane: 1, count: 3, orb: true },
+        { time: 10.0, type: 'fallingWave', pattern: 'tight' },
+        { time: 18.0, type: 'coinTrail', pattern: 'rightToLeftArc', lane: 3, count: 4, orb: true },
+        { time: 30.0, type: 'pressureWave', duration: 5 },
+        { time: 36.0, type: 'coinTrail', pattern: 'leftToRightArc', lane: 2, count: 3, orb: true },
+        { time: 8.0, handler: function(ev) { try { window.CampaignPatterns && window.CampaignPatterns.spawnSideBlock && window.CampaignPatterns.spawnSideBlock({ side: 'left', y: canvas ? Math.max(160, Math.min(canvas.height - 160, player ? player.y : canvas.height * 0.7)) }); } catch(_){} } },
+        { time: 50.0, handler: function(ev) { try { window.CampaignPatterns && window.CampaignPatterns.spawnSideBlock && window.CampaignPatterns.spawnSideBlock({ side: 'right' }); } catch(_){} } }
+      ],
+      settings: {
+        speedMult: 0.90, spawnInterval: 0.48, forbiddenInterval: 3.0,
+        coinsEnabled: true, coinItemInterval: 4.5, powerupsEnabled: false,
+        diffCap: { maxSpeedMult: 1.10, minSpawnInterval: 0.38, minForbiddenInterval: 2.5 },
+        disablePanic: false, disableDoubleDanger: false,
+        doubleTroubleAt: [], shrinkingArena: false, bossMode: true,
+      },
+    },
+  ];
     tip: 'Collect glowing orbs to damage the boss. Dodge its projectiles — they have warning lines.',
     starConditions: [
       { stars: 3, label: 'No hits',       check: (d) => d.hitsReceived === 0 },
       { stars: 2, label: 'Defeat boss',   check: (d) => d.bossDefeated === true },
       { stars: 1, label: 'Defeat boss',   check: (d) => d.bossDefeated === true },
+    ],
+    spawnScript: [
+      { time: 2.0, type: 'bossAttack' },
+      { time: 10.0, type: 'fallingWave', pattern: 'tight' },
+      { time: 30.0, type: 'pressureWave', duration: 5 }
     ],
     settings: {
       speedMult: 0.90, spawnInterval: 0.48, forbiddenInterval: 3.0,
@@ -624,9 +821,60 @@ const ObjectiveTracker = (() => {
   }
 
   function calcStars(levelDef, data) {
-    for (const cond of levelDef.starConditions) {
-      if (cond.check(data)) return cond.stars;
-    }
+    // Ensure data object exists
+    data = data || {};
+
+    // Prefer sensible defaults based on objective type so designers
+    // get consistent 1-3 star behavior without authoring lots of checks.
+    try {
+      const type = levelDef && levelDef.objectiveType;
+      const hits = Number.isFinite(data.hitsReceived) ? data.hitsReceived : 0;
+      const near = Number.isFinite(data.nearMisses) ? data.nearMisses : (Number.isFinite(data.nearMissesThisRun) ? data.nearMissesThisRun : 0);
+      const maxCombo = Number.isFinite(data.maxCombo) ? data.maxCombo : 0;
+      const powerups = Number.isFinite(data.powerupsThisRun) ? data.powerupsThisRun : (Number.isFinite(data.powerups) ? data.powerups : 0);
+      const timeRemaining = (typeof data.timeRemaining === 'number') ? data.timeRemaining : (levelDef && levelDef.timeLimit ? (levelDef.timeLimit - (data.elapsed || 0)) : 0);
+
+      if (type === 'survive_seconds') {
+        if (hits === 0 && near >= 3) return 3; // excellent: clean + risky near-misses
+        if (hits === 0 && powerups === 0) return 2; // good: clean run with no assist
+        return 1; // baseline: completed objective
+      }
+
+      if (type === 'collect_coins') {
+        if (timeRemaining >= 14) return 3; // excellent: finished early or grabbed bonus coins
+        if (timeRemaining >= 8) return 2;  // good: finished with decent time left
+        return 1;
+      }
+
+      if (type === 'dodge_blocks') {
+        if (near >= 3 || maxCombo >= 10) return 3; // excellent: skillful near-miss/combo
+        if (timeRemaining >= 8) return 2; // good: under a reasonable time cap
+        return 1;
+      }
+
+      if (type === 'boss_defeat') {
+        if (hits === 0) return 3; // clean boss clear
+        if (timeRemaining >= 30) return 2; // defeated with decent time
+        return (data.bossDefeated ? 1 : 1);
+      }
+
+      if (type === 'hybrid') {
+        if (hits === 0) return 3;
+        if (hits <= 1) return 2;
+        return 1;
+      }
+    } catch (_) {}
+
+    // Fallback to explicit level-defined conditions if present
+    try {
+      if (levelDef && Array.isArray(levelDef.starConditions) && levelDef.starConditions.length) {
+        for (const cond of levelDef.starConditions) {
+          try { if (cond && typeof cond.check === 'function' && cond.check(data)) return cond.stars; } catch(_) {}
+        }
+      }
+    } catch(_) {}
+
+    // Default baseline
     return 1;
   }
 
@@ -656,6 +904,9 @@ const BossManager = (() => {
   let _attackRate  = 3.5;    // seconds between attacks
   let _projectiles = [];
   let _warnings    = [];
+  let _orbCharge   = 0;
+  const ORBS_PER_PULSE = 5;
+  const PULSE_DAMAGE = 12;
   let _defeated    = false;
   let _defeatTimer = 0;
   let _entryTimer  = 1.5;    // boss flies in from top
@@ -684,6 +935,7 @@ const BossManager = (() => {
     _attackTimer = _attackRate;
     _projectiles = [];
     _warnings    = [];
+    _orbCharge   = 0;
     _defeated    = false;
     _defeatTimer = 0;
     _entryTimer  = 1.5;
@@ -1100,6 +1352,57 @@ const BossManager = (() => {
     }
   }
 
+  function collectOrbs(n) {
+    if (!_active || _defeated) return;
+    n = Math.max(0, Math.floor(n || 0));
+    if (n === 0) return;
+    _orbCharge += n;
+    try { addFloating(_bossX, _bossY - 40, '+' + n + ' orbs', '#f472b6', 18); } catch(_){}
+    try { AudioManager.playSound && AudioManager.playSound('powerup'); } catch(_){}
+    // Fire pulses for every ORBS_PER_PULSE collected
+    while (_orbCharge >= ORBS_PER_PULSE && !_defeated) {
+      _orbCharge -= ORBS_PER_PULSE;
+      // Visual pulse effect
+      try {
+        spawnParticles(_bossX, _bossY, '#f472b6', settings && settings.reducedMotion ? 8 : 26);
+      } catch(_){}
+      try { triggerShake(4, 0.18); } catch(_){}
+      try { addFloating(_bossX, _bossY - 18, 'PULSE!', '#ffffff', 22); } catch(_){}
+      // Apply damage
+      damage(PULSE_DAMAGE);
+      try { AudioManager.playSound && AudioManager.playSound('bossPulse'); } catch(_){}
+    }
+  }
+
+  function getOrbCharge() { return _orbCharge; }
+
+  function getProjectilesCount() { return _projectiles.length; }
+
+  function triggerAttack(ev) {
+    ev = ev || {};
+    const action = ev.action || ev.name || 'generic';
+    try {
+      if (action === 'side_lasers') {
+        // warn both side lanes then spawn side blocks
+        const lanesCount = (typeof numLanes === 'function') ? numLanes() : 5;
+        const left = 0;
+        const right = Math.max(0, lanesCount - 1);
+        try { window.CampaignPatterns && window.CampaignPatterns.spawnWarningLane && window.CampaignPatterns.spawnWarningLane(left, ev.warn || 1.0); } catch(_){}
+        try { window.CampaignPatterns && window.CampaignPatterns.spawnWarningLane && window.CampaignPatterns.spawnWarningLane(right, ev.warn || 1.0); } catch(_){}
+        setTimeout(() => {
+          try { window.CampaignPatterns && window.CampaignPatterns.spawnSideBlock && window.CampaignPatterns.spawnSideBlock({ side: 'left' }); } catch(_){}
+          try { window.CampaignPatterns && window.CampaignPatterns.spawnSideBlock && window.CampaignPatterns.spawnSideBlock({ side: 'right' }); } catch(_){}
+        }, (ev.warn || 1.0) * 1000);
+      } else if (action === 'panic_wave') {
+        // escalate a short panic wave across the arena
+        try { window.triggerPanicWave && window.triggerPanicWave({ announce: ev.warn || 1.0, duration: ev.duration || 5.0, speedMult: 1.15 }); } catch(_){}
+      } else {
+        // Default: aim at current player position
+        try { const px = (typeof player !== 'undefined') ? player.x : (_canvas ? _canvas.width/2 : 320); const py = (typeof player !== 'undefined') ? player.y : 200; _doAttack(px, py); } catch(_) { _doAttack((_canvas? _canvas.width/2:320), 200); }
+      }
+    } catch(_){}
+  }
+
   function isDefeated()   { return _defeated; }
   function getHp()        { return _hp; }
   function isActive()     { return _active; }
@@ -1114,7 +1417,7 @@ const BossManager = (() => {
     }
   }
 
-  return { init, tick, damage, isDefeated, getHp, isActive, deactivate };
+  return { init, tick, damage, isDefeated, getHp, isActive, deactivate, collectOrbs, getOrbCharge, getProjectilesCount, triggerAttack };
 })();
 
 // ============================================================
@@ -1132,6 +1435,9 @@ const CampaignUI = (() => {
     const nCompleted = Object.keys(saveData.completedLevels).length;
     const totalStars = saveData.totalStars;
     const coinsEarned = saveData.campaignCoinsEarned || 0;
+    const PER_CHAPTER = 5;
+    const currentChapter = Math.ceil((nCompleted + 1) / PER_CHAPTER);
+    const totalChapters = Math.ceil(total / PER_CHAPTER);
 
     // Animated background particles (pure CSS animation)
     const PARTICLE_COLORS = ['#7c3aed','#0ea5e9','#ec4899','#22c55e','#f59e0b'];
@@ -1156,8 +1462,8 @@ const CampaignUI = (() => {
         <div class="cmp-road-inner">
           <button class="cmp-road-back" id="cmp-btn-back" aria-label="Back to main menu">&#8592; Menu</button>
           <header class="cmp-road-header">
-            <h1 class="cmp-road-title">Panic Quest</h1>
-            <p class="cmp-road-subtitle">Clear missions. Earn stars. Unlock the Panic Boss.</p>
+            <h1 class="cmp-road-title">Shift Trials</h1>
+            <p class="cmp-road-subtitle">Clear missions. Earn stars. Beat the Panic Core.</p>
             <div class="cmp-road-statsbar">
               <div class="cmp-road-stat">
                 <span class="cmp-road-stat-val">${nCompleted}/${total}</span>
@@ -1172,6 +1478,11 @@ const CampaignUI = (() => {
               <div class="cmp-road-stat">
                 <span class="cmp-road-stat-val" style="color:#f59e0b">${coinsEarned}</span>
                 <span class="cmp-road-stat-lbl">Coins Earned</span>
+              </div>
+              <div class="cmp-road-stat-sep"></div>
+              <div class="cmp-road-stat">
+                <span class="cmp-road-stat-val">Chapter ${currentChapter}/${totalChapters}</span>
+                <span class="cmp-road-stat-lbl">Chapter</span>
               </div>
             </div>
           </header>
@@ -1207,6 +1518,16 @@ const CampaignUI = (() => {
     const completed = CampaignSave.isCompleted(lvl.id);
     const stars     = CampaignSave.getStars(lvl.id);
     const isNext    = unlocked && !completed;
+
+    // small mechanic icons per objective type
+    const ICONS = {
+      'survive_seconds': '<svg class="cmp-svg-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M12 8v5l3 3"/><path stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M21 12A9 9 0 1 1 3 12a9 9 0 0 1 18 0z"/></svg>',
+      'collect_coins':   '<svg class="cmp-svg-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="7" stroke="currentColor" stroke-width="1.6"/><path stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M12 9v6"/></svg>',
+      'dodge_blocks':    '<svg class="cmp-svg-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M3 12h4l3-9 3 18 3-14 3 5h4"/></svg>',
+      'boss_defeat':     '<svg class="cmp-svg-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M12 2l2.5 6H22l-5 3.8L19 22 12 17.8 5 22l2-10.2L2 8h7.5L12 2z"/></svg>',
+      'hybrid':          '<svg class="cmp-svg-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="7" height="7" stroke="currentColor" stroke-width="1.6"/><rect x="14" y="14" width="7" height="7" stroke="currentColor" stroke-width="1.6"/></svg>'
+    };
+    const iconSvg = ICONS[lvl.objectiveType] || ICONS.hybrid;
 
     const diffClass = {
       'Easy':   'cmp-node--easy',
@@ -1245,11 +1566,16 @@ const CampaignUI = (() => {
       <div class="cmp-road-node ${diffClass} ${stateClass}"
            role="listitem"
            aria-label="Level ${lvl.id}: ${lvl.name}, ${!unlocked ? 'locked' : completed ? 'completed' : 'available'}">
-        <div class="cmp-node-header">
-          <span class="cmp-node-num">LVL ${lvl.id}</span>
-          <span class="cmp-node-diff" style="color:${lvl.difficultyColor}">${lvl.difficulty}</span>
+        <div class="cmp-node-top">
+          <div class="cmp-node-icon" aria-hidden="true">${iconSvg}</div>
+          <div class="cmp-node-meta">
+            <div class="cmp-node-header">
+              <span class="cmp-node-num">LVL ${lvl.id}</span>
+              <span class="cmp-node-diff" style="color:${lvl.difficultyColor}">${lvl.difficulty}</span>
+            </div>
+            <div class="cmp-node-title">${lvl.name}</div>
+          </div>
         </div>
-        <div class="cmp-node-title">${lvl.name}</div>
         <div class="cmp-node-obj">${objText}</div>
         <div class="cmp-node-stars" aria-label="${stars} of 3 stars">${starsHtml}</div>
         <div class="cmp-node-bottom">
@@ -1281,93 +1607,114 @@ const CampaignUI = (() => {
   }
 
   // ---- Level Intro Screen ----
+  // Briefing content for each level (short, punchy lines)
+  const LEVEL_BRIEFINGS = {
+    1: { mechanic: 'Avoid the forbidden color — read the top indicator.', tips: ['Move gently, don’t panic.', 'Read the color before you move.'] },
+    2: { mechanic: 'Collect coin trails before the timer runs out.', tips: ['Follow coin trails for clusters.', 'Don’t chase coins into danger.'] },
+    3: { mechanic: 'Dodge focused waves — anticipate openings.', tips: ['Small, early moves win.', 'Keep your eyes on the gaps.'] },
+    4: { mechanic: 'Fast color switches — a warning appears before each change.', tips: ['Hold center before a switch.', 'React to the warning glow.'] },
+    5: { mechanic: 'Narrow, tight gaps — precision required.', tips: ['Plan a clear path.', 'Make short, confident shifts.'] },
+    6: { mechanic: 'Coin trails lure you — panic wave follows later.', tips: ['Grab coins quickly then retreat.', 'Avoid forbidden blocks when diving.'] },
+    7: { mechanic: 'Surges at 15s, 30s, 45s — use warnings to hide.', tips: ['Find a safe spot on warning.', 'Brace during the surge, move after.'] },
+    8: { mechanic: 'Arena shrinks over time — space gets tight.', tips: ['Hold the center as walls close.', 'Avoid getting trapped at edges.'] },
+    9: { mechanic: 'Three objectives — balance speed, coins and dodges.', tips: ['Split your focus smartly.', 'Don’t overcommit to one task.'] },
+    10: { mechanic: 'Boss fight: collect orbs to damage the Panic Core.', tips: ['Snag orbs to deal damage.', 'Dodge projectile warnings and strike openings.'] }
+  };
+
   function showLevelIntro(lvl, onStart) {
     const el = document.getElementById('campaign-intro');
     if (!el) { if (onStart) onStart(); return; }
 
+    const briefing = LEVEL_BRIEFINGS[lvl.id] || {};
     const objText = _getObjectiveSummary(lvl);
 
+    const BIG_ICONS = {
+      'survive_seconds': '<svg class="cmp-svg-icon" width="56" height="56" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M12 8v5l3 3"/><path stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M21 12A9 9 0 1 1 3 12a9 9 0 0 1 18 0z"/></svg>',
+      'collect_coins':   '<svg class="cmp-svg-icon" width="56" height="56" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="7" stroke="currentColor" stroke-width="1.8"/><path stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M12 9v6"/></svg>',
+      'dodge_blocks':    '<svg class="cmp-svg-icon" width="56" height="56" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M3 12h4l3-9 3 18 3-14 3 5h4"/></svg>',
+      'boss_defeat':     '<svg class="cmp-svg-icon" width="56" height="56" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M12 2l2.5 6H22l-5 3.8L19 22 12 17.8 5 22l2-10.2L2 8h7.5L12 2z"/></svg>',
+      'hybrid':          '<svg class="cmp-svg-icon" width="56" height="56" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="7" height="7" stroke="currentColor" stroke-width="1.8"/><rect x="14" y="14" width="7" height="7" stroke="currentColor" stroke-width="1.8"/></svg>'
+    };
+
+    const diffClass = {
+      'Easy':   'cmp-intro--easy',
+      'Medium': 'cmp-intro--medium',
+      'Hard':   'cmp-intro--hard',
+      'Expert': 'cmp-intro--expert',
+      'Boss':   'cmp-intro--boss',
+    }[lvl.difficulty] || 'cmp-intro--easy';
+
     el.innerHTML = `
-      <div class="cmp-intro-box">
-        <div class="cmp-intro-header">
-          <span class="cmp-intro-num">Level ${lvl.id}</span>
-          <span class="cmp-intro-diff" style="color:${lvl.difficultyColor}">${lvl.difficulty}</span>
+      <div class="cmp-intro-box ${diffClass}" role="dialog" aria-modal="true" aria-label="Mission briefing for level ${lvl.id}">
+        <div class="cmp-intro-top">
+          <div class="cmp-intro-icon" aria-hidden="true">${BIG_ICONS[lvl.objectiveType] || BIG_ICONS.hybrid}</div>
+          <div class="cmp-intro-head">
+            <div class="cmp-intro-header">
+              <span class="cmp-intro-num">LEVEL ${lvl.id}</span>
+              <span class="cmp-intro-diff" style="color:${lvl.difficultyColor}">${lvl.difficulty}</span>
+            </div>
+            <h2 class="cmp-intro-name">${lvl.name}</h2>
+            <p class="cmp-intro-sub">${lvl.subtitle}</p>
+          </div>
         </div>
-        <h2 class="cmp-intro-name">${lvl.name}</h2>
-        <p class="cmp-intro-sub">${lvl.subtitle}</p>
-        <div class="cmp-intro-preview" id="cmp-intro-preview" aria-hidden="true"><canvas id="cmp-intro-preview-canvas" width="300" height="140"></canvas></div>
+
         <div class="cmp-intro-objective">
           <div class="cmp-intro-obj-label">Objective</div>
           <div class="cmp-intro-obj-text">${objText}</div>
         </div>
+
+        <div class="cmp-intro-mechanic">
+          <div class="cmp-intro-mech-label">Rule</div>
+          <div class="cmp-intro-mech-text">${briefing.mechanic || ''}</div>
+        </div>
+
+        <ul class="cmp-intro-tips" aria-label="Tips">
+          <li>${(briefing.tips && briefing.tips[0]) || lvl.tip || ''}</li>
+          <li>${(briefing.tips && briefing.tips[1]) || ''}</li>
+        </ul>
+
         <div class="cmp-intro-reward">
           <span class="coin-icon" aria-hidden="true"></span>
           <span class="cmp-intro-reward-val">${lvl.rewardCoins} coins</span>
           <span class="cmp-intro-reward-lbl">on completion</span>
         </div>
-        <div class="cmp-intro-tip">${lvl.tip || ''}</div>
+
         <div class="cmp-intro-actions">
-          <button class="cmp-intro-start-btn btn btn-primary" id="cmp-intro-start">Start Level</button>
+          <button class="cmp-intro-start-btn btn btn-primary" id="cmp-intro-start">Start Mission</button>
           <button class="cmp-intro-back-btn btn btn-secondary" id="cmp-intro-back">Level Select</button>
         </div>
       </div>`;
 
     el.hidden = false;
+    try { currentState = STATE.BRIEFING; } catch (_) {}
 
     const startBtn = el.querySelector('#cmp-intro-start');
     const backBtn  = el.querySelector('#cmp-intro-back');
 
     if (backBtn) backBtn.addEventListener('click', () => {
-      // stop preview animation if running
       if (el._previewCancel) { try { el._previewCancel(); } catch (_) {} el._previewCancel = null; }
       el.hidden = true;
       showLevelSelect();
     });
 
     if (startBtn) startBtn.addEventListener('click', () => {
-      console.log('[Challenge] intro start pressed', lvl && lvl.id, lvl && lvl.name);
       // stop preview animation if running
       if (el._previewCancel) { try { el._previewCancel(); } catch (_) {} el._previewCancel = null; }
-      // Ensure all other UI is hidden and show the game screen so the
-      // player can be primed (visible) during the countdown. Do NOT start
-      // the game loop yet — that happens after the countdown completes.
-      // Also cancel any running game loop to avoid ghost RAFs during the
-      // countdown (we will start the canonical loop after GO).
       try { _hideAllGameScreens(); } catch (_) {}
       try { if (typeof hideLevelSelect === 'function') hideLevelSelect(); } catch (_) {}
       try { if (typeof cleanupGameLoop === 'function') cleanupGameLoop(); } catch (_) {}
       try { showScreen('game-screen'); } catch (_) {}
-      // Prime canvas + player so a static frame is visible under the countdown
+      try { currentState = STATE.COUNTDOWN; } catch (_) {}
       try { resizeCanvas(); } catch (_) {}
       try { initPlayer(); } catch (_) {}
       try { render(performance.now()); } catch (_) {}
 
-      // Run countdown on the dedicated full-screen overlay, then call onStart
       _runCountdown(3, () => {
         if (onStart) onStart();
       });
     });
 
-    // Auto-start after a short delay (2.4s) unless player cancels or presses Start
-    try {
-      let autoStartId = null;
-      const triggerStart = () => { try { if (startBtn) startBtn.click(); } catch (_) {} };
-      autoStartId = setTimeout(triggerStart, 2400);
-      // Clear timer when start is manually pressed
-      if (startBtn) startBtn.addEventListener('click', () => { try { if (autoStartId) clearTimeout(autoStartId); autoStartId = null; } catch (_) {} });
-      // Spacebar should also start immediately
-      const onSpace = (ev) => {
-        if (ev && (ev.code === 'Space' || ev.key === ' ' || ev.keyCode === 32)) {
-          ev.preventDefault(); try { triggerStart(); } catch(_) {}
-          try { window.removeEventListener('keydown', onSpace); } catch(_) {}
-        }
-      };
-      window.addEventListener('keydown', onSpace, { passive: false });
-      // Ensure back button cancels auto-start and key handler
-      if (backBtn) backBtn.addEventListener('click', () => { try { if (autoStartId) clearTimeout(autoStartId); window.removeEventListener('keydown', onSpace); } catch(_) {} });
-    } catch (_) {}
-
-    // Start a small animated preview illustrating the primary mechanic for this level
+    // Small animated preview for the level (non-blocking)
     try {
       const previewEl = el.querySelector('#cmp-intro-preview');
       const pattern = lvl.previewPattern || (lvl.rules && lvl.rules.previewPattern) || (lvl.settings && lvl.settings.coinsEnabled ? 'coinTrail' : 'sideSwipe');
@@ -1381,12 +1728,15 @@ const CampaignUI = (() => {
     const overlay = document.getElementById('campaign-countdown-overlay');
     if (!overlay) { if (onDone) onDone(); return; }
 
-    // Cancel any prior countdown timeouts (safety for re-entrant calls)
-    try {
-      if (window._cmpCountdownTimerIds) {
-        window._cmpCountdownTimerIds.forEach(id => clearTimeout(id));
-      }
-    } catch (_) {}
+    // Idempotent: ignore if a countdown is already active
+    if (window._cmpCountdownActive) {
+      try { console.warn('[Challenge] countdown already active'); } catch (_) {}
+      return;
+    }
+    window._cmpCountdownActive = true;
+
+    // Clear any previous timers
+    try { if (window._cmpCountdownTimerIds) { window._cmpCountdownTimerIds.forEach(id => clearTimeout(id)); } } catch (_) {}
     window._cmpCountdownTimerIds = [];
 
     // Global flag for other systems/tests
@@ -1402,49 +1752,56 @@ const CampaignUI = (() => {
     overlay.hidden = false;
     overlay.style.zIndex = '99999';
     overlay.style.pointerEvents = 'auto';
+    overlay.classList.remove('cmp-countdown-fadeout');
     overlay.classList.add('cmp-countdown-active');
-    overlay.innerHTML = '<span class="cmp-cd-num" id="cmp-cd-num-el"></span>';
+    overlay.innerHTML = '<span class="cmp-cd-num" id="cmp-cd-num-el" aria-live="assertive" aria-atomic="true"></span>';
     const numEl = document.getElementById('cmp-cd-num-el');
 
     let current = count;
     // 700ms per step for consistent rhythm
     const STEP_MS = 700;
 
-    function step() {
-      const text = current > 0 ? String(current) : 'GO!';
-      if (numEl) {
-        numEl.textContent = text;
-        numEl.style.color = current <= 0 ? '#22c55e' : '#a855f7';
-        // trigger pop animation
-        numEl.classList.remove('cmp-cd-pop');
-        void numEl.offsetWidth;
-        numEl.classList.add('cmp-cd-pop');
-        // announce for screen readers
-        overlay.setAttribute('aria-live', 'assertive');
-      }
-
-      // audio hook for countdown ticks (no-op if AudioManager doesn't provide 'countdown')
+    function showNum(text, isGo) {
+      if (!numEl) return;
+      numEl.textContent = text;
+      numEl.classList.remove('cmp-cd-pop', 'cmp-cd-go');
+      void numEl.offsetWidth;
+      numEl.classList.add(isGo ? 'cmp-cd-go' : 'cmp-cd-pop');
       try { if (typeof AudioManager !== 'undefined') AudioManager.playSound('countdown'); } catch (_) {}
+    }
 
-      if (current <= 0) {
-        // Leave the GO! visible for one step then hide
-        const hid = setTimeout(() => {
-          try { window._campaignCountdownActive = false; } catch (_) {}
-          try { overlay.classList.remove('cmp-countdown-active'); } catch (_) {}
-          try { overlay.style.pointerEvents = 'none'; } catch (_) {}
-          overlay.hidden = true;
-          overlay.innerHTML = '';
-          // clear any stray timers
-          try { if (window._cmpCountdownTimerIds) { window._cmpCountdownTimerIds.forEach(id => clearTimeout(id)); window._cmpCountdownTimerIds = []; } } catch (_) {}
-          if (onDone) onDone();
-        }, STEP_MS);
-        window._cmpCountdownTimerIds.push(hid);
+    function finish() {
+      // brief pulse on GO
+      try { document.body.classList.add('campaign-go-pulse'); setTimeout(() => { document.body.classList.remove('campaign-go-pulse'); }, 260); } catch (_) {}
+      // fade overlay then hide
+      overlay.classList.add('cmp-countdown-fadeout');
+      const hid = setTimeout(() => {
+        try { window._campaignCountdownActive = false; } catch (_) {}
+        overlay.classList.remove('cmp-countdown-active');
+        overlay.classList.remove('cmp-countdown-fadeout');
+        overlay.style.pointerEvents = 'none';
+        overlay.hidden = true;
+        overlay.innerHTML = '';
+        try { if (window._cmpCountdownTimerIds) { window._cmpCountdownTimerIds.forEach(id => clearTimeout(id)); window._cmpCountdownTimerIds = []; } } catch (_) {}
+        window._cmpCountdownActive = false;
+        if (onDone) onDone();
+      }, 260);
+      window._cmpCountdownTimerIds.push(hid);
+    }
+
+    function step() {
+      const isGo = current <= 0;
+      const text = isGo ? 'GO!' : String(current);
+      showNum(text, isGo);
+      if (isGo) {
+        finish();
       } else {
         current--;
         const t = setTimeout(step, STEP_MS);
         window._cmpCountdownTimerIds.push(t);
       }
     }
+
     step();
   }
 
@@ -1478,7 +1835,7 @@ const CampaignUI = (() => {
         prog.style.setProperty('--obj-pct', Math.min(1, cur / t));
       } else if (type === 'boss_defeat') {
         const orbs = lvl.objectiveTarget;
-        const cur  = Math.min(roundCoins, orbs);
+        const cur  = Math.min((typeof roundOrbs === 'number' ? roundOrbs : 0), orbs);
         prog.textContent = `Orbs: ${cur} / ${orbs}`;
         prog.style.setProperty('--obj-pct', Math.min(1, cur / orbs));
       } else if (type === 'hybrid') {
@@ -1487,9 +1844,20 @@ const CampaignUI = (() => {
       }
     }
 
-    // Time limit countdown (or show remaining time for survive_seconds objectives)
+    // Time display and shrinking-arena HUD
+    const arenaEl = document.getElementById('cmp-hud-arena');
     if (timer) {
-      if (timeLimit !== null && timeLimit !== undefined) {
+      if (lvl.settings && lvl.settings.shrinkingArena) {
+        // Show elapsed / total time and arena percent
+        const total = (typeof lvl.timeLimit === 'number' && lvl.timeLimit > 0) ? lvl.timeLimit : (lvl.objectiveTarget || 50);
+        const cur = Math.min(Math.floor(elapsed), total);
+        timer.textContent = `Time: ${cur} / ${total}s`;
+        timer.hidden = false;
+        timer.style.color = (total - elapsed) < 8 ? '#ef4444' : '#f8fafc';
+        try { if (typeof window !== 'undefined' && window._campaignShrinkFactor) {
+          if (arenaEl) { arenaEl.textContent = `Arena: ${Math.round(window._campaignShrinkFactor * 100)}%`; arenaEl.hidden = false; }
+        } catch(_) {} }
+      } else if (timeLimit !== null && timeLimit !== undefined) {
         const remaining = Math.max(0, timeLimit - elapsed);
         timer.textContent = remaining > 0 ? `Time: ${Math.ceil(remaining)}s` : 'Time: 0s';
         timer.hidden = false;
@@ -1508,6 +1876,7 @@ const CampaignUI = (() => {
         try { timer._lastRemaining = remInt; } catch (_) {}
       } else {
         timer.hidden = true;
+        if (arenaEl) arenaEl.hidden = true;
       }
     }
 
@@ -1536,16 +1905,26 @@ const CampaignUI = (() => {
     if (!el) return;
 
     const isLast = lvl.id === CAMPAIGN_LEVELS.length;
-    const title  = isLast ? 'Chapter 1 Complete!' : 'Level Complete!';
+    const title  = isLast ? 'Mission Complete!' : 'Level Complete!';
     const nextLvl = CAMPAIGN_LEVELS.find(l => l.id === lvl.id + 1);
+
+    // Merge stateData with last-known progress if available
+    const last = (typeof window !== 'undefined' && window._campaignLastProgress) ? window._campaignLastProgress : {};
+    const sd = Object.assign({}, last, stateData || {});
+
+    const prog = ObjectiveTracker.getProgress(sd.elapsed || 0, sd.roundCoins || 0, sd.dodgeCount || 0) || {};
 
     const starsHtml = `<div class="cmp-v-stars" role="img" aria-label="${stars} of 3 stars">
       ${[1,2,3].map((i, idx) => `<span class="cmp-v-star ${i <= stars ? 'cmp-v-star-on' : ''}" style="--delay:${idx * 0.18}s">&#9733;</span>`).join('')}
     </div>`;
 
-    const coinsHtml = isFirstTime
-      ? `<div class="cmp-v-reward"><span class="cmp-v-reward-icon coin-icon" aria-hidden="true"></span><span class="cmp-v-reward-amt">+${rewardCoins}</span> coins earned</div>`
-      : `<div class="cmp-v-reward cmp-v-replay-reward"><span class="coin-icon" aria-hidden="true"></span> Replay reward: +${Math.round(rewardCoins * 0.1)} coins</div>`;
+    const rewardHtml = `<div class="cmp-v-reward"><span class="cmp-v-reward-icon coin-icon" aria-hidden="true"></span><span class="cmp-v-reward-amt" id="cmp-v-coin-amt">0</span> coins earned</div>`;
+
+    const statsHtml = (prog.hybrid)
+      ? `<div class="cmp-v-stats">${prog.seconds.current}/${prog.seconds.target}s · ${prog.coins.current}/${prog.coins.target} coins · ${prog.dodges.current}/${prog.dodges.target} dodges</div>`
+      : (prog && typeof prog.current !== 'undefined')
+        ? `<div class="cmp-v-stats">${prog.current}/${prog.target}${lvl.objectiveType === 'survive_seconds' ? 's' : (lvl.objectiveType === 'collect_coins' ? ' coins' : '')}</div>`
+        : '';
 
     const nextBtnHtml = (!isLast && nextLvl)
       ? `<button class="cmp-v-btn btn btn-primary" id="cmp-v-next">Next Level<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg></button>`
@@ -1559,18 +1938,27 @@ const CampaignUI = (() => {
         <h2 class="cmp-v-title">${title}</h2>
         <div class="cmp-v-level-name">${lvl.name}</div>
         ${starsHtml}
-        ${coinsHtml}
+        ${rewardHtml}
+        ${statsHtml}
         <div class="cmp-v-btns">
           ${nextBtnHtml}
-          <button class="cmp-v-btn btn ${!isLast && nextLvl ? 'btn-secondary' : 'btn-primary'}" id="cmp-v-replay">Retry Level</button>
-          <button class="cmp-v-btn btn btn-secondary" id="cmp-v-select">Level Select</button>
+          <button class="cmp-v-btn btn ${!isLast && nextLvl ? 'btn-secondary' : 'btn-primary'}" id="cmp-v-replay">Replay</button>
+          <button class="cmp-v-btn btn btn-secondary" id="cmp-v-select">Back to Map</button>
         </div>
       </div>`;
 
     el.hidden = false;
 
-    // Spawn confetti particles
+    // Confetti + coins animation
     setTimeout(() => _spawnConfetti(el.querySelector('#cmp-v-confetti')), 100);
+    const coinAmtEl = el.querySelector('#cmp-v-coin-amt');
+    try { animateCounter(0, rewardCoins, settings && settings.reducedMotion ? 0 : 850, coinAmtEl); } catch(_) { if (coinAmtEl) coinAmtEl.textContent = rewardCoins; }
+
+    // New best / new-stars badge (state may include wasNewBest or wasNewStars)
+    if (sd.wasNewBest || sd.wasNewStars || sd._wasNewBest) {
+      const nb = document.createElement('div'); nb.className = 'cmp-v-newbest'; nb.textContent = 'New Best!';
+      const box = el.querySelector('.cmp-v-box'); if (box) box.insertBefore(nb, box.firstChild.nextSibling);
+    }
 
     // Wire buttons
     const nextBtn   = el.querySelector('#cmp-v-next');
@@ -1589,6 +1977,8 @@ const CampaignUI = (() => {
       el.hidden = true;
       showLevelSelect();
     });
+    // Focus primary action
+    requestAnimationFrame(() => { if (replayBtn) replayBtn.focus(); });
   }
 
   function _spawnConfetti(container) {
@@ -1612,21 +2002,51 @@ const CampaignUI = (() => {
     const el = document.getElementById('campaign-defeat');
     if (!el) return;
 
+    // Allow optional state data from last tick
+    const sd = (typeof window !== 'undefined' && window._campaignLastProgress) ? window._campaignLastProgress : {};
+    const prog = ObjectiveTracker.getProgress(sd.elapsed || 0, sd.roundCoins || 0, sd.dodgeCount || 0) || {};
+
     const reasonText = {
       hit_forbidden: 'You touched a forbidden color.',
+      side_block:    'A side attack hit you.',
       time_up:       'Time ran out.',
+      missed_coins:  'You didn\'t collect enough coins.',
+      left_safe_zone:'You left the safe zone too long.',
       boss_hit:      'The Panic Core got you.',
     }[reason] || 'Objective not completed.';
+
+    // Addiction microcopy
+    let microcopy = '';
+    try {
+      if (lvl.objectiveType === 'collect_coins') {
+        const cur = prog.current || 0; const tgt = prog.target || lvl.objectiveTarget || 0; const delta = Math.max(0, tgt - cur);
+        if (delta === 0) microcopy = 'So close!';
+        else if (delta <= 2) microcopy = `Only ${delta} coin${delta>1?'s':''} away!`;
+        else if (delta <= 5) microcopy = 'So close! Keep trying.';
+      } else if (reason === 'hit_forbidden') microcopy = 'Watch the forbidden color indicator — react fast!';
+      else microcopy = 'Nice try — you can beat it on the next run!';
+    } catch(_) { microcopy = ''; }
+
+    const progressHtml = (prog.hybrid)
+      ? `<div class="cmp-d-progress">${prog.seconds.current}/${prog.seconds.target}s · ${prog.coins.current}/${prog.coins.target} coins · ${prog.dodges.current}/${prog.dodges.target} dodges</div>`
+      : (prog && typeof prog.current !== 'undefined')
+        ? `<div class="cmp-d-progress">${prog.current}/${prog.target}${lvl.objectiveType === 'survive_seconds' ? 's' : (lvl.objectiveType === 'collect_coins' ? ' coins' : '')}</div>`
+        : '';
+
+    const tipText = lvl && lvl.tip ? lvl.tip : 'Use warnings and safe zones to survive the surges.';
 
     el.innerHTML = `
       <div class="cmp-d-box">
         <div class="cmp-d-icon" aria-hidden="true">&#215;</div>
-        <h2 class="cmp-d-title">Level Failed</h2>
+        <h2 class="cmp-d-title">Try Again</h2>
         <p class="cmp-d-level">Level ${lvl.id}: ${lvl.name}</p>
         <p class="cmp-d-reason">${reasonText}</p>
+        ${progressHtml}
+        ${microcopy ? `<div class="cmp-d-micro">${microcopy}</div>` : ''}
+        <div class="cmp-d-tip">${tipText}</div>
         <div class="cmp-d-btns">
           <button class="cmp-d-btn btn btn-primary cmp-d-retry" id="cmp-d-retry">Retry</button>
-          <button class="cmp-d-btn btn btn-secondary" id="cmp-d-select">Level Select</button>
+          <button class="cmp-d-btn btn btn-secondary" id="cmp-d-select">Back to Map</button>
         </div>
       </div>`;
 
@@ -1643,6 +2063,7 @@ const CampaignUI = (() => {
       el.hidden = true;
       showLevelSelect();
     });
+    requestAnimationFrame(() => { if (retryBtn) retryBtn.focus(); });
   }
 
   // ---- Double Trouble overlay flash ----
@@ -1663,8 +2084,12 @@ const CampaignUI = (() => {
     if (!el || el.hidden) return;
     const w = document.getElementById('cmp-hud-shrink');
     if (!w) return;
+    try {
+      if (typeof phase === 'string') w.textContent = phase;
+      else w.textContent = 'Arena Shrinking!';
+    } catch(_) {}
     w.hidden = false;
-    setTimeout(() => { w.hidden = true; }, 2000);
+    setTimeout(() => { try { w.hidden = true; } catch(_){} }, 2000);
   }
 
   // ---- Level select show / hide helpers ----
@@ -1672,6 +2097,7 @@ const CampaignUI = (() => {
     _hideAllGameScreens();
     const el = document.getElementById('campaign-levelselect');
     if (!el) return;
+    try { currentState = STATE.LEVELMAP; } catch (_) {}
     el.hidden = false;
     renderLevelSelect();
   }
@@ -1720,6 +2146,7 @@ window.CampaignManager = (() => {
   let _victoryFired    = false;
   let _defeatFired     = false;
   let _startCoins      = 0;
+  let _startOrbs       = 0;
 
   // Input diagnostics for challenge debug mode
   let _lastPlayerPosForInputCheck = { x: 0, y: 0 };
@@ -1733,6 +2160,11 @@ window.CampaignManager = (() => {
   let _arenaShrinkInterval = 10; // seconds between each shrink step
   let _arenaShrinkStep     = 0;  // which step we're on
   const ARENA_SHRINK_STEPS = 4;  // 4 shrinks over 40s of a 50s level
+  // shrink warning phases
+  let _shrinkWarn1Shown = false;
+  let _shrinkWarn2Shown = false;
+  // pulse timer for visual flourish
+  let _arenaPulse = 0;
 
   // Double trouble campaign state
   let _dtQueue       = [];       // [seconds] offsets for this level
@@ -1851,8 +2283,10 @@ window.CampaignManager = (() => {
     window._campaignDodgeCount = 0;
     // Clear pattern tick and deterministic RNG when exiting campaign
     try { window._campaignPatternTick = null; } catch(_) {}
+    try { if (window.ChallengeSpawnDirector && typeof window.ChallengeSpawnDirector.stop === 'function') window.ChallengeSpawnDirector.stop(); } catch(_) {}
     try { window._campaignRng = null; } catch(_) {}
     try { window._campaignNextWaveShown = false; } catch(_) {}
+    try { window._campaignSideWarnings = []; } catch(_) {}
     BossManager.deactivate();
     _hideWallCanvas();
     CampaignUI.hideHUD();
@@ -1898,6 +2332,7 @@ window.CampaignManager = (() => {
     _defeatFired  = false;
     _isFirstTime  = !CampaignSave.isCompleted(lvl.id);
     _startCoins   = 0;
+    try { _startOrbs = (typeof roundOrbs === 'number') ? roundOrbs : 0; } catch(_) { _startOrbs = 0; }
     _arenaLeft    = 0;
     _arenaRight   = 0;
     _arenaShrinkStep = 0;
@@ -2025,7 +2460,17 @@ window.CampaignManager = (() => {
         window._campaignAttempt = (window._campaignAttempt || 0) + 1;
         const seed = (typeof lvl.id === 'number' ? lvl.id : 0) * 1009 + (window._campaignAttempt * 7919);
         try { window._campaignRng = seededRng(seed); } catch (_) { window._campaignRng = null; }
-        try { window._campaignPatternTick = window.CampaignPatterns.getSpawnPattern(lvl); } catch (e) { window._campaignPatternTick = null; console.error('[Campaign] pattern factory error', e); }
+        try {
+          // Prefer the deterministic CampaignPatterns for Dodge School (id:3)
+          if (lvl && lvl.id === 3) {
+            window._campaignPatternTick = window.CampaignPatterns.getSpawnPattern(lvl);
+          } else if (window.ChallengeSpawnDirector && typeof window.ChallengeSpawnDirector.loadLevel === 'function') {
+            try { window._campaignPatternTick = window.ChallengeSpawnDirector.loadLevel(lvl, { seed: seed }); }
+            catch (e) { window._campaignPatternTick = null; console.error('[Campaign] spawn director load error', e); }
+          } else {
+            window._campaignPatternTick = window.CampaignPatterns.getSpawnPattern(lvl);
+          }
+        } catch (e) { window._campaignPatternTick = null; console.error('[Campaign] pattern factory error', e); }
         window._campaignNextWaveShown = false;
         window._campaignShrinkFactor = 1.0;
         // If this level requests a shrinking arena, compute default step count
@@ -2147,6 +2592,20 @@ window.CampaignManager = (() => {
     const lvl        = _currentLevel;
     const roundCoins = gameState.roundCoins || 0;
     const dodgeCount = window._campaignDodgeCount || 0;
+    // Persist last tick progress so defeat/victory UIs can read it
+    try {
+      // collect mission-run stats when available (near misses, combos, powerups)
+      let near = 0, mcombo = 0, pups = 0;
+      try {
+        const mr = (typeof missionRun !== 'undefined') ? missionRun : (typeof window !== 'undefined' ? window.missionRun : null);
+        if (mr) {
+          if (Number.isFinite(mr.nearMissesThisRun)) near = mr.nearMissesThisRun;
+          if (Number.isFinite(mr.maxCombo)) mcombo = mr.maxCombo;
+          if (Number.isFinite(mr.powerupsThisRun)) pups = mr.powerupsThisRun;
+        }
+      } catch(_) {}
+      window._campaignLastProgress = { elapsed: elapsed, roundCoins: roundCoins, dodgeCount: dodgeCount, score: (gameState && gameState.score) ? gameState.score : 0, nearMisses: near, maxCombo: mcombo, powerupsThisRun: pups };
+    } catch(_) { window._campaignLastProgress = { elapsed: elapsed, roundCoins: roundCoins, dodgeCount: dodgeCount }; }
 
     // ---- Time limit check ----
     if (lvl.timeLimit !== null && lvl.timeLimit !== undefined) {
@@ -2192,17 +2651,11 @@ window.CampaignManager = (() => {
       const player = gameState.player;
       if (player) {
         BossManager.tick(dt, elapsed, player.x, player.y, player.radius);
-        // Boss damage from orb collection
-        const newOrbs = roundCoins - _startCoins;
+        // Boss damage from orb collection (collect orbs since last tick)
+        const newOrbs = (typeof roundOrbs === 'number' ? roundOrbs : 0) - _startOrbs;
         if (newOrbs > 0) {
-          const bossHp = BossManager.getHp();
-          // Each coin collected = 10 boss damage
-          // But only apply once per coin collected
-          const expectedHp = 100 - roundCoins * 10;
-          const actualHp   = BossManager.getHp();
-          if (actualHp > expectedHp) {
-            BossManager.damage((actualHp - expectedHp));
-          }
+          try { if (typeof BossManager !== 'undefined' && typeof BossManager.collectOrbs === 'function') BossManager.collectOrbs(newOrbs); } catch(_){}
+          _startOrbs = (typeof roundOrbs === 'number' ? roundOrbs : 0);
         }
       }
     }
@@ -2369,35 +2822,85 @@ window.CampaignManager = (() => {
   }
 
   function _tickShrinkingArena(dt, elapsed, gameState) {
-    _arenaTimer += dt;
-    const shrinkSteps = (window._campaignShrinkSteps && Number.isInteger(window._campaignShrinkSteps)) ? window._campaignShrinkSteps : ARENA_SHRINK_STEPS;
-    if (_arenaShrinkStep < shrinkSteps && _arenaTimer >= _arenaShrinkInterval) {
-      _arenaTimer = 0;
-      _arenaShrinkStep++;
-      const canvas = gameState.canvas;
-      if (canvas) {
-        const maxShrink = canvas.width * 0.15; // max 15% per side
-        const stepSize  = maxShrink / shrinkSteps;
-        _arenaLeft  = _arenaShrinkStep * stepSize;
-        _arenaRight = canvas.width - _arenaShrinkStep * stepSize;
-        _drawWallOverlay(canvas, _arenaLeft, _arenaRight);
-        CampaignUI.showShrinkWarning(_arenaShrinkStep);
-      }
-    } else if (_arenaShrinkStep > 0) {
-      // Redraw walls every frame
-      const canvas = gameState.canvas;
-      if (canvas) _drawWallOverlay(canvas, _arenaLeft, _arenaRight);
+    // Continuous shrink timeline:
+    // 0-5s: normal
+    // 5-30s: shrink steadily 100% -> 70%
+    // 30-50s: shrink faster 70% -> 57.5%
+    const ttl = (typeof _currentLevel !== 'undefined' && _currentLevel && (typeof _currentLevel.timeLimit === 'number')) ? _currentLevel.timeLimit : 50;
+    const startSlow = 5.0;
+    const midPoint  = 30.0;
+    const endTime   = Math.max(50, ttl);
+    const startFactor = 1.0;
+    const midFactor = 0.70;
+    const endFactor = 0.575; // target ~57.5%
+
+    // show warnings at 5s and 30s exactly once
+    if (elapsed >= startSlow && !_shrinkWarn1Shown) {
+      _shrinkWarn1Shown = true;
+      CampaignUI.showShrinkWarning('Arena shrinking!');
+      try { if (typeof AudioManager !== 'undefined') AudioManager.playSound && AudioManager.playSound('warning'); } catch(_){}
+    }
+    if (elapsed >= midPoint && !_shrinkWarn2Shown) {
+      _shrinkWarn2Shown = true;
+      // use the DT bubble for a short additional message
+      CampaignUI.showDoubleTrouble();
+      try { const dtEl = document.getElementById('cmp-hud-dt'); if (dtEl) { dtEl.textContent = 'Less space!'; dtEl.hidden = false; dtEl.classList.remove('cmp-dt-pop'); void dtEl.offsetWidth; dtEl.classList.add('cmp-dt-pop'); setTimeout(()=>{ try{ dtEl.hidden=true }catch(_){} }, 2200); } } catch(_){}
+      try { if (typeof AudioManager !== 'undefined') AudioManager.playSound && AudioManager.playSound('warning'); } catch(_){}
     }
 
-    // Check if player is in danger zone
-    const player = gameState.player;
-    const canvas  = gameState.canvas;
-    if (player && canvas && _arenaShrinkStep > 0 && !_victoryFired && !_defeatFired) {
-      if ((player.x - player.radius) < _arenaLeft || (player.x + player.radius) > _arenaRight) {
-        _defeatFired = true;
-        window._campaignDefeatReason = 'hit_forbidden';
-        if (typeof triggerGameOver === 'function') triggerGameOver();
+    // compute factor
+    let factor = startFactor;
+    if (elapsed < startSlow) factor = startFactor;
+    else if (elapsed < midPoint) {
+      const p = (elapsed - startSlow) / Math.max(0.0001, (midPoint - startSlow));
+      factor = startFactor + (midFactor - startFactor) * p;
+    } else if (elapsed < endTime) {
+      const p = (elapsed - midPoint) / Math.max(0.0001, (endTime - midPoint));
+      factor = midFactor + (endFactor - midFactor) * p;
+    } else {
+      factor = endFactor;
+    }
+
+    // update global shrink factor used by spawners and HUD
+    window._campaignShrinkFactor = factor;
+
+    // compute pixel bounds centered on arena center
+    const canvas = gameState.canvas;
+    if (canvas) {
+      const center = canvas.width * 0.5;
+      const halfW  = (canvas.width * 0.5) * factor;
+      _arenaLeft  = Math.max(0, Math.floor(center - halfW));
+      _arenaRight = Math.min(canvas.width, Math.ceil(center + halfW));
+
+      // pulse timer
+      _arenaPulse += dt;
+      const pulse = 0.5 + 0.5 * Math.sin(_arenaPulse * 4.0);
+
+      // Draw wall overlay with pulse
+      _drawWallOverlay(canvas, _arenaLeft, _arenaRight, pulse);
+
+      // Expose bounds for spawners
+      window._campaignArenaBounds = { left: _arenaLeft, right: _arenaRight, factor: factor };
+    }
+
+    // Clamp player inside active arena (do not instantly kill). This prevents crushing bugs
+    try {
+      const player = gameState.player;
+      if (player && canvas) {
+        const minX = _arenaLeft + player.radius + 4;
+        const maxX = _arenaRight - player.radius - 4;
+        if (minX < maxX) {
+          if (player.x < minX) { player.x = minX; player.vx = 0; }
+          if (player.x > maxX) { player.x = maxX; player.vx = 0; }
+        }
       }
+    } catch(_) {}
+
+    // Stop updating wall after level ends
+    if (elapsed >= endTime) {
+      try { _hideWallCanvas(); } catch(_){}
+      window._campaignArenaBounds = null;
+      window._campaignShrinkFactor = endFactor;
     }
   }
 
@@ -2415,7 +2918,7 @@ window.CampaignManager = (() => {
     _wallCtx    = null;
   }
 
-  function _drawWallOverlay(gameCanvas, leftBound, rightBound) {
+  function _drawWallOverlay(gameCanvas, leftBound, rightBound, pulseAlpha) {
     const wc = document.getElementById('campaign-wall-canvas');
     if (!wc) return;
     const wctx = wc.getContext('2d');
@@ -2425,42 +2928,65 @@ window.CampaignManager = (() => {
       wc.height = gameCanvas.height;
     }
     wctx.clearRect(0, 0, wc.width, wc.height);
+    pulseAlpha = (typeof pulseAlpha === 'number') ? Math.max(0, Math.min(1, pulseAlpha)) : 0.6;
 
-    // Left wall
+    // Darken outside area to emphasize inner arena
+    wctx.save();
+    wctx.fillStyle = 'rgba(0,0,0,0.45)';
+    wctx.fillRect(0, 0, wc.width, wc.height);
+    // Cut out inner arena (clear)
+    wctx.globalCompositeOperation = 'destination-out';
+    wctx.fillStyle = 'rgba(0,0,0,1)';
+    wctx.fillRect(leftBound, 0, Math.max(0, rightBound - leftBound), wc.height);
+    wctx.globalCompositeOperation = 'source-over';
+
+    // Glowing gradient on edges (purple -> red pulse)
+    const glowColor = `rgba(196, 88, 255, ${0.18 + 0.22 * pulseAlpha})`;
+    const dangerColor = `rgba(255, 86, 86, ${0.5 * pulseAlpha})`;
+
     if (leftBound > 0) {
-      const grad = wctx.createLinearGradient(0, 0, leftBound, 0);
-      grad.addColorStop(0, '#ef444488');
-      grad.addColorStop(1, '#ef444400');
+      const grad = wctx.createLinearGradient(Math.max(0, leftBound - 140), 0, leftBound + 30, 0);
+      grad.addColorStop(0, 'rgba(0,0,0,0)');
+      grad.addColorStop(0.6, 'rgba(124,58,237,0.06)');
+      grad.addColorStop(1, glowColor);
       wctx.fillStyle = grad;
-      wctx.fillRect(0, 0, leftBound, wc.height);
-      // Danger edge line
-      wctx.strokeStyle = '#ef4444';
-      wctx.lineWidth   = 3;
-      wctx.setLineDash([10, 8]);
+      wctx.fillRect(Math.max(0, leftBound - 140), 0, leftBound + 140, wc.height);
+
+      // Glow line
+      wctx.save();
+      wctx.strokeStyle = dangerColor;
+      wctx.lineWidth = 4 + 2 * pulseAlpha;
+      wctx.shadowColor = glowColor;
+      wctx.shadowBlur = 12 * pulseAlpha;
       wctx.beginPath();
-      wctx.moveTo(leftBound, 0);
-      wctx.lineTo(leftBound, wc.height);
+      wctx.moveTo(leftBound + 0.5, 0);
+      wctx.lineTo(leftBound + 0.5, wc.height);
       wctx.stroke();
-      wctx.setLineDash([]);
+      wctx.restore();
     }
 
-    // Right wall
     if (rightBound < gameCanvas.width) {
-      const grad = wctx.createLinearGradient(rightBound, 0, wc.width, 0);
-      grad.addColorStop(0, '#ef444400');
-      grad.addColorStop(1, '#ef444488');
+      const grad = wctx.createLinearGradient(rightBound - 30, 0, Math.min(wc.width, rightBound + 140), 0);
+      grad.addColorStop(0, glowColor);
+      grad.addColorStop(0.6, 'rgba(124,58,237,0.06)');
+      grad.addColorStop(1, 'rgba(0,0,0,0)');
       wctx.fillStyle = grad;
-      wctx.fillRect(rightBound, 0, wc.width - rightBound, wc.height);
-      // Danger edge line
-      wctx.strokeStyle = '#ef4444';
-      wctx.lineWidth   = 3;
-      wctx.setLineDash([10, 8]);
+      wctx.fillRect(rightBound - 140, 0, (Math.min(wc.width, rightBound + 140) - (rightBound - 140)), wc.height);
+
+      // Glow line
+      wctx.save();
+      wctx.strokeStyle = dangerColor;
+      wctx.lineWidth = 4 + 2 * pulseAlpha;
+      wctx.shadowColor = glowColor;
+      wctx.shadowBlur = 12 * pulseAlpha;
       wctx.beginPath();
-      wctx.moveTo(rightBound, 0);
-      wctx.lineTo(rightBound, wc.height);
+      wctx.moveTo(rightBound - 0.5, 0);
+      wctx.lineTo(rightBound - 0.5, wc.height);
       wctx.stroke();
-      wctx.setLineDash([]);
+      wctx.restore();
     }
+
+    wctx.restore();
   }
 
   function _triggerVictory(stateData) {
@@ -2476,6 +3002,19 @@ window.CampaignManager = (() => {
       _playVictorySound();
 
       const lvl    = _currentLevel;
+      // Enrich incoming stateData with mission-run metrics when possible
+      try {
+        const last = (typeof window !== 'undefined' && window._campaignLastProgress) ? window._campaignLastProgress : {};
+        const mr = (typeof missionRun !== 'undefined') ? missionRun : (typeof window !== 'undefined' ? window.missionRun : null);
+        const enrich = Object.assign({}, last, stateData || {});
+        if (mr) {
+          if (Number.isFinite(mr.nearMissesThisRun)) enrich.nearMisses = mr.nearMissesThisRun;
+          if (Number.isFinite(mr.maxCombo)) enrich.maxCombo = mr.maxCombo;
+          if (Number.isFinite(mr.powerupsThisRun)) enrich.powerupsThisRun = mr.powerupsThisRun;
+        }
+        stateData = enrich;
+      } catch (_) {}
+
       const stars  = ObjectiveTracker.calcStars(lvl, stateData);
       const reward = _isFirstTime ? lvl.rewardCoins : Math.round(lvl.rewardCoins * 0.1);
 
@@ -2486,14 +3025,29 @@ window.CampaignManager = (() => {
         if (typeof updateCoinUI === 'function') updateCoinUI(true);
       }
 
-      // Save progress
-      CampaignSave.completeLevelResult(lvl.id, stars, stateData.score || 0, 0, reward, _isFirstTime);
+      // Determine previous best to compute new-best flag
+      const saveState = CampaignSave.get();
+      const prevBest = (saveState && saveState.bestScoresByLevel && Number.isFinite(saveState.bestScoresByLevel[lvl.id])) ? saveState.bestScoresByLevel[lvl.id] : 0;
+      const last = (typeof window !== 'undefined' && window._campaignLastProgress) ? window._campaignLastProgress : {};
+      const runScore = (typeof stateData !== 'undefined' && Number.isFinite(stateData.score)) ? stateData.score : (last.score || 0);
+      const wasNewBest = runScore > prevBest;
+      const prevStars = (saveState && typeof saveState.starsByLevel === 'object') ? (saveState.starsByLevel[lvl.id] || 0) : 0;
+      const wasNewStars = stars > prevStars;
+
+      // Save progress (include runScore if available)
+      CampaignSave.completeLevelResult(lvl.id, stars, runScore || 0, 0, reward, _isFirstTime);
+
+      // Prepare UI state (merge last-known progress and stateData)
+      const uiState = Object.assign({}, last, stateData || {});
+      uiState.wasNewBest = wasNewBest;
+      uiState.wasNewStars = wasNewStars;
 
       CampaignUI.hideHUD();
       BossManager.deactivate();
       _hideWallCanvas();
+      try { currentState = STATE.VICTORY; } catch (_) {}
 
-      CampaignUI.showVictory(lvl, stars, reward, _isFirstTime, stateData);
+      CampaignUI.showVictory(lvl, stars, reward, _isFirstTime, uiState, wasNewBest);
 
       _active = false;
       window._campaignSettings = null;
@@ -2515,11 +3069,15 @@ window.CampaignManager = (() => {
     BossManager.deactivate();
     _hideWallCanvas();
     CampaignUI.hideHUD();
+    try { currentState = STATE.DEFEAT; } catch (_) {}
 
     // Small delay so death animation plays first
     setTimeout(() => {
-      document.getElementById('gameover-overlay').hidden = true;
-      CampaignUI.showDefeat(lvl, reason);
+      try { document.getElementById('gameover-overlay').hidden = true; } catch (_) {}
+      // Provide last-known progress to defeat UI
+      const last = (typeof window !== 'undefined' && window._campaignLastProgress) ? window._campaignLastProgress : {};
+      const stateData = Object.assign({}, last, { hitsReceived: ObjectiveTracker.getHitsReceived() });
+      CampaignUI.showDefeat(lvl, reason, stateData);
     }, 300);
   }
 
