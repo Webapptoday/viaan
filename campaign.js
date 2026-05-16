@@ -3,6 +3,7 @@
 // Clean, scalable campaign system. No regressions to Endless Mode.
 // ============================================================
 'use strict';
+console.log('[Campaign] v2 module loading...');
 
 // ============================================================
 // SECTION 1: LEVEL CONFIG
@@ -2116,6 +2117,7 @@ const CampaignUI = (() => {
   };
 })();
 window.CampaignUI = CampaignUI;
+console.log('[Campaign] CampaignUI exported:', typeof CampaignUI);
 
 // ============================================================
 // SECTION 6: CAMPAIGN MANAGER

@@ -11076,10 +11076,11 @@ function init() {
   const _btnCampaign = document.getElementById('btn-campaign');
   if (_btnCampaign) _btnCampaign.addEventListener('click', () => {
     Audio.uiClick();
-    try {
-      (window.CampaignUI || CampaignUI).showLevelSelect();
-    } catch (e) {
-      console.error('[Menu] Panic Quest open failed:', e);
+    const _ui = window.CampaignUI;
+    if (_ui && typeof _ui.showLevelSelect === 'function') {
+      try { _ui.showLevelSelect(); } catch (e) { console.error('[Menu] Panic Quest open failed:', e); }
+    } else {
+      console.error('[Menu] CampaignUI not available (window.CampaignUI =', _ui, '). Check campaign.js loaded without errors.');
     }
   });
   document.getElementById('btn-progress').addEventListener('click', () => {
