@@ -2115,6 +2115,7 @@ const CampaignUI = (() => {
     showShrinkWarning,
   };
 })();
+window.CampaignUI = CampaignUI;
 
 // ============================================================
 // SECTION 6: CAMPAIGN MANAGER

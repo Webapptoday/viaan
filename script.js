@@ -11076,7 +11076,11 @@ function init() {
   const _btnCampaign = document.getElementById('btn-campaign');
   if (_btnCampaign) _btnCampaign.addEventListener('click', () => {
     Audio.uiClick();
-    CampaignUI.showLevelSelect();
+    try {
+      (window.CampaignUI || CampaignUI).showLevelSelect();
+    } catch (e) {
+      console.error('[Menu] Panic Quest open failed:', e);
+    }
   });
   document.getElementById('btn-progress').addEventListener('click', () => {
     Audio.uiClick();
