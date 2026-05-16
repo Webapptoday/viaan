@@ -1410,6 +1410,7 @@ const CampaignUI = (() => {
 
   // ---- Level Select Screen ----
   function renderLevelSelect() {
+    console.log('[CampaignUI] renderLevelSelect start – CAMPAIGN_LEVELS:', Array.isArray(CAMPAIGN_LEVELS) ? CAMPAIGN_LEVELS.length : 'NOT_ARRAY', 'CampaignSave:', typeof CampaignSave);
     const el = document.getElementById('campaign-levelselect');
     if (!el) return;
     const saveData   = CampaignSave.get();
@@ -2075,13 +2076,58 @@ const CampaignUI = (() => {
   }
 
   // ---- Level select show / hide helpers ----
+  function _renderLevelSelectFallback(el, err) {
+    // Simple guaranteed-to-work fallback used if renderLevelSelect() crashes
+    try {
+      el.innerHTML = '<div style="min-height:100vh;padding:2rem;color:#f8fafc;font-family:Inter,sans-serif;box-sizing:border-box">'
+        + '<button id="cmp-fb-back" style="padding:0.5rem 1.2rem;background:rgba(255,255,255,0.08);color:#f8fafc;border:1px solid rgba(255,255,255,0.15);border-radius:9px;cursor:pointer;margin-bottom:1.5rem;font-size:0.9rem">&#8592; Menu</button>'
+        + '<h1 style="font-size:2rem;font-weight:800;margin:0 0 0.5rem">Panic Quest</h1>'
+        + (err ? '<p style="color:#f87171;font-size:0.78rem;margin:0 0 1.5rem;background:rgba(239,68,68,0.1);padding:0.5rem 0.8rem;border-radius:6px">Render error (send this to dev): ' + String(err).replace(/</g, '&lt;').slice(0, 200) + '</p>' : '')
+        + '<div style="display:flex;flex-direction:column;gap:0.5rem">'
+        + (Array.isArray(CAMPAIGN_LEVELS) ? CAMPAIGN_LEVELS : []).map(function(lvl) {
+            var unlocked = CampaignSave.isUnlocked(lvl.id);
+            var completed = CampaignSave.isCompleted(lvl.id);
+            return '<div style="display:flex;align-items:center;justify-content:space-between;padding:0.9rem 1.2rem;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:10px">'
+              + '<div><span style="color:rgba(255,255,255,0.45);font-size:0.75rem;margin-right:0.5rem">LVL ' + lvl.id + '</span><strong>' + lvl.name + '</strong>'
+              + ' <span style="color:rgba(255,255,255,0.45);font-size:0.8rem">— ' + lvl.difficulty + '</span></div>'
+              + (unlocked
+                  ? '<button data-cmp-fb-id="' + lvl.id + '" style="padding:0.35rem 1rem;background:#7c3aed;color:#fff;border:none;border-radius:7px;cursor:pointer;font-size:0.85rem;font-weight:700">' + (completed ? 'Replay' : 'Play') + '</button>'
+                  : '<span style="color:rgba(255,255,255,0.25);font-size:0.8rem">Locked</span>')
+              + '</div>';
+          }).join('')
+        + '</div></div>';
+      var backBtn = el.querySelector('#cmp-fb-back');
+      if (backBtn) backBtn.addEventListener('click', function() {
+        try { hideLevelSelect(); } catch(_) {}
+        try { if (typeof returnHome === 'function') returnHome(); } catch(_) {}
+      });
+      el.querySelectorAll('[data-cmp-fb-id]').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          var id = parseInt(btn.dataset.cmpFbId, 10);
+          var lvl = CAMPAIGN_LEVELS.find(function(l) { return l.id === id; });
+          if (lvl) try { window.CampaignManager.selectLevel(lvl); } catch(e2) { console.error('[CampaignUI] selectLevel failed', e2); }
+        });
+      });
+    } catch (fe) {
+      console.error('[CampaignUI] fallback render also failed', fe);
+      el.innerHTML = '<div style="padding:2rem;color:#f8fafc;font-family:sans-serif"><h2>Panic Quest</h2><p>Level map failed to load. Refresh the page.</p></div>';
+    }
+  }
+
   function showLevelSelect() {
     _hideAllGameScreens();
     const el = document.getElementById('campaign-levelselect');
-    if (!el) return;
+    if (!el) { console.error('[CampaignUI] campaign-levelselect element not found'); return; }
     try { currentState = STATE.LEVELMAP; } catch (_) {}
     el.hidden = false;
-    renderLevelSelect();
+    console.log('[CampaignUI] showLevelSelect: rendering level map');
+    try {
+      renderLevelSelect();
+      console.log('[CampaignUI] renderLevelSelect completed OK');
+    } catch (e) {
+      console.error('[CampaignUI] renderLevelSelect FAILED:', e);
+      _renderLevelSelectFallback(el, e);
+    }
   }
 
   function hideLevelSelect() {
