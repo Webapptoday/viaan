@@ -11075,7 +11075,7 @@ function init() {
   });
   const _btnCampaign = document.getElementById('btn-campaign');
   if (_btnCampaign) _btnCampaign.addEventListener('click', () => {
-    console.log('[Menu] Panic Quest clicked – window.CampaignUI:', typeof window.CampaignUI);
+    console.log('[Menu] Panic Quest clicked – window.CampaignUI:', typeof window.CampaignUI, window._campaignLoadError ? 'LOAD_ERROR:' + window._campaignLoadError : '');
     Audio.uiClick();
     const _ui = window.CampaignUI;
     if (_ui && typeof _ui.showLevelSelect === 'function') {

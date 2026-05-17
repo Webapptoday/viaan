@@ -3,7 +3,15 @@
 // Clean, scalable campaign system. No regressions to Endless Mode.
 // ============================================================
 'use strict';
-console.log('[Campaign] v2 module loading...');
+console.log('[Campaign] v7 module loading...');
+window._campaignLoadError = null;
+// Catch any unhandled errors from this script so we can surface them
+window.addEventListener('error', function _cmpErrHandler(ev) {
+  if (ev.filename && ev.filename.indexOf('campaign.js') !== -1) {
+    window._campaignLoadError = ev.message + ' (line ' + ev.lineno + ')';
+    console.error('[Campaign] LOAD ERROR:', ev.message, 'at line', ev.lineno);
+  }
+});
 
 // ============================================================
 // SECTION 1: LEVEL CONFIG
@@ -618,42 +626,6 @@ window.unlockAllCampaignLevels = function() {
     CampaignSave.save();
     console.info('[Campaign] All levels unlocked');
   } catch (e) { console.error(e); }
-};
-
-// Developer: debug helpers to validate and optionally start levels programmatically.
-window.debugStartLevel = function(id) {
-  try {
-    window.DEBUG_CHALLENGE = true;
-    const lvl = CAMPAIGN_LEVELS.find(l => l.id === id);
-    if (!lvl) { console.error('[CampaignDebug] unknown level', id); return; }
-    console.info('[CampaignDebug] Starting level', id, lvl.name);
-    window.CampaignManager.selectLevel(lvl);
-  } catch (e) { console.error('[CampaignDebug] debugStartLevel error', e); }
-};
-
-window.debugChallengeLevels = async function(runStart) {
-  console.info('[CampaignDebug] Validating all campaign levels');
-  for (const lvl of CAMPAIGN_LEVELS) {
-    try {
-      const problems = validateChallengeLevelStrict(lvl);
-      const ok = !problems || problems.length === 0;
-      console.log('[CampaignDebug] Level', lvl.id, '-', lvl.name, 'configValid=', ok, (ok ? '' : problems));
-      if (runStart && ok) {
-        console.log('[CampaignDebug] Attempting to start level', lvl.id);
-        try {
-          window.CampaignManager.selectLevel(lvl);
-          // allow short startup time to observe spawns
-          await new Promise(r => setTimeout(r, 1400));
-          const obsCt = (typeof obstacles !== 'undefined') ? obstacles.length : 'n/a';
-          const playerOk = (typeof player !== 'undefined');
-          console.log('[CampaignDebug] afterStart', lvl.id, 'obstacles:', obsCt, 'playerPresent:', playerOk, 'state:', (typeof currentState !== 'undefined' ? currentState : 'n/a'));
-        } catch (e) { console.error('[CampaignDebug] start failed for', lvl.id, e); }
-        try { if (typeof CampaignUI !== 'undefined' && typeof CampaignUI.showLevelSelect === 'function') CampaignUI.showLevelSelect(); } catch (_) {}
-        await new Promise(r => setTimeout(r, 300));
-      }
-    } catch (e) { console.error('[CampaignDebug] validation error for', lvl && lvl.id, e); }
-  }
-  console.info('[CampaignDebug] Validation complete');
 };
 
 // Developer: debug helpers to validate and optionally start levels programmatically.
@@ -2163,7 +2135,7 @@ const CampaignUI = (() => {
   };
 })();
 window.CampaignUI = CampaignUI;
-console.log('[Campaign] CampaignUI exported:', typeof CampaignUI);
+console.log('[Campaign] v7 CampaignUI exported:', typeof CampaignUI, typeof CampaignUI === 'object' ? 'OK' : 'FAIL');
 
 // ============================================================
 // SECTION 6: CAMPAIGN MANAGER
