@@ -11097,10 +11097,16 @@ function init() {
     const _lsEl = document.getElementById('campaign-levelselect');
     if (_lsEl) {
       _lsEl.hidden = false;
-      // If campaign.js loads later, try to render the level map
-      if (window.CampaignUI && typeof window.CampaignUI.renderLevelSelect === 'function') {
-        try { window.CampaignUI.renderLevelSelect(); } catch (_) {}
+      if (window.CampaignUI && typeof window.CampaignUI.showLevelSelect === 'function') {
+        try { window.CampaignUI.showLevelSelect(); return; } catch (_) {}
       }
+      // campaign.js did not load — show a clear prompt so the user isn't stuck on a black screen
+      _lsEl.innerHTML = '<div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.5rem;padding:2rem;color:#f8fafc;font-family:Inter,sans-serif;text-align:center">'
+        + '<h2 style="font-size:1.8rem;font-weight:800;margin:0">Panic Quest</h2>'
+        + '<p style="color:rgba(255,255,255,0.6);margin:0">Level map could not load.<br>Please refresh the page and try again.</p>'
+        + '<button onclick="location.reload()" style="padding:0.65rem 1.8rem;background:#7c3aed;color:#fff;border:none;border-radius:10px;font-size:1rem;font-weight:700;cursor:pointer">Refresh Page</button>'
+        + '<button onclick="document.getElementById(\'campaign-levelselect\').hidden=true;document.getElementById(\'home-screen\').hidden=false;" style="padding:0.45rem 1.2rem;background:rgba(255,255,255,0.08);color:#f8fafc;border:1px solid rgba(255,255,255,0.15);border-radius:9px;font-size:0.9rem;cursor:pointer">Back to Menu</button>'
+        + '</div>';
     }
   });
   document.getElementById('btn-progress').addEventListener('click', () => {
