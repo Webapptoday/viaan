@@ -7,7 +7,7 @@ console.log('[Campaign] v7 module loading...');
 window._campaignLoadError = null;
 // Catch any unhandled errors from this script so we can surface them
 window.addEventListener('error', function _cmpErrHandler(ev) {
-  if (ev.filename && ev.filename.indexOf('campaign.js') !== -1) {
+  if (ev.filename && (ev.filename.indexOf('campaign-mode.js') !== -1 || ev.filename.indexOf('campaign.js') !== -1)) {
     window._campaignLoadError = ev.message + ' (line ' + ev.lineno + ')';
     console.error('[Campaign] LOAD ERROR:', ev.message, 'at line', ev.lineno);
   }
