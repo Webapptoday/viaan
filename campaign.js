@@ -435,7 +435,7 @@ const CAMPAIGN_LEVELS = [
         { time: 18.0, type: 'coinTrail', pattern: 'rightToLeftArc', lane: 3, count: 4, orb: true },
         { time: 30.0, type: 'pressureWave', duration: 5 },
         { time: 36.0, type: 'coinTrail', pattern: 'leftToRightArc', lane: 2, count: 3, orb: true },
-        { time: 8.0, handler: function(ev) { try { window.CampaignPatterns && window.CampaignPatterns.spawnSideBlock && window.CampaignPatterns.spawnSideBlock({ side: 'left', y: canvas ? Math.max(160, Math.min(canvas.height - 160, player ? player.y : canvas.height * 0.7)) }); } catch(_){} } },
+        { time: 8.0, handler: function(ev) { try { window.CampaignPatterns && window.CampaignPatterns.spawnSideBlock && window.CampaignPatterns.spawnSideBlock({ side: 'left', y: canvas ? Math.max(160, Math.min(canvas.height - 160, player ? player.y : canvas.height * 0.7)) : 320 }); } catch(_){} } },
         { time: 50.0, handler: function(ev) { try { window.CampaignPatterns && window.CampaignPatterns.spawnSideBlock && window.CampaignPatterns.spawnSideBlock({ side: 'right' }); } catch(_){} } }
       ],
       settings: {
