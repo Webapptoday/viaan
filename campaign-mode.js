@@ -21,7 +21,8 @@ const CAMPAIGN_LEVELS = [
     {
       id: 1,
       name: 'First Shift',
-      subtitle: 'Learn to read the colors and survive.',
+      subtitle: 'One color is off-limits. Read it fast — and stay out.',
+      flavorLine: 'The storm starts now.',
       difficulty: 'Easy',
       difficultyColor: '#22c55e',
       objectiveType: 'survive_seconds',
@@ -29,7 +30,7 @@ const CAMPAIGN_LEVELS = [
       timeLimit: 25,
       rewardCoins: 25,
       replayReward: 5,
-      tip: 'Quick bursts force early movement — read the color indicator and react fast.',
+      tip: 'Watch the forbidden color indicator at the top — not just the blocks falling toward you.',
       starConditions: [
         { stars: 3, label: 'No hits',       check: (d) => d.hitsReceived === 0 },
         { stars: 2, label: 'At most 1 hit', check: (d) => d.hitsReceived <= 1 },
@@ -67,8 +68,9 @@ const CAMPAIGN_LEVELS = [
     },
     {
       id: 2,
-      name: 'Coin Collector',
-      subtitle: 'Collect coins before time runs out.',
+      name: 'Coin Rush',
+      subtitle: '15 coins. 35 seconds. Move.',
+      flavorLine: 'Greed has a timer.',
       difficulty: 'Easy',
       difficultyColor: '#22c55e',
       objectiveType: 'collect_coins',
@@ -76,7 +78,7 @@ const CAMPAIGN_LEVELS = [
       timeLimit: 35,
       rewardCoins: 30,
       replayReward: 8,
-      tip: 'Gold coins appear regularly — move to them quickly without hitting danger blocks.',
+      tip: 'Coins drop in bursts — get moving toward them as soon as they appear.',
       starConditions: [
         { stars: 3, label: '12+ sec left',  check: (d) => d.timeRemaining >= 12 },
         { stars: 2, label: '5+ sec left',   check: (d) => d.timeRemaining >= 5 },
@@ -181,8 +183,9 @@ const CAMPAIGN_LEVELS = [
     },
     {
       id: 3,
-      name: 'Dodge School',
-      subtitle: 'Prove your reflexes by dodging 100 blocks.',
+      name: 'Block Party',
+      subtitle: '100 blocks want to ruin your day. Let them all miss.',
+      flavorLine: 'Every miss is a point.',
       difficulty: 'Medium',
       difficultyColor: '#f59e0b',
       objectiveType: 'dodge_blocks',
@@ -190,7 +193,7 @@ const CAMPAIGN_LEVELS = [
       timeLimit: 75,
       rewardCoins: 40,
       replayReward: 9,
-      tip: 'A dodge counts when a danger block fully passes below you. Focus on gaps, not hits.',
+      tip: 'A dodge counts when a block passes fully below you. Thread the gaps early — don\'t wait.',
       starConditions: [
         { stars: 3, label: 'No hits',       check: (d) => d.hitsReceived === 0 },
         { stars: 2, label: '≤ 2 hits',      check: (d) => d.hitsReceived <= 2 },
@@ -211,8 +214,9 @@ const CAMPAIGN_LEVELS = [
     },
     {
       id: 4,
-      name: 'Fast Switch',
-      subtitle: 'Colors change faster — stay sharp.',
+      name: 'Speed Read',
+      subtitle: 'The rules keep changing. Your reactions can\'t.',
+      flavorLine: 'React or regret.',
       difficulty: 'Medium',
       difficultyColor: '#f59e0b',
       objectiveType: 'survive_seconds',
@@ -220,7 +224,7 @@ const CAMPAIGN_LEVELS = [
       timeLimit: 50,
       rewardCoins: 45,
       replayReward: 10,
-      tip: 'Watch the warning timer at the top. When it glows, the forbidden color is about to change.',
+      tip: 'A warning flash fires before each color switch. See it — adjust before the swap hits.',
       starConditions: [
         { stars: 3, label: 'No hits',       check: (d) => d.hitsReceived === 0 },
         { stars: 2, label: 'At most 1 hit', check: (d) => d.hitsReceived <= 1 },
@@ -243,7 +247,8 @@ const CAMPAIGN_LEVELS = [
     {
       id: 5,
       name: 'Tight Gaps',
-      subtitle: 'Navigate narrow paths without breaking.',
+      subtitle: 'The paths are narrow. There is no margin for hesitation.',
+      flavorLine: 'One clean path. Find it.',
       difficulty: 'Medium',
       difficultyColor: '#f59e0b',
       objectiveType: 'survive_seconds',
@@ -251,7 +256,7 @@ const CAMPAIGN_LEVELS = [
       timeLimit: 25,
       rewardCoins: 25,
       replayReward: 5,
-      tip: 'Quick bursts force early movement — read the color indicator and react fast.',
+      tip: 'Commit to the gap early. Waiting is the fastest way to get clipped.',
       starConditions: [
         { stars: 3, label: 'No hits',       check: (d) => d.hitsReceived === 0 },
         { stars: 2, label: 'At most 1 hit', check: (d) => d.hitsReceived <= 1 },
@@ -286,8 +291,9 @@ const CAMPAIGN_LEVELS = [
     },
     {
       id: 6,
-      name: 'Coin Panic',
-      subtitle: 'Grab coins while danger closes in.',
+      name: 'Danger Pay',
+      subtitle: 'The coins are worth it. The chaos is not.',
+      flavorLine: 'Grab and run.',
       difficulty: 'Hard',
       difficultyColor: '#ef4444',
       objectiveType: 'collect_coins',
@@ -295,7 +301,7 @@ const CAMPAIGN_LEVELS = [
       timeLimit: 50,
       rewardCoins: 150,
       replayReward: 15,
-      tip: 'Move aggressively to grab coins — but never into a forbidden block.',
+      tip: 'Bank coins early — a panic wave hits halfway through. After that, survival is everything.',
       starConditions: [
         { stars: 3, label: '15+ sec left',  check: (d) => d.timeRemaining >= 15 },
         { stars: 2, label: '6+ sec left',   check: (d) => d.timeRemaining >= 6 },
@@ -316,8 +322,9 @@ const CAMPAIGN_LEVELS = [
     },
     {
       id: 7,
-      name: 'Double Trouble',
-      subtitle: 'Survive waves of chaos every 15 seconds.',
+      name: 'Triple Surge',
+      subtitle: 'Three chaos waves. Fifteen seconds apart. No rest.',
+      flavorLine: 'Survive the countdown.',
       difficulty: 'Hard',
       difficultyColor: '#ef4444',
       objectiveType: 'survive_seconds',
@@ -325,7 +332,7 @@ const CAMPAIGN_LEVELS = [
       timeLimit: null,
       rewardCoins: 175,
       replayReward: 18,
-      tip: 'At 15s, 30s and 45s a surge fires. Use the brief warning to find a safe zone.',
+      tip: 'Each surge is worse than the last. Find your safe zone before the warning ends.',
       starConditions: [
         { stars: 3, label: 'No hits',       check: (d) => d.hitsReceived === 0 },
         { stars: 2, label: 'At most 1 hit', check: (d) => d.hitsReceived <= 1 },
@@ -349,8 +356,9 @@ const CAMPAIGN_LEVELS = [
     },
     {
       id: 8,
-      name: 'Shrinking Arena',
-      subtitle: 'The walls are closing in. Stay alive.',
+      name: 'Closing In',
+      subtitle: 'The arena gets smaller every second. Space is not coming back.',
+      flavorLine: 'Less room. Same danger.',
       difficulty: 'Hard',
       difficultyColor: '#ef4444',
       objectiveType: 'survive_seconds',
@@ -358,7 +366,7 @@ const CAMPAIGN_LEVELS = [
       timeLimit: 50,
       rewardCoins: 200,
       replayReward: 20,
-      tip: 'Watch the glowing boundaries. Move early and keep to the inner arena.',
+      tip: 'Drift toward the center before the walls force you there.',
       starConditions: [
         { stars: 3, label: 'No hits',       check: (d) => d.hitsReceived === 0 },
         { stars: 2, label: 'At most 1 hit', check: (d) => d.hitsReceived <= 1 },
@@ -380,8 +388,9 @@ const CAMPAIGN_LEVELS = [
     },
     {
       id: 9,
-      name: 'Final Trial',
-      subtitle: 'Three objectives. One chance. No mercy.',
+      name: 'The Gauntlet',
+      subtitle: 'Survive, collect, and dodge — all at once. All three required.',
+      flavorLine: 'This is what you trained for.',
       difficulty: 'Expert',
       difficultyColor: '#a855f7',
       objectiveType: 'hybrid',
@@ -389,7 +398,7 @@ const CAMPAIGN_LEVELS = [
       timeLimit: null,
       rewardCoins: 250,
       replayReward: 25,
-      tip: 'All three objectives must be completed. Panic wave fires at 45s — be ready.',
+      tip: 'Don\'t neglect coins early — they get scarce after the panic wave. Know where you are at 45s.',
       starConditions: [
         { stars: 3, label: 'No hits',       check: (d) => d.hitsReceived === 0 },
         { stars: 2, label: 'At most 1 hit', check: (d) => d.hitsReceived <= 1 },
@@ -414,7 +423,8 @@ const CAMPAIGN_LEVELS = [
     {
       id: 10,
       name: 'The Panic Core',
-      subtitle: 'Face the boss. Collect orbs to deal damage.',
+      subtitle: 'It has no weaknesses except the orbs it drops. Collect them all.',
+      flavorLine: 'End it.',
       difficulty: 'Boss',
       difficultyColor: '#ec4899',
       objectiveType: 'boss_defeat',
@@ -422,7 +432,7 @@ const CAMPAIGN_LEVELS = [
       timeLimit: 120,
       rewardCoins: 500,
       replayReward: 50,
-      tip: 'Collect glowing orbs to damage the boss. Dodge its projectiles — they have warning lines.',
+      tip: 'Grab every orb the moment it appears. Dodge every warning line. Don\'t stop moving.',
       starConditions: [
         { stars: 3, label: 'No hits',       check: (d) => d.hitsReceived === 0 },
         { stars: 2, label: 'Defeat boss',   check: (d) => d.bossDefeated === true },
@@ -1655,6 +1665,7 @@ const CampaignUI = (() => {
               <span class="cmp-diff-badge ${diff.badge}">${diff.label}</span>
             </div>
             <div class="cmp-node-title">${lvl.name}</div>
+            ${lvl.subtitle ? `<div class="cmp-node-flavor">${lvl.subtitle}</div>` : ''}
           </div>
         </div>
         ${objTypeHtml}
@@ -1686,27 +1697,67 @@ const CampaignUI = (() => {
   function _getObjectiveSummary(lvl) {
     const t = lvl.objectiveType;
     const tgt = lvl.objectiveTarget;
-    if (t === 'survive_seconds') return `Survive ${tgt}s`;
-    if (t === 'collect_coins')   return `Collect ${tgt} coins${lvl.timeLimit ? ' in ' + lvl.timeLimit + 's' : ''}`;
-    if (t === 'dodge_blocks')    return `Dodge ${tgt} blocks`;
-    if (t === 'boss_defeat')     return 'Defeat the Panic Core';
-    if (t === 'hybrid')          return `${tgt.seconds}s + ${tgt.coins} coins + ${tgt.dodges} dodges`;
-    return 'Complete objective';
+    if (t === 'survive_seconds') return `Stay alive for ${tgt} seconds`;
+    if (t === 'collect_coins')   return lvl.timeLimit ? `Collect ${tgt} coins before ${lvl.timeLimit}s runs out` : `Collect ${tgt} coins`;
+    if (t === 'dodge_blocks')    return `Dodge ${tgt} falling blocks`;
+    if (t === 'boss_defeat')     return 'Deal 10 hits to defeat the Panic Core';
+    if (t === 'hybrid')          return `${tgt.seconds}s survived \u00b7 ${tgt.coins} coins \u00b7 ${tgt.dodges} dodges`;
+    return 'Complete the objective';
   }
 
   // ---- Level Intro Screen ----
   // Briefing content for each level (short, punchy lines)
   const LEVEL_BRIEFINGS = {
-    1: { mechanic: 'Avoid the forbidden color — read the top indicator.', tips: ['Move gently, don’t panic.', 'Read the color before you move.'] },
-    2: { mechanic: 'Collect coin trails before the timer runs out.', tips: ['Follow coin trails for clusters.', 'Don’t chase coins into danger.'] },
-    3: { mechanic: 'Dodge focused waves — anticipate openings.', tips: ['Small, early moves win.', 'Keep your eyes on the gaps.'] },
-    4: { mechanic: 'Fast color switches — a warning appears before each change.', tips: ['Hold center before a switch.', 'React to the warning glow.'] },
-    5: { mechanic: 'Narrow, tight gaps — precision required.', tips: ['Plan a clear path.', 'Make short, confident shifts.'] },
-    6: { mechanic: 'Coin trails lure you — panic wave follows later.', tips: ['Grab coins quickly then retreat.', 'Avoid forbidden blocks when diving.'] },
-    7: { mechanic: 'Surges at 15s, 30s, 45s — use warnings to hide.', tips: ['Find a safe spot on warning.', 'Brace during the surge, move after.'] },
-    8: { mechanic: 'Arena shrinks over time — space gets tight.', tips: ['Hold the center as walls close.', 'Avoid getting trapped at edges.'] },
-    9: { mechanic: 'Three objectives — balance speed, coins and dodges.', tips: ['Split your focus smartly.', 'Don’t overcommit to one task.'] },
-    10: { mechanic: 'Boss fight: collect orbs to damage the Panic Core.', tips: ['Snag orbs to deal damage.', 'Dodge projectile warnings and strike openings.'] }
+    1: {
+      hype: 'The storm starts now.',
+      mechanic: 'One color is forbidden at all times. Touch it and you\u2019re done. The indicator at the top tells you which one.',
+      tips: ['Watch the top indicator first \u2014 then the blocks.', 'Move early. Don\u2019t wait for blocks to reach you.']
+    },
+    2: {
+      hype: 'Greed has a timer.',
+      mechanic: 'Coins drop in bursts across the arena. Reach them fast \u2014 but never step into a forbidden block to get there.',
+      tips: ['Coins come in clusters \u2014 move toward them immediately.', 'One bad step costs more time than any single coin is worth.']
+    },
+    3: {
+      hype: 'Every miss is a point.',
+      mechanic: 'A dodge counts when a block passes fully below you. Thread the gaps \u2014 don\u2019t just dodge, anticipate.',
+      tips: ['Read the wave pattern, not individual blocks.', 'Small sidesteps beat big panicked leaps every time.']
+    },
+    4: {
+      hype: 'React or regret.',
+      mechanic: 'The forbidden color rotates faster here. A warning flash fires before every switch \u2014 that flash is your signal.',
+      tips: ['Hold center before a switch so you have room to adjust.', 'The warning flash is your best friend. Watch for it.']
+    },
+    5: {
+      hype: 'One clean path. Find it.',
+      mechanic: 'Blocks arrive with tight gaps between them. Precision movement only \u2014 no panicking, no guessing.',
+      tips: ['Commit to a gap early. Hesitation gets you hit.', 'Short, deliberate shifts beat nervous drifting.']
+    },
+    6: {
+      hype: 'Grab and run.',
+      mechanic: 'Coins are scattered across a hot arena. Bank as many as you can \u2014 then a panic wave hits. Stay sharp.',
+      tips: ['Get coins in the first half. The second half is survival.', 'When the panic wave lands, forget coins \u2014 just don\u2019t die.']
+    },
+    7: {
+      hype: 'Survive the countdown.',
+      mechanic: 'Three surge waves fire at 15s, 30s, and 45s. Each one is harder than the last. Brace between them.',
+      tips: ['Find your safe spot before the warning ends.', 'Stay cool between surges \u2014 conserve space for the next one.']
+    },
+    8: {
+      hype: 'Less room. Same danger.',
+      mechanic: 'The arena shrinks in real time. The playable area keeps getting smaller \u2014 and it\u2019s not coming back.',
+      tips: ['Drift toward the center before the walls force you there.', 'Don\u2019t get cornered at the edges \u2014 they\u2019ll vanish.']
+    },
+    9: {
+      hype: 'This is what you trained for.',
+      mechanic: 'Three objectives run simultaneously: survive 75s, collect 20 coins, and dodge 60 blocks. All three must be done.',
+      tips: ['Don\u2019t neglect coins early \u2014 they get scarce after the panic wave.', 'A panic wave fires at 45s. Know your exit.']
+    },
+    10: {
+      hype: 'End it.',
+      mechanic: 'The Panic Core fires projectiles and spawns orbs. Collect the orbs to deal damage. Dodge the rest.',
+      tips: ['Grab every orb the instant it appears.', 'Warning lines appear before projectiles \u2014 they\u2019re your cue to move.']
+    }
   };
 
   function showLevelIntro(lvl, onStart) {
@@ -1715,6 +1766,23 @@ const CampaignUI = (() => {
 
     const briefing = LEVEL_BRIEFINGS[lvl.id] || {};
     const objText = _getObjectiveSummary(lvl);
+    const hypeText = briefing.hype || lvl.flavorLine || '';
+    const startLabel = {
+      'boss_defeat':    'Fight!',
+      'hybrid':         'Let\u2019s Go!',
+      'collect_coins':  'Grab \u2019em!',
+      'dodge_blocks':   'Bring It!',
+      'survive_seconds':'Let\u2019s Go!',
+    }[lvl.objectiveType] || 'Let\u2019s Go!';
+    const specialRulesHtml = (
+      lvl.settings && lvl.settings.shrinkingArena ? '<li>The arena shrinks over time — space is limited.</li>' : ''
+    ) + (
+      lvl.settings && lvl.settings.doubleTroubleAt && lvl.settings.doubleTroubleAt.length
+        ? `<li>Surge waves fire at ${lvl.settings.doubleTroubleAt.join('s, ')}s.</li>`
+        : ''
+    ) + (
+      lvl.settings && lvl.settings.bossMode ? '<li>Boss fight: collect orbs to deal damage.</li>' : ''
+    );
 
     const BIG_ICONS = {
       'survive_seconds': '<svg class="cmp-svg-icon" width="56" height="56" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M12 8v5l3 3"/><path stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M21 12A9 9 0 1 1 3 12a9 9 0 0 1 18 0z"/></svg>',
@@ -1742,23 +1810,25 @@ const CampaignUI = (() => {
               <span class="cmp-intro-diff" style="color:${lvl.difficultyColor}">${lvl.difficulty}</span>
             </div>
             <h2 class="cmp-intro-name">${lvl.name}</h2>
-            <p class="cmp-intro-sub">${lvl.subtitle}</p>
+            ${hypeText ? `<p class="cmp-intro-hype">${hypeText}</p>` : ''}
           </div>
         </div>
 
         <div class="cmp-intro-objective">
-          <div class="cmp-intro-obj-label">Objective</div>
+          <div class="cmp-intro-obj-label">Mission</div>
           <div class="cmp-intro-obj-text">${objText}</div>
         </div>
 
         <div class="cmp-intro-mechanic">
-          <div class="cmp-intro-mech-label">Rule</div>
-          <div class="cmp-intro-mech-text">${briefing.mechanic || ''}</div>
+          <div class="cmp-intro-mech-label">How it works</div>
+          <div class="cmp-intro-mech-text">${briefing.mechanic || lvl.subtitle || ''}</div>
         </div>
 
+        ${specialRulesHtml ? `<ul class="cmp-intro-special-rules" aria-label="Special rules">${specialRulesHtml}</ul>` : ''}
+
         <ul class="cmp-intro-tips" aria-label="Tips">
-          <li>${(briefing.tips && briefing.tips[0]) || lvl.tip || ''}</li>
-          <li>${(briefing.tips && briefing.tips[1]) || ''}</li>
+          ${(briefing.tips && briefing.tips[0]) ? `<li>${briefing.tips[0]}</li>` : (lvl.tip ? `<li>${lvl.tip}</li>` : '')}
+          ${(briefing.tips && briefing.tips[1]) ? `<li>${briefing.tips[1]}</li>` : ''}
         </ul>
 
         <div class="cmp-intro-reward">
@@ -1768,8 +1838,8 @@ const CampaignUI = (() => {
         </div>
 
         <div class="cmp-intro-actions">
-          <button class="cmp-intro-start-btn btn btn-primary" id="cmp-intro-start">Start Mission</button>
-          <button class="cmp-intro-back-btn btn btn-secondary" id="cmp-intro-back">Level Select</button>
+          <button class="cmp-intro-start-btn btn btn-primary" id="cmp-intro-start">${startLabel}</button>
+          <button class="cmp-intro-back-btn btn btn-secondary" id="cmp-intro-back">Back</button>
         </div>
       </div>`;
 
