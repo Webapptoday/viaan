@@ -760,6 +760,7 @@
 .cmp-obj-type {
   display: inline-flex;
   align-items: center;
+  align-self: flex-start;
   gap: 3px;
   font-size: 0.58rem;
   font-weight: 900;
@@ -769,6 +770,8 @@
   padding: 2px 7px;
   margin-bottom: 3px;
   line-height: 1;
+  width: fit-content;
+  max-width: 100%;
 }
 .cmp-obj-type--timer  { color: #7dd3fc; background: rgba(14,165,233,0.16); border: 1px solid rgba(14,165,233,0.28); }
 .cmp-obj-type--coins  { color: #fde68a; background: rgba(245,158,11,0.16); border: 1px solid rgba(245,158,11,0.28); }
