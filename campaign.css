@@ -42,24 +42,156 @@
 .btn-campaign-home:focus-visible::before { opacity: 1; }
 
 /* ============================================================
-   CAMPAIGN LEVEL SELECT — CHALLENGE ROAD DESIGN
-   Winding path map with animated particles, colored nodes,
-   and an arcade-style central spine.
+   CAMPAIGN LEVEL SELECT — CHALLENGE ROAD DESIGN (v2)
+   Vibrant dark neon aesthetic. Sticky HUD. Chapter dividers.
+   Polished difficulty badges. Premium progression feel.
    ============================================================ */
 #campaign-levelselect {
-  background: #07070f;
+  background: #06060e;
   overflow-y: auto;
+  /* scroll-padding-top makes anchor targets clear the sticky bar */
+  scroll-padding-top: 56px;
 }
 
-/* Outer wrapper: full-screen dark bg */
+/* ============================================================
+   STICKY HUD — always visible at top while scrolling
+   Must be a direct child of #campaign-levelselect (the scroll
+   container) — NOT inside .cmp-road-outer (overflow:hidden)
+   ============================================================ */
+.cmp-sticky-hud {
+  position: sticky;
+  top: 0;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem 1rem 0;
+  background: rgba(6, 6, 14, 0.85);
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  border-bottom: 1px solid rgba(124, 58, 237, 0.18);
+  box-shadow: 0 2px 20px rgba(0,0,0,0.45);
+  transition: padding 0.2s ease;
+  flex-wrap: wrap;
+  min-height: 52px;
+}
+
+.cmp-sticky-hud--compact {
+  padding-top: 0.4rem;
+  padding-bottom: 0.4rem;
+}
+
+/* Progress bar underline of sticky bar */
+.cmp-sticky-progress-track {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: rgba(124,58,237,0.12);
+}
+.cmp-sticky-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #7c3aed, #0ea5e9, #22c55e);
+  transition: width 0.6s ease;
+  min-width: 4px;
+  border-radius: 0 2px 2px 0;
+}
+
+/* Back button in sticky hud */
+.cmp-sticky-back {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0.3rem 0.75rem;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 8px;
+  color: rgba(255,255,255,0.82);
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.14s;
+  font-family: inherit;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.cmp-sticky-back:hover { background: rgba(255,255,255,0.1); color: #f8fafc; border-color: rgba(255,255,255,0.16); }
+
+/* Mode name + chapter pill */
+.cmp-sticky-center {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex: 1;
+  min-width: 0;
+}
+.cmp-sticky-name {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #f8fafc;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cmp-sticky-chapter {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: rgba(255,255,255,0.6);
+  background: rgba(124,58,237,0.18);
+  border: 1px solid rgba(124,58,237,0.28);
+  border-radius: 20px;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+
+/* Stats cluster in sticky hud */
+.cmp-sticky-stats {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+.cmp-sticky-stat {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+.cmp-sticky-stat--complete {
+  color: #4ade80;
+  background: rgba(34,197,94,0.1);
+  border: 1px solid rgba(34,197,94,0.2);
+}
+.cmp-sticky-stat--stars {
+  color: #fbbf24;
+  background: rgba(251,191,36,0.1);
+  border: 1px solid rgba(251,191,36,0.2);
+}
+.cmp-sticky-stat--coins {
+  color: #f59e0b;
+  background: rgba(245,158,11,0.1);
+  border: 1px solid rgba(245,158,11,0.2);
+}
+
+/* ============================================================
+   OUTER WRAPPER — full-screen dark bg with ambient glows
+   ============================================================ */
 .cmp-road-outer {
   position: relative;
   min-height: 100vh;
-  color: rgba(255,255,255,0.78);
+  color: rgba(255,255,255,0.82);
   overflow: hidden;
-  background: radial-gradient(600px 400px at 10% 10%, rgba(124,58,237,0.06), transparent 20%),
-              radial-gradient(500px 360px at 90% 80%, rgba(14,165,233,0.05), transparent 18%),
-              linear-gradient(180deg, #07070f 0%, #04040a 100%);
+  background:
+    radial-gradient(ellipse 700px 380px at 15% 12%, rgba(124,58,237,0.10), transparent 50%),
+    radial-gradient(ellipse 560px 320px at 88% 78%, rgba(14,165,233,0.08), transparent 50%),
+    radial-gradient(ellipse 400px 280px at 50% 50%, rgba(236,72,153,0.04), transparent 60%),
+    linear-gradient(180deg, #08071a 0%, #06060e 100%);
 }
 .cmp-road-outer::before {
   content: '';
@@ -110,54 +242,57 @@
   z-index: 1;
   max-width: 900px;
   margin: 0 auto;
-  padding: 1.5rem 1.25rem 6rem;
+  padding: 1.8rem 1.25rem 8rem;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1.5rem;
+  gap: 1.75rem;
 }
 
-/* ==========================
-   BACK BUTTON
-   ========================== */
+/* Back button (legacy style — kept for fallback; primary back btn now in sticky hud) */
 .cmp-road-back {
-  align-self: flex-start;
-  padding: 0.4rem 1rem;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 9px;
-  color: rgba(255,255,255,0.78);
-  font-size: 0.84rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s;
-  font-family: inherit;
+  display: none; /* hidden — replaced by cmp-sticky-back */
 }
-.cmp-road-back:hover { background: rgba(255,255,255,0.1); color: #f8fafc; }
 
 /* ==========================
-   HEADER AREA
+   HERO HEADER AREA
    ========================== */
 .cmp-road-header { text-align: center; width: 100%; }
 
+/* Small "MODE" eyebrow badge above title */
+.cmp-road-hero-badge {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #a78bfa;
+  background: rgba(124,58,237,0.14);
+  border: 1px solid rgba(124,58,237,0.28);
+  border-radius: 20px;
+  padding: 3px 12px;
+  margin-bottom: 0.5rem;
+}
+
 .cmp-road-title {
   font-family: 'Space Grotesk', 'Inter', sans-serif;
-  font-size: clamp(2.2rem, 7.5vw, 3.6rem);
+  font-size: clamp(2.4rem, 8vw, 4rem);
   font-weight: 900;
-  background: linear-gradient(135deg, #c084fc 0%, #60a5fa 45%, #f472b6 100%);
+  background: linear-gradient(135deg, #c084fc 0%, #818cf8 38%, #38bdf8 70%, #34d399 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   margin: 0;
-  letter-spacing: -0.02em;
-  line-height: 1.05;
-  text-shadow: 0 6px 32px rgba(124,58,237,0.14), 0 0 20px rgba(96,165,250,0.06);
+  letter-spacing: -0.03em;
+  line-height: 1.0;
+  filter: drop-shadow(0 4px 24px rgba(124,58,237,0.22));
 }
 
 .cmp-road-subtitle {
-  color: rgba(255,255,255,0.88);
-  font-size: 0.98rem;
-  margin: 0.35rem 0 0;
+  color: rgba(255,255,255,0.72);
+  font-size: 0.96rem;
+  margin: 0.45rem 0 0;
+  letter-spacing: 0.01em;
 }
 
 /* Stats bar */
@@ -165,38 +300,120 @@
   display: inline-flex;
   align-items: center;
   gap: 0;
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 14px;
-  padding: 0.6rem 1.2rem;
-  margin-top: 1rem;
+  background: rgba(255,255,255,0.025);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 16px;
+  padding: 0.65rem 1.4rem;
+  margin-top: 1.1rem;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.04);
 }
 .cmp-road-stat {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
-  padding: 0 0.9rem;
+  gap: 3px;
+  padding: 0 1rem;
+  position: relative;
 }
-.cmp-road-stat::before { content: ''; position: absolute; left: -6px; top: 50%; transform: translateY(-50%); width: 6px; height: 28px; border-radius: 6px; background: linear-gradient(180deg, rgba(124,58,237,0.85), rgba(14,165,233,0.85)); opacity: 0.06; }
 .cmp-road-stat-val {
-  font-weight: 800;
-  font-size: 1.1rem;
+  font-weight: 900;
+  font-size: 1.15rem;
   color: #f8fafc;
   line-height: 1;
 }
+.cmp-stat-coins { color: #f59e0b !important; }
 .cmp-road-stat-lbl {
-  font-size: 0.72rem;
-  color: rgba(255,255,255,0.72);
+  font-size: 0.7rem;
+  color: rgba(255,255,255,0.6);
   text-transform: uppercase;
-  letter-spacing: 0.07em;
+  letter-spacing: 0.08em;
   white-space: nowrap;
 }
 .cmp-road-stat-sep {
   width: 1px;
-  height: 28px;
+  height: 30px;
   background: rgba(255,255,255,0.07);
   flex-shrink: 0;
+}
+
+/* Master progress bar */
+.cmp-road-masterprogress {
+  width: 100%;
+  max-width: 360px;
+  height: 6px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 8px;
+  overflow: hidden;
+  margin: 1rem auto 0;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.3);
+}
+.cmp-road-masterprogress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #7c3aed 0%, #0ea5e9 50%, #22c55e 100%);
+  border-radius: 8px;
+  min-width: 6px;
+  transition: width 0.8s cubic-bezier(0.34, 1.26, 0.64, 1);
+  box-shadow: 0 0 8px rgba(124,58,237,0.5);
+}
+
+/* ==========================
+   CHAPTER DIVIDERS
+   ========================== */
+.cmp-chapter-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 1.5rem 0 0.75rem;
+}
+.cmp-chapter-divider-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(124,58,237,0.35), transparent);
+}
+.cmp-chapter-divider-line--boss {
+  background: linear-gradient(90deg, transparent, rgba(236,72,153,0.5), transparent);
+}
+.cmp-chapter-divider-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.cmp-chapter-tag {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #a78bfa;
+  background: rgba(124,58,237,0.16);
+  border: 1px solid rgba(124,58,237,0.3);
+  border-radius: 20px;
+  padding: 3px 10px;
+}
+.cmp-chapter-tag--boss {
+  color: #f9a8d4;
+  background: rgba(236,72,153,0.16);
+  border-color: rgba(236,72,153,0.3);
+}
+.cmp-chapter-tagname {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: rgba(255,255,255,0.72);
+}
+.cmp-chapter-tagname--boss {
+  color: rgba(249,168,212,0.9);
+  font-weight: 800;
+}
+.cmp-chapter-progress {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: rgba(255,255,255,0.48);
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 20px;
+  padding: 2px 8px;
 }
 
 /* ==========================
@@ -280,145 +497,336 @@
 }
 
 /* ==========================
-   NODE CARDS (neon / Panic Path)
+   NODE CARDS — premium redesign
    ========================== */
 .cmp-road-node {
   position: relative;
   width: 100%;
   max-width: 340px;
   min-width: 220px;
-  min-height: 170px;
-  background: linear-gradient(180deg, rgba(15,12,28,0.7), rgba(8,6,18,0.6));
-  backdrop-filter: blur(6px) saturate(120%);
-  border: 1px solid rgba(255,255,255,0.04);
-  border-radius: 14px;
-  padding: 1.05rem 1rem;
+  background:
+    linear-gradient(160deg,
+      rgba(var(--node-rgb, 124,58,237), 0.08) 0%,
+      rgba(14,12,26,0.75) 40%,
+      rgba(6,6,14,0.7) 100%);
+  backdrop-filter: blur(8px) saturate(130%);
+  -webkit-backdrop-filter: blur(8px) saturate(130%);
+  border: 1px solid rgba(var(--node-rgb, 124,58,237), 0.22);
+  border-radius: 16px;
+  padding: 1.1rem 1.05rem;
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
-  box-shadow: 0 6px 24px rgba(0,0,0,0.45), 0 0 34px var(--node-glow, transparent), inset 0 1px 0 rgba(255,255,255,0.02);
+  gap: 0.65rem;
+  box-shadow:
+    0 6px 32px rgba(0,0,0,0.5),
+    0 0 0 0 var(--node-glow, transparent),
+    inset 0 1px 0 rgba(255,255,255,0.05);
   transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s;
   box-sizing: border-box;
   overflow: visible;
 }
 
-/* Difficulty color custom props */
-.cmp-node--easy   { --node-color: #22c55e; --node-glow: #22c55e22; --row-dot: #22c55e; }
-.cmp-node--medium { --node-color: #f59e0b; --node-glow: #f59e0b33; --row-dot: #f59e0b; }
-.cmp-node--hard   { --node-color: #ef4444; --node-glow: #ef444422; --row-dot: #ef4444; }
-.cmp-node--expert { --node-color: #a855f7; --node-glow: #a855f733; --row-dot: #a855f7; }
-.cmp-node--boss   {
-  --node-color: #ec4899;
-  --node-glow: #ec489944;
-  --row-dot: #ec4899;
-  max-width: 520px;
-  min-width: 300px;
-  width: clamp(300px, 70vw, 520px);
-  border-width: 2px;
-  background: linear-gradient(135deg, rgba(24,0,32,0.9) 0%, rgba(12,12,30,0.85) 100%);
-  box-shadow: 0 10px 48px rgba(236,72,153,0.12), 0 0 120px rgba(236,72,153,0.06);
+/* Top edge accent strip (colored per difficulty) */
+.cmp-road-node::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 16px; right: 16px;
+  height: 2px;
+  border-radius: 0 0 4px 4px;
+  background: linear-gradient(90deg, transparent, var(--node-color, #7c3aed), transparent);
+  opacity: 0.7;
 }
 
-/* Locked: dim but keep text readable */
+/* Difficulty color custom props — rgb versions for rgba() use */
+.cmp-node--easy   { --node-color: #22c55e; --node-glow: #22c55e28; --row-dot: #22c55e; --node-rgb: 34,197,94;   }
+.cmp-node--medium { --node-color: #f59e0b; --node-glow: #f59e0b38; --row-dot: #f59e0b; --node-rgb: 245,158,11;  }
+.cmp-node--hard   { --node-color: #ef4444; --node-glow: #ef444428; --row-dot: #ef4444; --node-rgb: 239,68,68;   }
+.cmp-node--expert { --node-color: #a855f7; --node-glow: #a855f738; --row-dot: #a855f7; --node-rgb: 168,85,247;  }
+.cmp-node--boss   {
+  --node-color: #ec4899;
+  --node-glow: #ec489948;
+  --row-dot: #ec4899;
+  --node-rgb: 236,72,153;
+  max-width: 560px;
+  min-width: 300px;
+  width: clamp(300px, 78vw, 560px);
+  border-width: 1.5px;
+  border-color: rgba(236,72,153,0.32);
+  background:
+    radial-gradient(ellipse 200px 120px at 50% 0%, rgba(236,72,153,0.12), transparent 70%),
+    linear-gradient(160deg, rgba(40,0,50,0.85) 0%, rgba(10,8,24,0.9) 100%);
+  box-shadow:
+    0 12px 56px rgba(236,72,153,0.14),
+    0 0 100px rgba(236,72,153,0.06),
+    inset 0 1px 0 rgba(249,168,212,0.08);
+}
+
+/* Locked: dimmer, desaturated, no pointer */
 .cmp-node--locked {
-  opacity: 1;
-  filter: grayscale(0.12) brightness(0.86);
+  opacity: 0.88;
+  filter: grayscale(0.2) brightness(0.8);
   pointer-events: none;
+  border-color: rgba(255,255,255,0.05);
 }
-.cmp-node--locked .cmp-node-title,
-.cmp-node--locked .cmp-node-obj,
-.cmp-node--locked .cmp-node-num,
-.cmp-node--locked .cmp-node-reward,
-.cmp-node--locked .cmp-node-diff {
-  color: rgba(255,255,255,0.92);
-}
-.cmp-node--locked .cmp-node-btn--locked {
-  color: rgba(255,255,255,0.9);
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.04);
-}
+.cmp-node--locked::before { opacity: 0.2; }
+.cmp-node--locked .cmp-node-title   { color: rgba(255,255,255,0.72); }
+.cmp-node--locked .cmp-node-obj     { color: rgba(255,255,255,0.52); }
+.cmp-node--locked .cmp-node-reward-amt { color: rgba(251,191,36,0.52); }
 
 /* Unlocked hover */
 .cmp-node--unlocked:hover {
-  transform: scale(1.04) translateY(-2px);
-  box-shadow: 0 8px 36px var(--node-glow, #7c3aed33), 0 0 60px var(--node-glow, #7c3aed22);
+  transform: scale(1.035) translateY(-3px);
+  box-shadow:
+    0 12px 44px rgba(0,0,0,0.5),
+    0 0 40px var(--node-glow),
+    inset 0 1px 0 rgba(255,255,255,0.07);
   border-color: var(--node-color);
 }
 
-/* Completed: green accent + glow */
-.cmp-node--completed { --node-color: #22c55e; --node-glow: #22c55e44; border-color: #22c55e; box-shadow: 0 8px 36px rgba(34,197,94,0.12), 0 0 54px rgba(34,197,94,0.06); }
-.cmp-node--completed::after { content: '\2713'; position: absolute; top: -10px; right: -10px; width: 22px; height: 22px; background: #22c55e; border-radius: 50%; display:flex; align-items:center; justify-content:center; font-size:0.7rem; font-weight:900; color:#fff; box-shadow:0 0 10px #22c55eaa; }
+/* Completed */
+.cmp-node--completed {
+  border-color: rgba(34,197,94,0.36);
+  box-shadow:
+    0 6px 28px rgba(34,197,94,0.1),
+    0 0 48px rgba(34,197,94,0.05),
+    inset 0 1px 0 rgba(74,222,128,0.08);
+}
 
-/* Current (next to play): stronger pulse */
+/* Current / next-to-play */
 .cmp-node--current {
-  animation: cmp-node-pulse 1.9s ease-in-out infinite;
+  border-color: var(--node-color) !important;
+  animation: cmp-node-pulse 2.2s ease-in-out infinite;
   transform-origin: center center;
 }
 @keyframes cmp-node-pulse {
-  0%, 100% { box-shadow: 0 0 18px var(--node-glow, #7c3aed22); }
-  50%       { box-shadow: 0 0 44px var(--node-glow, #7c3aed55), 0 0 68px var(--node-glow, #7c3aed22); }
+  0%, 100% { box-shadow: 0 6px 28px rgba(0,0,0,0.45), 0 0 18px var(--node-glow); }
+  50%       { box-shadow: 0 8px 40px rgba(0,0,0,0.45), 0 0 48px var(--node-glow), 0 0 80px var(--node-glow); }
 }
 
-/* Boss unlocked: special red/pink pulse */
-.cmp-node--boss.cmp-node--unlocked,
-.cmp-node--boss.cmp-node--completed {
-  animation: cmp-boss-node-pulse 2.8s ease-in-out infinite;
+/* Boss unlocked: pink/orange breathing */
+.cmp-node--boss.cmp-node--unlocked {
+  animation: cmp-boss-node-pulse 3s ease-in-out infinite;
 }
 @keyframes cmp-boss-node-pulse {
-  0%, 100% { box-shadow: 0 0 24px #ec489933, 0 0 48px #7c3aed11; border-color: #ec4899; }
-  50%       { box-shadow: 0 0 48px #ec489966, 0 0 80px #ec489922; border-color: #f97316; }
+  0%, 100% { box-shadow: 0 12px 56px rgba(236,72,153,0.14), 0 0 60px rgba(236,72,153,0.07); border-color: rgba(236,72,153,0.32); }
+  50%       { box-shadow: 0 16px 80px rgba(236,72,153,0.22), 0 0 120px rgba(236,72,153,0.12); border-color: rgba(249,115,22,0.5); }
 }
 
 /* ==========================
-   NODE INNER ELEMENTS (top/meta/icon)
+   COMPLETED CHECK BADGE
    ========================== */
-.cmp-node-top { display:flex; gap:12px; align-items:center; }
-.cmp-node-icon { width:44px; height:44px; border-radius:10px; display:flex; align-items:center; justify-content:center; color: #fff; background: linear-gradient(135deg, rgba(124,58,237,0.14), rgba(14,165,233,0.08)); box-shadow: 0 6px 18px rgba(124,58,237,0.08), 0 0 28px rgba(124,58,237,0.04); flex-shrink:0; }
-.cmp-node-icon .cmp-svg-icon { width:20px; height:20px; color: rgba(255,255,255,0.96); }
-.cmp-node-meta { display:flex; flex-direction:column; gap:4px; min-width:0; }
-.cmp-node-header { display:flex; align-items:center; justify-content:space-between; }
-.cmp-node-num { font-size:0.78rem; font-weight:800; color:var(--node-color, #7c3aed); background: rgba(255,255,255,0.04); border-radius:6px; padding:4px 8px; letter-spacing:0.05em; }
-.cmp-node-diff { font-size:0.78rem; font-weight:700; text-transform:uppercase; letter-spacing:0.07em; }
-.cmp-node-title { font-weight:900; font-size:1.06rem; color:#fff; line-height:1.08; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.cmp-node-obj { font-weight:700; font-size:0.93rem; color: rgba(255,255,255,0.88); }
-.cmp-node-stars { display:flex; gap:6px; align-items:center; justify-content:flex-start; }
-.cmp-node-star { font-size:0.95rem; color: rgba(255,255,255,0.75); }
-.cmp-node-star--on { color: #f59e0b; text-shadow: 0 0 6px #f59e0b99; }
-.cmp-node-reward { display:flex; align-items:center; gap:6px; font-size:0.95rem; font-weight:800; color:#fbbf24; }
-
-.cmp-node-bottom { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:6px; }
-
-/* Node action buttons */
-.cmp-node-btn {
-  padding: 0.5rem 0.95rem;
-  border-radius: 10px;
-  font-size: 0.9rem;
-  font-weight: 800;
-  border: none;
-  cursor: pointer;
-  background: linear-gradient(90deg, var(--node-color, #7c3aed), rgba(255,255,255,0.06));
+.cmp-node-done-badge {
+  position: absolute;
+  top: -9px;
+  right: -9px;
+  width: 24px;
+  height: 24px;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: #fff;
-  transition: transform 0.12s ease, filter 0.12s ease, box-shadow 0.12s;
+  box-shadow: 0 2px 10px rgba(34,197,94,0.5), 0 0 20px rgba(34,197,94,0.2);
+  z-index: 3;
+}
+
+/* NEXT badge for current level */
+.cmp-node-current-badge {
+  position: absolute;
+  top: -10px;
+  left: 12px;
+  font-size: 0.6rem;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  color: #fff;
+  background: linear-gradient(90deg, var(--node-color, #7c3aed), rgba(255,255,255,0.1));
+  border-radius: 20px;
+  padding: 2px 9px;
+  box-shadow: 0 2px 10px var(--node-glow, #7c3aed44);
+  z-index: 3;
+  animation: cmp-next-badge-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+@keyframes cmp-next-badge-pop {
+  from { transform: scale(0.5); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+/* ==========================
+   NODE INNER ELEMENTS
+   ========================== */
+.cmp-node-top {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.cmp-node-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--node-color, #7c3aed);
+  background: rgba(var(--node-rgb, 124,58,237), 0.12);
+  border: 1px solid rgba(var(--node-rgb, 124,58,237), 0.22);
+  box-shadow: 0 4px 16px rgba(var(--node-rgb, 124,58,237), 0.1);
+  flex-shrink: 0;
+}
+.cmp-node-icon .cmp-svg-icon { width: 22px; height: 22px; }
+
+.cmp-node-meta { display: flex; flex-direction: column; gap: 5px; min-width: 0; flex: 1; }
+.cmp-node-header { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+
+.cmp-node-num {
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: var(--node-color, #7c3aed);
+  background: rgba(var(--node-rgb, 124,58,237), 0.1);
+  border: 1px solid rgba(var(--node-rgb, 124,58,237), 0.2);
+  border-radius: 6px;
+  padding: 3px 7px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.cmp-node-title {
+  font-weight: 900;
+  font-size: 1.04rem;
+  color: #f8fafc;
+  line-height: 1.1;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
-  letter-spacing: 0.04em;
-  font-family: inherit;
-  box-shadow: 0 6px 20px rgba(124,58,237,0.12);
 }
-.cmp-node-btn:hover:not(:disabled) { filter: brightness(1.18); transform: translateY(-2px) scale(1.02); }
-.cmp-node-btn--replay {
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.08);
-  color: #e5e7eb;
+.cmp-node-obj {
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: rgba(255,255,255,0.74);
+  line-height: 1.3;
 }
-.cmp-node-btn--replay:hover { background: rgba(255,255,255,0.12); color: #f8fafc; }
-.cmp-node-btn--locked {
-  background: rgba(255,255,255,0.02);
-  border: 1px solid rgba(255,255,255,0.04);
-  color: rgba(255,255,255,0.9);
-  cursor: not-allowed;
+
+/* ==========================
+   DIFFICULTY BADGE PILLS
+   ========================== */
+.cmp-diff-badge {
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  border-radius: 20px;
+  padding: 3px 9px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.cmp-diff-easy   { color: #4ade80; background: rgba(34,197,94,0.14);  border: 1px solid rgba(34,197,94,0.3);  }
+.cmp-diff-medium { color: #fbbf24; background: rgba(245,158,11,0.14); border: 1px solid rgba(245,158,11,0.3); }
+.cmp-diff-hard   { color: #f87171; background: rgba(239,68,68,0.14);  border: 1px solid rgba(239,68,68,0.3);  }
+.cmp-diff-expert { color: #c084fc; background: rgba(168,85,247,0.14); border: 1px solid rgba(168,85,247,0.3); }
+.cmp-diff-boss   { color: #f9a8d4; background: rgba(236,72,153,0.16); border: 1px solid rgba(236,72,153,0.35); font-size: 0.68rem; }
+
+/* ==========================
+   NODE BOTTOM ROW
+   ========================== */
+.cmp-node-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 2px;
+}
+.cmp-node-right-row {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-shrink: 0;
+}
+
+/* Stars */
+.cmp-node-stars { display: flex; gap: 4px; align-items: center; }
+.cmp-node-star {
+  display: flex;
+  align-items: center;
+  color: rgba(255,255,255,0.2);
+  transition: color 0.15s, filter 0.15s;
+}
+.cmp-node-star--on {
+  color: #f59e0b;
+  filter: drop-shadow(0 0 4px #f59e0b88);
+}
+
+/* Reward coins */
+.cmp-node-reward {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  background: rgba(245,158,11,0.09);
+  border: 1px solid rgba(245,158,11,0.2);
+  border-radius: 20px;
+}
+.cmp-reward-coin-icon { color: #f59e0b; flex-shrink: 0; }
+.cmp-node-reward-amt {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #fbbf24;
+}
+
+/* ==========================
+   NODE BUTTONS
+   ========================== */
+.cmp-node-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0.42rem 0.85rem;
+  border-radius: 10px;
+  font-size: 0.84rem;
+  font-weight: 800;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  letter-spacing: 0.03em;
+  font-family: inherit;
+  transition: transform 0.12s ease, filter 0.12s ease, box-shadow 0.12s;
+}
+.cmp-node-btn:hover:not(:disabled) {
+  filter: brightness(1.2);
+  transform: translateY(-2px) scale(1.03);
+}
+
+.cmp-node-btn--play {
+  background: linear-gradient(135deg, var(--node-color, #7c3aed) 0%, rgba(255,255,255,0.08) 100%);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(var(--node-rgb, 124,58,237), 0.28);
+}
+
+.cmp-node-btn--boss-fight {
+  background: linear-gradient(135deg, #ec4899 0%, #f97316 100%);
+  color: #fff;
+  box-shadow: 0 4px 20px rgba(236,72,153,0.4);
+  font-size: 0.9rem;
+  padding: 0.52rem 1.1rem;
+  animation: cmp-boss-btn-pulse 2s ease-in-out infinite;
+}
+@keyframes cmp-boss-btn-pulse {
+  0%, 100% { box-shadow: 0 4px 20px rgba(236,72,153,0.4); }
+  50%       { box-shadow: 0 6px 32px rgba(236,72,153,0.65), 0 0 50px rgba(236,72,153,0.2); }
+}
+
+.cmp-node-btn--replay {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.82);
+}
+.cmp-node-btn--replay:hover { background: rgba(255,255,255,0.12); color: #f8fafc; }
+
+.cmp-node-btn--locked {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.05);
+  color: rgba(255,255,255,0.42);
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 /* ============================================================
@@ -1188,9 +1596,9 @@
 
 /* Single-column road layout below 760px */
 @media (max-width: 760px) {
-  .cmp-road-inner { max-width: 100%; padding: 1rem 0.75rem 4.5rem; }
+  .cmp-road-inner { max-width: 100%; padding: 1rem 0.75rem 5rem; }
   .cmp-road-map::before { left: 22px; transform: none; }
-  .cmp-road-row         { grid-template-columns: 48px 1fr; min-height: 140px; padding: 10px 0; }
+  .cmp-road-row         { grid-template-columns: 48px 1fr; min-height: 130px; padding: 8px 0; }
   .cmp-road-row--left   { grid-template-columns: 48px 1fr; }
   .cmp-road-row--right  { grid-template-columns: 48px 1fr; }
   .cmp-road-connector   { order: -1; }
@@ -1203,17 +1611,23 @@
   }
   .cmp-road-cell--spacer { display: none; }
   .cmp-road-node { max-width: 100%; min-width: 0; }
+  .cmp-sticky-stats .cmp-sticky-stat--coins { display: none; }
+  .cmp-chapter-tagname { display: none; }
 }
 
-@media (max-width: 480px) {
-  .cmp-road-title { font-size: 2.1rem; }
-  .cmp-road-statsbar { padding: 0.5rem 0.7rem; }
-  .cmp-road-stat { padding: 0 0.6rem; }
-  .cmp-road-stat-val { font-size: 0.98rem; }
-  .cmp-road-node { padding: 0.7rem 0.8rem; }
-  .cmp-node-title { font-size: 0.88rem; }
-  .cmp-node-obj   { font-size: 0.7rem; }
-  .cmp-node-btn   { font-size: 0.72rem; padding: 0.28rem 0.65rem; }
+@media (max-width: 520px) {
+  .cmp-sticky-hud { gap: 0.4rem; padding: 0.45rem 0.75rem 0; }
+  .cmp-sticky-name { font-size: 0.85rem; }
+  .cmp-sticky-stats { gap: 0.25rem; }
+  .cmp-sticky-stat { font-size: 0.7rem; padding: 2px 6px; }
+  .cmp-road-title { font-size: 2.2rem; }
+  .cmp-road-statsbar { padding: 0.5rem 0.7rem; flex-wrap: wrap; }
+  .cmp-road-stat { padding: 0 0.5rem; }
+  .cmp-road-stat-val { font-size: 0.95rem; }
+  .cmp-road-node { padding: 0.75rem 0.85rem; }
+  .cmp-node-title { font-size: 0.9rem; }
+  .cmp-node-obj   { font-size: 0.78rem; }
+  .cmp-node-btn   { font-size: 0.76rem; padding: 0.3rem 0.65rem; }
   .cmp-v-box, .cmp-d-box, .cmp-intro-box { padding: 1.5rem 1rem; }
   .cmp-intro-name { font-size: 1.3rem; }
   #campaign-hud-overlay { padding: 2px 8px 0; gap: 6px; }
@@ -1222,7 +1636,58 @@
 
 @media (max-width: 360px) {
   .cmp-v-stars .cmp-v-star { font-size: 1.9rem; }
+  .cmp-sticky-stats .cmp-sticky-stat--stars { display: none; }
 }
+
+/* ============================================================
+   ANIMATIONS FOR UNLOCK
+   ============================================================ */
+.cmp-card-unlocked.cmp-newly-unlocked {
+  animation: cmp-unlock-glow 1.2s ease;
+}
+
+@keyframes cmp-unlock-glow {
+  0%   { box-shadow: 0 0 0 0 #a855f7; border-color: #a855f7; transform: scale(1); }
+  30%  { box-shadow: 0 0 30px 8px #a855f766; transform: scale(1.04); }
+  60%  { box-shadow: 0 0 20px 4px #a855f744; }
+  100% { box-shadow: none; border-color: #7c3aed66; transform: scale(1); }
+}
+
+/* ============================================================
+   REDUCED MOTION OVERRIDES
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  .cmp-road-node,
+  .cmp-road-connector-dot,
+  .cmp-road-particle,
+  .cmp-v-box,
+  .cmp-d-box,
+  .cmp-intro-box,
+  .cmp-v-star-on,
+  .cmp-confetti-piece,
+  .cmp-d-retry,
+  .cmp-node-btn--boss-fight,
+  .cmp-node-current-badge {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+.reduced-motion .cmp-road-node,
+.reduced-motion .cmp-road-connector-dot,
+.reduced-motion .cmp-road-particle,
+.reduced-motion .cmp-v-box,
+.reduced-motion .cmp-d-box,
+.reduced-motion .cmp-intro-box,
+.reduced-motion .cmp-v-star-on,
+.reduced-motion .cmp-confetti-piece,
+.reduced-motion .cmp-d-retry,
+.reduced-motion .cmp-node-btn--boss-fight,
+.reduced-motion .cmp-node-current-badge {
+  animation: none !important;
+  transition: none !important;
+}
+
 
 /* ============================================================
    ANIMATIONS FOR UNLOCK

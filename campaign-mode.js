@@ -1385,38 +1385,77 @@ const CampaignUI = (() => {
     console.log('[CampaignUI] renderLevelSelect start – CAMPAIGN_LEVELS:', Array.isArray(CAMPAIGN_LEVELS) ? CAMPAIGN_LEVELS.length : 'NOT_ARRAY', 'CampaignSave:', typeof CampaignSave);
     const el = document.getElementById('campaign-levelselect');
     if (!el) return;
-    const saveData   = CampaignSave.get();
-    const total      = CAMPAIGN_LEVELS.length;
-    const nCompleted = Object.keys(saveData.completedLevels).length;
-    const totalStars = saveData.totalStars;
+    const saveData    = CampaignSave.get();
+    const total       = CAMPAIGN_LEVELS.length;
+    const nCompleted  = Object.keys(saveData.completedLevels).length;
+    const totalStars  = saveData.totalStars;
     const coinsEarned = saveData.campaignCoinsEarned || 0;
     const PER_CHAPTER = 5;
-    const currentChapter = Math.ceil((nCompleted + 1) / PER_CHAPTER);
-    const totalChapters = Math.ceil(total / PER_CHAPTER);
+    const currentChapter  = Math.ceil((nCompleted + 1) / PER_CHAPTER);
+    const totalChapters   = Math.ceil(total / PER_CHAPTER);
+    const completePct     = Math.round((nCompleted / total) * 100);
 
     // Animated background particles (pure CSS animation)
     const PARTICLE_COLORS = ['#7c3aed','#0ea5e9','#ec4899','#22c55e','#f59e0b'];
-    const particlesHtml = Array.from({ length: 18 }, (_, i) => {
+    const particlesHtml = Array.from({ length: 22 }, (_, i) => {
       const c = PARTICLE_COLORS[i % PARTICLE_COLORS.length];
-      const sz  = (3 + (i * 1.7) % 5).toFixed(1);
+      const sz  = (2.5 + (i * 1.7) % 5).toFixed(1);
       const lft = ((i * 17 + 7) % 97).toFixed(1);
       const dur = (9 + (i * 2.3) % 13).toFixed(1);
       const del = ((i * 1.9) % 11).toFixed(1);
       return `<div class="cmp-road-particle" style="left:${lft}%;width:${sz}px;height:${sz}px;background:${c};animation-duration:${dur}s;animation-delay:-${del}s"></div>`;
     }).join('');
 
-    // Level path nodes
-    const nodesHtml = CAMPAIGN_LEVELS.map((lvl, idx) => {
-      const side = lvl.id === 10 ? 'boss' : (idx % 2 === 0 ? 'left' : 'right');
-      return _buildLevelNode(lvl, saveData, side);
-    }).join('');
+    // Build chapter sections
+    const ch1Levels = CAMPAIGN_LEVELS.filter(l => l.id <= 5);
+    const ch2Levels = CAMPAIGN_LEVELS.filter(l => l.id > 5 && l.id < 10);
+    const bossLevel = CAMPAIGN_LEVELS.find(l => l.id === 10);
+    const ch1Completed = ch1Levels.filter(l => CampaignSave.isCompleted(l.id)).length;
+    const ch2Completed = ch2Levels.filter(l => CampaignSave.isCompleted(l.id)).length;
 
-    el.innerHTML = `
+    const ch1Html = ch1Levels.map((lvl, idx) => _buildLevelNode(lvl, saveData, idx % 2 === 0 ? 'left' : 'right')).join('');
+    const ch2Html = ch2Levels.map((lvl, idx) => _buildLevelNode(lvl, saveData, idx % 2 === 0 ? 'left' : 'right')).join('');
+    const bossHtml = bossLevel ? _buildLevelNode(bossLevel, saveData, 'boss') : '';
+
+    // ---- STICKY HUD (sibling to .cmp-road-outer, NOT nested inside it) ----
+    // Must be a direct child of the scroll container (#campaign-levelselect)
+    // so that position:sticky actually works (overflow:hidden on .cmp-road-outer
+    // would block sticky children).
+    const stickyHud = `
+      <div class="cmp-sticky-hud" id="cmp-sticky-hud" aria-label="Shift Trials navigation">
+        <button class="cmp-sticky-back" id="cmp-btn-back" aria-label="Back to main menu">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" d="M19 12H5m0 0l7-7m-7 7l7 7"/></svg>
+          Menu
+        </button>
+        <div class="cmp-sticky-center">
+          <span class="cmp-sticky-name">Shift Trials</span>
+          <span class="cmp-sticky-chapter">Ch ${currentChapter}/${totalChapters}</span>
+        </div>
+        <div class="cmp-sticky-stats">
+          <span class="cmp-sticky-stat cmp-sticky-stat--complete" title="Levels completed">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" d="M20 6L9 17l-5-5"/></svg>
+            ${nCompleted}/${total}
+          </span>
+          <span class="cmp-sticky-stat cmp-sticky-stat--stars" title="Stars earned">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg>
+            ${totalStars}/${total * 3}
+          </span>
+          <span class="cmp-sticky-stat cmp-sticky-stat--coins" title="Coins earned">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M12 8v8M9 10.5c0-1.38 1.34-2.5 3-2.5s3 1.12 3 2.5-1.34 2.5-3 2.5-3 1.12-3 2.5 1.34 2.5 3 2.5 3-1.12 3-2.5"/></svg>
+            ${coinsEarned}
+          </span>
+        </div>
+        <div class="cmp-sticky-progress-track" aria-hidden="true">
+          <div class="cmp-sticky-progress-fill" style="width:${completePct}%"></div>
+        </div>
+      </div>`;
+
+    el.innerHTML = stickyHud + `
       <div class="cmp-road-outer">
         <div class="cmp-road-particles" aria-hidden="true">${particlesHtml}</div>
         <div class="cmp-road-inner">
-          <button class="cmp-road-back" id="cmp-btn-back" aria-label="Back to main menu">&#8592; Menu</button>
           <header class="cmp-road-header">
+            <div class="cmp-road-hero-badge" aria-hidden="true">MODE</div>
             <h1 class="cmp-road-title">Shift Trials</h1>
             <p class="cmp-road-subtitle">Clear missions. Earn stars. Beat the Panic Core.</p>
             <div class="cmp-road-statsbar">
@@ -1431,23 +1470,55 @@ const CampaignUI = (() => {
               </div>
               <div class="cmp-road-stat-sep"></div>
               <div class="cmp-road-stat">
-                <span class="cmp-road-stat-val" style="color:#f59e0b">${coinsEarned}</span>
-                <span class="cmp-road-stat-lbl">Coins Earned</span>
+                <span class="cmp-road-stat-val cmp-stat-coins">${coinsEarned}</span>
+                <span class="cmp-road-stat-lbl">Coins</span>
               </div>
               <div class="cmp-road-stat-sep"></div>
               <div class="cmp-road-stat">
-                <span class="cmp-road-stat-val">Chapter ${currentChapter}/${totalChapters}</span>
-                <span class="cmp-road-stat-lbl">Chapter</span>
+                <span class="cmp-road-stat-val">${completePct}%</span>
+                <span class="cmp-road-stat-lbl">Done</span>
               </div>
             </div>
+            <div class="cmp-road-masterprogress" aria-label="${completePct}% complete">
+              <div class="cmp-road-masterprogress-fill" style="width:${completePct}%" aria-hidden="true"></div>
+            </div>
           </header>
+
           <div class="cmp-road-map" role="list" aria-label="Panic Quest levels">
-            ${nodesHtml}
+            <div class="cmp-chapter-divider cmp-chapter-divider--1">
+              <div class="cmp-chapter-divider-line"></div>
+              <div class="cmp-chapter-divider-label">
+                <span class="cmp-chapter-tag">Chapter 1</span>
+                <span class="cmp-chapter-tagname">The Trials Begin</span>
+                <span class="cmp-chapter-progress">${ch1Completed}/5</span>
+              </div>
+              <div class="cmp-chapter-divider-line"></div>
+            </div>
+            ${ch1Html}
+            <div class="cmp-chapter-divider cmp-chapter-divider--2">
+              <div class="cmp-chapter-divider-line"></div>
+              <div class="cmp-chapter-divider-label">
+                <span class="cmp-chapter-tag">Chapter 2</span>
+                <span class="cmp-chapter-tagname">The Shift Escalates</span>
+                <span class="cmp-chapter-progress">${ch2Completed}/4</span>
+              </div>
+              <div class="cmp-chapter-divider-line"></div>
+            </div>
+            ${ch2Html}
+            <div class="cmp-chapter-divider cmp-chapter-divider--boss">
+              <div class="cmp-chapter-divider-line cmp-chapter-divider-line--boss"></div>
+              <div class="cmp-chapter-divider-label">
+                <span class="cmp-chapter-tag cmp-chapter-tag--boss">Final Stage</span>
+                <span class="cmp-chapter-tagname cmp-chapter-tagname--boss">The Panic Core</span>
+              </div>
+              <div class="cmp-chapter-divider-line cmp-chapter-divider-line--boss"></div>
+            </div>
+            ${bossHtml}
           </div>
         </div>
       </div>`;
 
-    // Wire back button
+    // Wire back button (now in sticky hud)
     const backBtn = el.querySelector('#cmp-btn-back');
     if (backBtn) backBtn.addEventListener('click', () => {
       try { if (typeof AudioFn !== 'undefined') AudioFn.uiClick(); } catch (_) {}
@@ -1466,6 +1537,17 @@ const CampaignUI = (() => {
         }
       });
     });
+
+    // Scroll: compact mode for sticky hud
+    try {
+      const hud = el.querySelector('#cmp-sticky-hud');
+      if (hud) {
+        el.addEventListener('scroll', function _stickyScroll() {
+          if (el.scrollTop > 60) hud.classList.add('cmp-sticky-hud--compact');
+          else hud.classList.remove('cmp-sticky-hud--compact');
+        }, { passive: true });
+      }
+    } catch (_) {}
   }
 
   function _buildLevelNode(lvl, saveData, side) {
@@ -1474,23 +1556,26 @@ const CampaignUI = (() => {
     const stars     = CampaignSave.getStars(lvl.id);
     const isNext    = unlocked && !completed;
 
-    // small mechanic icons per objective type
+    // Mechanic icons per objective type
     const ICONS = {
-      'survive_seconds': '<svg class="cmp-svg-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M12 8v5l3 3"/><path stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M21 12A9 9 0 1 1 3 12a9 9 0 0 1 18 0z"/></svg>',
-      'collect_coins':   '<svg class="cmp-svg-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="7" stroke="currentColor" stroke-width="1.6"/><path stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M12 9v6"/></svg>',
-      'dodge_blocks':    '<svg class="cmp-svg-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M3 12h4l3-9 3 18 3-14 3 5h4"/></svg>',
-      'boss_defeat':     '<svg class="cmp-svg-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" d="M12 2l2.5 6H22l-5 3.8L19 22 12 17.8 5 22l2-10.2L2 8h7.5L12 2z"/></svg>',
-      'hybrid':          '<svg class="cmp-svg-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="7" height="7" stroke="currentColor" stroke-width="1.6"/><rect x="14" y="14" width="7" height="7" stroke="currentColor" stroke-width="1.6"/></svg>'
+      'survive_seconds': '<svg class="cmp-svg-icon" width="22" height="22" viewBox="0 0 24 24" fill="none"><path stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" d="M12 8v5l3 3"/><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.7"/></svg>',
+      'collect_coins':   '<svg class="cmp-svg-icon" width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8" stroke="currentColor" stroke-width="1.7"/><path stroke="currentColor" stroke-width="1.7" stroke-linecap="round" d="M12 8v8M9.5 10.5c0-1.38 1.12-2.5 2.5-2.5s2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5-2.5 1.12-2.5 2.5 1.12 2.5 2.5 2.5 2.5-1.12 2.5-2.5"/></svg>',
+      'dodge_blocks':    '<svg class="cmp-svg-icon" width="22" height="22" viewBox="0 0 24 24" fill="none"><path stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" d="M3 12h4l3-9 3 18 3-14 3 5h4"/></svg>',
+      'boss_defeat':     '<svg class="cmp-svg-icon" width="22" height="22" viewBox="0 0 24 24" fill="none"><path stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" d="M12 2l2.5 6.5H22l-5.8 4.2 2.2 6.8L12 15.5l-6.4 4 2.2-6.8L2 8.5h7.5L12 2z"/></svg>',
+      'hybrid':          '<svg class="cmp-svg-icon" width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.7"/><rect x="14" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.7"/><path stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="M17.5 3L21 6.5M3 17.5L6.5 21"/></svg>'
     };
     const iconSvg = ICONS[lvl.objectiveType] || ICONS.hybrid;
 
-    const diffClass = {
-      'Easy':   'cmp-node--easy',
-      'Medium': 'cmp-node--medium',
-      'Hard':   'cmp-node--hard',
-      'Expert': 'cmp-node--expert',
-      'Boss':   'cmp-node--boss',
-    }[lvl.difficulty] || 'cmp-node--easy';
+    // Difficulty pill config
+    const DIFF_CONFIG = {
+      'Easy':   { cls: 'cmp-node--easy',   badge: 'cmp-diff-easy',   label: 'Easy'   },
+      'Medium': { cls: 'cmp-node--medium', badge: 'cmp-diff-medium', label: 'Medium' },
+      'Hard':   { cls: 'cmp-node--hard',   badge: 'cmp-diff-hard',   label: 'Hard'   },
+      'Expert': { cls: 'cmp-node--expert', badge: 'cmp-diff-expert', label: 'Expert' },
+      'Boss':   { cls: 'cmp-node--boss',   badge: 'cmp-diff-boss',   label: 'Boss'   },
+    };
+    const diff = DIFF_CONFIG[lvl.difficulty] || DIFF_CONFIG['Easy'];
+    const diffClass = diff.cls;
 
     const stateClass = !unlocked    ? 'cmp-node--locked'
                      : completed    ? 'cmp-node--completed'
@@ -1501,41 +1586,73 @@ const CampaignUI = (() => {
                    : side === 'left'  ? 'cmp-road-row--left'
                    : 'cmp-road-row--right';
 
+    // Stars — bigger, more prominent
     const starsHtml = [1,2,3].map(i =>
-      `<span class="cmp-node-star${i <= stars ? ' cmp-node-star--on' : ''}" aria-hidden="true">&#9733;</span>`
+      `<span class="cmp-node-star${i <= stars ? ' cmp-node-star--on' : ''}" aria-hidden="true">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="${i <= stars ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="${i <= stars ? '0' : '1.5'}"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg>
+       </span>`
     ).join('');
 
     const objText = _getObjectiveSummary(lvl);
 
+    // Reward coins display
+    const rewardHtml = `<span class="cmp-node-reward">
+      <svg class="cmp-reward-coin-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M12 8v8M9.5 10.5c0-1.38 1.12-2.5 2.5-2.5s2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5-2.5 1.12-2.5 2.5 1.12 2.5 2.5 2.5 2.5-1.12 2.5-2.5"/></svg>
+      <span class="cmp-node-reward-amt">${lvl.rewardCoins}</span>
+    </span>`;
+
     let btnHtml;
     if (!unlocked) {
       btnHtml = `<button class="cmp-node-btn cmp-node-btn--locked" disabled aria-label="Level ${lvl.id} locked">
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg> Locked</button>`;
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+        Locked</button>`;
     } else if (completed) {
-      btnHtml = `<button class="cmp-node-btn cmp-node-btn--replay" data-level-id="${lvl.id}" aria-label="Replay Level ${lvl.id}">Replay</button>`;
+      btnHtml = `<button class="cmp-node-btn cmp-node-btn--replay" data-level-id="${lvl.id}" aria-label="Replay Level ${lvl.id}">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 .49-4.36"/></svg>
+        Replay</button>`;
+    } else if (lvl.id === 10) {
+      btnHtml = `<button class="cmp-node-btn cmp-node-btn--boss-fight" data-level-id="${lvl.id}" aria-label="Fight: ${lvl.name}">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg>
+        Fight!</button>`;
     } else {
-      btnHtml = `<button class="cmp-node-btn" data-level-id="${lvl.id}" aria-label="Play Level ${lvl.id}: ${lvl.name}">Play</button>`;
+      btnHtml = `<button class="cmp-node-btn cmp-node-btn--play" data-level-id="${lvl.id}" aria-label="Play Level ${lvl.id}: ${lvl.name}">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
+        Play</button>`;
     }
+
+    // Completed checkmark badge
+    const completedBadge = completed
+      ? `<div class="cmp-node-done-badge" aria-hidden="true"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M20 6L9 17l-5-5"/></svg></div>`
+      : '';
+
+    // Current level "next to play" indicator
+    const currentArrow = isNext && lvl.id !== 10
+      ? `<div class="cmp-node-current-badge" aria-label="Current level">NEXT</div>`
+      : '';
 
     const nodeHtml = `
       <div class="cmp-road-node ${diffClass} ${stateClass}"
            role="listitem"
            aria-label="Level ${lvl.id}: ${lvl.name}, ${!unlocked ? 'locked' : completed ? 'completed' : 'available'}">
+        ${completedBadge}
+        ${currentArrow}
         <div class="cmp-node-top">
           <div class="cmp-node-icon" aria-hidden="true">${iconSvg}</div>
           <div class="cmp-node-meta">
             <div class="cmp-node-header">
               <span class="cmp-node-num">LVL ${lvl.id}</span>
-              <span class="cmp-node-diff" style="color:${lvl.difficultyColor}">${lvl.difficulty}</span>
+              <span class="cmp-diff-badge ${diff.badge}">${diff.label}</span>
             </div>
             <div class="cmp-node-title">${lvl.name}</div>
           </div>
         </div>
         <div class="cmp-node-obj">${objText}</div>
-        <div class="cmp-node-stars" aria-label="${stars} of 3 stars">${starsHtml}</div>
         <div class="cmp-node-bottom">
-          <span class="cmp-node-reward"><span class="coin-icon coin-sm" aria-hidden="true"></span>${lvl.rewardCoins}</span>
-          ${btnHtml}
+          <div class="cmp-node-stars" aria-label="${stars} of 3 stars">${starsHtml}</div>
+          <div class="cmp-node-right-row">
+            ${rewardHtml}
+            ${btnHtml}
+          </div>
         </div>
       </div>`;
 
