@@ -1427,6 +1427,24 @@ const CampaignUI = (() => {
     const ch2Html = ch2Levels.map((lvl, idx) => _buildLevelNode(lvl, saveData, idx % 2 === 0 ? 'left' : 'right')).join('');
     const bossHtml = bossLevel ? _buildLevelNode(bossLevel, saveData, 'boss') : '';
 
+    // Next playable level — for header NEXT UP strip
+    const highestUnlocked = saveData.highestUnlockedLevel || 1;
+    const nextLvl = CAMPAIGN_LEVELS.find(l => l.id === highestUnlocked);
+    const allDone = nCompleted >= total;
+    const nextUpHtml = allDone
+      ? `<div class="cmp-road-nextup cmp-road-nextup--complete">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" fill="#4ade80"/></svg>
+              <span>All levels complete!</span>
+            </div>`
+      : nextLvl
+        ? `<div class="cmp-road-nextup">
+              <span class="cmp-road-nextup-label">NEXT UP</span>
+              <span class="cmp-road-nextup-sep">&middot;</span>
+              <span class="cmp-road-nextup-name">Lv ${nextLvl.id} &mdash; ${nextLvl.name}</span>
+              ${nextLvl.difficulty ? `<span class="cmp-road-nextup-chip cmp-road-nextup-chip--${nextLvl.difficulty}">${nextLvl.difficulty.toUpperCase()}</span>` : ''}
+            </div>`
+        : '';
+
     // ---- STICKY HUD (sibling to .cmp-road-outer, NOT nested inside it) ----
     // Must be a direct child of the scroll container (#campaign-levelselect)
     // so that position:sticky actually works (overflow:hidden on .cmp-road-outer
@@ -1465,33 +1483,36 @@ const CampaignUI = (() => {
         <div class="cmp-road-particles" aria-hidden="true">${particlesHtml}</div>
         <div class="cmp-road-inner">
           <header class="cmp-road-header">
-            <div class="cmp-road-hero-badge" aria-hidden="true">MODE</div>
+            <div class="cmp-road-header-toprow">
+              <div class="cmp-road-hero-badge" aria-hidden="true">PANIC QUEST</div>
+              <div class="cmp-road-chapter-badge" aria-hidden="true">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg>
+                Ch ${currentChapter}/${totalChapters}
+              </div>
+            </div>
             <h1 class="cmp-road-title">Shift Trials</h1>
             <p class="cmp-road-subtitle">Clear missions. Earn stars. Beat the Panic Core.</p>
-            <div class="cmp-road-statsbar">
-              <div class="cmp-road-stat">
-                <span class="cmp-road-stat-val">${nCompleted}/${total}</span>
-                <span class="cmp-road-stat-lbl">Complete</span>
+            <div class="cmp-road-statpills" aria-label="Your progress">
+              <div class="cmp-road-pill cmp-road-pill--done">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" d="M20 6L9 17l-5-5"/></svg>
+                <span>${nCompleted}/${total}</span><span class="cmp-road-pill-lbl">done</span>
               </div>
-              <div class="cmp-road-stat-sep"></div>
-              <div class="cmp-road-stat">
-                <span class="cmp-road-stat-val">${totalStars}/${total * 3}</span>
-                <span class="cmp-road-stat-lbl">Stars</span>
+              <div class="cmp-road-pill cmp-road-pill--stars">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg>
+                <span>${totalStars}/${total * 3}</span><span class="cmp-road-pill-lbl">stars</span>
               </div>
-              <div class="cmp-road-stat-sep"></div>
-              <div class="cmp-road-stat">
-                <span class="cmp-road-stat-val cmp-stat-coins">${coinsEarned}</span>
-                <span class="cmp-road-stat-lbl">Coins</span>
+              <div class="cmp-road-pill cmp-road-pill--coins">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M12 8v8M9 10.5c0-1.38 1.34-2.5 3-2.5s3 1.12 3 2.5-1.34 2.5-3 2.5-3 1.12-3 2.5 1.34 2.5 3 2.5 3-1.12 3-2.5"/></svg>
+                <span>${coinsEarned}</span><span class="cmp-road-pill-lbl">coins</span>
               </div>
-              <div class="cmp-road-stat-sep"></div>
-              <div class="cmp-road-stat">
-                <span class="cmp-road-stat-val">${completePct}%</span>
-                <span class="cmp-road-stat-lbl">Done</span>
+              <div class="cmp-road-pill cmp-road-pill--pct">
+                <span>${completePct}%</span><span class="cmp-road-pill-lbl">complete</span>
               </div>
             </div>
             <div class="cmp-road-masterprogress" aria-label="${completePct}% complete">
               <div class="cmp-road-masterprogress-fill" style="width:${completePct}%" aria-hidden="true"></div>
             </div>
+            ${nextUpHtml}
           </header>
 
           <div class="cmp-road-map" role="list" aria-label="Panic Quest levels">
