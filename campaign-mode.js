@@ -23,6 +23,8 @@ const CAMPAIGN_LEVELS = [
       name: 'First Shift',
       subtitle: 'One color is off-limits. Read it fast — and stay out.',
       flavorLine: 'The storm starts now.',
+      tag: 'Survival',
+      icon: '<svg class="cmp-svg-icon" width="22" height="22" viewBox="0 0 24 24" fill="none"><path stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="M12 3L4 6v5.5c0 4.5 3.5 8.7 8 9.5 4.5-.8 8-5 8-9.5V6L12 3z"/><path stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4"/></svg>',
       difficulty: 'Easy',
       difficultyColor: '#22c55e',
       objectiveType: 'survive_seconds',
@@ -71,6 +73,8 @@ const CAMPAIGN_LEVELS = [
       name: 'Coin Rush',
       subtitle: '15 coins. 35 seconds. Move.',
       flavorLine: 'Greed has a timer.',
+      tag: 'Coin Hunt',
+      icon: '<svg class="cmp-svg-icon" width="22" height="22" viewBox="0 0 24 24" fill="none"><path stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M7 2v9a5 5 0 0 0 10 0V2"/><path stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M7 6h3M14 6h3"/></svg>',
       difficulty: 'Easy',
       difficultyColor: '#22c55e',
       objectiveType: 'collect_coins',
@@ -183,9 +187,11 @@ const CAMPAIGN_LEVELS = [
     },
     {
       id: 3,
-      name: 'Block Party',
-      subtitle: '100 blocks want to ruin your day. Let them all miss.',
+      name: 'Dodge School',
+      subtitle: 'One hundred blocks. Thread every gap. Not one should hit.',,
       flavorLine: 'Every miss is a point.',
+      tag: 'Reflex Drill',
+      icon: '<svg class="cmp-svg-icon" width="22" height="22" viewBox="0 0 24 24" fill="none"><path stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" d="M3 12h4l3-9 3 18 3-14 3 5h4"/></svg>',
       difficulty: 'Medium',
       difficultyColor: '#f59e0b',
       objectiveType: 'dodge_blocks',
@@ -217,6 +223,8 @@ const CAMPAIGN_LEVELS = [
       name: 'Speed Read',
       subtitle: 'The rules keep changing. Your reactions can\'t.',
       flavorLine: 'React or regret.',
+      tag: 'Speed Switch',
+      icon: '<svg class="cmp-svg-icon" width="22" height="22" viewBox="0 0 24 24" fill="none"><path stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" d="M13 2L4 14h7l-1 8 9-12h-7l1-8z"/></svg>',
       difficulty: 'Medium',
       difficultyColor: '#f59e0b',
       objectiveType: 'survive_seconds',
@@ -249,6 +257,8 @@ const CAMPAIGN_LEVELS = [
       name: 'Tight Gaps',
       subtitle: 'The paths are narrow. There is no margin for hesitation.',
       flavorLine: 'One clean path. Find it.',
+      tag: 'Precision',
+      icon: '<svg class="cmp-svg-icon" width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="12" r="3.5" stroke="currentColor" stroke-width="1.7"/><path stroke="currentColor" stroke-width="1.7" stroke-linecap="round" d="M12 2v4M12 18v4M2 12h4M18 12h4"/></svg>',
       difficulty: 'Medium',
       difficultyColor: '#f59e0b',
       objectiveType: 'survive_seconds',
@@ -294,6 +304,8 @@ const CAMPAIGN_LEVELS = [
       name: 'Danger Pay',
       subtitle: 'The coins are worth it. The chaos is not.',
       flavorLine: 'Grab and run.',
+      tag: 'High Risk',
+      icon: '<svg class="cmp-svg-icon" width="22" height="22" viewBox="0 0 24 24" fill="none"><path stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" d="M12 2c0 5-6 6-6 11a6 6 0 0 0 12 0c0-4-3-6-3-6s-1 2-3 3c1-3-1-5 0-8z"/></svg>',
       difficulty: 'Hard',
       difficultyColor: '#ef4444',
       objectiveType: 'collect_coins',
@@ -325,6 +337,8 @@ const CAMPAIGN_LEVELS = [
       name: 'Triple Surge',
       subtitle: 'Three chaos waves. Fifteen seconds apart. No rest.',
       flavorLine: 'Survive the countdown.',
+      tag: 'Wave Endurance',
+      icon: '<svg class="cmp-svg-icon" width="22" height="22" viewBox="0 0 24 24" fill="none"><path stroke="currentColor" stroke-width="1.7" stroke-linecap="round" d="M2 7c2-3 4-3 6 0s4 3 6 0 4-3 6 0"/><path stroke="currentColor" stroke-width="1.7" stroke-linecap="round" d="M2 12c2-3 4-3 6 0s4 3 6 0 4-3 6 0"/><path stroke="currentColor" stroke-width="1.7" stroke-linecap="round" d="M2 17c2-3 4-3 6 0s4 3 6 0 4-3 6 0"/></svg>',
       difficulty: 'Hard',
       difficultyColor: '#ef4444',
       objectiveType: 'survive_seconds',
@@ -359,6 +373,8 @@ const CAMPAIGN_LEVELS = [
       name: 'Closing In',
       subtitle: 'The arena gets smaller every second. Space is not coming back.',
       flavorLine: 'Less room. Same danger.',
+      tag: 'Zone Pressure',
+      icon: '<svg class="cmp-svg-icon" width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="2" y="2" width="20" height="20" rx="2" stroke="currentColor" stroke-width="1.7"/><rect x="6" y="6" width="12" height="12" rx="1.5" stroke="currentColor" stroke-width="1.7"/><rect x="10" y="10" width="4" height="4" fill="currentColor" stroke="none" rx="0.5"/></svg>',
       difficulty: 'Hard',
       difficultyColor: '#ef4444',
       objectiveType: 'survive_seconds',
@@ -391,6 +407,8 @@ const CAMPAIGN_LEVELS = [
       name: 'The Gauntlet',
       subtitle: 'Survive, collect, and dodge — all at once. All three required.',
       flavorLine: 'This is what you trained for.',
+      tag: 'Gauntlet',
+      icon: '<svg class="cmp-svg-icon" width="22" height="22" viewBox="0 0 24 24" fill="none"><path stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" d="M3 17L5 8l4.5 5L12 5l2.5 8L19 8l2 9H3z"/><path stroke="currentColor" stroke-width="1.7" stroke-linecap="round" d="M3 17h18"/></svg>',
       difficulty: 'Expert',
       difficultyColor: '#a855f7',
       objectiveType: 'hybrid',
@@ -425,6 +443,8 @@ const CAMPAIGN_LEVELS = [
       name: 'The Panic Core',
       subtitle: 'It has no weaknesses except the orbs it drops. Collect them all.',
       flavorLine: 'End it.',
+      tag: 'Final Boss',
+      icon: '<svg class="cmp-svg-icon" width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><path stroke="currentColor" stroke-width="1.4" stroke-linecap="round" d="M5 5l2.5 2.5M19 5l-2.5 2.5M5 19l2.5-2.5M19 19l-2.5-2.5"/></svg>',
       difficulty: 'Boss',
       difficultyColor: '#ec4899',
       objectiveType: 'boss_defeat',
@@ -1595,7 +1615,7 @@ const CampaignUI = (() => {
       'boss_defeat':     '<svg class="cmp-svg-icon" width="22" height="22" viewBox="0 0 24 24" fill="none"><path stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" d="M12 2l2.5 6.5H22l-5.8 4.2 2.2 6.8L12 15.5l-6.4 4 2.2-6.8L2 8.5h7.5L12 2z"/></svg>',
       'hybrid':          '<svg class="cmp-svg-icon" width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.7"/><rect x="14" y="14" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.7"/><path stroke="currentColor" stroke-width="1.5" stroke-linecap="round" d="M17.5 3L21 6.5M3 17.5L6.5 21"/></svg>'
     };
-    const iconSvg = ICONS[lvl.objectiveType] || ICONS.hybrid;
+    const iconSvg = lvl.icon || ICONS[lvl.objectiveType] || ICONS.hybrid;
 
     // Difficulty pill config
     const DIFF_CONFIG = {
@@ -1635,7 +1655,7 @@ const CampaignUI = (() => {
       'hybrid':          { cls: 'cmp-obj-type--multi', label: 'Multi' },
     };
     const objTypeInfo = OBJ_TYPE[lvl.objectiveType] || { cls: 'cmp-obj-type--multi', label: 'Challenge' };
-    const objTypeHtml = `<div class="cmp-obj-type ${objTypeInfo.cls}">${objTypeInfo.label}</div>`;
+    const objTypeHtml = `<div class="cmp-obj-type ${objTypeInfo.cls}">${lvl.tag || objTypeInfo.label}</div>`;
 
     // Reward coins display
     const rewardHtml = `<span class="cmp-node-reward">
