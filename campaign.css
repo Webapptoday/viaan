@@ -103,20 +103,39 @@
   display: flex;
   align-items: center;
   gap: 5px;
-  padding: 0.3rem 0.75rem;
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.08);
+  padding: 0.35rem 0.85rem;
+  min-height: 32px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
   border-radius: 8px;
-  color: rgba(255,255,255,0.82);
-  font-size: 0.8rem;
+  color: rgba(255,255,255,0.72);
+  font-size: 0.78rem;
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.14s;
+  transition: transform 0.14s ease, background 0.14s ease, color 0.14s ease, box-shadow 0.14s ease;
   font-family: inherit;
   white-space: nowrap;
   flex-shrink: 0;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
 }
-.cmp-sticky-back:hover { background: rgba(255,255,255,0.1); color: #f8fafc; border-color: rgba(255,255,255,0.16); }
+.cmp-sticky-back:hover {
+  background: rgba(255,255,255,0.12);
+  color: #f8fafc;
+  border-color: rgba(255,255,255,0.22);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 12px rgba(0,0,0,0.3);
+}
+.cmp-sticky-back:active {
+  transform: translateY(1px);
+  background: rgba(255,255,255,0.08);
+  box-shadow: none;
+  transition-duration: 0.06s;
+}
+.cmp-sticky-back:focus-visible {
+  outline: 2px solid rgba(255,255,255,0.6);
+  outline-offset: 2px;
+}
 
 /* Mode name + chapter pill */
 .cmp-sticky-center {
@@ -1015,67 +1034,157 @@
    NODE BUTTONS — bigger, bolder
    ========================== */
 .cmp-node-btn {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 0.5rem 1rem;
-  border-radius: 12px;
-  font-size: 0.86rem;
+  justify-content: center;
+  gap: 5px;
+  padding: 0.52rem 1.05rem;
+  min-height: 38px;
+  border-radius: 10px;
+  font-size: 0.84rem;
   font-weight: 900;
   border: none;
   cursor: pointer;
   white-space: nowrap;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
   font-family: inherit;
-  transition: transform 0.12s ease, filter 0.12s ease, box-shadow 0.12s;
+  position: relative;
+  overflow: hidden;
+  outline: none;
+  transition: transform 0.14s cubic-bezier(0.2,0.8,0.3,1),
+              box-shadow 0.14s cubic-bezier(0.2,0.8,0.3,1),
+              filter 0.12s ease;
+  will-change: transform;
   line-height: 1;
+  -webkit-tap-highlight-color: transparent;
+}
+.cmp-node-btn:focus-visible {
+  outline: 2px solid rgba(255,255,255,0.65);
+  outline-offset: 3px;
 }
 .cmp-node-btn:hover:not(:disabled) {
   filter: brightness(1.2);
-  transform: translateY(-2px) scale(1.04);
+  transform: translateY(-2.5px) scale(1.04);
 }
 .cmp-node-btn:active:not(:disabled) {
-  transform: translateY(0px) scale(0.97);
-  filter: brightness(0.92);
+  transform: translateY(1px) scale(0.96);
+  filter: brightness(0.88);
+  transition-duration: 0.06s;
 }
 
+/* Shine sweep — plays on current-level CTAs only */
+.cmp-node-btn--play::after,
+.cmp-node-btn--boss-fight::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 25%,
+    rgba(255,255,255,0.2) 50%,
+    transparent 75%
+  );
+  transform: translateX(-110%);
+  pointer-events: none;
+  border-radius: inherit;
+}
+.cmp-node--current .cmp-node-btn--play::after,
+.cmp-node--current .cmp-node-btn--boss-fight::after {
+  animation: cmp-btn-shine 3.2s ease-in-out infinite 1.5s;
+}
+@keyframes cmp-btn-shine {
+  0%, 100% { transform: translateX(-110%); }
+  28%       { transform: translateX(160%); }
+}
+
+/* PLAY — vivid gradient with node-color glow */
 .cmp-node-btn--play {
-  background: linear-gradient(135deg, var(--node-color, #7c3aed) 0%, rgba(var(--node-rgb, 124,58,237), 0.65) 100%);
+  background: linear-gradient(
+    148deg,
+    var(--node-color, #7c3aed) 0%,
+    rgba(var(--node-rgb, 124,58,237), 0.7) 100%
+  );
   color: #fff;
-  box-shadow: 0 4px 18px rgba(var(--node-rgb, 124,58,237), 0.42), inset 0 1px 0 rgba(255,255,255,0.14);
-  text-shadow: 0 1px 2px rgba(0,0,0,0.35);
+  box-shadow:
+    0 4px 20px rgba(var(--node-rgb, 124,58,237), 0.55),
+    0 1px 3px rgba(0,0,0,0.3),
+    inset 0 1px 0 rgba(255,255,255,0.24);
+  text-shadow: 0 1px 3px rgba(0,0,0,0.4);
+}
+.cmp-node-btn--play:hover:not(:disabled) {
+  box-shadow:
+    0 7px 32px rgba(var(--node-rgb, 124,58,237), 0.75),
+    0 2px 6px rgba(0,0,0,0.3),
+    inset 0 1px 0 rgba(255,255,255,0.28);
+}
+/* Idle glow pulse on the current unlocked level */
+.cmp-node--current .cmp-node-btn--play {
+  animation: cmp-play-glow 2.5s ease-in-out infinite;
+}
+.cmp-node--current .cmp-node-btn--play:hover:not(:disabled) {
+  animation-play-state: paused;
+}
+@keyframes cmp-play-glow {
+  0%, 100% { box-shadow: 0 4px 20px rgba(var(--node-rgb, 124,58,237), 0.55), 0 1px 3px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.24); }
+  50%       { box-shadow: 0 7px 34px rgba(var(--node-rgb, 124,58,237), 0.82), 0 1px 3px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.28); }
 }
 
+/* BOSS FIGHT — multi-color dramatic pulse */
 .cmp-node-btn--boss-fight {
-  background: linear-gradient(135deg, #f43f5e 0%, #ec4899 50%, #f97316 100%);
+  background: linear-gradient(135deg, #f43f5e 0%, #ec4899 52%, #f97316 100%);
   color: #fff;
-  box-shadow: 0 4px 22px rgba(244,63,94,0.48), 0 0 40px rgba(236,72,153,0.15);
-  font-size: 0.94rem;
-  padding: 0.58rem 1.25rem;
-  animation: cmp-boss-btn-pulse 2s ease-in-out infinite;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.35);
+  box-shadow:
+    0 5px 24px rgba(244,63,94,0.62),
+    0 0 42px rgba(236,72,153,0.22),
+    inset 0 1px 0 rgba(255,255,255,0.22);
+  font-size: 0.92rem;
+  padding: 0.6rem 1.3rem;
+  min-height: 40px;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.4);
+  animation: cmp-boss-btn-pulse 2.2s ease-in-out infinite;
+  letter-spacing: 0.06em;
+}
+.cmp-node-btn--boss-fight:hover:not(:disabled) {
+  animation-play-state: paused;
+  box-shadow: 0 10px 44px rgba(244,63,94,0.88), 0 0 70px rgba(236,72,153,0.4), inset 0 1px 0 rgba(255,255,255,0.28);
 }
 @keyframes cmp-boss-btn-pulse {
-  0%, 100% { box-shadow: 0 4px 22px rgba(244,63,94,0.48); }
-  50%       { box-shadow: 0 6px 36px rgba(244,63,94,0.68), 0 0 55px rgba(236,72,153,0.25); }
+  0%, 100% {
+    box-shadow: 0 5px 24px rgba(244,63,94,0.62), 0 0 42px rgba(236,72,153,0.22), inset 0 1px 0 rgba(255,255,255,0.22);
+  }
+  50% {
+    box-shadow: 0 8px 40px rgba(244,63,94,0.82), 0 0 68px rgba(236,72,153,0.36), inset 0 1px 0 rgba(255,255,255,0.28);
+  }
 }
 
+/* REPLAY — teal glass (signals completion clearly) */
 .cmp-node-btn--replay {
-  background: rgba(255,255,255,0.08);
-  border: 1px solid rgba(255,255,255,0.18);
-  color: rgba(255,255,255,0.9);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  background: rgba(45,212,170,0.1);
+  border: 1.5px solid rgba(45,212,170,0.3);
+  color: #2dd4aa;
+  font-size: 0.8rem;
+  box-shadow: 0 2px 10px rgba(45,212,170,0.15), inset 0 1px 0 rgba(255,255,255,0.04);
 }
-.cmp-node-btn--replay:hover { background: rgba(255,255,255,0.16); color: #f8fafc; border-color: rgba(255,255,255,0.32); }
+.cmp-node-btn--replay:hover:not(:disabled) {
+  background: rgba(45,212,170,0.2);
+  border-color: rgba(45,212,170,0.5);
+  color: #6ee7b7;
+  box-shadow: 0 4px 20px rgba(45,212,170,0.32);
+  filter: none;
+}
 
+/* LOCKED — clearly non-interactive */
 .cmp-node-btn--locked {
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.1);
-  color: rgba(255,255,255,0.38);
+  background: rgba(255,255,255,0.03);
+  border: 1.5px solid rgba(255,255,255,0.07);
+  color: rgba(255,255,255,0.28);
   cursor: not-allowed;
   pointer-events: none;
   font-size: 0.8rem;
   gap: 4px;
+  box-shadow: none;
+  filter: saturate(0.2);
+  opacity: 0.65;
 }
 
 /* ============================================================
@@ -1084,16 +1193,26 @@
 .cmp-back-btn {
   align-self: center;
   margin-top: 1rem;
-  padding: 0.6rem 2rem;
-  background: #1e293b;
-  color: rgba(255,255,255,0.78);
-  border: 1px solid #334155;
+  padding: 0.6rem 1.75rem;
+  background: rgba(255,255,255,0.05);
+  color: rgba(255,255,255,0.62);
+  border: 1px solid rgba(255,255,255,0.1);
   border-radius: 10px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s;
+  outline: none;
+  transition: transform 0.14s ease, background 0.14s ease, color 0.14s ease, box-shadow 0.14s ease;
+  -webkit-tap-highlight-color: transparent;
 }
-.cmp-back-btn:hover { background: #334155; color: #f8fafc; }
+.cmp-back-btn:hover {
+  background: rgba(255,255,255,0.1);
+  color: #f8fafc;
+  border-color: rgba(255,255,255,0.2);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 12px rgba(0,0,0,0.3);
+}
+.cmp-back-btn:active { transform: translateY(1px); box-shadow: none; transition-duration: 0.06s; }
+.cmp-back-btn:focus-visible { outline: 2px solid rgba(255,255,255,0.6); outline-offset: 2px; }
 
 
 
@@ -1207,17 +1326,60 @@
 }
 
 .cmp-intro-start-btn {
-  margin-top: 0.25rem;
-  padding: 0.75rem 1.5rem;
-  font-size: 1rem;
-  font-weight: 700;
-  border-radius: 12px;
+  width: 100%;
+  padding: 0.9rem 1.75rem;
+  font-size: 1.02rem;
+  font-weight: 900;
+  border-radius: 14px;
+  letter-spacing: 0.05em;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.35);
 }
+/* Shine sweep on intro start CTA */
+.cmp-intro-start-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 25%,
+    rgba(255,255,255,0.18) 50%,
+    transparent 75%
+  );
+  transform: translateX(-110%);
+  pointer-events: none;
+  border-radius: inherit;
+  animation: cmp-btn-shine 3s ease-in-out infinite 1s;
+}
+/* Difficulty-matched gradient overrides for intro start button */
+.cmp-intro--easy   .cmp-intro-start-btn.btn { background: linear-gradient(135deg, #22c55e, #16a34a); box-shadow: 0 6px 28px rgba(34,197,94,0.62), inset 0 1px 0 rgba(255,255,255,0.22); }
+.cmp-intro--medium .cmp-intro-start-btn.btn { background: linear-gradient(135deg, #f59e0b, #d97706); box-shadow: 0 6px 28px rgba(245,158,11,0.62), inset 0 1px 0 rgba(255,255,255,0.22); }
+.cmp-intro--hard   .cmp-intro-start-btn.btn { background: linear-gradient(135deg, #ef4444, #dc2626); box-shadow: 0 6px 28px rgba(239,68,68,0.62), inset 0 1px 0 rgba(255,255,255,0.22); }
+.cmp-intro--expert .cmp-intro-start-btn.btn { background: linear-gradient(135deg, #a855f7, #7c3aed); box-shadow: 0 6px 28px rgba(168,85,247,0.62), inset 0 1px 0 rgba(255,255,255,0.22); }
+.cmp-intro--boss   .cmp-intro-start-btn.btn { background: linear-gradient(135deg, #f43f5e, #ec4899 52%, #f97316); box-shadow: 0 6px 36px rgba(244,63,94,0.68), inset 0 1px 0 rgba(255,255,255,0.22); animation: cmp-boss-btn-pulse 2.2s ease-in-out infinite; }
+.cmp-intro--easy   .cmp-intro-start-btn.btn:hover { box-shadow: 0 10px 38px rgba(34,197,94,0.85), inset 0 1px 0 rgba(255,255,255,0.26); }
+.cmp-intro--medium .cmp-intro-start-btn.btn:hover { box-shadow: 0 10px 38px rgba(245,158,11,0.85), inset 0 1px 0 rgba(255,255,255,0.26); }
+.cmp-intro--hard   .cmp-intro-start-btn.btn:hover { box-shadow: 0 10px 38px rgba(239,68,68,0.85), inset 0 1px 0 rgba(255,255,255,0.26); }
+.cmp-intro--expert .cmp-intro-start-btn.btn:hover { box-shadow: 0 10px 38px rgba(168,85,247,0.85), inset 0 1px 0 rgba(255,255,255,0.26); }
+.cmp-intro--boss   .cmp-intro-start-btn.btn:hover { box-shadow: 0 12px 46px rgba(244,63,94,0.92), inset 0 1px 0 rgba(255,255,255,0.28); animation-play-state: paused; }
 
-.cmp-intro-back-btn {
-  padding: 0.5rem 1rem;
-  font-size: 0.85rem;
-  color: rgba(255,255,255,0.78);
+.cmp-intro-back-btn.btn {
+  padding: 0.45rem 0.9rem;
+  min-height: 36px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.5);
+  box-shadow: none;
+  align-self: center;
+  width: auto;
+}
+.cmp-intro-back-btn.btn:hover {
+  background: rgba(255,255,255,0.09);
+  border-color: rgba(255,255,255,0.18);
+  color: rgba(255,255,255,0.82);
+  transform: none;
+  box-shadow: none;
 }
 
 .cmp-intro-countdown {
@@ -1311,9 +1473,7 @@
   color: #fca5a5;
 }
 
-.cmp-intro-actions { display: flex; gap: 0.6rem; margin-top: 0.6rem; justify-content: flex-end; }
-.cmp-intro-start-btn { padding: 0.65rem 1.25rem; font-weight: 800; border-radius: 12px; }
-.cmp-intro-back-btn { padding: 0.45rem 0.9rem; }
+.cmp-intro-actions { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.75rem; }
 
 /* Difficulty glow variants */
 .cmp-intro-box.cmp-intro--easy   { border-color: rgba(34,197,94,0.18);  box-shadow: 0 0 70px rgba(34,197,94,0.06);   --intro-accent: #4ade80; }
@@ -1673,6 +1833,26 @@
   justify-content: center;
   gap: 5px;
   cursor: pointer;
+  will-change: transform;
+}
+/* Next Level — dominant green CTA */
+#cmp-v-next {
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  color: #fff;
+  box-shadow: 0 6px 28px rgba(34,197,94,0.62), inset 0 1px 0 rgba(255,255,255,0.22);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  flex: 2;
+  font-size: 0.92rem;
+  animation: cmp-v-next-pulse 2.4s ease-in-out infinite;
+}
+#cmp-v-next:hover {
+  animation-play-state: paused;
+  filter: brightness(1.12);
+  box-shadow: 0 10px 40px rgba(34,197,94,0.85), inset 0 1px 0 rgba(255,255,255,0.28);
+}
+@keyframes cmp-v-next-pulse {
+  0%, 100% { box-shadow: 0 6px 28px rgba(34,197,94,0.62), inset 0 1px 0 rgba(255,255,255,0.22); }
+  50%       { box-shadow: 0 8px 38px rgba(34,197,94,0.85), inset 0 1px 0 rgba(255,255,255,0.26); }
 }
 
 /* ============================================================
@@ -1747,6 +1927,7 @@
   font-weight: 700;
   border-radius: 11px;
   cursor: pointer;
+  will-change: transform;
 }
 
 .cmp-d-retry {
@@ -1755,8 +1936,8 @@
 }
 
 @keyframes cmp-retry-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.3); }
-  50%       { box-shadow: 0 0 0 8px rgba(124, 58, 237, 0); }
+  0%, 100% { box-shadow: 0 4px 20px rgba(124,58,237,0.55), 0 0 0 0 rgba(124,58,237,0.2); }
+  50%       { box-shadow: 0 7px 32px rgba(124,58,237,0.75), 0 0 0 8px rgba(124,58,237,0); }
 }
 
 /* Small extras for enhanced victory / defeat UI */
@@ -1922,7 +2103,7 @@
   .cmp-road-node { padding: 0.75rem 0.85rem; }
   .cmp-node-title { font-size: 0.9rem; }
   .cmp-node-obj   { font-size: 0.78rem; }
-  .cmp-node-btn   { font-size: 0.76rem; padding: 0.3rem 0.65rem; }
+  .cmp-node-btn   { font-size: 0.76rem; padding: 0.32rem 0.65rem; min-height: 34px; }
   .cmp-v-box, .cmp-d-box, .cmp-intro-box { padding: 1.5rem 1rem; }
   .cmp-intro-name { font-size: 1.3rem; }
   #campaign-hud-overlay { padding: 2px 8px 0; gap: 6px; }
@@ -1962,6 +2143,9 @@
   .cmp-confetti-piece,
   .cmp-d-retry,
   .cmp-node-btn--boss-fight,
+  .cmp-node-btn--play,
+  .cmp-intro-start-btn,
+  #cmp-v-next,
   .cmp-node-current-badge {
     animation: none !important;
     transition: none !important;
@@ -1978,6 +2162,9 @@
 .reduced-motion .cmp-confetti-piece,
 .reduced-motion .cmp-d-retry,
 .reduced-motion .cmp-node-btn--boss-fight,
+.reduced-motion .cmp-node-btn--play,
+.reduced-motion .cmp-intro-start-btn,
+.reduced-motion #cmp-v-next,
 .reduced-motion .cmp-node-current-badge {
   animation: none !important;
   transition: none !important;
