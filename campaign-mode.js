@@ -1671,7 +1671,11 @@ const CampaignUI = (() => {
     if (side === 'boss') {
       return `<div class="cmp-road-row ${rowClass} ${diffClass} ${stateClass}">${nodeHtml}</div>`;
     }
-    const connectorHtml = `<div class="cmp-road-connector" aria-hidden="true"><div class="cmp-road-connector-dot"></div></div>`;
+    const dotExtraClass = completed ? 'cmp-road-connector-dot--done' : isNext ? 'cmp-road-connector-dot--next' : '';
+    const dotInner = completed
+      ? `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>`
+      : `<span class="cmp-dot-num" aria-hidden="true">${lvl.id}</span>`;
+    const connectorHtml = `<div class="cmp-road-connector" aria-hidden="true"><div class="cmp-road-connector-dot ${dotExtraClass}">${dotInner}</div></div>`;
     const cardCell   = `<div class="cmp-road-cell cmp-road-cell--card">${nodeHtml}</div>`;
     const spacerCell = `<div class="cmp-road-cell cmp-road-cell--spacer" aria-hidden="true"></div>`;
     return `<div class="cmp-road-row ${rowClass} ${diffClass} ${stateClass}">

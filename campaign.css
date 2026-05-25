@@ -240,13 +240,13 @@
 .cmp-road-inner {
   position: relative;
   z-index: 1;
-  max-width: 900px;
+  max-width: 960px;
   margin: 0 auto;
   padding: 1.8rem 1.25rem 8rem;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1.75rem;
+  gap: 1.5rem;
 }
 
 /* Back button (legacy style — kept for fallback; primary back btn now in sticky hud) */
@@ -357,63 +357,92 @@
 }
 
 /* ==========================
-   CHAPTER DIVIDERS
+   CHAPTER DIVIDERS — zone gate style
    ========================== */
 .cmp-chapter-divider {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 1rem;
   width: 100%;
-  padding: 1.5rem 0 0.75rem;
+  padding: 2.5rem 0 1.25rem;
 }
 .cmp-chapter-divider-line {
   flex: 1;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(124,58,237,0.35), transparent);
+  height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, transparent, rgba(124,58,237,0.55), rgba(124,58,237,0.25));
+}
+.cmp-chapter-divider:not(.cmp-chapter-divider--boss) .cmp-chapter-divider-line:last-child {
+  background: linear-gradient(90deg, rgba(124,58,237,0.25), rgba(124,58,237,0.55), transparent);
 }
 .cmp-chapter-divider-line--boss {
-  background: linear-gradient(90deg, transparent, rgba(236,72,153,0.5), transparent);
+  background: linear-gradient(90deg, transparent, rgba(244,63,94,0.65), rgba(244,114,182,0.35)) !important;
+  height: 3px;
 }
+/* The gate label */
 .cmp-chapter-divider-label {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.28rem;
+  padding: 0.85rem 1.6rem;
+  background: linear-gradient(145deg, rgba(124,58,237,0.18), rgba(124,58,237,0.06));
+  border: 1px solid rgba(124,58,237,0.36);
+  border-radius: 16px;
+  min-width: 190px;
+  text-align: center;
   flex-shrink: 0;
-  white-space: nowrap;
+  box-shadow:
+    0 6px 32px rgba(124,58,237,0.16),
+    inset 0 1px 0 rgba(255,255,255,0.06);
 }
+.cmp-chapter-divider--boss .cmp-chapter-divider-label {
+  background: linear-gradient(145deg, rgba(244,63,94,0.2), rgba(168,85,247,0.1));
+  border-color: rgba(244,63,94,0.44);
+  box-shadow:
+    0 8px 40px rgba(244,63,94,0.2),
+    0 0 80px rgba(244,63,94,0.06),
+    inset 0 1px 0 rgba(255,255,255,0.07);
+  animation: cmp-boss-gate-pulse 3s ease-in-out infinite;
+}
+@keyframes cmp-boss-gate-pulse {
+  0%, 100% { box-shadow: 0 8px 40px rgba(244,63,94,0.2), 0 0 80px rgba(244,63,94,0.06); border-color: rgba(244,63,94,0.44); }
+  50%       { box-shadow: 0 10px 60px rgba(244,63,94,0.32), 0 0 120px rgba(244,63,94,0.1); border-color: rgba(244,114,182,0.68); }
+}
+/* Chapter label text elements */
 .cmp-chapter-tag {
-  font-size: 0.7rem;
-  font-weight: 800;
-  letter-spacing: 0.1em;
+  font-size: 0.64rem;
+  font-weight: 900;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: #a78bfa;
-  background: rgba(124,58,237,0.16);
-  border: 1px solid rgba(124,58,237,0.3);
-  border-radius: 20px;
-  padding: 3px 10px;
-}
-.cmp-chapter-tag--boss {
-  color: #f9a8d4;
-  background: rgba(236,72,153,0.16);
-  border-color: rgba(236,72,153,0.3);
-}
-.cmp-chapter-tagname {
-  font-size: 0.82rem;
-  font-weight: 700;
-  color: rgba(255,255,255,0.72);
-}
-.cmp-chapter-tagname--boss {
-  color: rgba(249,168,212,0.9);
-  font-weight: 800;
-}
-.cmp-chapter-progress {
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: rgba(255,255,255,0.48);
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.07);
+  color: #c084fc;
+  background: rgba(124,58,237,0.2);
   border-radius: 20px;
   padding: 2px 8px;
+}
+.cmp-chapter-tag--boss {
+  color: #fca5a5;
+  background: rgba(244,63,94,0.22);
+}
+.cmp-chapter-tagname {
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: rgba(255,255,255,0.92);
+  white-space: nowrap;
+}
+.cmp-chapter-tagname--boss {
+  color: #fca5a5;
+  font-weight: 900;
+}
+.cmp-chapter-progress {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: rgba(255,255,255,0.5);
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 20px;
+  padding: 2px 9px;
+  margin-top: 1px;
 }
 
 /* ==========================
@@ -427,36 +456,60 @@
   align-items: stretch;
 }
 
-/* Central vertical spine */
+/* Central vertical spine — thick glowing track */
 .cmp-road-map::before {
   content: '';
   position: absolute;
   left: 50%;
   top: 0;
   bottom: 0;
-  width: 3px;
+  width: 6px;
   transform: translateX(-50%);
-  background: linear-gradient(180deg, rgba(124,58,237,0.28) 0%, rgba(14,165,233,0.22) 25%, rgba(245,158,11,0.18) 55%, rgba(239,68,68,0.2) 75%);
-  border-radius: 2px;
+  background: linear-gradient(180deg,
+    rgba(45,212,170,0.4) 0%,
+    rgba(124,58,237,0.5) 15%,
+    rgba(14,165,233,0.4) 35%,
+    rgba(251,146,60,0.38) 55%,
+    rgba(244,63,94,0.42) 75%,
+    rgba(244,114,182,0.55) 100%);
+  border-radius: 3px;
   pointer-events: none;
+  box-shadow:
+    0 0 12px rgba(124,58,237,0.25),
+    0 0 32px rgba(124,58,237,0.12);
 }
-
 @keyframes cmp-neon-flow { 0%{background-position:0% 0%}100%{background-position:100% 100%} }
-.cmp-road-map::before { background-size: 200% 200%; animation: cmp-neon-flow 8s linear infinite; }
+.cmp-road-map::before { background-size: 200% 200%; animation: cmp-neon-flow 10s linear infinite; }
 
 /* Each row = one level: 3-column grid (card | connector | card) */
 .cmp-road-row {
   position: relative;
   display: grid;
-  grid-template-columns: 1fr 52px 1fr;
+  grid-template-columns: 1fr 68px 1fr;
   align-items: center;
-  min-height: 160px;
-  padding: 12px 0;
+  min-height: 130px;
+  padding: 10px 0;
   z-index: 1;
 }
 
-.cmp-road-row--left  { grid-template-columns: 1fr 52px 1fr; }
-.cmp-road-row--right { grid-template-columns: 1fr 52px 1fr; }
+/* Ambient row highlight for 'you are here' */
+.cmp-road-row.cmp-node--current::before {
+  content: '';
+  position: absolute;
+  inset: -4px -8px;
+  background: radial-gradient(ellipse 85% 65% at 50% 50%, rgba(var(--node-rgb, 124,58,237), 0.07), transparent 70%);
+  border-radius: 22px;
+  pointer-events: none;
+  z-index: 0;
+  animation: cmp-row-ambient 3s ease-in-out infinite;
+}
+@keyframes cmp-row-ambient {
+  0%, 100% { opacity: 0.65; }
+  50% { opacity: 1; }
+}
+
+.cmp-road-row--left  { grid-template-columns: 1fr 68px 1fr; }
+.cmp-road-row--right { grid-template-columns: 1fr 68px 1fr; }
 .cmp-road-row--boss  {
   grid-template-columns: 1fr;
   justify-items: center;
@@ -467,9 +520,27 @@
 .cmp-road-cell--card {
   display: flex;
   align-items: center;
+  position: relative;
 }
-.cmp-road-row--left  .cmp-road-cell--card { justify-content: flex-end;   padding-right: 10px; }
-.cmp-road-row--right .cmp-road-cell--card { justify-content: flex-start;  padding-left:  10px; }
+.cmp-road-row--left  .cmp-road-cell--card { justify-content: flex-end;   padding-right: 12px; }
+.cmp-road-row--right .cmp-road-cell--card { justify-content: flex-start;  padding-left:  12px; }
+
+/* Horizontal arm connecting card edge to the spine dot */
+.cmp-road-row--left .cmp-road-cell--card::after,
+.cmp-road-row--right .cmp-road-cell--card::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  height: 2px;
+  width: 12px;
+  transform: translateY(-50%);
+  background: var(--row-dot, #7c3aed);
+  opacity: 0.5;
+  pointer-events: none;
+}
+.cmp-road-row--left  .cmp-road-cell--card::after { right: 0; }
+.cmp-road-row--right .cmp-road-cell--card::after { left: 0; }
+.cmp-road-row.cmp-node--locked .cmp-road-cell--card::after { opacity: 0.18; }
 
 /* Connector — spine dot in center column */
 .cmp-road-connector {
@@ -480,20 +551,92 @@
   position: relative;
   z-index: 2;
 }
+/* Per-segment spine colorization overlay */
+.cmp-road-connector::before {
+  content: '';
+  position: absolute;
+  left: 50%; top: 0; bottom: 0;
+  width: 6px;
+  transform: translateX(-50%);
+  background: rgba(var(--node-rgb, 124,58,237), 0.18);
+  pointer-events: none;
+  z-index: 1;
+  transition: background 0.3s;
+}
+.cmp-road-row.cmp-node--completed .cmp-road-connector::before {
+  background: linear-gradient(180deg, rgba(45,212,170,0.55), rgba(45,212,170,0.28));
+  box-shadow: 0 0 8px rgba(45,212,170,0.3);
+}
+.cmp-road-row.cmp-node--current .cmp-road-connector::before {
+  background: rgba(var(--node-rgb, 124,58,237), 0.55);
+  animation: cmp-spine-seg-pulse 2.4s ease-in-out infinite;
+}
+@keyframes cmp-spine-seg-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.9; }
+}
+
+/* Node dot — numbered map node */
 .cmp-road-connector-dot {
-  width: 14px;
-  height: 14px;
+  position: relative;
+  z-index: 3;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  background: var(--row-dot, #7c3aed);
-  box-shadow: 0 0 20px var(--row-dot, #7c3aed), 0 0 40px var(--row-dot, #7c3aed44);
+  background: rgba(var(--node-rgb, 124,58,237), 0.2);
+  border: 2px solid var(--row-dot, #7c3aed);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.58rem;
+  font-weight: 900;
+  color: var(--row-dot, #7c3aed);
+  box-shadow:
+    0 0 0 4px rgba(var(--node-rgb, 124,58,237), 0.1),
+    0 0 16px rgba(var(--node-rgb, 124,58,237), 0.35);
   flex-shrink: 0;
+  transition: transform 0.18s, box-shadow 0.18s;
+  letter-spacing: 0;
 }
-.cmp-road-row.cmp-node--current .cmp-road-connector-dot {
-  animation: cmp-dot-current-pulse 2s ease-in-out infinite;
+/* Completed dot — green check */
+.cmp-road-connector-dot--done {
+  background: rgba(45,212,170,0.22);
+  border-color: #2dd4aa;
+  color: #2dd4aa;
+  box-shadow:
+    0 0 0 4px rgba(45,212,170,0.12),
+    0 0 18px rgba(45,212,170,0.55);
 }
-@keyframes cmp-dot-current-pulse {
-  0%, 100% { box-shadow: 0 0 8px var(--row-dot, #7c3aed); transform: scale(1); }
-  50%       { box-shadow: 0 0 22px var(--row-dot, #7c3aed), 0 0 40px var(--row-dot, #7c3aed44); transform: scale(1.25); }
+/* Next/current dot — larger pulsing ring */
+.cmp-road-connector-dot--next {
+  width: 36px;
+  height: 36px;
+  border-width: 2.5px;
+  background: rgba(var(--node-rgb, 124,58,237), 0.28);
+  box-shadow:
+    0 0 0 6px rgba(var(--node-rgb, 124,58,237), 0.12),
+    0 0 0 12px rgba(var(--node-rgb, 124,58,237), 0.05),
+    0 0 28px rgba(var(--node-rgb, 124,58,237), 0.5);
+  animation: cmp-dot-next-pulse 2.2s ease-in-out infinite;
+}
+@keyframes cmp-dot-next-pulse {
+  0%, 100% { box-shadow: 0 0 0 5px rgba(var(--node-rgb, 124,58,237), 0.1), 0 0 20px rgba(var(--node-rgb, 124,58,237), 0.4); }
+  50%       { box-shadow: 0 0 0 11px rgba(var(--node-rgb, 124,58,237), 0.15), 0 0 36px rgba(var(--node-rgb, 124,58,237), 0.6); }
+}
+/* Locked dot — dim */
+.cmp-road-row.cmp-node--locked .cmp-road-connector-dot {
+  opacity: 0.38;
+  box-shadow: none;
+}
+/* Number label inside connector dot */
+.cmp-dot-num {
+  font-size: 0.58rem;
+  font-weight: 900;
+  line-height: 1;
+  color: inherit;
+  letter-spacing: 0;
+  pointer-events: none;
+  user-select: none;
 }
 
 /* ==========================
@@ -502,7 +645,7 @@
 .cmp-road-node {
   position: relative;
   width: 100%;
-  max-width: 360px;
+  max-width: 430px;
   min-width: 240px;
   background:
     radial-gradient(ellipse 110% 70% at 0% 0%, rgba(var(--node-rgb, 124,58,237), 0.24) 0%, transparent 62%),
@@ -1690,11 +1833,12 @@
 /* Single-column road layout below 760px */
 @media (max-width: 760px) {
   .cmp-road-inner { max-width: 100%; padding: 1rem 0.75rem 5rem; }
-  .cmp-road-map::before { left: 22px; transform: none; }
-  .cmp-road-row         { grid-template-columns: 48px 1fr; min-height: 130px; padding: 8px 0; }
-  .cmp-road-row--left   { grid-template-columns: 48px 1fr; }
-  .cmp-road-row--right  { grid-template-columns: 48px 1fr; }
+  .cmp-road-map::before { left: 24px; transform: none; width: 5px; }
+  .cmp-road-row         { grid-template-columns: 52px 1fr; min-height: 120px; padding: 8px 0; }
+  .cmp-road-row--left   { grid-template-columns: 52px 1fr; }
+  .cmp-road-row--right  { grid-template-columns: 52px 1fr; }
   .cmp-road-connector   { order: -1; }
+  .cmp-road-connector::before { left: 24px; transform: none; }
   .cmp-road-row--left  .cmp-road-cell--card,
   .cmp-road-row--right .cmp-road-cell--card {
     order: 0;
@@ -1702,6 +1846,9 @@
     padding-left: 8px;
     padding-right: 0;
   }
+  /* Hide arms on mobile (left-spine layout) */
+  .cmp-road-row--left  .cmp-road-cell--card::after,
+  .cmp-road-row--right .cmp-road-cell--card::after { display: none; }
   .cmp-road-cell--spacer { display: none; }
   .cmp-road-node { max-width: 100%; min-width: 0; }
   .cmp-sticky-stats .cmp-sticky-stat--coins { display: none; }
