@@ -1595,6 +1595,17 @@ const CampaignUI = (() => {
 
     const objText = _getObjectiveSummary(lvl);
 
+    // Challenge type chip
+    const OBJ_TYPE = {
+      'survive_seconds': { cls: 'cmp-obj-type--timer', label: 'Timer' },
+      'collect_coins':   { cls: 'cmp-obj-type--coins', label: 'Coins' },
+      'dodge_blocks':    { cls: 'cmp-obj-type--dodge', label: 'Dodge' },
+      'boss_defeat':     { cls: 'cmp-obj-type--boss',  label: 'Boss'  },
+      'hybrid':          { cls: 'cmp-obj-type--multi', label: 'Multi' },
+    };
+    const objTypeInfo = OBJ_TYPE[lvl.objectiveType] || { cls: 'cmp-obj-type--multi', label: 'Challenge' };
+    const objTypeHtml = `<div class="cmp-obj-type ${objTypeInfo.cls}">${objTypeInfo.label}</div>`;
+
     // Reward coins display
     const rewardHtml = `<span class="cmp-node-reward">
       <svg class="cmp-reward-coin-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M12 8v8M9.5 10.5c0-1.38 1.12-2.5 2.5-2.5s2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5-2.5 1.12-2.5 2.5 1.12 2.5 2.5 2.5 2.5-1.12 2.5-2.5"/></svg>
@@ -1646,6 +1657,7 @@ const CampaignUI = (() => {
             <div class="cmp-node-title">${lvl.name}</div>
           </div>
         </div>
+        ${objTypeHtml}
         <div class="cmp-node-obj">${objText}</div>
         <div class="cmp-node-bottom">
           <div class="cmp-node-stars" aria-label="${stars} of 3 stars">${starsHtml}</div>
