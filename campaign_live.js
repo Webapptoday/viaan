@@ -1,17 +1,9 @@
-// ============================================================
+﻿// ============================================================
 // SHIFTPANIC - CAMPAIGN MODE v1
 // Clean, scalable campaign system. No regressions to Endless Mode.
 // ============================================================
 'use strict';
-console.log('[Campaign] v7 module loading...');
-window._campaignLoadError = null;
-// Catch any unhandled errors from this script so we can surface them
-window.addEventListener('error', function _cmpErrHandler(ev) {
-  if (ev.filename && (ev.filename.indexOf('campaign-mode.js') !== -1 || ev.filename.indexOf('campaign.js') !== -1)) {
-    window._campaignLoadError = ev.message + ' (line ' + ev.lineno + ')';
-    console.error('[Campaign] LOAD ERROR:', ev.message, 'at line', ev.lineno);
-  }
-});
+console.log('[Campaign] v2 module loading...');
 
 // ============================================================
 // SECTION 1: LEVEL CONFIG
@@ -435,7 +427,7 @@ const CAMPAIGN_LEVELS = [
         { time: 18.0, type: 'coinTrail', pattern: 'rightToLeftArc', lane: 3, count: 4, orb: true },
         { time: 30.0, type: 'pressureWave', duration: 5 },
         { time: 36.0, type: 'coinTrail', pattern: 'leftToRightArc', lane: 2, count: 3, orb: true },
-        { time: 8.0, handler: function(ev) { try { window.CampaignPatterns && window.CampaignPatterns.spawnSideBlock && window.CampaignPatterns.spawnSideBlock({ side: 'left', y: canvas ? Math.max(160, Math.min(canvas.height - 160, player ? player.y : canvas.height * 0.7)) : 320 }); } catch(_){} } },
+        { time: 8.0, handler: function(ev) { try { window.CampaignPatterns && window.CampaignPatterns.spawnSideBlock && window.CampaignPatterns.spawnSideBlock({ side: 'left', y: canvas ? Math.max(160, Math.min(canvas.height - 160, player ? player.y : canvas.height * 0.7)) }); } catch(_){} } },
         { time: 50.0, handler: function(ev) { try { window.CampaignPatterns && window.CampaignPatterns.spawnSideBlock && window.CampaignPatterns.spawnSideBlock({ side: 'right' }); } catch(_){} } }
       ],
       settings: {
@@ -626,6 +618,42 @@ window.unlockAllCampaignLevels = function() {
     CampaignSave.save();
     console.info('[Campaign] All levels unlocked');
   } catch (e) { console.error(e); }
+};
+
+// Developer: debug helpers to validate and optionally start levels programmatically.
+window.debugStartLevel = function(id) {
+  try {
+    window.DEBUG_CHALLENGE = true;
+    const lvl = CAMPAIGN_LEVELS.find(l => l.id === id);
+    if (!lvl) { console.error('[CampaignDebug] unknown level', id); return; }
+    console.info('[CampaignDebug] Starting level', id, lvl.name);
+    window.CampaignManager.selectLevel(lvl);
+  } catch (e) { console.error('[CampaignDebug] debugStartLevel error', e); }
+};
+
+window.debugChallengeLevels = async function(runStart) {
+  console.info('[CampaignDebug] Validating all campaign levels');
+  for (const lvl of CAMPAIGN_LEVELS) {
+    try {
+      const problems = validateChallengeLevelStrict(lvl);
+      const ok = !problems || problems.length === 0;
+      console.log('[CampaignDebug] Level', lvl.id, '-', lvl.name, 'configValid=', ok, (ok ? '' : problems));
+      if (runStart && ok) {
+        console.log('[CampaignDebug] Attempting to start level', lvl.id);
+        try {
+          window.CampaignManager.selectLevel(lvl);
+          // allow short startup time to observe spawns
+          await new Promise(r => setTimeout(r, 1400));
+          const obsCt = (typeof obstacles !== 'undefined') ? obstacles.length : 'n/a';
+          const playerOk = (typeof player !== 'undefined');
+          console.log('[CampaignDebug] afterStart', lvl.id, 'obstacles:', obsCt, 'playerPresent:', playerOk, 'state:', (typeof currentState !== 'undefined' ? currentState : 'n/a'));
+        } catch (e) { console.error('[CampaignDebug] start failed for', lvl.id, e); }
+        try { if (typeof CampaignUI !== 'undefined' && typeof CampaignUI.showLevelSelect === 'function') CampaignUI.showLevelSelect(); } catch (_) {}
+        await new Promise(r => setTimeout(r, 300));
+      }
+    } catch (e) { console.error('[CampaignDebug] validation error for', lvl && lvl.id, e); }
+  }
+  console.info('[CampaignDebug] Validation complete');
 };
 
 // Developer: debug helpers to validate and optionally start levels programmatically.
@@ -1466,6 +1494,7 @@ const CampaignUI = (() => {
         }
       });
     });
+
     // Wire info (?) buttons: show the intro/briefing without auto-start
     el.querySelectorAll('.cmp-node-info').forEach(btn => {
       btn.addEventListener('click', (ev) => {
@@ -1772,9 +1801,9 @@ const CampaignUI = (() => {
     step();
   }
 
-    function startCountdown(count, onDone) {
-      try { _runCountdown(count, onDone); } catch (e) { console.error('[CampaignUI] startCountdown failed', e); if (onDone) onDone(); }
-    }
+  function startCountdown(count, onDone) {
+    try { _runCountdown(count, onDone); } catch (e) { console.error('[CampaignUI] startCountdown failed', e); if (onDone) onDone(); }
+  }
 
   // ---- Campaign HUD Overlay (during gameplay) ----
   function updateHUD(lvl, elapsed, roundCoins, dodgeCount, bossHp, timeLimit) {
@@ -2152,7 +2181,7 @@ const CampaignUI = (() => {
   };
 })();
 window.CampaignUI = CampaignUI;
-console.log('[Campaign] v7 CampaignUI exported:', typeof CampaignUI, typeof CampaignUI === 'object' ? 'OK' : 'FAIL');
+console.log('[Campaign] CampaignUI exported:', typeof CampaignUI);
 
 // ============================================================
 // SECTION 6: CAMPAIGN MANAGER
@@ -2496,7 +2525,7 @@ window.CampaignManager = (() => {
 
       // Initialize deterministic campaign RNG and pattern tick for this level
       try {
-        // Keep attempt counter for analytics, but use per-level deterministic seed
+        // Keep attempt counter for analytics, but use stable per-level seed
         window._campaignAttempt = (window._campaignAttempt || 0) + 1;
         const seed = (typeof lvl.id === 'number' ? lvl.id : 0) * 1009 + 7;
         try { window._campaignRng = seededRng(seed); } catch (_) { window._campaignRng = null; }

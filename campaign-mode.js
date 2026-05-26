@@ -11,6 +11,10 @@ window.addEventListener('error', function _cmpErrHandler(ev) {
     window._campaignLoadError = ev.message + ' (line ' + ev.lineno + ')';
     console.error('[Campaign] LOAD ERROR:', ev.message, 'at line', ev.lineno);
   }
+
+  function startCountdown(count, onDone) {
+    try { _runCountdown(count, onDone); } catch (e) { console.error('[CampaignUI] startCountdown failed', e); if (onDone) onDone(); }
+  }
 });
 
 // ============================================================
@@ -89,6 +93,7 @@ const CAMPAIGN_LEVELS = [
         { stars: 1, label: 'Collect 15',    check: (d) => true },
       ],
       // Deterministic coin waves (total possible coins = 18)
+      // Added a circular coin-with-block ring pattern unique to this level.
       spawnScript: [
         // 0s: 2 coins center-left
         { time: 0.6, handler: function(ev) {
@@ -174,6 +179,38 @@ const CAMPAIGN_LEVELS = [
             window._campaignSafeZones.push({ x: cx, y: (canvas?canvas.height*0.6:240), r: 80, t: 6.0 });
             for (let i=0;i<seq.length;i++) _schedule(i * 0.12 + (seeded()-0.5)*0.03, () => _createCoinAtLane(seq[i], { count: 1 }));
           } catch(_) {}
+        } }
+        ,{ time: 2.4, handler: function(ev) {
+          // Unique mechanic: spawn a circular ring of small blocks with coins just outside the ring.
+          try {
+            const lanesCount = typeof numLanes === 'function' ? numLanes() : 5;
+            // circle center roughly mid-screen
+            const cx = canvas ? canvas.width * 0.5 : 400;
+            const cy = canvas ? canvas.height * 0.48 : 220;
+            // spawn small blocks in a ring via CampaignPatterns helper if available
+            if (window.CampaignPatterns && typeof window.CampaignPatterns.spawnRing === 'function') {
+              window.CampaignPatterns.spawnRing({ x: cx, y: cy, radius: 72, count: 8, blockSize: 18 });
+            } else {
+              // fallback: place side blocks around center using spawnSideBlock
+              for (let i=0;i<8;i++) {
+                const angle = (Math.PI * 2 * i) / 8;
+                const x = cx + Math.cos(angle) * 72;
+                const y = cy + Math.sin(angle) * 72;
+                (function(xx, yy){ setTimeout(()=>{ try { window.CampaignPatterns && window.CampaignPatterns.spawnSideBlock && window.CampaignPatterns.spawnSideBlock({ side: (xx < (canvas?canvas.width/2:400)? 'left' : 'right'), y: yy, w: 20, h: 20, speed: 120 }); } catch(_){} }, 0); })(x,y);
+              }
+            }
+            // spawn coins just outside the ring, slightly delayed
+            for (let j=0;j<8;j++) {
+              const angle = (Math.PI * 2 * j) / 8;
+              (function(a, idx){ _schedule(0.28 + idx * 0.06, () => {
+                try {
+                  const lanesCount = typeof numLanes === 'function' ? numLanes() : 5;
+                  const laneIdx = Math.max(0, Math.min(lanesCount - 1, Math.floor(seeded() * lanesCount)));
+                  _createCoinAtLane(laneIdx, { count: 1 });
+                } catch(_){}
+              }); })(angle, j);
+            }
+          } catch(_){}
         } }
       ],
       settings: {
@@ -975,7 +1012,7 @@ const BossManager = (() => {
   function _doAttack(playerX, playerY) {
     if (_phase === 1) {
       // Slow aimed shot toward player with slight offset
-      const offset = (Math.random() - 0.5) * 120;
+      const offset = ((typeof window !== 'undefined' && typeof window.campaignRandom === 'function') ? (window.campaignRandom() - 0.5) : (Math.random() - 0.5)) * 120;
       _spawnWarning(playerX + offset, playerY, 0.8, 'single');
       setTimeout(() => {
         if (!_active || _defeated) return;
@@ -1004,7 +1041,7 @@ const BossManager = (() => {
       });
     } else {
       // Phase 3: aimed burst + random shot
-      const offset = (Math.random() - 0.5) * 60;
+      const offset = ((typeof window !== 'undefined' && typeof window.campaignRandom === 'function') ? (window.campaignRandom() - 0.5) : (Math.random() - 0.5)) * 60;
       _spawnWarning(playerX + offset, playerY, 0.5, 'single');
       setTimeout(() => {
         if (!_active || _defeated) return;
@@ -1012,7 +1049,7 @@ const BossManager = (() => {
         // Extra random directional shot
         setTimeout(() => {
           if (!_active || _defeated) return;
-          const randomAngle = Math.random() * Math.PI * 2;
+          const randomAngle = ((typeof window !== 'undefined' && typeof window.campaignRandom === 'function') ? (window.campaignRandom() * Math.PI * 2) : (Math.random() * Math.PI * 2));
           const spd = _getProjectileSpeed();
           _projectiles.push({
             x: _bossX, y: _bossY,
@@ -1070,7 +1107,7 @@ const BossManager = (() => {
     if (_entryTimer <= 0 && !_defeated) {
       _attackTimer -= dt;
       if (_attackTimer <= 0) {
-        _attackTimer = _attackRate + (Math.random() - 0.5) * 0.6;
+        _attackTimer = _attackRate + (((typeof window !== 'undefined' && typeof window.campaignRandom === 'function') ? window.campaignRandom() : Math.random()) - 0.5) * 0.6;
         _doAttack(playerX, playerY);
       }
     }
@@ -1132,8 +1169,8 @@ const BossManager = (() => {
 
     const colors = _getPhaseColors();
     const pulse  = 0.5 + 0.5 * Math.sin(_pulseTimer * 4.0);
-    const shakeX = _shakeTimer > 0 ? (Math.random() - 0.5) * 8 : 0;
-    const shakeY = _shakeTimer > 0 ? (Math.random() - 0.5) * 8 : 0;
+    const shakeX = _shakeTimer > 0 ? (((typeof window !== 'undefined' && typeof window.campaignRandom === 'function') ? window.campaignRandom() : Math.random()) - 0.5) * 8 : 0;
+    const shakeY = _shakeTimer > 0 ? (((typeof window !== 'undefined' && typeof window.campaignRandom === 'function') ? window.campaignRandom() : Math.random()) - 0.5) * 8 : 0;
     const bx     = _bossX + shakeX;
     const by     = _bossY + shakeY;
 
@@ -1584,8 +1621,21 @@ const CampaignUI = (() => {
         const lvl = CAMPAIGN_LEVELS.find(l => l.id === id);
         if (lvl && CampaignSave.isUnlocked(id)) {
           try { if (typeof AudioFn !== 'undefined') AudioFn.uiClick(); } catch (_) {}
-          window.CampaignManager.selectLevel(lvl);
+          // Start immediately when Play/Replay clicked
+          try { window.CampaignManager.selectLevel && window.CampaignManager.selectLevel(lvl); } catch(_) {}
         }
+      });
+    });
+
+    // Wire info (?) buttons: show the intro/briefing without auto-start
+    el.querySelectorAll('.cmp-node-info').forEach(btn => {
+      btn.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        const id = parseInt(btn.dataset.infoLevel, 10);
+        const lvl = CAMPAIGN_LEVELS.find(l => l.id === id);
+        if (!lvl) return;
+        try { if (typeof AudioFn !== 'undefined') AudioFn.uiClick(); } catch(_) {}
+        try { CampaignUI.showLevelIntro(lvl, () => { try { window.CampaignManager.startLevelNow && window.CampaignManager.startLevelNow(lvl); } catch(_){} }); } catch(_) {}
       });
     });
 
@@ -1713,10 +1763,11 @@ const CampaignUI = (() => {
         <div class="cmp-node-obj">${objText}</div>
         <div class="cmp-node-bottom">
           <div class="cmp-node-stars" aria-label="${stars} of 3 stars">${starsHtml}</div>
-          <div class="cmp-node-right-row">
-            ${rewardHtml}
-            ${btnHtml}
-          </div>
+                <div class="cmp-node-right-row">
+                  ${rewardHtml}
+                  ${btnHtml}
+                  <button class="cmp-node-info" data-info-level="${lvl.id}" aria-label="About Level ${lvl.id}">?</button>
+                </div>
         </div>
       </div>`;
 
@@ -2367,6 +2418,7 @@ const CampaignUI = (() => {
   return {
     renderLevelSelect,
     showLevelIntro,
+    startCountdown,
     showLevelSelect,
     hideLevelSelect,
     showHUD,
@@ -2568,7 +2620,28 @@ window.CampaignManager = (() => {
     }
 
     _currentLevel = lvl;
-    CampaignUI.showLevelIntro(lvl, () => _startLevel(lvl));
+    // Begin UI transition then start a countdown before launching the level
+    try { _hideAllGameScreens(); } catch (_) {}
+    try { if (typeof hideLevelSelect === 'function') hideLevelSelect(); } catch (_) {}
+    try { if (typeof cleanupGameLoop === 'function') cleanupGameLoop(); } catch (_) {}
+    try { showScreen('game-screen'); } catch (_) {}
+    try { currentState = STATE.COUNTDOWN; } catch (_) {}
+    try { resizeCanvas(); } catch (_) {}
+    try { initPlayer(); } catch (_) {}
+    try { render(performance.now()); } catch (_) {}
+    try {
+      if (CampaignUI && typeof CampaignUI.startCountdown === 'function') {
+        CampaignUI.startCountdown(3, () => { try { _startLevel(lvl); } catch (e) { console.error('[Challenge] _startLevel after countdown failed', e); } });
+      } else {
+        _startLevel(lvl);
+      }
+    } catch (e) { console.error('[Challenge] startLevel failed', e); try { _startLevel(lvl); } catch(_) {} }
+  }
+
+  // Public helper to start a level programmatically (used by info modal Start button)
+  function startLevelNow(lvl) {
+    if (!lvl) return;
+    try { _currentLevel = lvl; _startLevel(lvl); } catch (e) { console.error('[Challenge] startLevelNow failed', e); }
   }
 
   function _startLevel(lvl) {
@@ -2703,8 +2776,11 @@ window.CampaignManager = (() => {
 
       // Initialize deterministic campaign RNG and pattern tick for this level
       try {
+        // Increment attempt counter for telemetry, but keep RNG seed deterministic per-level.
         window._campaignAttempt = (window._campaignAttempt || 0) + 1;
-        const seed = (typeof lvl.id === 'number' ? lvl.id : 0) * 1009 + (window._campaignAttempt * 7919);
+        // Deterministic per-level seed: depends only on level id so every play/replay
+        // of the same level produces identical spawn sequences.
+        const seed = (typeof lvl.id === 'number' ? lvl.id : 0) * 1009 + 7;
         try { window._campaignRng = seededRng(seed); } catch (_) { window._campaignRng = null; }
         try {
           // Prefer the deterministic CampaignPatterns for Dodge School (id:3)
@@ -3354,6 +3430,7 @@ window.CampaignManager = (() => {
     isActive,
     deactivate,
     selectLevel,
+    startLevelNow,
     tick,
     onDefeat,
   };

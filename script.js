@@ -6338,6 +6338,10 @@ function spawnCoinColumn() {
 // Campaign pattern helpers: side-swipe attack
 if (typeof window !== 'undefined') {
   window.CampaignPatterns = window.CampaignPatterns || {};
+  // Use campaign RNG when available so campaign patterns remain deterministic
+  // across replays. Falls back to Math.random() when not running a campaign.
+  const _rand = function() { return (typeof window !== 'undefined' && typeof window.campaignRandom === 'function') ? window.campaignRandom() : Math.random(); };
+
   window.CampaignPatterns.spawnSideSwipePattern = function(opts) {
     try {
       opts = opts || {};
@@ -6352,8 +6356,8 @@ if (typeof window !== 'undefined') {
         if (obstacles.length >= maxOb) break;
         const laneIdx = side === 'left' ? (i % NUM_LANES) : (NUM_LANES - 1 - (i % NUM_LANES));
         const w = 64; const h = 40; const cx = lanes[laneIdx];
-        const vyBase = base * (1 + 0.04 * i) + (Math.random() * 0.2 - 0.1) * base;
-        let vy = vyBase * (Math.random() < 0.4 ? 0.72 : 1);
+        const vyBase = base * (1 + 0.04 * i) + (_rand() * 0.2 - 0.1) * base;
+        let vy = vyBase * (_rand() < 0.4 ? 0.72 : 1);
         if (cfg) {
           if (Number.isFinite(cfg.obstacleSpeedMin)) vy = Math.max(vy, cfg.obstacleSpeedMin);
           if (Number.isFinite(cfg.obstacleSpeedMax)) vy = Math.min(vy, cfg.obstacleSpeedMax);
@@ -6370,13 +6374,13 @@ if (typeof window !== 'undefined') {
           baseH: h,
           baseVy: vy,
           vy: activePowerupKey === 'SLOW' ? vy * 0.4 : vy,
-          colorIndex: Math.floor(Math.random() * GAME_COLORS.length),
+          colorIndex: Math.floor(_rand() * GAME_COLORS.length),
           swayAmp: 0,
-          swayFreq: 0.6 + Math.random() * 0.6,
-          swayPhase: Math.random() * Math.PI * 2,
+          swayFreq: 0.6 + _rand() * 0.6,
+          swayPhase: _rand() * Math.PI * 2,
           pulseAmp: 0,
           pulseFreq: 2,
-          pulsePhase: Math.random() * Math.PI * 2,
+          pulsePhase: _rand() * Math.PI * 2,
           trickType: null,
           nearMissIdx: -1,
         });
@@ -6388,16 +6392,16 @@ if (typeof window !== 'undefined') {
   window.CampaignPatterns.spawnSideBlock = function(opts) {
     try {
       opts = opts || {};
-      const side = opts.side === 'right' ? 'right' : (opts.side === 'left' ? 'left' : (Math.random() < 0.5 ? 'left' : 'right'));
+      const side = opts.side === 'right' ? 'right' : (opts.side === 'left' ? 'left' : (_rand() < 0.5 ? 'left' : 'right'));
       const warnTime = (typeof opts.warnTime === 'number') ? opts.warnTime : 0.7;
       const minY = canvas.height * 0.22;
       const maxY = canvas.height * 0.84;
       let y = (typeof opts.y === 'number') ? opts.y : (player && player.y ? player.y : canvas.height * 0.72);
-      y = Math.max(minY, Math.min(maxY, y + (Math.random() - 0.5) * 80));
+      y = Math.max(minY, Math.min(maxY, y + (_rand() - 0.5) * 80));
 
       // Ensure runtime arrays exist
       window._campaignSideWarnings = window._campaignSideWarnings || [];
-      const warnId = 'sw_' + Date.now() + '_' + Math.floor(Math.random() * 1e6);
+      const warnId = 'sw_' + Date.now() + '_' + Math.floor(_rand() * 1e6);
       window._campaignSideWarnings.push({ id: warnId, side: side, y: y, t: warnTime, max: warnTime });
 
       // Audible/visual cue at warning start
@@ -6419,10 +6423,10 @@ if (typeof window !== 'undefined') {
           const maxOb = (cfg && Number.isFinite(cfg.maxObstaclesOnScreen)) ? cfg.maxObstaclesOnScreen : getPhaseMaxObstacles();
           if (obstacles.length >= maxOb) return;
 
-          const w = opts.w || (56 + Math.random() * 18);
-          const h = opts.h || (28 + Math.random() * 14);
+          const w = opts.w || (56 + _rand() * 18);
+          const h = opts.h || (28 + _rand() * 14);
           const base = GAME_CONFIG.baseSpeed * Math.max(0.9, speedMultiplier) * panicSpeedMult();
-          let vx = opts.speed || (base * (1.0 + Math.random() * 0.6));
+          let vx = opts.speed || (base * (1.0 + _rand() * 0.6));
           // normalize direction
           let startX = 0;
           if (side === 'left') { vx = Math.abs(vx); startX = -w - 8; }
@@ -10679,6 +10683,25 @@ const MpSync = (function () {
     const r = opts.r || 72;
     const t = opts.t || 6.0;
     window._campaignSafeZones.push({ x, y, r, t });
+  };
+
+  // Spawn a ring of small blocking obstacles around a center point. Uses
+  // existing spawnSideBlock helper so behavior integrates with obstacle list.
+  window.CampaignPatterns.spawnRing = function(opts) {
+    try {
+      opts = opts || {};
+      const cx = opts.x || (canvas ? canvas.width / 2 : 400);
+      const cy = opts.y || (canvas ? canvas.height * 0.48 : 220);
+      const radius = typeof opts.radius === 'number' ? opts.radius : 72;
+      const count = Math.max(3, Math.min(16, opts.count || 8));
+      const blockSize = opts.blockSize || 18;
+      for (let i = 0; i < count; i++) {
+        const angle = (Math.PI * 2 * i) / count;
+        const side = Math.cos(angle) < 0 ? 'left' : 'right';
+        const y = cy + Math.sin(angle) * radius;
+        try { window.CampaignPatterns.spawnSideBlock && window.CampaignPatterns.spawnSideBlock({ side: side, y: y, w: blockSize, h: blockSize, speed: opts.speed || 120 }); } catch(_){}
+      }
+    } catch(_){}
   };
 
   window.CampaignPatterns.previewPattern = function(containerEl, pattern) {
