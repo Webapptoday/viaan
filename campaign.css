@@ -511,6 +511,7 @@
   background: linear-gradient(90deg, transparent, rgba(124,58,237,0.55), rgba(124,58,237,0.25));
   position: relative;
   overflow: hidden;
+  z-index: 0;
 }
 .cmp-chapter-divider:not(.cmp-chapter-divider--boss) .cmp-chapter-divider-line:last-child {
   background: linear-gradient(90deg, rgba(124,58,237,0.25), rgba(124,58,237,0.55), transparent);
@@ -535,6 +536,8 @@
   box-shadow:
     0 6px 32px rgba(124,58,237,0.16),
     inset 0 1px 0 rgba(255,255,255,0.06);
+  position: relative;
+  z-index: 3;
 }
 .cmp-chapter-divider--boss .cmp-chapter-divider-label {
   background: linear-gradient(145deg, rgba(244,63,94,0.2), rgba(168,85,247,0.1));
@@ -2364,6 +2367,7 @@
   background: radial-gradient(ellipse 50% 100% at center, rgba(255,255,255,0.75) 0%, transparent 100%);
   animation: cmp-line-sweep 5.5s ease-in-out infinite;
   pointer-events: none;
+  z-index: 1;
   opacity: 0;
 }
 .cmp-chapter-divider--boss .cmp-chapter-divider-line::after {
