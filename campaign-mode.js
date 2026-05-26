@@ -24,7 +24,7 @@ const CAMPAIGN_LEVELS = [
       subtitle: 'One color is off-limits. Read it fast — and stay out.',
       flavorLine: 'The storm starts now.',
       tag: 'Survival',
-      icon: '<svg class="cmp-svg-icon" width="22" height="22" viewBox="0 0 24 24" fill="none"><path stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" d="M12 3L4 6v5.5c0 4.5 3.5 8.7 8 9.5 4.5-.8 8-5 8-9.5V6L12 3z"/><path stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4"/></svg>',
+      icon: '<svg class="cmp-svg-icon" width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="2.5" y="3.5" width="4.5" height="17" rx="1" stroke="currentColor" stroke-width="1.4"/><rect x="9.75" y="2.5" width="4.5" height="19" rx="1" stroke="currentColor" stroke-width="1.4"/><rect x="17" y="4.5" width="4.5" height="15" rx="1" stroke="currentColor" stroke-width="1.4"/><circle cx="12" cy="14" r="1.6" fill="currentColor"/></svg>',
       difficulty: 'Easy',
       difficultyColor: '#22c55e',
       objectiveType: 'survive_seconds',

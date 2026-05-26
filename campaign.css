@@ -1844,7 +1844,7 @@
   height: 100%;
   pointer-events: none;
   overflow: hidden;
-}
+
 
 .cmp-confetti-piece {
   position: absolute;
@@ -2477,3 +2477,17 @@
   animation: none !important;
   transition: none !important;
 }
+
+/* Overrides to ensure chapter labels never get visually crossed by decorative sweeps */
+.cmp-chapter-divider-line::after {
+  display: none !important;
+}
+
+/* Reduce visual text density inside campaign nodes: hide minor flavor lines */
+.cmp-node-flavor { display: none !important; }
+
+/* Make locked nodes more readable: ensure label stacks above decorations */
+.cmp-chapter-divider-label { position: relative; z-index: 1000; }
+
+/* Accessibility: ensure traveling light doesn't capture pointer events */
+.cmp-chapter-divider-line::after { pointer-events: none !important; }

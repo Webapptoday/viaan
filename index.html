@@ -1143,5 +1143,39 @@
   <!-- Vercel Analytics — tracks visitors, page views, countries, devices and traffic sources -->
   <script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>
   <script defer src="/_vercel/insights/script.js"></script>
+  <!-- Runtime fixes: replace em-dashes and reduce microcopy density -->
+  <script>
+  (function(){
+    function replaceEmDashInTextNode(node){
+      if (!node || node.nodeType !== Node.TEXT_NODE) return;
+      if (node.nodeValue.indexOf('\u2014') === -1 && node.nodeValue.indexOf('—') === -1) return;
+      node.nodeValue = node.nodeValue.replace(/\u2014|—/g, ' - ');
+    }
+    function walkText(root){
+      var w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null, false);
+      var n;
+      while(n = w.nextNode()) replaceEmDashInTextNode(n);
+    }
+    document.addEventListener('DOMContentLoaded', function(){
+      try{
+        walkText(document.body);
+        var mo = new MutationObserver(function(muts){
+          muts.forEach(function(m){
+            m.addedNodes.forEach(function(node){
+              if (!node) return;
+              if (node.nodeType === Node.TEXT_NODE) replaceEmDashInTextNode(node);
+              else if (node.nodeType === Node.ELEMENT_NODE) walkText(node);
+            });
+          });
+        });
+        mo.observe(document.body, { childList: true, subtree: true });
+
+        // Minor density reduction for tutorial and campaign microcopy
+        var css = '.cmp-node-flavor{display:none!important} .tut-slide-text{max-height:3.2em;overflow:hidden}';
+        var s = document.createElement('style'); s.textContent = css; document.head.appendChild(s);
+      }catch(e){ console.error('runtime-fixes failed', e); }
+    });
+  })();
+  </script>
 </body>
 </html>
