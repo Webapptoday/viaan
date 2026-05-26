@@ -765,8 +765,9 @@
 }
 /* Locked dot — dim */
 .cmp-road-row.cmp-node--locked .cmp-road-connector-dot {
-  opacity: 0.38;
-  box-shadow: none;
+  /* make the locked dot more visible while still muted */
+  opacity: 0.60;
+  box-shadow: 0 0 8px rgba(124,58,237,0.08);
 }
 /* Number label inside connector dot */
 .cmp-dot-num {
@@ -857,31 +858,27 @@
 
 /* Locked: dimmed but still shows colors */
 .cmp-node--locked {
-  opacity: 0.75;
-  filter: brightness(0.65) saturate(0.5);
+  /* Slightly dim but clearly visible; preserve color and add soft tint */
+  opacity: 0.95;
+  filter: brightness(0.92) saturate(0.9);
   pointer-events: none;
-  border-color: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.06);
 }
-.cmp-node--locked::before { opacity: 0.15; }
+.cmp-node--locked::before { opacity: 0.12; }
 .cmp-node--locked::after {
+  /* soft tinted overlay instead of heavy noise — keeps underlying artwork readable */
   content: '';
   position: absolute;
   inset: 0;
   border-radius: 18px;
-  background: repeating-linear-gradient(
-    -45deg,
-    transparent,
-    transparent 9px,
-    rgba(255,255,255,0.014) 9px,
-    rgba(255,255,255,0.014) 10px
-  );
+  background: linear-gradient(135deg, rgba(244,63,94,0.06), rgba(168,85,247,0.03));
   pointer-events: none;
   z-index: 0;
 }
 .cmp-node--locked * { position: relative; z-index: 1; }
-.cmp-node--locked .cmp-node-title   { color: rgba(255,255,255,0.6); }
-.cmp-node--locked .cmp-node-obj     { color: rgba(255,255,255,0.42); }
-.cmp-node--locked .cmp-node-reward-amt { color: rgba(251,191,36,0.44); }
+.cmp-node--locked .cmp-node-title   { color: #f472b6; /* soft pink pop */ }
+.cmp-node--locked .cmp-node-obj     { color: rgba(244,63,94,0.85); /* readable red accent */ }
+.cmp-node--locked .cmp-node-reward-amt { color: rgba(251,191,36,0.9); }
 
 /* Unlocked hover — noticeable lift + glow */
 .cmp-node--unlocked:hover {
