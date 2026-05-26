@@ -3,7 +3,7 @@
 // Clean, scalable campaign system. No regressions to Endless Mode.
 // ============================================================
 'use strict';
-console.log('[Campaign] v7 module loading...');
+console.log('[Campaign] v8 module loading...');
 window._campaignLoadError = null;
 // Catch any unhandled errors from this script so we can surface them
 window.addEventListener('error', function _cmpErrHandler(ev) {
@@ -188,7 +188,7 @@ const CAMPAIGN_LEVELS = [
     {
       id: 3,
       name: 'Dodge School',
-      subtitle: 'One hundred blocks. Thread every gap. Not one should hit.',,
+      subtitle: 'One hundred blocks. Thread every gap. Not one should hit.',
       flavorLine: 'Every miss is a point.',
       tag: 'Reflex Drill',
       icon: '<svg class="cmp-svg-icon" width="22" height="22" viewBox="0 0 24 24" fill="none"><path stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" d="M3 12h4l3-9 3 18 3-14 3 5h4"/></svg>',
@@ -2379,7 +2379,7 @@ const CampaignUI = (() => {
   };
 })();
 window.CampaignUI = CampaignUI;
-console.log('[Campaign] v7 CampaignUI exported:', typeof CampaignUI, typeof CampaignUI === 'object' ? 'OK' : 'FAIL');
+console.log('[Campaign] v8 CampaignUI exported:', typeof CampaignUI, typeof CampaignUI === 'object' ? 'OK' : 'FAIL');
 
 // ============================================================
 // SECTION 6: CAMPAIGN MANAGER
