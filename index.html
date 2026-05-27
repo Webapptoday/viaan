@@ -57,86 +57,114 @@
 
     <div class="home-inner">
 
-      <header class="home-header">
-        <div class="game-title">Shift Panic</div>
-        <p class="game-subtitle">Shift Panic is a free online arcade browser game where players dodge danger, survive, unlock skins, and battle friends.</p>
-        <h2 class="game-subtitle">Play Shift Panic Online</h2>
-        <p class="game-subtitle">No download required. Play instantly in your browser.</p>
-        <div class="home-highscore" aria-label="High score display">
-          <span class="hs-label">Best</span>
-          <span class="hs-value" id="home-highscore">0</span>
-        </div>
-        <div class="home-coins" aria-label="Coin balance">
-          <span class="coin-icon" aria-hidden="true"></span>
-          <span class="coins-value" id="home-coins">0</span>
-        </div>
-        <div class="home-lifetime-card" aria-label="Lifetime score progression">
-          <div class="home-lifetime-head">
-            <span class="home-lifetime-label">Lifetime Score</span>
-            <span class="home-lifetime-value" id="home-lifetime-score">0</span>
-          </div>
-          <div class="lifetime-track" aria-hidden="true">
-            <div class="lifetime-fill" id="home-lifetime-bar"></div>
-          </div>
-          <p class="home-lifetime-next" id="home-lifetime-next">Next unlock at 2,500 Lifetime Score</p>
-          <p class="home-lifetime-detail" id="home-lifetime-detail">0 / 2,500 • Aurora Skin</p>
-        </div>
-      </header>
+      <div class="home-grid" role="region" aria-label="Game lobby">
 
-      <!-- Daily Challenge -->
-      <div id="daily-challenge" class="daily-challenge-card" aria-label="Daily Challenge" role="region">
-        <div class="dc-header">
-          <span class="dc-title">Daily Challenge</span>
-          <span class="dc-timer" id="dc-timer" aria-live="polite"></span>
-        </div>
-        <p class="dc-desc" id="dc-desc">Loading…</p>
-        <div class="dc-footer">
-          <span class="dc-reward">
-            <span class="coin-icon coin-sm" aria-hidden="true"></span>
-            <span id="dc-reward-amt">50</span> coins
-          </span>
-          <button id="dc-claim-btn" class="btn btn-primary dc-claim" hidden type="button">
-            Claim Reward
-          </button>
-          <span id="dc-done-label" class="dc-done-label" hidden>✓ Claimed</span>
-          <span id="dc-progress-label" class="dc-progress-label"></span>
-        </div>
-      </div>
+        <!-- Left column: Stats & Daily -->
+        <aside class="left-panel">
+          <div class="stats-panel card">
+            <div class="stats-top">
+              <div class="stat-item stat-best">
+                <div class="stat-label">BEST</div>
+                <div class="stat-value" id="home-highscore"></div>
+              </div>
+              <div class="stat-item stat-coins">
+                <div class="stat-label">COINS</div>
+                <div class="stat-value"><span class="coin-icon" aria-hidden="true"></span> <span class="coins-value" id="home-coins"></span></div>
+              </div>
+            </div>
 
-      <!-- Two-button home: Start + Settings/Help -->
-      <div class="home-actions">
-        <button id="btn-start" class="btn btn-primary btn-large">
-          Endless
-        </button>
-        <button id="btn-campaign" class="btn btn-secondary btn-large btn-campaign-home">
-          Panic Quest
-        </button>
-        <button id="btn-multiplayer" class="btn btn-secondary btn-mp-open"
-                aria-haspopup="dialog" aria-controls="modal-multiplayer">
-          ⚡ Multiplayer
-        </button>
-        <button id="btn-progress" class="btn btn-secondary"
-                aria-haspopup="dialog" aria-controls="modal-progress">
-          Shop
-        </button>
-        <button id="btn-leaderboard" class="btn btn-secondary btn-lb-open"
-                aria-haspopup="dialog" aria-controls="modal-leaderboard">
-          🏆 Leaderboard
-        </button>
-        <button id="btn-help" class="btn btn-secondary btn-help-open"
-                aria-haspopup="dialog" aria-controls="modal-howtoplay"
-                aria-label="How to Play">
-          ? Help
-        </button>
-      </div>
+            <div class="home-lifetime-card lifetime-card" aria-label="Lifetime score progression">
+              <div class="home-lifetime-head">
+                <span class="home-lifetime-label">Lifetime Score</span>
+                <span class="home-lifetime-value" id="home-lifetime-score"></span>
+              </div>
+              <div class="lifetime-track" aria-hidden="true">
+                <div class="lifetime-fill" id="home-lifetime-bar"></div>
+              </div>
+              <div class="lifetime-meta">
+                <p class="home-lifetime-next" id="home-lifetime-next">Next unlock at 2,500 Lifetime Score</p>
+                <p class="home-lifetime-detail" id="home-lifetime-detail">0 / 2,500 • Aurora Skin</p>
+              </div>
+            </div>
+
+            <div class="player-rank card">
+              <div class="rank-label">Rank</div>
+              <div class="rank-value" id="home-player-rank">Panic Rookie</div>
+            </div>
+          </div>
+
+          <!-- Daily Challenge (kept intact, moved into left column) -->
+          <div id="daily-challenge" class="daily-challenge-card" aria-label="Daily Challenge" role="region">
+            <div class="dc-header">
+              <span class="dc-title">Daily Challenge</span>
+              <span class="dc-timer" id="dc-timer" aria-live="polite"></span>
+            </div>
+            <p class="dc-desc" id="dc-desc">Loading…</p>
+            <div class="dc-footer">
+              <span class="dc-reward">
+                <span class="coin-icon coin-sm" aria-hidden="true"></span>
+                <span id="dc-reward-amt">50</span> coins
+              </span>
+              <button id="dc-claim-btn" class="btn btn-primary dc-claim" hidden type="button">
+                Claim Reward
+              </button>
+              <span id="dc-done-label" class="dc-done-label" hidden>✓ Claimed</span>
+              <span id="dc-progress-label" class="dc-progress-label"></span>
+            </div>
+          </div>
+        </aside>
+
+        <!-- Center: Hero / CTA / Mode Cards -->
+        <main class="hero-panel card">
+          <div class="hero-top">
+            <div class="hero-orb" aria-hidden="true"></div>
+            <div class="hero-text">
+              <div class="game-title">Shift Panic</div>
+              <p class="hero-tagline">Dodge the forbidden color. Survive the panic.</p>
+            </div>
+          </div>
+
+          <div class="hero-cta">
+            <button id="btn-start" class="btn btn-primary btn-hero btn-large">PLAY ENDLESS</button>
+            <button id="btn-campaign" class="btn btn-secondary btn-hero btn-large btn-campaign-home">PANIC QUEST <span class="badge badge-new">NEW</span></button>
+          </div>
+
+          <div class="modes-grid">
+            <div class="mode-card mode-endless card">
+              <div class="mode-title">Endless Mode</div>
+              <div class="mode-desc">Survive as long as possible. Beat your best score.</div>
+              <div class="mode-footer">
+                <button class="btn btn-primary mode-play-btn" data-target="#btn-start">Play Now</button>
+                <div class="mode-meta"><span class="meta-label">Goal</span><span class="meta-val">High Score</span></div>
+              </div>
+            </div>
+
+            <div class="mode-card mode-quest card">
+              <div class="mode-title">Panic Quest</div>
+              <div class="mode-desc">Clear handcrafted missions. Earn stars. Face the Panic Core.</div>
+              <div class="mode-footer">
+                <button class="btn btn-secondary mode-play-btn" data-target="#btn-campaign">Start Quest</button>
+                <div class="mode-meta"><span class="badge badge-missions">MISSIONS</span></div>
+              </div>
+            </div>
+          </div>
+        </main>
+
+        <!-- Right: Quick actions / Social / Links -->
+        <aside class="right-panel">
+          <div class="quick-actions card">
+            <button id="btn-multiplayer" class="btn btn-secondary btn-sm btn-block" aria-haspopup="dialog" aria-controls="modal-multiplayer">⚡ Multiplayer</button>
+            <button id="btn-progress" class="btn btn-secondary btn-sm btn-block" aria-haspopup="dialog" aria-controls="modal-progress">Shop</button>
+            <button id="btn-leaderboard" class="btn btn-secondary btn-sm btn-block btn-lb-open" aria-haspopup="dialog" aria-controls="modal-leaderboard">🏆 Leaderboard</button>
+            <button id="btn-help" class="btn btn-secondary btn-sm btn-block btn-help-open" aria-haspopup="dialog" aria-controls="modal-howtoplay" aria-label="How to Play">? Help</button>
+          </div>
+        </aside>
+
+      </div><!-- /.home-grid -->
 
       <section class="seo-panel" aria-label="About Shift Panic">
         <div class="seo-panel-inner">
           <h1>Shift Panic</h1>
-          <p>Shift Panic is a free online arcade game where players dodge danger blocks, survive as long as possible, unlock skins and challenge friends in multiplayer battles.</p>
-
-          <h2>Play Shift Panic Online</h2>
-          <p>No download required. Open your browser and start instantly.</p>
 
           <h2>Why Players Love Shift Panic</h2>
           <ul>
@@ -1177,5 +1205,19 @@
     });
   })();
   </script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function(){
+      try {
+        document.querySelectorAll('.mode-play-btn').forEach(function(b){
+          b.addEventListener('click', function(){
+            var target = b.getAttribute('data-target');
+            if (!target) return;
+            var el = document.querySelector(target);
+            if (el) el.click();
+          });
+        });
+      } catch(e){ console.error('mode-button-bind failed', e); }
+    });
+    </script>
 </body>
 </html>
