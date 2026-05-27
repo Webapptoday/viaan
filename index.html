@@ -55,9 +55,6 @@
     <!-- Blurred gameplay preview — ghost player + falling blocks behind UI -->
     <canvas id="home-preview-canvas" aria-hidden="true"></canvas>
 
-    <!-- Floating decorative blocks (lightweight, GPU-accelerated) -->
-    <div class="floating-blocks" aria-hidden="true"></div>
-
     <div class="home-inner">
 
       <div class="home-grid" role="region" aria-label="Game lobby">
@@ -156,57 +153,16 @@
         <!-- Right: Quick actions / Social / Links -->
         <aside class="right-panel">
           <div class="quick-actions card">
-            <button id="btn-multiplayer" class="btn btn-secondary btn-sm btn-block" aria-haspopup="dialog" aria-controls="modal-multiplayer">
-              <span class="btn-ico" aria-hidden="true">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2v20" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 9c2-4 6-6 10-6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              </span>
-              <span class="btn-label">Multiplayer</span>
-            </button>
-
-            <button id="btn-progress" class="btn btn-secondary btn-sm btn-block" aria-haspopup="dialog" aria-controls="modal-progress">
-              <span class="btn-ico" aria-hidden="true">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 7h18v13a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7z" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M16 3l-4 4-4-4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              </span>
-              <span class="btn-label">Shop</span>
-            </button>
-
-            <button id="btn-leaderboard" class="btn btn-secondary btn-sm btn-block btn-lb-open" aria-haspopup="dialog" aria-controls="modal-leaderboard">
-              <span class="btn-ico" aria-hidden="true">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 3h18v4H3z" fill="currentColor" opacity=".08"/><path d="M7 21V10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 21V6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/><path d="M17 21v-4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              </span>
-              <span class="btn-label">Leaderboard</span>
-            </button>
-
-            <button id="btn-help" class="btn btn-secondary btn-sm btn-block btn-help-open" aria-haspopup="dialog" aria-controls="modal-howtoplay" aria-label="How to Play">
-              <span class="btn-ico" aria-hidden="true">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 18h.01" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M9.09 9a3 3 0 1 1 5.82 1c0 1.5-3 2.5-3 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              </span>
-              <span class="btn-label">Help</span>
-            </button>
+            <button id="btn-multiplayer" class="btn btn-secondary btn-sm btn-block" aria-haspopup="dialog" aria-controls="modal-multiplayer">⚡ Multiplayer</button>
+            <button id="btn-progress" class="btn btn-secondary btn-sm btn-block" aria-haspopup="dialog" aria-controls="modal-progress">Shop</button>
+            <button id="btn-leaderboard" class="btn btn-secondary btn-sm btn-block btn-lb-open" aria-haspopup="dialog" aria-controls="modal-leaderboard">🏆 Leaderboard</button>
+            <button id="btn-help" class="btn btn-secondary btn-sm btn-block btn-help-open" aria-haspopup="dialog" aria-controls="modal-howtoplay" aria-label="How to Play">? Help</button>
           </div>
         </aside>
 
       </div><!-- /.home-grid -->
 
-      <section class="seo-panel" aria-label="About Shift Panic">
-        <div class="seo-panel-inner">
-          <h1>Shift Panic</h1>
-
-          <h2>Why Players Love Shift Panic</h2>
-          <ul>
-            <li>Fast reflex gameplay</li>
-            <li>Multiplayer battles</li>
-            <li>Unlockable skins</li>
-            <li>Leaderboards</li>
-            <li>Quick addictive matches</li>
-          </ul>
-
-          <h2>How to Play Shift Panic</h2>
-          <p>Move quickly, avoid the forbidden color, survive longer than your opponents and win rewards.</p>
-
-          <p class="seo-footer">Shift Panic Official Game</p>
-        </div>
-      </section>
+      <!-- SEO / long-form about moved into the Help tutorial to keep home screen compact -->
 
     </div><!-- /.home-inner -->
   </div><!-- /#home-screen -->
@@ -400,6 +356,19 @@
           <p class="tut-slide-text">Chase your <strong>best score</strong> and compete with players worldwide. Can you reach the top?</p>
         </div>
 
+        <div class="tut-slide" data-step="5" hidden>
+          <div class="tut-icon" aria-hidden="true">ℹ️</div>
+          <h3 class="tut-slide-title">About Shift Panic</h3>
+          <p class="tut-slide-text">Shift Panic is a free online arcade game focused on reflex-driven survival and quick matches. Key features:</p>
+          <ul class="howto-list">
+            <li>Fast reflex gameplay and short sessions</li>
+            <li>Local and online multiplayer modes</li>
+            <li>Unlockable skins, powerups, and progression</li>
+            <li>Daily challenges and campaign missions</li>
+          </ul>
+          <p class="tut-slide-text">Use the tutorial slides for controls and quick-start tips. This slide contains longer descriptive text moved from the home page to keep the lobby clean.</p>
+        </div>
+
       </div><!-- /.tut-slides -->
 
       <!-- Step indicator dots -->
@@ -409,6 +378,7 @@
         <span class="tut-dot" data-dot="2"></span>
         <span class="tut-dot" data-dot="3"></span>
         <span class="tut-dot" data-dot="4"></span>
+        <span class="tut-dot" data-dot="5"></span>
       </div>
 
       <!-- Navigation -->

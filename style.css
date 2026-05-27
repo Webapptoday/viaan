@@ -315,6 +315,35 @@ body::before {
   gap: 20px;
 }
 
+/* Desktop centering: keep home content vertically and horizontally centered without scrolling */
+@media (min-width: 980px) {
+  #home-screen:not([hidden]) {
+    align-items: center;
+    justify-content: center;
+    padding: 28px;
+  }
+  .home-inner {
+    align-items: center;
+    max-height: calc(100vh - 56px);
+    overflow: visible;
+  }
+}
+
+/* Make CTAs more prominent */
+.btn-hero { min-width: 260px; padding: 16px 34px; font-size: 1.08rem; font-weight: 900; border-radius: 14px; }
+#btn-start { font-size: 1.28rem; padding: 20px 40px; min-height: 68px; box-shadow: 0 10px 40px rgba(124,58,237,.6); }
+#btn-campaign { font-size: 1.12rem; padding: 18px 34px; min-height: 64px; }
+
+/* Compact stats card */
+.stats-panel { width: 260px; padding: 10px; }
+.daily-challenge-card { padding: 10px; }
+
+/* Ensure primary actions are above the fold on common desktop viewports */
+@media (min-width: 980px) {
+  .hero-panel { padding: 12px 18px; }
+  .modes-grid { margin-top: 6px; }
+}
+
 /* Lobby layout: panels */
 .left-panel, .right-panel { display: flex; flex-direction: column; gap: 14px; }
 .hero-panel { display: flex; flex-direction: column; gap: 16px; padding: 18px; }
@@ -351,70 +380,6 @@ body::before {
 .mode-meta { color: var(--text-muted); font-weight: 800; }
 
 .quick-actions .btn-block { width: 100%; text-align: left; justify-content: flex-start; padding-left: 14px; }
-
-/* Button icon and upgraded styles */
-.btn-ico { display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px; margin-right:10px; color: rgba(255,255,255,.9); flex-shrink:0; }
-.quick-actions .btn { display:flex; align-items:center; gap:8px; }
-.btn-label { font-weight:800; }
-
-/* Neon title upgrade */
-.game-title {
-  position: relative;
-  font-family: 'Space Grotesk', 'Inter', system-ui, sans-serif;
-  font-size: clamp(2.4rem, 7.6vw, 4.6rem);
-  font-weight: 900;
-  letter-spacing: 2px;
-  background: linear-gradient(90deg, #c084fc 0%, #7c3aed 45%, #ec4899 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  text-shadow:
-    0 6px 22px rgba(124,58,237,.24),
-    0 2px 8px rgba(236,72,153,.12);
-  filter: drop-shadow(0 12px 28px rgba(124,58,237,.16));
-}
-.game-title::after {
-  content: '';
-  position: absolute; left: -6px; right: -6px; top: -6px; bottom: -6px;
-  border-radius: 14px;
-  pointer-events: none;
-  background: radial-gradient(ellipse at 20% 20%, rgba(124,58,237,.10), rgba(236,72,153,.04));
-  z-index: -1;
-  filter: blur(18px);
-  opacity: .9;
-}
-
-/* Hero panel polish */
-.hero-panel.card {
-  border: 1px solid rgba(168,85,247,.12);
-  box-shadow: 0 18px 44px rgba(16,6,36,.6), 0 6px 28px rgba(124,58,237,.12);
-  background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01));
-}
-
-/* CTA button emphasis */
-.btn-primary.btn-hero {
-  background: linear-gradient(90deg, #7c3aed 0%, #6d28d9 50%, #ec4899 100%);
-  box-shadow: 0 10px 36px rgba(124,58,237,.36), 0 0 36px rgba(236,72,153,.08);
-}
-.btn-primary.btn-hero:hover { transform: translateY(-4px) scale(1.02); box-shadow: 0 18px 48px rgba(124,58,237,.46), 0 0 60px rgba(236,72,153,.14); }
-.btn-secondary.btn-hero { background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01)); border: 1px solid rgba(255,255,255,.06); }
-
-/* Floating decorative blocks */
-.floating-blocks { position: absolute; inset: 0; z-index: 1; pointer-events: none; overflow: hidden; }
-.floating-block { position: absolute; border-radius: 6px; opacity: 0.0; transform: translate3d(0,0,0); will-change: transform, opacity; box-shadow: 0 8px 28px rgba(0,0,0,.35); }
-.floating-block.small { border-radius: 4px; }
-.floating-block::after { content: ''; position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02)); mix-blend-mode: screen; }
-@keyframes floatUp {
-  0% { transform: translate3d(0, 0, 0) rotate(0deg); opacity: 0; }
-  8% { opacity: .6; }
-  50% { opacity: .9; }
-  100% { transform: translate3d(0, -120vh, 0) rotate(360deg); opacity: 0; }
-}
-
-/* Responsive tweaks for hero */
-@media (max-width: 980px) {
-  .game-title::after { display:none; }
-}
 
 /* Small adjustments to existing elements to fit the lobby */
 .home-highscore { margin: 0; }
