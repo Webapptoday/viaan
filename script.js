@@ -4861,6 +4861,7 @@ function drawPlayer() {
   const skin = getSkin();
   const now  = performance.now();
   ctx.save();
+  const corner = Math.max(8, Math.min(12, Math.round(Math.min(ob.w, ob.h) * 0.08)));
   // Ghost Shift: flicker player alpha to show phase-through is active
   if (SkinAbility.hasGhost()) {
     ctx.globalAlpha = 0.38 + 0.24 * Math.sin(now / 70);
@@ -5105,6 +5106,24 @@ function drawPlayer() {
     ctx.strokeStyle = c1;
     ctx.lineWidth   = 2;
     ctx.stroke();
+
+    // Contrast outline: ensure player silhouette remains readable against any background
+    try {
+      const outlineBase = c1 || '#ffffff';
+      const rgb = hexToRgb(outlineBase);
+      const lum = luminanceRgb(rgb);
+      ctx.save();
+      ctx.beginPath();
+      if (skin.shape === 'star') {
+        drawStar(ctx, player.x, player.y, player.radius + 2.2, (player.radius + 2.2) * 0.44, 5);
+      } else {
+        ctx.arc(player.x, player.y, player.radius + 2.2, 0, Math.PI * 2);
+      }
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = lum < 0.45 ? 'rgba(255,255,255,0.92)' : 'rgba(0,0,0,0.6)';
+      ctx.stroke();
+      ctx.restore();
+    } catch(_) {}
   }
 
   ctx.restore();
@@ -6209,14 +6228,14 @@ function drawObstacle(ob) {
     if (ob.swayAmp > 0) {
       const ghostOff = Math.sin((ob.swayTime - 0.18) * ob.swayFreq + ob.swayPhase) * ob.swayAmp;
       const ghostX   = Math.max(0, Math.min(canvas.width - ob.w, ob.originX + ghostOff - ob.w / 2));
-      pathRoundRect(ctx, ghostX, ob.y, ob.w, ob.h, 8);
+      pathRoundRect(ctx, ghostX, ob.y, ob.w, ob.h, corner);
       ctx.globalAlpha = 0.10;
       ctx.fillStyle   = hex;
       ctx.fill();
       ctx.globalAlpha = 1;
     }
-    pathRoundRect(ctx, ob.x, ob.y, ob.w, ob.h, 8);
-    ctx.globalAlpha = 0.28;
+    pathRoundRect(ctx, ob.x, ob.y, ob.w, ob.h, corner);
+    ctx.globalAlpha = 0.30;
     ctx.fillStyle   = hex;
     ctx.fill();
     ctx.globalAlpha = 1;
@@ -6224,7 +6243,7 @@ function drawObstacle(ob) {
     return;
   }
 
-  pathRoundRect(ctx, ob.x, ob.y, ob.w, ob.h, 8);
+  pathRoundRect(ctx, ob.x, ob.y, ob.w, ob.h, corner);
   ctx.fillStyle = hex;
 
   if (isWarning) {
@@ -6235,26 +6254,26 @@ function drawObstacle(ob) {
     ctx.globalAlpha = 0.55 + 0.35 * warnProg;
     ctx.shadowColor = hex;
     // Reduced warning glow to cut GPU load - still clearly visible
-    ctx.shadowBlur  = settings.perfMode === 'low' ? 4 + 6 * warnProg : 4 + 12 * warnProg + 5 * flicker;
+    ctx.shadowBlur  = settings.perfMode === 'low' ? 4 + 6 * warnProg : 6 + 12 * warnProg + 4 * flicker;
     ctx.fill();
     ctx.globalAlpha = 1;
     ctx.shadowBlur  = 0;
     // Animated border signals imminent danger
-    pathRoundRect(ctx, ob.x, ob.y, ob.w, ob.h, 8);
+    pathRoundRect(ctx, ob.x, ob.y, ob.w, ob.h, corner);
     ctx.strokeStyle = `rgba(255,255,255,${(0.30 + 0.55 * flicker).toFixed(2)})`;
-    ctx.lineWidth   = 2;
+    ctx.lineWidth   = 2.5;
     ctx.stroke();
   } else {
     // -- Forbidden (dangerous) block - full brightness -------------------------
     // Forbidden block glow - capped to reduce GPU cost
-    const pulse = settings.perfMode === 'low' ? 10 : 14 + 8 * (0.5 + 0.5 * Math.sin(Date.now() / 200));
+    const pulse = settings.perfMode === 'low' ? 10 : Math.min(28, 14 + 8 * (0.5 + 0.5 * Math.sin(Date.now() / 200)));
     ctx.shadowColor = hex;
     ctx.shadowBlur  = pulse;
     ctx.fill();
     ctx.shadowBlur  = 0;
 
     // Strong white border - danger outline readable regardless of block color
-    pathRoundRect(ctx, ob.x, ob.y, ob.w, ob.h, 8);
+    pathRoundRect(ctx, ob.x, ob.y, ob.w, ob.h, corner);
     ctx.strokeStyle = 'rgba(255,255,255,0.90)';
     ctx.lineWidth   = 3;
     ctx.shadowColor = '#fff';
@@ -6629,7 +6648,7 @@ function drawCoinItem(c) {
   ctx.save();
 
   // Outer halo + disc (coin vs orb styling)
-  const haloR = r * 2.2;
+  const haloR = r * 2.6;
   const halo  = ctx.createRadialGradient(c.x, c.y, r * 0.8, c.x, c.y, haloR);
   let g;
   if (c.orb) {
@@ -6643,7 +6662,7 @@ function drawCoinItem(c) {
 
     // Glow shadow (orb)
     ctx.shadowColor = '#f472b6';
-    ctx.shadowBlur  = 18 + 8 * Math.sin(t / 500 + c.x);
+    ctx.shadowBlur  = 22 + 8 * Math.sin(t / 500 + c.x);
 
     // Orb disc - pink/purple gradient
     g = ctx.createRadialGradient(
@@ -6666,7 +6685,7 @@ function drawCoinItem(c) {
 
     // Glow shadow (coin)
     ctx.shadowColor = '#fde047';
-    ctx.shadowBlur  = 22 + 10 * Math.sin(t / 500 + c.x);
+    ctx.shadowBlur  = 26 + 10 * Math.sin(t / 500 + c.x);
 
     // Coin disc - brighter, high-saturation gold
     g = ctx.createRadialGradient(
@@ -7080,7 +7099,7 @@ function drawPowerup(p) {
     if (im && im.complete && im.naturalWidth > 0) {
       const sz = p.size * 1.15;   // slightly larger than the collectible hitbox
       ctx.shadowColor  = p.color;
-      ctx.shadowBlur   = 26;
+      ctx.shadowBlur   = 32;
       ctx.globalAlpha  = 0.97;
       // Gentle slow rotation so it feels "alive"
       ctx.rotate(p.angle * 0.25);
@@ -7093,7 +7112,7 @@ function drawPowerup(p) {
   // Fallback: no image (CLEAR / BOOST) — draw classic spinning star + icon
   ctx.rotate(p.angle);
   ctx.shadowColor = p.color;
-  ctx.shadowBlur  = 24;
+  ctx.shadowBlur  = 30;
   ctx.beginPath();
   drawStar(ctx, 0, 0, p.size / 2, p.size / 3.4, 5);
   ctx.fillStyle   = p.color;
@@ -8030,9 +8049,9 @@ function drawRings() {
     ctx.beginPath();
     ctx.arc(r.x, r.y, r.r, 0, Math.PI * 2);
     ctx.strokeStyle = r.color;
-    ctx.lineWidth   = 2.5;
+    ctx.lineWidth   = 3;
     ctx.shadowColor = r.color;
-    ctx.shadowBlur  = 8;
+    ctx.shadowBlur  = 12;
     ctx.stroke();
     ctx.restore();
   });
@@ -8094,6 +8113,17 @@ function drawBackground() {
       ctx.fillStyle = cg;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
+    // Subtle vignette to increase central contrast and player readability
+    try {
+      const cx = canvas.width / 2;
+      const cy = canvas.height / 2;
+      const vmax = Math.max(canvas.width, canvas.height) * 0.9;
+      const vg = ctx.createRadialGradient(cx, cy, vmax * 0.18, cx, cy, vmax);
+      vg.addColorStop(0, 'rgba(0,0,0,0)');
+      vg.addColorStop(1, 'rgba(0,0,0,' + (isPanic ? 0.16 : 0.07) + ')');
+      ctx.fillStyle = vg;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    } catch(_) {}
   }
 }
 
