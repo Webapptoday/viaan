@@ -11363,16 +11363,16 @@ document.addEventListener('DOMContentLoaded', init);
 (function prefetchCampaignScripts(){
   try {
     if (typeof window === 'undefined') return;
-    if (document.querySelector('script[data-campaign-src="campaign_live.js"]') || window.CampaignUI) return;
-    // Light-weight preload hint first
-    const p = document.createElement('link');
-    p.rel = 'preload'; p.as = 'script'; p.href = 'campaign_live.js';
-    p.setAttribute('data-campaign-prefetch', '1');
-    document.head.appendChild(p);
+    // If any campaign script is already present on the page, skip prefetch to avoid
+    // duplicate global declarations (CAMPAIGN_LEVELS, CampaignUI, etc.). This
+    // prevents `Identifier 'CAMPAIGN_LEVELS' has already been declared` errors
+    // when both files are loaded.
+    const existing = document.querySelector('script[src*="campaign-mode.js"], script[src*="campaign.js"], script[src*="campaign_live.js"], script[data-campaign-src]');
+    if (existing || window.CampaignUI) return;
 
-    // Defer actual script insertion to idle time to avoid blocking.
-    // Ensure the challenge spawn director functions are available before executing
-    // the campaign script to prevent startup-time ReferenceErrors.
+    // Defer actual script insertion to idle time to avoid blocking. Ensure the
+    // challenge spawn director functions are available before executing the
+    // campaign script to prevent startup-time ReferenceErrors.
     const readyToInsert = () => {
       if (window.CampaignUI || document.querySelector('script[data-campaign-src="campaign_live.js"]')) return true;
       try { if (typeof _createCoinAtLane === 'function') return true; } catch (_) {}
@@ -11383,7 +11383,7 @@ document.addEventListener('DOMContentLoaded', init);
       try {
         if (readyToInsert()) {
           const s = document.createElement('script');
-          s.async = true;
+          s.defer = true;
           s.src = 'campaign_live.js?v=' + Date.now();
           s.setAttribute('data-campaign-src', 'campaign_live.js');
           s.onload = () => console.log('[Prefetch] campaign_live.js loaded');
@@ -11393,11 +11393,9 @@ document.addEventListener('DOMContentLoaded', init);
         }
         // Not ready yet: wait for full load event or retry after a short delay
         if (document.readyState === 'complete') {
-          // If the document is complete but spawn director isn't available, try once more soon
           setTimeout(doInsert, 600);
         } else {
           window.addEventListener('load', () => setTimeout(doInsert, 80), { once: true });
-          // extra safety retry in case load already fired
           setTimeout(doInsert, 1600);
         }
       } catch (err) { console.warn('[Prefetch] failed', err); }
