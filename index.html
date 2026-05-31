@@ -57,10 +57,17 @@
 
     <div class="home-inner">
 
-      <div class="home-grid" role="region" aria-label="Game lobby">
+      <div class="home-grid centered" role="region" aria-label="Game lobby">
+        <main class="hero-panel card">
+          <div class="hero-top">
+            <div class="hero-orb" aria-hidden="true"></div>
+            <div class="hero-text">
+              <div class="game-title">Shift Panic</div>
+              <p class="hero-tagline">Dodge the forbidden color. Survive the panic.</p>
+            </div>
+          </div>
 
-        <!-- Left column: Stats & Daily -->
-        <aside class="left-panel">
+          <!-- Stats (moved into center column for a compact single-column lobby) -->
           <div class="stats-panel card">
             <div class="stats-top">
               <div class="stat-item stat-best">
@@ -93,7 +100,7 @@
             </div>
           </div>
 
-          <!-- Daily Challenge (kept intact, moved into left column) -->
+          <!-- Daily Challenge (centered) -->
           <div id="daily-challenge" class="daily-challenge-card" aria-label="Daily Challenge" role="region">
             <div class="dc-header">
               <span class="dc-title">Daily Challenge</span>
@@ -112,18 +119,8 @@
               <span id="dc-progress-label" class="dc-progress-label"></span>
             </div>
           </div>
-        </aside>
 
-        <!-- Center: Hero / CTA / Mode Cards -->
-        <main class="hero-panel card">
-          <div class="hero-top">
-            <div class="hero-orb" aria-hidden="true"></div>
-            <div class="hero-text">
-              <div class="game-title">Shift Panic</div>
-              <p class="hero-tagline">Dodge the forbidden color. Survive the panic.</p>
-            </div>
-          </div>
-
+          <!-- CTAs -->
           <div class="hero-cta">
             <button id="btn-start" class="btn btn-primary btn-hero btn-large">PLAY ENDLESS</button>
             <button id="btn-campaign" class="btn btn-secondary btn-hero btn-large btn-campaign-home">PANIC QUEST <span class="badge badge-new">NEW</span></button>
@@ -148,17 +145,16 @@
               </div>
             </div>
           </div>
-        </main>
 
-        <!-- Right: Quick actions / Social / Links -->
-        <aside class="right-panel">
-          <div class="quick-actions card">
+          <!-- Quick actions (centered under CTAs) -->
+          <div class="quick-actions card compact">
             <button id="btn-multiplayer" class="btn btn-secondary btn-sm btn-block" aria-haspopup="dialog" aria-controls="modal-multiplayer">⚡ Multiplayer</button>
             <button id="btn-progress" class="btn btn-secondary btn-sm btn-block" aria-haspopup="dialog" aria-controls="modal-progress">Shop</button>
             <button id="btn-leaderboard" class="btn btn-secondary btn-sm btn-block btn-lb-open" aria-haspopup="dialog" aria-controls="modal-leaderboard">🏆 Leaderboard</button>
             <button id="btn-help" class="btn btn-secondary btn-sm btn-block btn-help-open" aria-haspopup="dialog" aria-controls="modal-howtoplay" aria-label="How to Play">? Help</button>
           </div>
-        </aside>
+
+        </main>
 
       </div><!-- /.home-grid -->
 

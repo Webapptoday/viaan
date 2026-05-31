@@ -315,6 +315,22 @@ body::before {
   gap: 20px;
 }
 
+/* When using the centered single-column lobby, force the hero grid
+   to span the full home-inner grid so it sits centered instead of
+   being constrained to the left column. This preserves the decorative
+   side gutters while centering the lobby content. */
+.home-inner > .home-grid.centered {
+  grid-column: 1 / -1;
+  justify-self: center;
+  width: 100%;
+  max-width: 100%;
+}
+
+@media (min-width: 980px) {
+  .home-inner { align-items: center; justify-items: center; }
+  .home-inner > .home-grid.centered { max-width: 760px; }
+}
+
 /* Desktop centering: keep home content vertically and horizontally centered without scrolling */
 @media (min-width: 980px) {
   #home-screen:not([hidden]) {
@@ -329,6 +345,8 @@ body::before {
   }
 }
 
+/* left-column constraints (removed in revert) */
+
 /* Make CTAs more prominent */
 .btn-hero { min-width: 260px; padding: 16px 34px; font-size: 1.08rem; font-weight: 900; border-radius: 14px; }
 #btn-start { font-size: 1.28rem; padding: 20px 40px; min-height: 68px; box-shadow: 0 10px 40px rgba(124,58,237,.6); }
@@ -338,7 +356,7 @@ body::before {
 .stats-panel { width: 260px; padding: 10px; }
 .daily-challenge-card { padding: 10px; }
 
-/* Ensure primary actions are above the fold on common desktop viewports */
+/* Ensure primary actions are above the fold on common desktop/laptop viewports */
 @media (min-width: 980px) {
   .hero-panel { padding: 12px 18px; }
   .modes-grid { margin-top: 6px; }
@@ -347,6 +365,46 @@ body::before {
 /* Lobby layout: panels */
 .left-panel, .right-panel { display: flex; flex-direction: column; gap: 14px; }
 .hero-panel { display: flex; flex-direction: column; gap: 16px; padding: 18px; }
+
+/* Centered single-column lobby to match provided design */
+.home-grid.centered {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  width: 100%;
+  margin: 0 auto;
+}
+.home-grid.centered .hero-panel {
+  max-width: 560px;
+  width: 100%;
+  padding: 28px 28px;
+  text-align: center;
+}
+.home-grid.centered .stats-panel,
+.home-grid.centered .daily-challenge-card,
+.home-grid.centered .quick-actions.card,
+.home-grid.centered .player-rank {
+  width: 100%;
+}
+.home-grid.centered .stats-top { justify-content: center; gap: 14px; }
+.home-grid.centered .hero-cta { flex-direction: column; gap: 12px; width: 100%; }
+.home-grid.centered .hero-cta .btn-hero { width: 100%; min-width: 0; }
+.home-grid.centered .modes-grid { display: none; }
+
+/* CTA flavor for centered lobby: make Panic Quest more prominent and stack quick actions */
+.home-grid.centered #btn-start {
+  box-shadow: 0 12px 48px rgba(124,58,237,.6);
+}
+.home-grid.centered #btn-campaign {
+  background: linear-gradient(90deg, #4f46e5 0%, #06b6d4 100%);
+  color: #fff;
+  box-shadow: 0 8px 30px rgba(6,182,212,.18);
+  border: 1px solid rgba(255,255,255,.06);
+}
+.home-grid.centered .quick-actions.card { display: flex; flex-direction: column; gap: 10px; padding: 12px; }
+.home-grid.centered .quick-actions.card .btn { width: 100%; padding: 12px 14px; text-align: center; border-radius: 12px; }
+.home-grid.centered .quick-actions.card .btn.btn-sm { min-height: 48px; }
 
 .stats-panel { display: flex; flex-direction: column; gap: 12px; padding: 12px; }
 .stats-top { display: flex; gap: 12px; justify-content: space-between; align-items: center; }
@@ -361,7 +419,7 @@ body::before {
 .player-rank .rank-value { font-weight: 900; color: var(--accent-light); font-size: .95rem; }
 
 /* Hero */
-.hero-top { display: flex; gap: 18px; align-items: center; }
+.hero-top { display: flex; gap: 18px; align-items: center; justify-content: center; text-align: center; }
 .hero-orb { width: 92px; height: 92px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, var(--accent-light) 0%, var(--accent) 30%, rgba(167,139,250,.12) 60%); box-shadow: 0 8px 36px rgba(124,58,237,.26), inset 0 1px 8px rgba(255,255,255,.06); flex-shrink: 0; transform: translateZ(0); animation: orbFloat 6s ease-in-out infinite; }
 @keyframes orbFloat { 0% { transform: translateY(0) scale(1); } 50% { transform: translateY(-6px) scale(1.03); } 100% { transform: translateY(0) scale(1); } }
 .hero-text { display: flex; flex-direction: column; gap: 6px; }
@@ -398,6 +456,9 @@ body::before {
   .game-title { font-size: clamp(1.8rem, 6vw, 2.6rem); }
   .btn-hero { width: 100%; }
 }
+
+/* Hero quick actions (compact row inside hero card) */
+/* hero-quick-actions reverted to original layout (moved back to right panel) */
 
 /* Header */
 .home-header   { text-align: center; }
@@ -666,6 +727,35 @@ body::before {
 }
 .daily-challenge-card.dc-completed::before {
   background: var(--success);
+}
+
+/* Centered stats pills (best + coins) to match screenshot proportions */
+.home-grid.centered .stats-top .stat-item {
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  border-radius: 999px;
+  padding: 8px 14px;
+  border: 1px solid rgba(255,255,255,0.04);
+  box-shadow: 0 6px 22px rgba(0,0,0,0.28);
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+.home-grid.centered .stats-top .stat-item .stat-value { font-size: 1.35rem; }
+.home-grid.centered .stats-top .stat-best .stat-value { color: var(--gold); }
+.home-grid.centered .stats-top .stat-coins .stat-value { color: var(--gold); display:flex; align-items:center; gap:8px; }
+
+/* Daily challenge slight contrast boost for busy backgrounds */
+.home-grid.centered .daily-challenge-card {
+  background: linear-gradient(135deg, rgba(124,58,237,.22) 0%, rgba(236,72,153,.12) 100%);
+  border-color: rgba(168,85,247,.46);
+}
+
+/* Make leaderboard button visually distinct (gold) */
+.home-grid.centered .quick-actions.card .btn-lb-open {
+  background: linear-gradient(180deg, rgba(251,191,36,0.06), rgba(251,191,36,0.02));
+  color: var(--gold);
+  border: 1px solid rgba(251,191,36,0.9);
+  box-shadow: 0 8px 20px rgba(251,191,36,0.06);
 }
 
 /* Cards */
@@ -1907,6 +1997,7 @@ body.perf-low       .lp-dot { animation: none !important; }
   display: block;
 }
 
+/* Decorative accents removed to revert to original styling */
 .preview-skin-meta {
   display: flex;
   flex-direction: column;
