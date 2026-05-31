@@ -981,6 +981,98 @@ body::before {
   50%       { box-shadow: 0 8px 36px rgba(124,58,237,.75), 0 0 72px rgba(168,85,247,.36); }
 }
 
+/* =====================
+   Motion & Polish
+   ===================== */
+
+/* Softer press state for buttons to feel premium */
+.btn:active { transform: scale(.985) !important; box-shadow: none !important; }
+
+/* CTA halo using pseudo element for a subtle glow (start + campaign) */
+.home-grid.centered #btn-start,
+.home-grid.centered #btn-campaign {
+  position: relative; overflow: visible;
+}
+.home-grid.centered #btn-start::before,
+.home-grid.centered #btn-campaign::before {
+  content: '';
+  position: absolute;
+  left: 50%; top: 50%; transform: translate(-50%, -50%) scale(1);
+  width: 120%; height: 120%; border-radius: inherit;
+  pointer-events: none; z-index: -1;
+  filter: blur(28px);
+  opacity: 0.9;
+  transition: transform .45s cubic-bezier(.2,.9,.3,1), opacity .36s ease;
+}
+.home-grid.centered #btn-start::before { background: radial-gradient(circle at 40% 30%, rgba(167,139,250,.20), rgba(124,58,237,.08) 40%, transparent 60%); }
+.home-grid.centered #btn-campaign::before { background: radial-gradient(circle at 40% 30%, rgba(255,114,117,.16), rgba(124,58,237,.06) 40%, transparent 60%); }
+
+@keyframes campaignPulse {
+  0%   { transform: translate(-50%, -50%) scale(1); opacity: .86; }
+  45%  { transform: translate(-50%, -52%) scale(1.04); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1); opacity: .86; }
+}
+
+/* Apply periodic subtle pulse on CTAs (disabled in reduced-motion modes) */
+.home-grid.centered #btn-start { animation: startPulse 3.8s ease-in-out infinite; }
+.home-grid.centered #btn-campaign { animation: campaignPulse 5.2s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce), body.reduced-motion {
+  .home-grid.centered #btn-start,
+  .home-grid.centered #btn-campaign,
+  .home-grid.centered .card,
+  .home-grid.centered .daily-challenge-card,
+  .home-grid.centered .hero-decor .hblock { animation: none !important; transition: none !important; }
+  .btn:active { transform: none !important; }
+}
+
+/* Card lift + glow on hover (subtle) */
+.card { transition: transform .28s cubic-bezier(.22,1,.36,1), box-shadow .28s ease, border-color .28s ease; transform: translateY(0); }
+.card:hover { transform: translateY(-8px); box-shadow: 0 24px 64px rgba(2,6,23,.62), 0 0 48px rgba(124,58,237,.06); border-color: rgba(168,85,247,.12); }
+
+/* Soft entrance for secondary bits (stagger via delays) */
+@keyframes softEntrance { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.home-animate .stats-panel { animation: softEntrance .58s cubic-bezier(.22,1,.36,1) .12s both; }
+.home-animate .daily-challenge-card { animation: softEntrance .58s cubic-bezier(.22,1,.36,1) .18s both; }
+.home-animate .quick-actions.card { animation: softEntrance .58s cubic-bezier(.22,1,.36,1) .22s both; }
+
+/* Coin shimmer / text gradient for perceived value */
+@keyframes coinShimmer { 0% { background-position: 0% 50%; } 100% { background-position: 200% 50%; } }
+.coins-value {
+  background: linear-gradient(90deg, #fbbf24 0%, #fff7cc 50%, #fbbf24 100%);
+  background-size: 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent;
+  animation: coinShimmer 3.2s linear infinite;
+}
+
+/* Daily challenge timer ring */
+.dc-timer { position: relative; padding-left: 38px; display: inline-block; }
+.dc-timer::before {
+  content: '';
+  position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 2px solid rgba(255,255,255,.06);
+  box-shadow: inset 0 2px 6px rgba(0,0,0,.25), 0 6px 18px rgba(124,58,237,.04);
+}
+@keyframes dcRingPulse { 0% { transform: translateY(-50%) scale(1); opacity: 1; } 50% { transform: translateY(-50%) scale(1.08); opacity: .78; } 100% { transform: translateY(-50%) scale(1); opacity: 1; } }
+.dc-timer.dc-timer-urgent::before { box-shadow: 0 6px 28px rgba(236,72,153,.12), inset 0 2px 8px rgba(255,255,255,.02); animation: dcRingPulse 1.6s ease-in-out infinite; }
+.dc-timer.dc-timer-urgent { color: #ffb4c0; font-weight: 900; }
+
+/* Gear button halo */
+.gear-btn { transition: transform .22s ease, box-shadow .22s ease, background .22s ease; }
+.gear-btn::after {
+  content: '';
+  position: absolute; left: -8px; right: -8px; top: -8px; bottom: -8px;
+  border-radius: 16px; z-index: -1;
+  background: radial-gradient(circle at 30% 30%, rgba(124,58,237,.06), transparent 40%);
+  opacity: 0; transform: scale(.98);
+  transition: opacity .22s ease, transform .32s cubic-bezier(.2,.9,.3,1);
+}
+.gear-btn:hover::after { opacity: 1; transform: scale(1.03); }
+
+/* Slightly tone down background blobs motion for premium look */
+.blob { filter: blur(44px); opacity: .08; }
+
+
 /* Secondary buttons in home-actions - clean and restrained */
 .home-actions .btn-secondary {
   font-size: .94rem;
