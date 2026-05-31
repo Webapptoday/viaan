@@ -53,6 +53,29 @@
   scroll-padding-top: 56px;
 }
 
+/* Loading placeholder shown while campaign UI initializes */
+.cmp-loading {
+  min-height: 60vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 12px;
+  padding: 48px 16px;
+  color: rgba(255,255,255,0.9);
+}
+.cmp-spinner {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  border: 6px solid rgba(255,255,255,0.06);
+  border-top-color: #7c3aed;
+  box-shadow: 0 10px 34px rgba(124,58,237,0.14), inset 0 2px 8px rgba(255,255,255,0.02);
+  animation: cmp-spin 1s linear infinite;
+}
+.cmp-loading-text { font-weight: 700; color: rgba(255,255,255,0.92); letter-spacing: 0.6px; }
+@keyframes cmp-spin { to { transform: rotate(360deg); } }
+
 /* ============================================================
    STICKY HUD — always visible at top while scrolling
    Must be a direct child of #campaign-levelselect (the scroll
