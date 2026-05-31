@@ -11097,20 +11097,61 @@ function init() {
     }
   });
   const _btnCampaign = document.getElementById('btn-campaign');
-  if (_btnCampaign) _btnCampaign.addEventListener('click', () => {
+  if (_btnCampaign) _btnCampaign.addEventListener('click', async () => {
     console.log('[Menu] Panic Quest clicked – window.CampaignUI:', typeof window.CampaignUI, window._campaignLoadError ? 'LOAD_ERROR:' + window._campaignLoadError : '');
     Audio.uiClick();
     const _ui = window.CampaignUI;
     if (_ui && typeof _ui.showLevelSelect === 'function') {
-      try {
-        _ui.showLevelSelect();
-        return;
-      } catch (e) {
-        console.error('[Menu] CampaignUI.showLevelSelect threw:', e);
-      }
-    } else {
-      console.error('[Menu] CampaignUI not available – campaign.js may not have loaded correctly.');
+      try { _ui.showLevelSelect(); return; } catch (e) { console.error('[Menu] CampaignUI.showLevelSelect threw:', e); }
     }
+
+    console.warn('[Menu] CampaignUI not available – attempting dynamic load of campaign_live.js');
+
+    const _loadScript = (src) => new Promise((resolve, reject) => {
+      try {
+        const exist = document.querySelector('script[data-campaign-src="' + src + '"]');
+        if (exist) {
+          if (typeof window.CampaignUI !== 'undefined') return resolve(true);
+          exist.addEventListener('load', () => resolve(true));
+          exist.addEventListener('error', () => reject(new Error('existing script failed to load')));
+          return;
+        }
+        const s = document.createElement('script');
+        s.async = true;
+        s.src = src + (src.indexOf('?') === -1 ? '?v=' + Date.now() : '&v=' + Date.now());
+        s.setAttribute('data-campaign-src', src);
+        s.onload = () => resolve(true);
+        s.onerror = () => reject(new Error('Failed to load ' + src));
+        document.head.appendChild(s);
+      } catch (err) { reject(err); }
+    });
+
+    // Try loading the built live campaign first, then fallback to campaign.js
+    let loaded = false;
+    try {
+      await _loadScript('campaign_live.js');
+      if (window.CampaignUI && typeof window.CampaignUI.showLevelSelect === 'function') {
+        window.CampaignUI.showLevelSelect();
+        loaded = true;
+        return;
+      }
+    } catch (err) {
+      console.warn('[Menu] campaign_live.js dynamic load failed:', err);
+    }
+
+    if (!loaded) {
+      try {
+        await _loadScript('campaign.js');
+        if (window.CampaignUI && typeof window.CampaignUI.showLevelSelect === 'function') {
+          window.CampaignUI.showLevelSelect();
+          loaded = true;
+          return;
+        }
+      } catch (err) {
+        console.warn('[Menu] campaign.js dynamic load failed:', err);
+      }
+    }
+
     // DOM fallback: directly switch screens so the user can always enter Panic Quest
     console.warn('[Menu] Using direct DOM fallback to show campaign-levelselect');
     ['home-screen', 'game-screen', 'campaign-intro', 'campaign-victory', 'campaign-defeat'].forEach(id => {
@@ -11123,13 +11164,29 @@ function init() {
       if (window.CampaignUI && typeof window.CampaignUI.showLevelSelect === 'function') {
         try { window.CampaignUI.showLevelSelect(); return; } catch (_) {}
       }
-      // campaign.js did not load — show a clear prompt so the user isn't stuck on a black screen
+      // campaign scripts did not load — show a clear prompt so the user isn't stuck on a black screen
       _lsEl.innerHTML = '<div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.5rem;padding:2rem;color:#f8fafc;font-family:Inter,sans-serif;text-align:center">'
         + '<h2 style="font-size:1.8rem;font-weight:800;margin:0">Panic Quest</h2>'
-        + '<p style="color:rgba(255,255,255,0.6);margin:0">Level map could not load.<br>Please refresh the page and try again.</p>'
-        + '<button onclick="location.reload()" style="padding:0.65rem 1.8rem;background:#7c3aed;color:#fff;border:none;border-radius:10px;font-size:1rem;font-weight:700;cursor:pointer">Refresh Page</button>'
+        + '<p style="color:rgba(255,255,255,0.6);margin:0">Level map could not load.<br>Please refresh the page or try again.</p>'
+        + '<div style="display:flex;gap:10px;margin-top:12px">'
+        + '<button id="campaign-retry-btn" style="padding:0.65rem 1.8rem;background:#7c3aed;color:#fff;border:none;border-radius:10px;font-size:1rem;font-weight:700;cursor:pointer">Retry</button>'
         + '<button onclick="document.getElementById(\'campaign-levelselect\').hidden=true;document.getElementById(\'home-screen\').hidden=false;" style="padding:0.45rem 1.2rem;background:rgba(255,255,255,0.08);color:#f8fafc;border:1px solid rgba(255,255,255,0.15);border-radius:9px;font-size:0.9rem;cursor:pointer">Back to Menu</button>'
+        + '</div>'
         + '</div>';
+      // Retry handler: attempt to load campaign_live.js again
+      const retryBtn = document.getElementById('campaign-retry-btn');
+      if (retryBtn) retryBtn.addEventListener('click', async () => {
+        retryBtn.disabled = true; retryBtn.textContent = 'Loading…';
+        try {
+          await _loadScript('campaign_live.js');
+          if (window.CampaignUI && typeof window.CampaignUI.showLevelSelect === 'function') {
+            window.CampaignUI.showLevelSelect();
+            return;
+          }
+        } catch (e) { console.error('[Menu] Retry load failed', e); }
+        // final fallback: reload the page
+        location.reload();
+      });
     }
   });
   document.getElementById('btn-progress').addEventListener('click', () => {
