@@ -11357,6 +11357,40 @@ function init() {
 
 document.addEventListener('DOMContentLoaded', init);
 
+// Background preloader for campaign scripts to avoid click-time failures.
+// Loads `campaign_live.js` during idle so the Panic Quest UI is available
+// when the user taps the button without requiring a page refresh.
+(function prefetchCampaignScripts(){
+  try {
+    if (typeof window === 'undefined') return;
+    if (document.querySelector('script[data-campaign-src="campaign_live.js"]') || window.CampaignUI) return;
+    // Light-weight preload hint first
+    const p = document.createElement('link');
+    p.rel = 'preload'; p.as = 'script'; p.href = 'campaign_live.js';
+    p.setAttribute('data-campaign-prefetch', '1');
+    document.head.appendChild(p);
+
+    // Defer actual script insertion to idle time to avoid blocking
+    const doLoad = () => {
+      try {
+        if (window.CampaignUI || document.querySelector('script[data-campaign-src="campaign_live.js"]')) return;
+        const s = document.createElement('script');
+        s.async = true;
+        s.src = 'campaign_live.js?v=' + Date.now();
+        s.setAttribute('data-campaign-src', 'campaign_live.js');
+        s.onload = () => console.log('[Prefetch] campaign_live.js loaded');
+        s.onerror = (e) => console.warn('[Prefetch] campaign_live.js failed to load', e);
+        document.head.appendChild(s);
+      } catch (err) { console.warn('[Prefetch] failed', err); }
+    };
+
+    if ('requestIdleCallback' in window) requestIdleCallback(doLoad, {timeout: 2000});
+    else setTimeout(doLoad, 1200);
+  } catch (e) {
+    console.warn('[Prefetch] unexpected error', e);
+  }
+})();
+
 
 // ============================================================
 // ============================================================
