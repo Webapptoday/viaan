@@ -3864,6 +3864,18 @@ function selectSkinForPreview(skinId) {
   const tryHTML = '<button class="btn btn-try preview-try-btn" data-skin="' + skin.id + '">Try</button>';
   actionsEl.innerHTML = primaryHTML + tryHTML;
 
+  // Update preview panel visual state (owned / locked / selected)
+  try {
+    const previewPanel = document.getElementById('shop-preview-panel');
+    if (previewPanel) {
+      previewPanel.dataset.rarity = skin.rarity || 'common';
+      previewPanel.classList.toggle('skin-preview-selected', selected);
+      previewPanel.classList.toggle('skin-preview-locked', !available);
+      previewPanel.classList.toggle('skin-preview-owned', available && !selected);
+      if (selected) previewPanel.setAttribute('data-equipped-label', 'Equipped'); else previewPanel.removeAttribute('data-equipped-label');
+    }
+  } catch (e) { /* ignore */ }
+
   const equipBtn = actionsEl.querySelector('.preview-equip-btn');
   if (equipBtn) {
     equipBtn.addEventListener('click', () => {
@@ -3987,6 +3999,7 @@ function _renderSkinGrid(grid, skins) {
       'skin-btn',
       locked   ? 'skin-locked'   : '',
       selected ? 'skin-selected' : '',
+      available ? 'skin-owned' : '',
       (!available && skin.coinCost && scoreGateMet && canAfford) ? 'skin-affordable' : '',
     ].filter(Boolean).join(' ');
 

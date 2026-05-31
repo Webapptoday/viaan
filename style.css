@@ -3783,9 +3783,68 @@ body.perf-low       .lp-dot { animation: none !important; }
 .shop-panel .shop-preview-panel > * { position: relative; z-index: 1; }
 
 #skin-preview-canvas {
-  width: 200px; height: 200px; border-radius: 18px;
+  width: 220px; height: 220px; border-radius: 18px;
   background: transparent; display: block;
 }
+.shop-panel .shop-preview-panel {
+  /* Slightly larger preview panel for stronger presence */
+  width: 320px; padding: 32px 22px 28px;
+}
+
+/* Preview state indicators */
+.shop-panel .shop-preview-panel.skin-preview-selected {
+  border-color: rgba(168,85,247,.92);
+  box-shadow: 0 18px 60px rgba(168,85,247,.28);
+  transform: translateY(-3px);
+}
+.shop-panel .shop-preview-panel.skin-preview-owned {
+  border-color: rgba(52,211,153,.36);
+  box-shadow: 0 12px 46px rgba(52,211,153,.10);
+}
+.shop-panel .shop-preview-panel.skin-preview-locked {
+  border-color: rgba(255,255,255,.06);
+  box-shadow: 0 8px 28px rgba(0,0,0,.55);
+}
+
+/* Equipped badge (shows only when preview panel is selected) */
+.shop-panel .shop-preview-panel::after {
+  content: attr(data-equipped-label);
+  position: absolute; top: 14px; right: 14px;
+  background: linear-gradient(135deg, rgba(109,40,217,.95), rgba(139,92,246,.9));
+  color: #fff; padding: 6px 10px; border-radius: 999px; font-weight: 900;
+  font-size: .78rem; letter-spacing: .06em; display: none;
+  box-shadow: 0 6px 18px rgba(109,40,217,.36);
+  z-index: 3;
+}
+.shop-panel .shop-preview-panel.skin-preview-selected::after { display: block; }
+
+.preview-skin-name { font-size: 1.44rem; font-weight: 900; text-align: center; margin-top: 6px; }
+.preview-skin-rarity { font-size: .78rem; font-weight: 900; text-transform: uppercase; padding: 6px 12px; border-radius: 999px; letter-spacing: .08em; }
+
+.preview-actions .btn.btn-primary { padding: 14px 12px; font-size: .96rem; border-radius: 14px; box-shadow: 0 8px 30px rgba(0,0,0,.5), 0 0 20px rgba(168,85,247,.12); }
+.preview-actions .btn.btn-secondary[disabled] { opacity: .9; background: linear-gradient(90deg, rgba(255,255,255,.04), rgba(255,255,255,.02)); border-color: rgba(255,255,255,.06); color: #ddd; }
+
+/* Grid spacing & card alignment */
+.skin-grid { gap: 18px; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+.skin-grid .skin-btn { padding: 18px 10px; align-items: center; text-align: center; }
+.skin-grid .skin-btn .skin-preview { width: 76px; height: 76px; border-radius: 14px; }
+.skin-grid .skin-btn:hover:not(:disabled) { transform: translateY(-6px) scale(1.03); box-shadow: 0 18px 46px rgba(0,0,0,.55); }
+
+/* Locked cards: keep them desirable with a soft overlay and centered lock badge */
+.skin-btn.skin-locked::before { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(0,0,0,.28)); border-radius: inherit; pointer-events: none; mix-blend-mode: overlay; }
+.skin-lock-overlay { top: 50%; right: 0; left: 0; transform: translateY(-50%); text-align: center; font-weight: 900; font-size: .82rem; color: #f8fafc; background: linear-gradient(180deg, rgba(0,0,0,.28), rgba(255,255,255,.02)); padding: 8px 10px; border-radius: 14px; width: calc(100% - 24px); margin: 0 12px; box-shadow: 0 6px 22px rgba(0,0,0,.5); }
+
+/* Owned / Equipped visual emphasis */
+.skin-btn.skin-selected { border-color: rgba(109,40,217,.95); box-shadow: 0 18px 64px rgba(168,85,247,.4); transform: translateY(-6px) scale(1.02); }
+.skin-btn.skin-owned { border-color: rgba(52,211,153,.38); box-shadow: 0 10px 36px rgba(52,211,153,.12); }
+
+/* Rarity badges on cards */
+.skin-grid .skin-btn .skin-rarity { display: inline-block; margin-bottom: 6px; font-size: .64rem; padding: 4px 10px; border-radius: 999px; text-transform: uppercase; font-weight: 800; letter-spacing: .06em; }
+.skin-grid .skin-btn[data-rarity="rare"] .skin-rarity { background: rgba(56,189,248,.12); color: #67e8f9; border: 1px solid rgba(56,189,248,.28); box-shadow: 0 0 16px rgba(56,189,248,.06); }
+.skin-grid .skin-btn[data-rarity="epic"] .skin-rarity { background: rgba(251,191,36,.12); color: #fde68a; border: 1px solid rgba(251,191,36,.28); box-shadow: 0 0 16px rgba(251,191,36,.06); }
+.skin-grid .skin-btn[data-rarity="legendary"] .skin-rarity { background: rgba(192,132,252,.14); color: #e9d5ff; border: 1px solid rgba(192,132,252,.36); box-shadow: 0 0 26px rgba(168,85,247,.12); }
+
+.skin-grid .skin-card-meta .skin-name { font-size: .9rem; font-weight: 900; color: #fff; display: block; margin-top: 8px; }
 .preview-skin-name {
   font-size: 1.22rem; font-weight: 900; letter-spacing: -.5px;
   color: #ffffff; text-align: center;
