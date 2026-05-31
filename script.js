@@ -4040,6 +4040,62 @@ function _renderSkinGrid(grid, skins) {
   selectSkinForPreview(_shopPreviewSkinId || settings.selectedSkin);
 }
 
+// Helper: try to remove near-white background from an image by drawing to a canvas
+function stripWhiteBackgroundFromImageSrc(src, size, cb) {
+  if (!src) { if (cb) cb(null); return; }
+  try {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = function() {
+      try {
+        const W = img.naturalWidth || img.width || 1;
+        const H = img.naturalHeight || img.height || 1;
+        const S = size || Math.max(W, H, 160);
+        const canvas = document.createElement('canvas');
+        canvas.width = S; canvas.height = S;
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0,0,S,S);
+        const scale = Math.min(S / W, S / H);
+        const w = Math.round(W * scale); const h = Math.round(H * scale);
+        const x = Math.round((S - w) / 2); const y = Math.round((S - h) / 2);
+        ctx.drawImage(img, x, y, w, h);
+        try {
+          const id = ctx.getImageData(0,0,S,S);
+          const data = id.data;
+          for (let i = 0; i < data.length; i += 4) {
+            const r = data[i], g = data[i+1], b = data[i+2], a = data[i+3];
+            if (a > 240 && r > 245 && g > 245 && b > 245) {
+              data[i+3] = 0; // make near-white fully transparent
+            }
+          }
+          ctx.putImageData(id, 0, 0);
+        } catch (err) {
+          // Might fail on cross-origin images; ignore and return original
+        }
+        try { if (cb) cb(canvas.toDataURL('image/png')); } catch (e) { if (cb) cb(null); }
+      } catch (err) { if (cb) cb(null); }
+    };
+    img.onerror = function() { if (cb) cb(null); };
+    img.src = src;
+  } catch (e) { if (cb) cb(null); }
+}
+
+function cleanAbilityImages(container) {
+  if (!container) return;
+  try {
+    container.querySelectorAll('img').forEach(img => {
+      if (img.dataset.cleaned) return;
+      const src = img.getAttribute('src') || img.dataset.src;
+      if (!src) return;
+      stripWhiteBackgroundFromImageSrc(src, Math.max(img.width, img.height, 128), cleaned => {
+        if (cleaned) {
+          try { img.src = cleaned; img.dataset.cleaned = '1'; } catch (e) { /* ignore */ }
+        }
+      });
+    });
+  } catch (e) { /* ignore */ }
+}
+
 function selectAbilityForPreview(abilityId) {
   const ability = ABILITY_DEFS.find(a => a.id === abilityId) || ABILITY_DEFS[0];
   if (!ability) return;
@@ -4066,14 +4122,31 @@ function selectAbilityForPreview(abilityId) {
             abilityImgWrap.setAttribute('aria-hidden', 'false');
             if (abilityCanvas) abilityCanvas.style.display = 'none';
           } catch (e) {
+            // Try to normalize the image to remove white/checker backgrounds
+            try {
+              stripWhiteBackgroundFromImageSrc(src, 180, cleaned => {
+                previewImg.src = cleaned || src; previewImg.alt = ability.name + ' icon'; previewImg.style.display = '';
+                if (abilityCanvas) abilityCanvas.style.display = 'none';
+                abilityImgWrap && abilityImgWrap.setAttribute('aria-hidden', 'false');
+              });
+            } catch (err) {
+              previewImg.src = src; previewImg.alt = ability.name + ' icon'; previewImg.style.display = '';
+              if (abilityCanvas) abilityCanvas.style.display = 'none';
+              abilityImgWrap && abilityImgWrap.setAttribute('aria-hidden', 'false');
+            }
+          }
+        } else {
+          try {
+            stripWhiteBackgroundFromImageSrc(src, 180, cleaned => {
+              previewImg.src = cleaned || src; previewImg.alt = ability.name + ' icon'; previewImg.style.display = '';
+              if (abilityCanvas) abilityCanvas.style.display = 'none';
+              abilityImgWrap && abilityImgWrap.setAttribute('aria-hidden', 'false');
+            });
+          } catch (err) {
             previewImg.src = src; previewImg.alt = ability.name + ' icon'; previewImg.style.display = '';
             if (abilityCanvas) abilityCanvas.style.display = 'none';
             abilityImgWrap && abilityImgWrap.setAttribute('aria-hidden', 'false');
           }
-        } else {
-          previewImg.src = src; previewImg.alt = ability.name + ' icon'; previewImg.style.display = '';
-          if (abilityCanvas) abilityCanvas.style.display = 'none';
-          abilityImgWrap && abilityImgWrap.setAttribute('aria-hidden', 'false');
         }
       } else {
         previewImg.src = '';
@@ -4086,6 +4159,20 @@ function selectAbilityForPreview(abilityId) {
       '<span class="preview-ability-name">' + ability.name + '</span>' +
       '<span class="preview-ability-desc">' + ability.description + '</span>';
   }
+
+  // Update preview panel visual state (owned / locked / equipped) for abilities
+  try {
+    const previewPanel = document.querySelector('#shop-panel-abilities .shop-preview-panel');
+    if (previewPanel) {
+      const owned = isAbilityAvailable(ability);
+      const selected = settings.selectedAbility === ability.id && owned;
+      previewPanel.dataset.rarity = ability.rarity || 'common';
+      previewPanel.classList.toggle('skin-preview-selected', selected);
+      previewPanel.classList.toggle('skin-preview-locked', !owned);
+      previewPanel.classList.toggle('skin-preview-owned', owned && !selected);
+      if (selected) previewPanel.setAttribute('data-equipped-label', 'Equipped'); else previewPanel.removeAttribute('data-equipped-label');
+    }
+  } catch (e) { /* ignore */ }
   if (!actionsEl) return;
 
   const owned = isAbilityAvailable(ability);
@@ -4182,6 +4269,9 @@ function _renderAbilityGrid(grid, abilities) {
       (!owned ? '<span class="skin-lock-overlay" aria-hidden="true">Locked</span>' : '') +
     '</div>';
   }).join('');
+
+  // Try cleaning ability icon images to remove white/checker backgrounds
+  try { cleanAbilityImages(grid); } catch (err) { /* ignore */ }
 
   if (!grid._abilityDelegated) {
     grid._abilityDelegated = true;
