@@ -35,7 +35,7 @@ const CAMPAIGN_LEVELS = [
       objectiveType: 'survive_seconds',
       objectiveTarget: 25,
       timeLimit: 25,
-      rewardCoins: 25,
+      rewardCoins: 30,
       replayReward: 5,
       tip: 'Watch the forbidden color indicator at the top — not just the blocks falling toward you.',
       starConditions: [
@@ -85,7 +85,7 @@ const CAMPAIGN_LEVELS = [
       objectiveType: 'collect_coins',
       objectiveTarget: 15,
       timeLimit: 35,
-      rewardCoins: 30,
+      rewardCoins: 36,
       replayReward: 8,
       tip: 'Coins drop in bursts — get moving toward them as soon as they appear.',
       starConditions: [
@@ -235,7 +235,7 @@ const CAMPAIGN_LEVELS = [
       objectiveType: 'dodge_blocks',
       objectiveTarget: 100,
       timeLimit: 75,
-      rewardCoins: 40,
+      rewardCoins: 48,
       replayReward: 9,
       tip: 'A dodge counts when a block passes fully below you. Thread the gaps early — don\'t wait.',
       starConditions: [
@@ -268,7 +268,7 @@ const CAMPAIGN_LEVELS = [
       objectiveType: 'survive_seconds',
       objectiveTarget: 50,
       timeLimit: 50,
-      rewardCoins: 45,
+      rewardCoins: 54,
       replayReward: 10,
       tip: 'A warning flash fires before each color switch. See it — adjust before the swap hits.',
       starConditions: [
@@ -302,7 +302,7 @@ const CAMPAIGN_LEVELS = [
       objectiveType: 'survive_seconds',
       objectiveTarget: 25,
       timeLimit: 25,
-      rewardCoins: 25,
+      rewardCoins: 30,
       replayReward: 5,
       tip: 'Commit to the gap early. Waiting is the fastest way to get clipped.',
       starConditions: [
@@ -349,7 +349,7 @@ const CAMPAIGN_LEVELS = [
       objectiveType: 'collect_coins',
       objectiveTarget: 25,
       timeLimit: 50,
-      rewardCoins: 150,
+      rewardCoins: 180,
       replayReward: 15,
       tip: 'Bank coins early — a panic wave hits halfway through. After that, survival is everything.',
       starConditions: [
@@ -382,7 +382,7 @@ const CAMPAIGN_LEVELS = [
       objectiveType: 'survive_seconds',
       objectiveTarget: 60,
       timeLimit: null,
-      rewardCoins: 175,
+      rewardCoins: 210,
       replayReward: 18,
       tip: 'Each surge is worse than the last. Find your safe zone before the warning ends.',
       starConditions: [
@@ -418,7 +418,7 @@ const CAMPAIGN_LEVELS = [
       objectiveType: 'survive_seconds',
       objectiveTarget: 50,
       timeLimit: 50,
-      rewardCoins: 200,
+      rewardCoins: 240,
       replayReward: 20,
       tip: 'Drift toward the center before the walls force you there.',
       starConditions: [
@@ -452,7 +452,7 @@ const CAMPAIGN_LEVELS = [
       objectiveType: 'hybrid',
       objectiveTarget: { seconds: 75, coins: 20, dodges: 60 },
       timeLimit: null,
-      rewardCoins: 250,
+      rewardCoins: 300,
       replayReward: 25,
       tip: 'Don\'t neglect coins early — they get scarce after the panic wave. Know where you are at 45s.',
       starConditions: [
@@ -488,7 +488,7 @@ const CAMPAIGN_LEVELS = [
       objectiveType: 'boss_defeat',
       objectiveTarget: 10,
       timeLimit: 120,
-      rewardCoins: 500,
+      rewardCoins: 600,
       replayReward: 50,
       tip: 'Grab every orb the moment it appears. Dodge every warning line. Don\'t stop moving.',
       starConditions: [

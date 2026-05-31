@@ -26,9 +26,10 @@ const POWERUP_DEFS = {
 };
 const POWERUP_KEYS = Object.keys(POWERUP_DEFS);
 const POWERUP_UPGRADE_DEFS = {
-  SHIELD: { maxLevel: 3, bonusPerLevel: 0.5, costs: [500, 1200, 2000] },
-  SMALL:  { maxLevel: 3, bonusPerLevel: 0.5, costs: [500, 1200, 2000] },
-  SLOW:   { maxLevel: 3, bonusPerLevel: 0.5, costs: [500, 1200, 2000] },
+  // Slightly reduced upgrade costs to improve early retention without inflating late game
+  SHIELD: { maxLevel: 3, bonusPerLevel: 0.5, costs: [350, 900, 1600] },
+  SMALL:  { maxLevel: 3, bonusPerLevel: 0.5, costs: [350, 900, 1600] },
+  SLOW:   { maxLevel: 3, bonusPerLevel: 0.5, costs: [350, 900, 1600] },
 };
 const POWERUP_UPGRADE_KEYS = Object.keys(POWERUP_UPGRADE_DEFS);
 
@@ -136,26 +137,27 @@ const PATTERN_LIBRARY = [
 const SKIN_DEFS = [
   // Starter / early game
   { id: 'classic',      name: 'Classic',      coinCost:    0, lifetimeScore:       0, rarity: 'common',    effect: 'none',     color1: '#ffffff', color2: '#c084fc', glow: '#a855f7', shape: 'circle', trail: false },
-  { id: 'neon',         name: 'Neon',         coinCost:   75, lifetimeScore:       0, rarity: 'common',    effect: 'pulse',    color1: '#ccfdf2', color2: '#06b6d4', glow: '#06b6d4', shape: 'circle', trail: true  },
-  { id: 'lava',         name: 'Lava',         coinCost:  175, lifetimeScore:       0, rarity: 'rare',      effect: 'flicker',  color1: '#fef08a', color2: '#ef4444', glow: '#f97316', shape: 'circle', trail: true  },
+  { id: 'neon',         name: 'Neon',         coinCost:   50, lifetimeScore:       0, rarity: 'common',    effect: 'pulse',    color1: '#ccfdf2', color2: '#06b6d4', glow: '#06b6d4', shape: 'circle', trail: true  },
+  { id: 'lava',         name: 'Lava',         coinCost:  150, lifetimeScore:       0, rarity: 'rare',      effect: 'flicker',  color1: '#fef08a', color2: '#ef4444', glow: '#f97316', shape: 'circle', trail: true  },
   // Mid game
-  { id: 'aurora',       name: 'Aurora',       coinCost:  225, lifetimeScore:       0, rarity: 'rare',      effect: 'shimmer',  color1: '#d1fae5', color2: '#0ea5e9', glow: '#22d3ee', shape: 'circle', trail: true  },
-  { id: 'inferno',      name: 'Inferno',      coinCost:  425, lifetimeScore:   75000, rarity: 'epic',      effect: 'inferno',  color1: '#fffbeb', color2: '#dc2626', glow: '#f97316', shape: 'circle', trail: true  },
-  { id: 'gold',         name: 'Gold',         coinCost:  500, lifetimeScore:  100000, rarity: 'epic',      effect: 'shimmer',  color1: '#fefce8', color2: '#eab308', glow: '#fbbf24', shape: 'star',   trail: false },
+  { id: 'aurora',       name: 'Aurora',       coinCost:  200, lifetimeScore:       0, rarity: 'rare',      effect: 'shimmer',  color1: '#d1fae5', color2: '#0ea5e9', glow: '#22d3ee', shape: 'circle', trail: true  },
+  { id: 'inferno',      name: 'Inferno',      coinCost:  375, lifetimeScore:   75000, rarity: 'epic',      effect: 'inferno',  color1: '#fffbeb', color2: '#dc2626', glow: '#f97316', shape: 'circle', trail: true  },
+  { id: 'gold',         name: 'Gold',         coinCost:  450, lifetimeScore:  100000, rarity: 'epic',      effect: 'shimmer',  color1: '#fefce8', color2: '#eab308', glow: '#fbbf24', shape: 'star',   trail: false },
   // High-end
-  { id: 'afterglow',    name: 'Afterglow',    coinCost:  700, lifetimeScore:  175000, rarity: 'legendary', effect: 'prism',    color1: '#fef3c7', color2: '#f472b6', glow: '#fb7185', shape: 'circle', trail: true  },
-  { id: 'galaxy',       name: 'Galaxy',       coinCost:  900, lifetimeScore:  300000, rarity: 'legendary', effect: 'galaxy',   color1: '#c4b5fd', color2: '#1e1b4b', glow: '#818cf8', shape: 'star',   trail: true  },
-  { id: 'eclipse',      name: 'Eclipse',      coinCost: 1200, lifetimeScore:  500000, rarity: 'legendary', effect: 'void',     color1: '#f5f3ff', color2: '#111827', glow: '#a78bfa', shape: 'star',   trail: true  },
+  { id: 'afterglow',    name: 'Afterglow',    coinCost:  650, lifetimeScore:  175000, rarity: 'legendary', effect: 'prism',    color1: '#fef3c7', color2: '#f472b6', glow: '#fb7185', shape: 'circle', trail: true  },
+  { id: 'galaxy',       name: 'Galaxy',       coinCost:  800, lifetimeScore:  300000, rarity: 'legendary', effect: 'galaxy',   color1: '#c4b5fd', color2: '#1e1b4b', glow: '#818cf8', shape: 'star',   trail: true  },
+  { id: 'eclipse',      name: 'Eclipse',      coinCost: 1000, lifetimeScore:  500000, rarity: 'legendary', effect: 'void',     color1: '#f5f3ff', color2: '#111827', glow: '#a78bfa', shape: 'star',   trail: true  },
 ];
 
 // Abilities - gameplay powers only
 const ABILITY_DEFS = [
+  // Make utility abilities easier to acquire while keeping top-tier mythic expensive
   { id: 'magnet', name: 'Coin Magnet', rarity: 'common', coinCost: 0, lifetimeScoreRequirement: 0, description: 'Pulls nearby coins toward player.', cooldownMs: 0, effectType: 'personal', image: 'Coin-magnet.png', icon: 'CM' },
-  { id: 'shield', name: 'Shield', rarity: 'epic', coinCost: 800, lifetimeScoreRequirement: 225000, description: 'Blocks one hit and then recharges.', cooldownMs: 45000, effectType: 'personal', image: 'shield.png', icon: 'SH' },
-  { id: 'dash', name: 'Dash', rarity: 'epic', coinCost: 1400, lifetimeScoreRequirement: 550000, description: 'Short speed burst with cooldown.', cooldownMs: 20000, effectType: 'personal', image: 'dash.png', icon: 'DA' },
-  { id: 'slow-field', name: 'Slow Field', rarity: 'epic', coinCost: 1000, lifetimeScoreRequirement: 350000, description: 'Slows block speed briefly.', cooldownMs: 25000, effectType: 'shared', image: 'slow-field.png', icon: 'SL' },
-  { id: 'pulse', name: 'Pulse Wave', rarity: 'legendary', coinCost: 1800, lifetimeScoreRequirement: 800000, description: 'Pushes nearby blocks away instantly.', cooldownMs: 30000, effectType: 'shared', image: 'Pulse-wave.png', icon: 'PW' },
-  { id: 'ghost', name: 'Ghost Shift', rarity: 'mythic', coinCost: 3000, lifetimeScoreRequirement: 1250000, description: 'Pass through danger briefly.', cooldownMs: 40000, effectType: 'personal', image: 'Ghost-swish.png', icon: 'GH' },
+  { id: 'shield', name: 'Shield', rarity: 'epic', coinCost: 650, lifetimeScoreRequirement: 225000, description: 'Blocks one hit and then recharges.', cooldownMs: 45000, effectType: 'personal', image: 'shield.png', icon: 'SH' },
+  { id: 'dash', name: 'Dash', rarity: 'epic', coinCost: 1100, lifetimeScoreRequirement: 550000, description: 'Short speed burst with cooldown.', cooldownMs: 20000, effectType: 'personal', image: 'dash.png', icon: 'DA' },
+  { id: 'slow-field', name: 'Slow Field', rarity: 'epic', coinCost: 850, lifetimeScoreRequirement: 350000, description: 'Slows block speed briefly.', cooldownMs: 25000, effectType: 'shared', image: 'slow-field.png', icon: 'SL' },
+  { id: 'pulse', name: 'Pulse Wave', rarity: 'legendary', coinCost: 1500, lifetimeScoreRequirement: 800000, description: 'Pushes nearby blocks away instantly.', cooldownMs: 30000, effectType: 'shared', image: 'Pulse-wave.png', icon: 'PW' },
+  { id: 'ghost', name: 'Ghost Shift', rarity: 'mythic', coinCost: 2500, lifetimeScoreRequirement: 1250000, description: 'Pass through danger briefly.', cooldownMs: 40000, effectType: 'personal', image: 'Ghost-swish.png', icon: 'GH' },
 ];
 
 // Removed skins migration map: old id -> replacement id
@@ -202,19 +204,19 @@ function abilityImageSrc(abilityId) {
 }
 const LIFETIME_REWARD_DEFS = [
   // -- Common ------------------------------------------------------------------
-  { id: 'lt_coins_500',   milestone:    25000, label: '100 Coins',      type: 'coins',  coins: 100,  rarity: 'common',    icon: 'COIN', description: 'A starter coin bundle to kick off your journey.' },
-  { id: 'lt_coins_1500',  milestone:   100000, label: '200 Coins',      type: 'coins',  coins: 200,  rarity: 'common',    icon: 'COIN', description: 'Keep playing - the coins stack up.' },
+  { id: 'lt_coins_500',   milestone:    25000, label: '100 Coins',      type: 'coins',  coins: 120,  rarity: 'common',    icon: 'COIN', description: 'A starter coin bundle to kick off your journey.' },
+  { id: 'lt_coins_1500',  milestone:   100000, label: '200 Coins',      type: 'coins',  coins: 240,  rarity: 'common',    icon: 'COIN', description: 'Keep playing - the coins stack up.' },
   // -- Rare --------------------------------------------------------------------
-  { id: 'lt_coins_4k',    milestone:   300000, label: '350 Coins',      type: 'coins',  coins: 350,  rarity: 'rare',      icon: 'COIN', description: 'A rare coin reward for dedicated players.' },
+  { id: 'lt_coins_4k',    milestone:   300000, label: '350 Coins',      type: 'coins',  coins: 420,  rarity: 'rare',      icon: 'COIN', description: 'A rare coin reward for dedicated players.' },
   { id: 'lt_badge_5k',    milestone:   500000, label: 'Trailblazer',    type: 'badge',               rarity: 'rare',      icon: 'BADGE', description: 'Awarded to those who push past the score ceiling.' },
-  { id: 'lt_coins_7500',  milestone:   750000, label: '500 Coins',      type: 'coins',  coins: 500,  rarity: 'rare',      icon: 'COIN', description: 'Half a thousand coins - impressive.' },
+  { id: 'lt_coins_7500',  milestone:   750000, label: '500 Coins',      type: 'coins',  coins: 600,  rarity: 'rare',      icon: 'COIN', description: 'Half a thousand coins - impressive.' },
   // -- Epic --------------------------------------------------------------------
-  { id: 'lt_coins_15k',   milestone:  1000000, label: '750 Coins',      type: 'coins',  coins: 750,  rarity: 'epic',      icon: 'COIN', description: 'An epic hoard of coins.' },
+  { id: 'lt_coins_15k',   milestone:  1000000, label: '750 Coins',      type: 'coins',  coins: 900,  rarity: 'epic',      icon: 'COIN', description: 'An epic hoard of coins.' },
   { id: 'lt_badge_20k',   milestone:  1500000, label: 'Veteran',        type: 'badge',               rarity: 'epic',      icon: 'BADGE', description: 'A mark of true dedication and skill.' },
-  { id: 'lt_coins_35k',   milestone:  2000000, label: '1,000 Coins',    type: 'coins',  coins: 1000, rarity: 'legendary', icon: 'COIN', description: 'A legendary coin vault.' },
+  { id: 'lt_coins_35k',   milestone:  2000000, label: '1,000 Coins',    type: 'coins',  coins: 1200, rarity: 'legendary', icon: 'COIN', description: 'A legendary coin vault.' },
   // -- Legendary ---------------------------------------------------------------
   { id: 'lt_badge_50k',   milestone:  3000000, label: 'Legend',         type: 'badge',               rarity: 'legendary', icon: 'BADGE', description: 'Only legends reach this summit.' },
-  { id: 'lt_coins_75k',   milestone:  4000000, label: '2,000 Coins',    type: 'coins',  coins: 2000, rarity: 'legendary', icon: 'COIN', description: 'A massive coin fortune.' },
+  { id: 'lt_coins_75k',   milestone:  4000000, label: '2,000 Coins',    type: 'coins',  coins: 2400, rarity: 'legendary', icon: 'COIN', description: 'A massive coin fortune.' },
   { id: 'lt_mythic',      milestone:  5000000, label: 'Mythic',         type: 'badge',               rarity: 'mythic',    icon: 'BADGE', description: 'The pinnacle of ShiftPanic mastery.' },
 ];
 
@@ -236,7 +238,7 @@ const NEAR_MISS_BONUS     = 40;
 const COMBO_BONUS_PER         = 25;   // pts per combo level on each color change (combox25: 25, 50, 75...)
 const POWERUP_COLLECT_BONUS   = 50;   // flat pts for picking up any power-up
 const POWERUP_INTERVAL    = 15;   // s between powerup spawns (more frequent to compensate)
-const COIN_ITEM_INTERVAL  = 8.5;  // s between coin column spawns (columns have 4-6 coins each)
+const COIN_ITEM_INTERVAL  = 7.0;  // s between coin column spawns (columns have 4-6 coins each) — slightly more frequent
 const DIFF_SCALE_EVERY    = 4;    // s between difficulty bumps  faster ramp (was 5)
 const MAX_OBSTACLES       = 48;   // increased from 40 - blocks persist longer now, need more capacity
 const GRACE_PERIOD        = 0.20; // reduced -- game pressures player earlier
@@ -288,14 +290,15 @@ const FLOW_CONFIG = {
 
 // -- Mini run goals shown in HUD ------------------------------
 const MINI_GOAL_DEFS = [
-  { id: 'coins5',    label: 'Collect 5 coins',   icon: '', stat: 'pickupCoins', goal: 5,    reward: 4 },
-  { id: 'miss2',     label: 'Near-miss x2',       icon: '', stat: 'nearMisses',  goal: 2,    reward: 4 },
-  { id: 'score2k',   label: 'Score 2,000',         icon: '', stat: 'score',       goal: 2000, reward: 5 },
-  { id: 'survive30', label: 'Survive 30s',          icon: '', stat: 'seconds',     goal: 30,   reward: 4 },
-  { id: 'combo5',    label: '5x combo',             icon: '', stat: 'combo',       goal: 5,    reward: 5 },
-  { id: 'coins10',   label: 'Collect 10 coins',     icon: '', stat: 'pickupCoins', goal: 10,   reward: 6 },
-  { id: 'miss5',     label: 'Near-miss x5',         icon: '', stat: 'nearMisses',  goal: 5,    reward: 6 },
-  { id: 'score5k',   label: 'Score 5,000',           icon: '', stat: 'score',       goal: 5000, reward: 7 },
+  // Slightly increased mini-goal rewards to make short runs feel meaningful
+  { id: 'coins5',    label: 'Collect 5 coins',   icon: '', stat: 'pickupCoins', goal: 5,    reward: 5 },
+  { id: 'miss2',     label: 'Near-miss x2',       icon: '', stat: 'nearMisses',  goal: 2,    reward: 5 },
+  { id: 'score2k',   label: 'Score 2,000',         icon: '', stat: 'score',       goal: 2000, reward: 6 },
+  { id: 'survive30', label: 'Survive 30s',          icon: '', stat: 'seconds',     goal: 30,   reward: 5 },
+  { id: 'combo5',    label: '5x combo',             icon: '', stat: 'combo',       goal: 5,    reward: 6 },
+  { id: 'coins10',   label: 'Collect 10 coins',     icon: '', stat: 'pickupCoins', goal: 10,   reward: 7 },
+  { id: 'miss5',     label: 'Near-miss x5',         icon: '', stat: 'nearMisses',  goal: 5,    reward: 7 },
+  { id: 'score5k',   label: 'Score 5,000',           icon: '', stat: 'score',       goal: 5000, reward: 8 },
 ];
 
 // ============================================================
@@ -314,93 +317,93 @@ const MISSION_DEFS = [
     id: 'survive45',    difficulty: 'easy',
     label: 'Survivor I',
     description: 'Survive for 45 seconds in a single run.',
-    stat: 'seconds',    goal: 45,   coinReward: 10,
+    stat: 'seconds',    goal: 45,   coinReward: 12,
   },
   {
     id: 'score5000',    difficulty: 'easy',
     label: 'Score Seeker',
     description: 'Reach a score of 5,000 in a single run.',
-    stat: 'score',      goal: 5000, coinReward: 10,
+    stat: 'score',      goal: 5000, coinReward: 12,
   },
   {
     id: 'nearmiss3',    difficulty: 'easy',
     label: 'Close Shave',
     description: 'Land 3 near misses in a single run.',
-    stat: 'nearMissesThisRun', goal: 3, coinReward: 10,
+    stat: 'nearMissesThisRun', goal: 3, coinReward: 12,
   },
   {
     id: 'streak3',      difficulty: 'easy',
     label: 'On a Roll',
     description: 'Play ShiftPanic 3 days in a row.',
-    stat: 'streak',     goal: 3,    coinReward: 10,
+    stat: 'streak',     goal: 3,    coinReward: 12,
   },
   // -- Medium ------------------------------------------
   {
     id: 'survive180',   difficulty: 'medium',
     label: 'Survivor II',
     description: 'Survive for 3 minutes in a single run.',
-    stat: 'seconds',    goal: 180,  coinReward: 20,
+    stat: 'seconds',    goal: 180,  coinReward: 25,
   },
   {
     id: 'score15000',   difficulty: 'medium',
     label: 'High Scorer',
     description: 'Reach a score of 15,000 in a single run.',
-    stat: 'score',      goal: 15000, coinReward: 20,
+    stat: 'score',      goal: 15000, coinReward: 25,
   },
   {
     id: 'colorchange20', difficulty: 'medium',
     label: 'Color Veteran',
     description: 'Survive 20 color shifts in one run.',
-    stat: 'colorChanges', goal: 20, coinReward: 20,
+    stat: 'colorChanges', goal: 20, coinReward: 25,
   },
   {
     id: 'powerups25',   difficulty: 'medium',
     label: 'Power Hoarder',
     description: 'Collect 25 power-ups across all runs.',
-    stat: 'powerupsThisRun', goal: 25, coinReward: 20, cumulative: true,
+    stat: 'powerupsThisRun', goal: 25, coinReward: 25, cumulative: true,
   },
   {
     id: 'streak7',      difficulty: 'medium',
     label: 'Week Warrior',
     description: 'Play ShiftPanic 7 days in a row.',
-    stat: 'streak',     goal: 7,    coinReward: 20,
+    stat: 'streak',     goal: 7,    coinReward: 25,
   },
   // -- Hard ----------------------------------------------
   {
     id: 'survive360',   difficulty: 'hard',
     label: 'Ironclad',
     description: 'Survive for 6 minutes in a single run.',
-    stat: 'seconds',    goal: 360,  coinReward: 40,
+    stat: 'seconds',    goal: 360,  coinReward: 50,
   },
   {
     id: 'score35000',   difficulty: 'hard',
     label: 'Score Master',
     description: 'Reach a score of 35,000 in a single run.',
-    stat: 'score',      goal: 35000, coinReward: 40,
+    stat: 'score',      goal: 35000, coinReward: 50,
   },
   {
     id: 'panic3run',    difficulty: 'hard',
     label: 'Panic Proof',
     description: 'Survive 3 panic waves in a single run.',
-    stat: 'panicWavesSurvived', goal: 3, coinReward: 40,
+    stat: 'panicWavesSurvived', goal: 3, coinReward: 50,
   },
   {
     id: 'combo20',      difficulty: 'hard',
     label: 'Combo King',
     description: 'Reach a 20x combo in a single run.',
-    stat: 'maxCombo',   goal: 20,   coinReward: 40,
+    stat: 'maxCombo',   goal: 20,   coinReward: 50,
   },
   {
     id: 'nearmiss10',   difficulty: 'hard',
     label: 'Bulletproof',
     description: 'Land 10 near misses in a single run.',
-    stat: 'nearMissesThisRun', goal: 10, coinReward: 40,
+    stat: 'nearMissesThisRun', goal: 10, coinReward: 50,
   },
   {
     id: 'streak30',     difficulty: 'hard',
     label: 'Dedicated',
     description: 'Play ShiftPanic 30 days in a row.',
-    stat: 'streak',     goal: 30,   coinReward: 40,
+    stat: 'streak',     goal: 30,   coinReward: 50,
   },
 ];
 
@@ -3027,15 +3030,16 @@ const HomePreview = (() => {
 // ============================================================
 const DailyChallenge = (() => {
   // All possible challenge templates. Stat matches missionRun keys or 'elapsed'.
+  // Increased daily challenge rewards slightly for better engagement
   const POOL = [
-    { id: 'survive30',  label: 'Survive 30 seconds',           stat: 'elapsed',          goal: 30,  coins: 15 },
-    { id: 'survive60',  label: 'Survive 60 seconds',           stat: 'elapsed',          goal: 60,  coins: 25 },
-    { id: 'score300',   label: 'Reach a score of 300',         stat: 'score',            goal: 300, coins: 15 },
-    { id: 'score600',   label: 'Reach a score of 600',         stat: 'score',            goal: 600, coins: 25 },
-    { id: 'nearmiss2',  label: 'Land 2 near misses in one run', stat: 'nearMissesThisRun', goal: 2,  coins: 15 },
-    { id: 'colorchange5', label: 'Survive 5 color shifts',   stat: 'colorChanges',     goal: 5,  coins: 20 },
-    { id: 'combo8',     label: 'Reach an 8x combo',           stat: 'maxCombo',         goal: 8,  coins: 22 },
-    { id: 'powerups3',  label: 'Collect 3 power-ups',         stat: 'powerupsThisRun',  goal: 3,  coins: 18 },
+    { id: 'survive30',  label: 'Survive 30 seconds',           stat: 'elapsed',          goal: 30,  coins: 18 },
+    { id: 'survive60',  label: 'Survive 60 seconds',           stat: 'elapsed',          goal: 60,  coins: 30 },
+    { id: 'score300',   label: 'Reach a score of 300',         stat: 'score',            goal: 300, coins: 18 },
+    { id: 'score600',   label: 'Reach a score of 600',         stat: 'score',            goal: 600, coins: 30 },
+    { id: 'nearmiss2',  label: 'Land 2 near misses in one run', stat: 'nearMissesThisRun', goal: 2,  coins: 18 },
+    { id: 'colorchange5', label: 'Survive 5 color shifts',   stat: 'colorChanges',     goal: 5,  coins: 24 },
+    { id: 'combo8',     label: 'Reach an 8x combo',           stat: 'maxCombo',         goal: 8,  coins: 26 },
+    { id: 'powerups3',  label: 'Collect 3 power-ups',         stat: 'powerupsThisRun',  goal: 3,  coins: 22 },
   ];
 
   const STORAGE_KEY = 'forbiddenColor_dailyChallenge';
