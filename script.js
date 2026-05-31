@@ -11370,22 +11370,41 @@ document.addEventListener('DOMContentLoaded', init);
     p.setAttribute('data-campaign-prefetch', '1');
     document.head.appendChild(p);
 
-    // Defer actual script insertion to idle time to avoid blocking
-    const doLoad = () => {
+    // Defer actual script insertion to idle time to avoid blocking.
+    // Ensure the challenge spawn director functions are available before executing
+    // the campaign script to prevent startup-time ReferenceErrors.
+    const readyToInsert = () => {
+      if (window.CampaignUI || document.querySelector('script[data-campaign-src="campaign_live.js"]')) return true;
+      try { if (typeof _createCoinAtLane === 'function') return true; } catch (_) {}
+      return false;
+    };
+
+    const doInsert = () => {
       try {
-        if (window.CampaignUI || document.querySelector('script[data-campaign-src="campaign_live.js"]')) return;
-        const s = document.createElement('script');
-        s.async = true;
-        s.src = 'campaign_live.js?v=' + Date.now();
-        s.setAttribute('data-campaign-src', 'campaign_live.js');
-        s.onload = () => console.log('[Prefetch] campaign_live.js loaded');
-        s.onerror = (e) => console.warn('[Prefetch] campaign_live.js failed to load', e);
-        document.head.appendChild(s);
+        if (readyToInsert()) {
+          const s = document.createElement('script');
+          s.async = true;
+          s.src = 'campaign_live.js?v=' + Date.now();
+          s.setAttribute('data-campaign-src', 'campaign_live.js');
+          s.onload = () => console.log('[Prefetch] campaign_live.js loaded');
+          s.onerror = (e) => console.warn('[Prefetch] campaign_live.js failed to load', e);
+          document.head.appendChild(s);
+          return;
+        }
+        // Not ready yet: wait for full load event or retry after a short delay
+        if (document.readyState === 'complete') {
+          // If the document is complete but spawn director isn't available, try once more soon
+          setTimeout(doInsert, 600);
+        } else {
+          window.addEventListener('load', () => setTimeout(doInsert, 80), { once: true });
+          // extra safety retry in case load already fired
+          setTimeout(doInsert, 1600);
+        }
       } catch (err) { console.warn('[Prefetch] failed', err); }
     };
 
-    if ('requestIdleCallback' in window) requestIdleCallback(doLoad, {timeout: 2000});
-    else setTimeout(doLoad, 1200);
+    if ('requestIdleCallback' in window) requestIdleCallback(doInsert, {timeout: 3000});
+    else setTimeout(doInsert, 1200);
   } catch (e) {
     console.warn('[Prefetch] unexpected error', e);
   }
