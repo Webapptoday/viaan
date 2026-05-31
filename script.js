@@ -3744,6 +3744,14 @@ function updateCoinUI(animate) {
       pill.classList.add('coin-earn');
       setTimeout(() => pill.classList.remove('coin-earn'), 400);
     }
+    // also animate the shop pill if visible
+    const shopPill = progressCoinEl ? progressCoinEl.closest('.shop-coin-pill') : null;
+    if (shopPill) {
+      shopPill.classList.remove('coin-earn');
+      void shopPill.offsetWidth;
+      shopPill.classList.add('coin-earn');
+      setTimeout(() => shopPill.classList.remove('coin-earn'), 500);
+    }
   }
 }
 
@@ -8804,13 +8812,17 @@ function triggerGameOver(mpEndReason) {
     const goIcon = document.getElementById('gameover-icon');
     if (goIcon) goIcon.textContent = '';
     document.getElementById('new-best-badge').hidden      = !wasNewBest;
+    if (wasNewBest) {
+      try { spawnParticles(player.x || canvas.width/2, (player.y || canvas.height*0.4) - 8, '#fde047', settings.reducedMotion ? 8 : 30); } catch(_) {}
+      try { AudioManager.playSound && AudioManager.playSound('powerup'); } catch(_) {}
+    }
 
     // -- Lifetime progress section in game-over --
     const lps = getLifetimeProgressState();
     const goLifeTotal = document.getElementById('go-lifetime-total');
     const goLifeFill  = document.getElementById('go-lifetime-fill');
     const goLifeNext  = document.getElementById('go-lifetime-next');
-    if (goLifeTotal) goLifeTotal.textContent = formatNumber(lps.total);
+    if (goLifeTotal) goLifeTotal.textContent = '0';
     if (goLifeFill)  {
       goLifeFill.style.width = '0%';
       // Animate the bar fill in
@@ -8852,7 +8864,45 @@ function triggerGameOver(mpEndReason) {
       window.CampaignManager.onDefeat();
     }
 
-    animateCounter(0, final, settings.reducedMotion ? 0 : 850, document.getElementById('final-score'));
+    // Animated final score + coins + lifetime total with formatting
+    function animateNumber(el, from, to, duration, formatter) {
+      if (!el) return;
+      if (duration <= 0) { el.textContent = formatter ? formatter(to) : to; return; }
+      const start = performance.now();
+      function tick(now) {
+        const t    = Math.min((now - start) / duration, 1);
+        const ease = 1 - Math.pow(1 - t, 3); // easeOutCubic
+        const val  = Math.floor(from + (to - from) * ease);
+        el.textContent = formatter ? formatter(val) : val;
+        if (t < 1) requestAnimationFrame(tick);
+        else el.textContent = formatter ? formatter(to) : to;
+      }
+      requestAnimationFrame(tick);
+    }
+
+    const finalEl = document.getElementById('final-score');
+    if (finalEl) {
+      finalEl.textContent = '0';
+      animateNumber(finalEl, 0, final, settings.reducedMotion ? 0 : 900, v => formatNumber(v));
+      if (wasNewBest) {
+        finalEl.classList.add('final-celebrate');
+        setTimeout(() => { try { finalEl.classList.remove('final-celebrate'); } catch(_){} }, 1800);
+      }
+    }
+
+    const coinsEl = document.getElementById('gameover-coins');
+    if (coinsEl) {
+      coinsEl.textContent = '+0';
+      animateNumber(coinsEl, 0, coinsEarned, settings.reducedMotion ? 0 : 700, v => '+' + formatNumber(v));
+      coinsEl.classList.add('coin-pop');
+      setTimeout(() => { try { coinsEl.classList.remove('coin-pop'); } catch(_){} }, 900);
+    }
+
+    const goLifeTotalEl = document.getElementById('go-lifetime-total');
+    if (goLifeTotalEl) {
+      goLifeTotalEl.textContent = '0';
+      animateNumber(goLifeTotalEl, 0, lps.total, settings.reducedMotion ? 0 : 900, v => formatNumber(v));
+    }
 
     // Prime the share button with this run's score
     const shareBtn = document.getElementById('btn-share-score');
@@ -11314,6 +11364,16 @@ function init() {
     updatePowerupUpgradeUI();
     updateMissionUI();
     showModal('modal-progress');
+    // brief coin pill flourish when opening the shop
+    try {
+      const pill = document.querySelector('.shop-topbar-right .shop-coin-pill');
+      if (pill) {
+        pill.classList.remove('shop-open-burst');
+        void pill.offsetWidth;
+        pill.classList.add('shop-open-burst');
+        setTimeout(() => { try { pill.classList.remove('shop-open-burst'); } catch(_){} }, 1100);
+      }
+    } catch(_) {}
   });
 
   // Gear settings button  open drawer
