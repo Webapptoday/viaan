@@ -3160,11 +3160,41 @@ function updateHUD() {
   if (bs) bs.textContent = settings.bestScore;
 }
 
+// Small color helpers for HUD polish (non-gameplay logic)
+function hexToRgb(hex) {
+  if (!hex) return [255,255,255];
+  hex = hex.replace('#','');
+  if (hex.length === 3) hex = hex.split('').map(c=>c+c).join('');
+  const bigint = parseInt(hex, 16);
+  return [(bigint >> 16) & 255, (bigint >> 8) & 255, bigint & 255];
+}
+function hexToRgba(hex, a) {
+  const [r,g,b] = hexToRgb(hex);
+  return `rgba(${r},${g},${b},${a})`;
+}
+function luminanceRgb([r,g,b]) {
+  const srgb = [r,g,b].map(v=>{
+    v = v / 255;
+    return v <= 0.03928 ? v/12.92 : Math.pow((v+0.055)/1.055, 2.4);
+  });
+  return 0.2126 * srgb[0] + 0.7152 * srgb[1] + 0.0722 * srgb[2];
+}
+
 function updateForbiddenDisplay() {
   const c      = GAME_COLORS[forbiddenIndex];
   const swatch = document.getElementById('forbidden-swatch');
   const nameEl = document.getElementById('forbidden-name');
-  if (swatch) swatch.style.background = c.hex;
+  if (swatch) {
+    swatch.style.background = c.hex;
+    // Add a color-specific glow using an rgba variant of the hex
+    try {
+      const glow = hexToRgba(c.hex, 0.28);
+      swatch.style.boxShadow = `0 10px 36px ${glow}, inset 0 2px 6px rgba(255,255,255,.04)`;
+      swatch.style.setProperty('--swatch-glow', glow);
+    } catch (e) {
+      // ignore non-critical UI failures
+    }
+  }
 
   const ddActive = ddPhase === 'active' || ddPhase === 'announce';
   const ddPlus   = document.getElementById('dd-plus');
@@ -3174,9 +3204,23 @@ function updateForbiddenDisplay() {
 
   if (ddActive && dd2ndIndex >= 0) {
     if (ddSwatch) ddSwatch.style.background = GAME_COLORS[dd2ndIndex].hex;
-    if (nameEl)   nameEl.textContent = c.name + ' + ' + GAME_COLORS[dd2ndIndex].name;
+    if (nameEl) {
+      nameEl.textContent = c.name + ' + ' + GAME_COLORS[dd2ndIndex].name;
+      try {
+        const rgb = hexToRgb(c.hex);
+        nameEl.style.color = luminanceRgb(rgb) > 0.55 ? 'rgba(0,0,0,.92)' : '#fff';
+        nameEl.style.textShadow = `0 8px 28px ${hexToRgba(c.hex,0.08)}`;
+      } catch (e) {}
+    }
   } else {
-    if (nameEl) nameEl.textContent = c.name;
+    if (nameEl) {
+      nameEl.textContent = c.name;
+      try {
+        const rgb = hexToRgb(c.hex);
+        nameEl.style.color = luminanceRgb(rgb) > 0.55 ? 'rgba(0,0,0,.92)' : '#fff';
+        nameEl.style.textShadow = `0 8px 28px ${hexToRgba(c.hex,0.08)}`;
+      } catch(e) {}
+    }
   }
 }
 
