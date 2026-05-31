@@ -11107,6 +11107,38 @@ function init() {
 
     console.warn('[Menu] CampaignUI not available – attempting dynamic load of campaign_live.js');
 
+    // If any campaign script tag already exists on the page, do NOT inject
+    // another campaign script. Injecting duplicate campaign files causes
+    // "Identifier 'CAMPAIGN_LEVELS' has already been declared" and other
+    // syntax/duplicate-declaration errors. Instead show a retry/reload UI so
+    // the user can refresh the page to reinitialize the existing script.
+    const existingCampaignScript = document.querySelector('script[src*="campaign-mode.js"], script[src*="campaign.js"], script[src*="campaign_live.js"], script[data-campaign-src]');
+    if (existingCampaignScript) {
+      console.warn('[Menu] Campaign script tag already present; will not inject campaign_live.js to avoid duplicate declarations');
+      // Show DOM fallback with clear retry instructions
+      ['home-screen', 'game-screen', 'campaign-intro', 'campaign-victory', 'campaign-defeat'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.hidden = true;
+      });
+      const _lsEl = document.getElementById('campaign-levelselect');
+      if (_lsEl) {
+        _lsEl.hidden = false;
+        _lsEl.innerHTML = '<div style="min-height:60vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;padding:2rem;color:#f8fafc;font-family:Inter,sans-serif;text-align:center">'
+          + '<h2 style="font-size:1.6rem;font-weight:800;margin:0">Panic Quest</h2>'
+          + '<p style="color:rgba(255,255,255,0.66);margin:0">The campaign scripts are already present but failed to initialize.\nPlease reload the page to retry initializing Panic Quest.</p>'
+          + '<div style="display:flex;gap:10px;margin-top:16px">'
+          + '<button id="campaign-reload-btn" style="padding:0.65rem 1.8rem;background:#7c3aed;color:#fff;border:none;border-radius:10px;font-size:1rem;font-weight:700;cursor:pointer">Reload Page</button>'
+          + '<button id="campaign-back-btn" style="padding:0.45rem 1.2rem;background:rgba(255,255,255,0.08);color:#f8fafc;border:1px solid rgba(255,255,255,0.15);border-radius:9px;font-size:0.9rem;cursor:pointer">Back to Menu</button>'
+          + '</div>'
+          + '</div>';
+        const reloadBtn = document.getElementById('campaign-reload-btn');
+        if (reloadBtn) reloadBtn.addEventListener('click', () => { location.reload(); });
+        const backBtn = document.getElementById('campaign-back-btn');
+        if (backBtn) backBtn.addEventListener('click', () => { _lsEl.hidden = true; document.getElementById('home-screen').hidden = false; });
+      }
+      return;
+    }
+
     const _loadScript = (src) => new Promise((resolve, reject) => {
       try {
         const exist = document.querySelector('script[data-campaign-src="' + src + '"]');
