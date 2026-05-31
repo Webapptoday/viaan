@@ -72,12 +72,12 @@ const DIFFICULTY_CONFIG = {
   //   mo    = max simultaneous obstacles     soft cap per phase
   //   ac    = anti-camp targeting bonus (0-1)
   phases: [
-    // Phase 0 - Rush    (0-10s):   hard immediately, active from first second
-    { name:'Rush',    endAt:  10, spd:1.12, si:0.60, cc:0.50, fi:2.80, mo:16, ac:0.45 },
-    // Phase 1 - Drive   (10-40s):  sustained pressure, close calls begin, must keep moving
-    { name:'Drive',   endAt:  40, spd:1.26, si:0.44, cc:0.64, fi:2.50, mo:22, ac:0.64 },
+    // Phase 0 - Rush    (0-18s):   active from the first second — tighter, more frequent spawns
+    { name:'Rush',    endAt:  18, spd:1.18, si:0.48, cc:0.72, fi:2.40, mo:18, ac:0.48 },
+    // Phase 1 - Drive   (18-40s):  sustained pressure, close calls begin, must keep moving
+    { name:'Drive',   endAt:  40, spd:1.30, si:0.40, cc:0.70, fi:2.30, mo:26, ac:0.68 },
     // Phase 2 - Engage  (40-80s):  high engagement, frequent dodges, requires timing
-    { name:'Engage',  endAt:  80, spd:1.40, si:0.32, cc:0.72, fi:2.15, mo:28, ac:0.78 },
+    { name:'Engage',  endAt:  80, spd:1.44, si:0.30, cc:0.76, fi:2.05, mo:30, ac:0.80 },
     // Phase 3 - Intense (80-130s): skilled play required, tight windows, layered threats
     { name:'Intense', endAt: 130, spd:1.54, si:0.22, cc:0.80, fi:1.90, mo:35, ac:0.90 },
     // Phase 4 - Expert  (130s+):   mastery required, very hard, always one escape exists
@@ -99,12 +99,12 @@ const DIFFICULTY_CONFIG = {
   maxObstaclesHardCap: 44,    // max simultaneous live threats on screen
 
   //  Phase blend  smoothstep cross-fade between consecutive phases 
-  blendWindow: 5.0,           // tighter = faster ramp between phases
+  blendWindow: 4.0,           // smoother but brisk ramp between phases
 
   //  Panic wave tuning 
-  panicSpeedBonus:  1.32,  // obstacle speed 1.32 during panic  noticeably faster
-  panicSpawnMult:   0.30,  // spawn interval 0.30 during panic (~3.3 more frequent)
-  panicForbidRatio: 0.92,  // 92% of new blocks forbidden  very dense panic surge
+  panicSpeedBonus:  1.28,  // obstacle speed slightly boosted during panic
+  panicSpawnMult:   0.34,  // spawn interval multiplier during panic (slightly less extreme)
+  panicForbidRatio: 0.90,  // very dense panic surge but slightly tempered
   ddSpawnRateMult:  0.68,  // Double Danger: 0.68 spawn interval (~47% more frequent)
 
   //  Per-obstacle-type speed multipliers 
@@ -122,14 +122,14 @@ const DIFFICULTY_CONFIG = {
 // 0 = never appears in that phase. Higher = more likely.
 // ============================================================
 const PATTERN_LIBRARY = [
-  { id:'HALF_FILL',   phaseWeights:[ 6, 5, 3, 2, 1] },  // Half lanes blocked  reduced, too passive
-  { id:'SINGLE_SIDE', phaseWeights:[ 4, 3, 2, 1, 0] },  // Single threat  tapers off quickly
-  { id:'STAGGER',     phaseWeights:[ 9, 9, 8, 7, 6] },  // Staggered gaps  requires movement always
-  { id:'SWEEP_GAP',   phaseWeights:[ 5, 8, 9, 8, 7] },  // Moving gap  tracks player well
-  { id:'CENTER_PUSH', phaseWeights:[ 3, 5, 8, 9, 9] },  // Center threat, side escape
-  { id:'SIDE_PUSH',   phaseWeights:[ 3, 4, 7, 8, 9] },  // Flank threat, center escape
-  { id:'PINCER',      phaseWeights:[ 1, 3, 5, 8, 9] },  // Both flanks  tight middle
-  { id:'TARGETED',    phaseWeights:[ 3, 4, 6, 8, 9] },  // Direct player pressure  starts early
+  { id:'HALF_FILL',   phaseWeights:[ 6, 5, 3, 2, 1] },
+  { id:'SINGLE_SIDE', phaseWeights:[ 5, 4, 3, 2, 0] },  // slightly more single-side threats early
+  { id:'STAGGER',     phaseWeights:[ 9, 9, 8, 7, 6] },
+  { id:'SWEEP_GAP',   phaseWeights:[ 7, 8, 9, 8, 7] },  // favor sweep gaps early for movement
+  { id:'CENTER_PUSH', phaseWeights:[ 3, 5, 8, 9, 9] },
+  { id:'SIDE_PUSH',   phaseWeights:[ 5, 5, 7, 8, 9] },  // increase flank pressure in early phases
+  { id:'PINCER',      phaseWeights:[ 2, 3, 5, 8, 9] },
+  { id:'TARGETED',    phaseWeights:[ 4, 5, 6, 8, 9] },  // more targeted early pressure
 ];
 
 // Player skins - cosmetic only
@@ -237,8 +237,8 @@ const NEAR_MISS_DIST      = 65;   // px (from player center to nearest rect edge
 const NEAR_MISS_BONUS     = 40;
 const COMBO_BONUS_PER         = 25;   // pts per combo level on each color change (combox25: 25, 50, 75...)
 const POWERUP_COLLECT_BONUS   = 50;   // flat pts for picking up any power-up
-const POWERUP_INTERVAL    = 15;   // s between powerup spawns (more frequent to compensate)
-const COIN_ITEM_INTERVAL  = 7.0;  // s between coin column spawns (columns have 4-6 coins each) — slightly more frequent
+const POWERUP_INTERVAL    = 12;   // s between powerup spawns (slightly more frequent for early runs)
+const COIN_ITEM_INTERVAL  = 6.0;  // s between coin column spawns (columns have 4-6 coins each) — slightly more frequent
 const DIFF_SCALE_EVERY    = 4;    // s between difficulty bumps  faster ramp (was 5)
 const MAX_OBSTACLES       = 48;   // increased from 40 - blocks persist longer now, need more capacity
 const GRACE_PERIOD        = 0.20; // reduced -- game pressures player earlier
@@ -819,11 +819,11 @@ let _samePlayerLaneWaves = 0; // consecutive spawn waves player stayed in same l
 let _playerLaneSafeStreak = 0; // consecutive waves where player's lane was picked as safe
 let _playerLaneShieldStreak = 0; // consecutive single-spawn waves that avoided player's lane
 
-const PANIC_ANNOUNCE = 0.9; // s of banner before wave starts
-const PANIC_COOLDOWN_BASE = 5;  // s between panic waves  frequent surges (was 6)
-const PANIC_COOLDOWN_VAR  = 4;  // random extra: 5-9 s gap
+const PANIC_ANNOUNCE = 1.2; // s of banner before wave starts (give players more warning)
+const PANIC_COOLDOWN_BASE = 10;  // s between panic waves (less frequent surges)
+const PANIC_COOLDOWN_VAR  = 6;   // random extra: 10-16 s gap
 
-const DD_MIN_PLAYTIME   = 12;   // earliest Double Danger can fire  sooner (was 15s)
+const DD_MIN_PLAYTIME   = 18;   // earliest Double Danger can fire (defer slightly)
 const DD_COOLDOWN_BASE  = 20;   // s between DD events  more frequent (was 24)
 const DD_COOLDOWN_VAR   = 12;   // randomised range: 20-32 s (was 24-38)
 const DD_ANNOUNCE       = 0.75; // warning banner duration (s)
