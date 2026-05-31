@@ -7570,15 +7570,20 @@ const UIFX = (() => {
   }
 
   function spawnUiParticlesAtCanvas(cx, cy, color, count, type) {
+    if (settings && settings.particles === false) return;
     const l = ensureLayer(); if (!l) return;
     const pos = toScreenCoords(cx, cy);
-    for (let i = 0; i < (count || 6); i++) {
+    const base = count || 6;
+    const n = settings && settings.reducedMotion ? Math.max(1, Math.ceil(base * 0.35))
+            : settings && settings.perfMode === 'low' ? Math.max(1, Math.ceil(base * 0.25))
+            : base;
+    for (let i = 0; i < n; i++) {
       const el = document.createElement('div');
       el.className = 'ui-fx-particle ' + (type === 'orb' ? 'ui-fx-particle--orb' : 'ui-fx-particle--coin');
       el.style.left = pos.x + 'px'; el.style.top = pos.y + 'px';
       l.appendChild(el);
       // random direction
-      const ang = (Math.PI * 2) * (i / (count || 6)) + (Math.random() - 0.5) * 0.6;
+      const ang = (Math.PI * 2) * (i / n) + (Math.random() - 0.5) * 0.6;
       const dist = 36 + Math.random() * 48;
       const dx = Math.round(Math.cos(ang) * dist) + 'px';
       const dy = Math.round(Math.sin(ang) * dist) + 'px';
@@ -7592,13 +7597,18 @@ const UIFX = (() => {
   }
 
   function spawnUiParticlesAtScreen(sx, sy, color, count, type) {
+    if (settings && settings.particles === false) return;
     const l = ensureLayer(); if (!l) return;
-    for (let i = 0; i < (count || 6); i++) {
+    const base = count || 6;
+    const n = settings && settings.reducedMotion ? Math.max(1, Math.ceil(base * 0.35))
+            : settings && settings.perfMode === 'low' ? Math.max(1, Math.ceil(base * 0.25))
+            : base;
+    for (let i = 0; i < n; i++) {
       const el = document.createElement('div');
       el.className = 'ui-fx-particle ' + (type === 'orb' ? 'ui-fx-particle--orb' : 'ui-fx-particle--coin');
       el.style.left = Math.round(sx) + 'px'; el.style.top = Math.round(sy) + 'px';
       l.appendChild(el);
-      const ang = (Math.PI * 2) * (i / (count || 6)) + (Math.random() - 0.5) * 0.6;
+      const ang = (Math.PI * 2) * (i / n) + (Math.random() - 0.5) * 0.6;
       const dist = 18 + Math.random() * 42;
       const dx = Math.round(Math.cos(ang) * dist) + 'px';
       const dy = Math.round(Math.sin(ang) * dist) + 'px';

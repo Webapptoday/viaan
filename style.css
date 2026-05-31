@@ -2308,6 +2308,8 @@ body.perf-low       .lp-dot { animation: none !important; }
 
 .shop-skin-grid {
   display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 7px;
 }
 
 /* ============================================================
@@ -2353,11 +2355,11 @@ body.perf-low       .lp-dot { animation: none !important; }
 @keyframes fx-claim { 0% { transform: scale(1); } 40% { transform: scale(1.06); } 100% { transform: scale(1); } }
 
 /* Respect user/system reduced motion */
-@media (prefers-reduced-motion: reduce), body.reduced-motion {
+@media (prefers-reduced-motion: reduce) {
   .ui-fx-particle, .ui-fx-fly, .fx-pop, .fx-glow, .fx-ripple, .fx-claim { transition: none !important; animation: none !important; opacity: 1 !important; transform: none !important; }
 }
-  grid-template-columns: repeat(2, 1fr);
-  gap: 7px;
+body.reduced-motion .ui-fx-particle, body.reduced-motion .ui-fx-fly, body.reduced-motion .fx-pop, body.reduced-motion .fx-glow, body.reduced-motion .fx-ripple, body.reduced-motion .fx-claim {
+  transition: none !important; animation: none !important; opacity: 1 !important; transform: none !important;
 }
 
 /* Dot indicators (hidden - grid replaces carousel dots) */
