@@ -11,11 +11,12 @@ window.addEventListener('error', function _cmpErrHandler(ev) {
     window._campaignLoadError = ev.message + ' (line ' + ev.lineno + ')';
     console.error('[Campaign] LOAD ERROR:', ev.message, 'at line', ev.lineno);
   }
-
-  function startCountdown(count, onDone) {
-    try { _runCountdown(count, onDone); } catch (e) { console.error('[CampaignUI] startCountdown failed', e); if (onDone) onDone(); }
-  }
 });
+});
+
+function startCountdown(count, onDone) {
+  try { _runCountdown(count, onDone); } catch (e) { console.error('[CampaignUI] startCountdown failed', e); if (onDone) onDone(); }
+}
 
 // ============================================================
 // SECTION 1: LEVEL CONFIG
