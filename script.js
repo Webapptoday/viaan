@@ -599,18 +599,49 @@ function updateMissionUI() {
   const doneWrap = document.getElementById('missions-completed-section');
   if (!list) return;
 
+  // Prepare grouped containers
   list.innerHTML = '';
+  const readyHeader = document.createElement('div'); readyHeader.className = 'missions-group-heading'; readyHeader.textContent = 'Ready to Claim';
+  const readyWrap = document.createElement('div'); readyWrap.className = 'missions-group missions-ready';
+  const readyList = document.createElement('div'); readyList.className = 'missions-group-list';
+  readyWrap.appendChild(readyHeader); readyWrap.appendChild(readyList);
+
+  const inHeader = document.createElement('div'); inHeader.className = 'missions-group-heading'; inHeader.textContent = 'In Progress';
+  const inWrap = document.createElement('div'); inWrap.className = 'missions-group missions-inprogress';
+  const inList = document.createElement('div'); inList.className = 'missions-group-list';
+  inWrap.appendChild(inHeader); inWrap.appendChild(inList);
+
+  const lockHeader = document.createElement('div'); lockHeader.className = 'missions-group-heading'; lockHeader.textContent = 'Locked / Upcoming';
+  const lockWrap = document.createElement('div'); lockWrap.className = 'missions-group missions-locked';
+  const lockList = document.createElement('div'); lockList.className = 'missions-group-list';
+  lockWrap.appendChild(lockHeader); lockWrap.appendChild(lockList);
+
   const completedItems = [];
 
   MISSION_DEFS.forEach(m => {
     if (isMissionClaimed(m)) {
       completedItems.push(m);
-    } else {
-      list.appendChild(buildMissionCard(m));
+      return;
     }
+    const locked = isTierLocked(m.difficulty);
+    const done = isMissionDone(m);
+    const card = buildMissionCard(m);
+    // mark group-specific classes
+    if (locked) card.classList.add('mission-locked-group');
+    else if (done) card.classList.add('mission-ready-group');
+    else card.classList.add('mission-inprogress-group');
+
+    if (locked) lockList.appendChild(card);
+    else if (done) readyList.appendChild(card);
+    else inList.appendChild(card);
   });
 
-  // Completed section
+  // Append groups in order if they contain items
+  if (readyList.children.length) list.appendChild(readyWrap);
+  if (inList.children.length)   list.appendChild(inWrap);
+  if (lockList.children.length) list.appendChild(lockWrap);
+
+  // Completed (claimed) section
   if (doneList && doneWrap) {
     doneList.innerHTML = '';
     doneWrap.hidden = completedItems.length === 0;

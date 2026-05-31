@@ -3543,6 +3543,52 @@ body.perf-low       .lp-dot { animation: none !important; }
   margin-top: 5px; font-style: italic;
 }
 
+/* Group headings inside Challenges */
+.missions-group { display: flex; flex-direction: column; gap: 10px; }
+.missions-group-heading {
+  font-size: .74rem; font-weight: 900; text-transform: uppercase; letter-spacing: 1.6px;
+  color: #c4d4e8; padding: 8px 12px; border-radius: 12px;
+  background: linear-gradient(90deg, rgba(8,2,22,.92), rgba(14,4,36,.94));
+  border: 1px solid rgba(139,92,246,.06); margin-bottom: 6px;
+}
+
+/* Ready to claim group - make these cards pop */
+.mission-item.mission-completed.mission-ready-group {
+  border-color: rgba(251,191,36,.78);
+  background: linear-gradient(160deg, rgba(251,191,36,.08) 0%, rgba(14,4,36,.02) 100%);
+  box-shadow: 0 10px 46px rgba(251,191,36,.12), 0 0 36px rgba(251,191,36,.06);
+  transform: translateY(-2px);
+}
+.mission-item.mission-completed.mission-ready-group .mission-claim-btn { animation: claimPulse 1.6s ease-in-out infinite; }
+
+@keyframes claimPulse {
+  0% { transform: translateY(0) scale(1); box-shadow: 0 0 8px rgba(251,191,36,.12); }
+  50% { transform: translateY(-2px) scale(1.02); box-shadow: 0 8px 32px rgba(251,191,36,.18); }
+  100% { transform: translateY(0) scale(1); box-shadow: 0 0 8px rgba(251,191,36,.12); }
+}
+
+/* In-progress group - emphasize progress bar and motivation */
+.mission-item.mission-inprogress-group { border-color: rgba(109,40,217,.12); }
+.mission-item.mission-inprogress-group .mission-progress { color: #9fd7ff; font-weight: 900; }
+.mission-item.mission-inprogress-group .mission-bar-fill {
+  background: linear-gradient(90deg, #60a5fa 0%, #7dd3fc 50%, #34d399 100%);
+}
+
+/* Locked/upcoming group - subtle & informative */
+.mission-item.mission-locked-group { opacity: .72; border-color: rgba(255,255,255,.06); background: linear-gradient(160deg, rgba(255,255,255,.02), rgba(0,0,0,.04)); }
+
+/* Reward badge enhanced */
+.mission-reward { font-size: .82rem; padding: 6px 10px; gap: 8px; }
+.mission-reward .coin-icon { width: 18px; height: 18px; }
+
+/* Completed / claimed appearance should feel satisfying */
+.mission-item.mission-done { border-color: rgba(74,222,128,.28); background: linear-gradient(160deg, rgba(74,222,128,.04) 0%, rgba(0,0,0,.02) 100%); box-shadow: 0 6px 24px rgba(74,222,128,.06); }
+.mission-claimed-label { display: inline-flex; align-items: center; gap: 8px; padding: 8px 10px; background: rgba(34,197,94,.08); border-radius: 10px; color: #4ade80; font-weight: 800; }
+
+/* Make progress track slightly taller and smoother */
+.mission-bar-track { height: 8px; border-radius: 6px; }
+.mission-bar-fill { transition: width .6s cubic-bezier(.2,.9,.3,1); }
+
 /* Mission completion toast */
 .mission-toast {
   position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px);
