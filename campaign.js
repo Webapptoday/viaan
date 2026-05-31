@@ -538,13 +538,48 @@ const CampaignSave = (() => {
     try {
       const raw = localStorage.getItem(LS_KEY);
       if (!raw) { _data = _default(); return _data; }
-      const parsed = JSON.parse(raw);
-      if (!parsed || parsed.version !== VERSION) { _data = _default(); return _data; }
-      // Merge with defaults for forward compatibility
-      _data = Object.assign(_default(), parsed);
-      // Recompute totalStars
-      _data.totalStars = _countTotalStars(_data.starsByLevel);
+      // Be defensive when parsing user data — attempt to recover malformed JSON
+      let parsed = null;
+      try {
+        parsed = JSON.parse(raw);
+      } catch (pe) {
+        // Try to sanitize common issues: trailing commas and control chars
+        try {
+          const sanitized = raw.replace(/,\s*([}\]])/g, '$1').replace(/[\u0000-\u001F]+/g, '');
+          parsed = JSON.parse(sanitized);
+        } catch (pe2) {
+          try {
+            const start = raw.indexOf('{'); const end = raw.lastIndexOf('}');
+            if (start !== -1 && end !== -1 && end > start) parsed = JSON.parse(raw.slice(start, end + 1));
+          } catch (_) { parsed = null; }
+        }
+      }
+
+      if (!parsed) {
+        // Could not parse user save — keep defaults in-memory but do not overwrite the stored raw data.
+        _data = _default();
+        return _data;
+      }
+
+      // Merge with defaults for forward compatibility but sanitize types so bad data can't crash the UI
+      _data = Object.assign(_default(), parsed || {});
+      // Coerce/validate fields
+      _data.highestUnlockedLevel = Number.isFinite(Number(_data.highestUnlockedLevel)) ? Math.max(1, Number(_data.highestUnlockedLevel)) : 1;
+      _data.completedLevels = (_data.completedLevels && typeof _data.completedLevels === 'object') ? _data.completedLevels : {};
+      _data.starsByLevel = (_data.starsByLevel && typeof _data.starsByLevel === 'object') ? _data.starsByLevel : {};
+      _data.bestScoresByLevel = (_data.bestScoresByLevel && typeof _data.bestScoresByLevel === 'object') ? _data.bestScoresByLevel : {};
+      _data.bestTimesByLevel = (_data.bestTimesByLevel && typeof _data.bestTimesByLevel === 'object') ? _data.bestTimesByLevel : {};
+      _data.disabledBriefings = (_data.disabledBriefings && typeof _data.disabledBriefings === 'object') ? _data.disabledBriefings : {};
+      _data.campaignCoinsEarned = Number.isFinite(Number(_data.campaignCoinsEarned)) ? Number(_data.campaignCoinsEarned) : 0;
+      // Recompute totalStars defensively
+      _data.totalStars = Object.values(_data.starsByLevel || {}).reduce((s, n) => s + (Number(n) || 0), 0);
+      // If parsed.version differs, perform a soft migration (preserve fields but bump version)
+      if (parsed.version !== VERSION) {
+        _data.version = VERSION;
+        try { localStorage.setItem(LS_KEY, JSON.stringify(_data)); } catch (_) {}
+      }
     } catch (_) {
+      // If anything unexpected happens, fall back to defaults but avoid clobbering the user's saved raw string
       _data = _default();
     }
     return _data;
@@ -1385,14 +1420,18 @@ const CampaignUI = (() => {
     console.log('[CampaignUI] renderLevelSelect start – CAMPAIGN_LEVELS:', Array.isArray(CAMPAIGN_LEVELS) ? CAMPAIGN_LEVELS.length : 'NOT_ARRAY', 'CampaignSave:', typeof CampaignSave);
     const el = document.getElementById('campaign-levelselect');
     if (!el) return;
-    const saveData   = CampaignSave.get();
-    const total      = CAMPAIGN_LEVELS.length;
-    const nCompleted = Object.keys(saveData.completedLevels).length;
-    const totalStars = saveData.totalStars;
-    const coinsEarned = saveData.campaignCoinsEarned || 0;
+    // Defensive: CampaignSave may contain malformed fields — coerce before using
+    const rawSave = CampaignSave.get() || {};
+    const saveData = (rawSave && typeof rawSave === 'object') ? rawSave : {};
+    const total = Array.isArray(CAMPAIGN_LEVELS) ? CAMPAIGN_LEVELS.length : 0;
+    const completedLevels = (saveData.completedLevels && typeof saveData.completedLevels === 'object') ? saveData.completedLevels : {};
+    const nCompleted = Object.keys(completedLevels).length;
+    const starsByLevel = (saveData.starsByLevel && typeof saveData.starsByLevel === 'object') ? saveData.starsByLevel : {};
+    const totalStars = Object.values(starsByLevel).reduce((s, n) => s + (Number(n) || 0), 0);
+    const coinsEarned = Number(saveData.campaignCoinsEarned) || 0;
     const PER_CHAPTER = 5;
     const currentChapter = Math.ceil((nCompleted + 1) / PER_CHAPTER);
-    const totalChapters = Math.ceil(total / PER_CHAPTER);
+    const totalChapters = Math.max(1, Math.ceil(total / PER_CHAPTER));
 
     // Animated background particles (pure CSS animation)
     const PARTICLE_COLORS = ['#7c3aed','#0ea5e9','#ec4899','#22c55e','#f59e0b'];
@@ -2103,9 +2142,10 @@ const CampaignUI = (() => {
   }
 
   function showLevelSelect() {
-    _hideAllGameScreens();
     const el = document.getElementById('campaign-levelselect');
     if (!el) { console.error('[CampaignUI] campaign-levelselect element not found'); return; }
+    // Only hide other screens once we know the level select container exists
+    _hideAllGameScreens();
     try { currentState = STATE.LEVELMAP; } catch (_) {}
     el.hidden = false;
     console.log('[CampaignUI] showLevelSelect: rendering level map');

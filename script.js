@@ -11609,7 +11609,12 @@ function init() {
     Audio.uiClick();
     const _ui = window.CampaignUI;
     if (_ui && typeof _ui.showLevelSelect === 'function') {
-      try { _ui.showLevelSelect(); return; } catch (e) { console.error('[Menu] CampaignUI.showLevelSelect threw:', e); }
+      try {
+        _ui.showLevelSelect();
+        // Ensure the level select actually became visible; if not, fall through to dynamic load/fallback
+        const _lsElCheck = document.getElementById('campaign-levelselect');
+        if (_lsElCheck && !_lsElCheck.hidden) return;
+      } catch (e) { console.error('[Menu] CampaignUI.showLevelSelect threw:', e); }
     }
 
     console.warn('[Menu] CampaignUI not available – attempting dynamic load of campaign_live.js');
