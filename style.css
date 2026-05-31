@@ -2308,6 +2308,54 @@ body.perf-low       .lp-dot { animation: none !important; }
 
 .shop-skin-grid {
   display: grid;
+}
+
+/* ============================================================
+   UI FX LAYER (transient DOM particles, pops, glows, ripples)
+   Subtle, performant, respects reduced-motion
+   ============================================================ */
+#ui-fx-layer {
+  position: fixed; inset: 0; pointer-events: none; z-index: 1200;
+}
+
+.ui-fx-particle {
+  position: absolute; width: 10px; height: 10px; border-radius: 999px;
+  transform: translate(-50%, -50%) scale(1); opacity: 1;
+  transition: transform .62s cubic-bezier(.2,.9,.2,1), opacity .62s linear;
+  will-change: transform, opacity;
+}
+.ui-fx-particle--coin { background: radial-gradient(circle at 30% 30%, #fff9d8 0%, #fde047 30%, #f59e0b 70%); box-shadow: 0 6px 18px rgba(251,191,36,.26); }
+.ui-fx-particle--orb  { background: radial-gradient(circle at 30% 30%, #fff0f6 0%, #f472b6 30%, #ec4899 70%); box-shadow: 0 6px 18px rgba(244,114,182,.22); }
+
+.ui-fx-fly {
+  position: absolute; width: 22px; height: 22px; border-radius: 999px;
+  display:flex; align-items:center; justify-content:center; font-weight:800; color:#fff;
+  transform-origin: center; transition: transform .52s cubic-bezier(.2,.9,.2,1), opacity .52s linear;
+  will-change: transform, opacity; box-shadow: 0 8px 28px rgba(0,0,0,.45);
+}
+
+.fx-pop { animation: fx-pop .28s cubic-bezier(.2,.9,.2,1); }
+@keyframes fx-pop { 0% { transform: scale(1); } 45% { transform: scale(1.12); } 100% { transform: scale(1); } }
+
+.fx-glow { box-shadow: 0 0 24px var(--fx-glow-color, rgba(168,85,247,.6)); animation: fx-glow .48s ease-out; }
+@keyframes fx-glow { 0% { box-shadow: 0 0 0 rgba(0,0,0,0); } 40% { box-shadow: 0 0 28px var(--fx-glow-color, rgba(168,85,247,.6)); } 100% { box-shadow: 0 0 0 rgba(0,0,0,0); } }
+
+.btn { position: relative; overflow: hidden; }
+.fx-ripple {
+  position: absolute; border-radius: 999px; transform: scale(0); opacity: .45;
+  background: rgba(255,255,255,.12); pointer-events: none;
+  transition: transform .6s cubic-bezier(.2,.9,.2,1), opacity .6s linear;
+  will-change: transform, opacity;
+}
+
+/* Small claim bounce for reward buttons */
+.fx-claim { animation: fx-claim .42s cubic-bezier(.2,.9,.2,1); }
+@keyframes fx-claim { 0% { transform: scale(1); } 40% { transform: scale(1.06); } 100% { transform: scale(1); } }
+
+/* Respect user/system reduced motion */
+@media (prefers-reduced-motion: reduce), body.reduced-motion {
+  .ui-fx-particle, .ui-fx-fly, .fx-pop, .fx-glow, .fx-ripple, .fx-claim { transition: none !important; animation: none !important; opacity: 1 !important; transform: none !important; }
+}
   grid-template-columns: repeat(2, 1fr);
   gap: 7px;
 }

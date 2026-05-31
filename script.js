@@ -548,6 +548,15 @@ function claimMission(id) {
     card.classList.add('mission-claim-flash');
     setTimeout(() => card.classList.remove('mission-claim-flash'), 700);
   }
+  try {
+    if (card && typeof UIFX !== 'undefined') {
+      const r = card.getBoundingClientRect();
+      const sx = Math.round(r.left + r.width / 2);
+      const sy = Math.round(r.top  + r.height / 2);
+      UIFX.spawnUiParticlesAtScreen(sx, sy, '#fde047', settings.reducedMotion ? 6 : 10, 'coin');
+      UIFX.flyToTargetFromScreen(sx, sy, '#home-coins', { color: '#fde047' });
+    }
+  } catch (e) { }
   // Ensure preview shows something when the grid is rendered
   selectAbilityForPreview(settings.selectedAbility || (ABILITY_DEFS[0] && ABILITY_DEFS[0].id));
 }
@@ -1201,6 +1210,22 @@ function claimLifetimeReward(id) {
     updateCoinUI(true);
     _showCoinRewardToast(reward.coins);
   }
+
+  // UI FX: show particles from the claimed reward tile to the coin HUD
+  try {
+    if (typeof UIFX !== 'undefined') {
+      const tile = document.querySelector('.lp-node[data-id="' + id + '"]');
+      if (tile) {
+        const r = tile.getBoundingClientRect();
+        const sx = Math.round(r.left + r.width / 2);
+        const sy = Math.round(r.top  + r.height / 2);
+        UIFX.spawnUiParticlesAtScreen(sx, sy, '#fde047', settings.reducedMotion ? 6 : 10, 'coin');
+        UIFX.flyToTargetFromScreen(sx, sy, '#home-coins', { color: '#fde047' });
+      } else {
+        UIFX.popElement('#home-coins');
+      }
+    }
+  } catch (e) { }
 
   saveSettings();
   Audio.uiClick();
@@ -6780,6 +6805,17 @@ function updateCoinItems(dt) {
         coinPickupFlashTimer = 1;
       }
 
+      // UI FX: DOM particles + fly-to HUD for coin pickups (non-orb)
+      try {
+        if (!c.orb && typeof UIFX !== 'undefined') {
+          UIFX.spawnUiParticlesAtCanvas(c.x, c.y, '#fde047', settings.reducedMotion ? 4 : 8, 'coin');
+          const target = currentState === STATE.PLAYING ? '#round-coin-hud' : '#home-coins';
+          UIFX.flyToTargetFromCanvas(c.x, c.y, target, { color: '#fde047' });
+        } else if (c.orb && typeof UIFX !== 'undefined') {
+          UIFX.spawnUiParticlesAtCanvas(c.x, c.y, '#f472b6', settings.reducedMotion ? 4 : 8, 'orb');
+        }
+      } catch (e) { /* ignore FX errors */ }
+
       // Brief combo badge when coin pickup bumped combo
       if (combo > prevCombo && combo >= 2) {
         if (combo === 2 || combo === 3 || combo === 5) {
@@ -7205,6 +7241,15 @@ function collectPowerup(p) {
   addScore(POWERUP_COLLECT_BONUS);
   addFloating(p.x, p.y - 38, p.label + '  +' + POWERUP_COLLECT_BONUS, p.color, 18);
 
+  // UI FX: fly a small orb to the powerup HUD and flash the HUD
+  try {
+    if (typeof UIFX !== 'undefined') {
+      UIFX.spawnUiParticlesAtCanvas(p.x, p.y, p.color, settings.reducedMotion ? 4 : 10, 'orb');
+      UIFX.flyToTargetFromCanvas(p.x, p.y, '#powerup-status', { color: p.color, text: '' });
+      UIFX.flashElement('#powerup-status', p.color);
+    }
+  } catch (e) { }
+
   // In multiplayer: mark ID collected on Firebase so the powerup
   // disappears on both screens, and sync shared effects to opponent.
   const isMp = typeof MpSync !== 'undefined' && MpSync.isActive();
@@ -7507,6 +7552,146 @@ function drawFloating() {
   });
 }
 
+// UI FX helpers: lightweight DOM-based particles, fly-to, pop, glow, and ripples
+const UIFX = (() => {
+  let layer = null;
+  function ensureLayer() {
+    if (layer) return layer;
+    layer = document.getElementById('ui-fx-layer');
+    return layer;
+  }
+
+  function toScreenCoords(cx, cy) {
+    if (!canvas) return { x: cx, y: cy };
+    const rect = canvas.getBoundingClientRect();
+    const sx = rect.left + (cx / canvas.width) * rect.width;
+    const sy = rect.top  + (cy / canvas.height) * rect.height;
+    return { x: Math.round(sx), y: Math.round(sy) };
+  }
+
+  function spawnUiParticlesAtCanvas(cx, cy, color, count, type) {
+    const l = ensureLayer(); if (!l) return;
+    const pos = toScreenCoords(cx, cy);
+    for (let i = 0; i < (count || 6); i++) {
+      const el = document.createElement('div');
+      el.className = 'ui-fx-particle ' + (type === 'orb' ? 'ui-fx-particle--orb' : 'ui-fx-particle--coin');
+      el.style.left = pos.x + 'px'; el.style.top = pos.y + 'px';
+      l.appendChild(el);
+      // random direction
+      const ang = (Math.PI * 2) * (i / (count || 6)) + (Math.random() - 0.5) * 0.6;
+      const dist = 36 + Math.random() * 48;
+      const dx = Math.round(Math.cos(ang) * dist) + 'px';
+      const dy = Math.round(Math.sin(ang) * dist) + 'px';
+      // use transform to animate
+      requestAnimationFrame(() => {
+        el.style.transform = 'translate(' + dx + ',' + dy + ') scale(.28)';
+        el.style.opacity = '0';
+      });
+      setTimeout(() => el.remove(), 680);
+    }
+  }
+
+  function spawnUiParticlesAtScreen(sx, sy, color, count, type) {
+    const l = ensureLayer(); if (!l) return;
+    for (let i = 0; i < (count || 6); i++) {
+      const el = document.createElement('div');
+      el.className = 'ui-fx-particle ' + (type === 'orb' ? 'ui-fx-particle--orb' : 'ui-fx-particle--coin');
+      el.style.left = Math.round(sx) + 'px'; el.style.top = Math.round(sy) + 'px';
+      l.appendChild(el);
+      const ang = (Math.PI * 2) * (i / (count || 6)) + (Math.random() - 0.5) * 0.6;
+      const dist = 18 + Math.random() * 42;
+      const dx = Math.round(Math.cos(ang) * dist) + 'px';
+      const dy = Math.round(Math.sin(ang) * dist) + 'px';
+      requestAnimationFrame(() => {
+        el.style.transform = 'translate(' + dx + ',' + dy + ') scale(.28)';
+        el.style.opacity = '0';
+      });
+      setTimeout(() => el.remove(), 680);
+    }
+  }
+
+  function flyToTargetFromCanvas(cx, cy, targetSelector, opts) {
+    const l = ensureLayer(); if (!l) return;
+    const target = document.querySelector(targetSelector);
+    const start = toScreenCoords(cx, cy);
+    const el = document.createElement('div');
+    el.className = 'ui-fx-fly';
+    el.style.left = start.x + 'px'; el.style.top = start.y + 'px';
+    el.style.background = opts && opts.color ? opts.color : '#fde047';
+    el.textContent = opts && opts.text ? opts.text : '';
+    l.appendChild(el);
+    // compute target center
+    const rect = target ? target.getBoundingClientRect() : { left: window.innerWidth - 80, top: 24, width: 40, height: 24 };
+    const tx = Math.round(rect.left + rect.width / 2);
+    const ty = Math.round(rect.top  + rect.height / 2);
+    const dx = tx - start.x;
+    const dy = ty - start.y;
+    requestAnimationFrame(() => {
+      el.style.transform = 'translate(' + dx + 'px,' + dy + 'px) scale(.5)';
+      el.style.opacity = '0.001';
+    });
+    setTimeout(() => {
+      try { if (target) target.classList.add('fx-pop'); } catch(_){}
+      el.remove();
+      if (target) setTimeout(() => target.classList.remove('fx-pop'), 420);
+    }, 520);
+  }
+
+  function flyToTargetFromScreen(sx, sy, targetSelector, opts) {
+    const l = ensureLayer(); if (!l) return;
+    const target = document.querySelector(targetSelector);
+    const el = document.createElement('div'); el.className = 'ui-fx-fly';
+    el.style.left = Math.round(sx) + 'px'; el.style.top = Math.round(sy) + 'px';
+    el.style.background = opts && opts.color ? opts.color : '#fde047';
+    el.textContent = opts && opts.text ? opts.text : '';
+    l.appendChild(el);
+    const rect = target ? target.getBoundingClientRect() : { left: window.innerWidth - 80, top: 24, width: 40, height: 24 };
+    const tx = Math.round(rect.left + rect.width / 2);
+    const ty = Math.round(rect.top  + rect.height / 2);
+    const dx = tx - sx; const dy = ty - sy;
+    requestAnimationFrame(() => { el.style.transform = 'translate(' + dx + 'px,' + dy + 'px) scale(.52)'; el.style.opacity = '0.001'; });
+    setTimeout(() => { try { if (target) target.classList.add('fx-pop'); } catch(_){}; el.remove(); if (target) setTimeout(() => target.classList.remove('fx-pop'), 420); }, 520);
+  }
+
+  function popElement(elOrSel) {
+    const el = typeof elOrSel === 'string' ? document.querySelector(elOrSel) : elOrSel;
+    if (!el) return;
+    el.classList.add('fx-pop');
+    setTimeout(() => el.classList.remove('fx-pop'), 420);
+  }
+
+  function flashElement(elOrSel, color) {
+    const el = typeof elOrSel === 'string' ? document.querySelector(elOrSel) : elOrSel;
+    if (!el) return;
+    el.style.setProperty('--fx-glow-color', color || 'rgba(255,255,255,.6)');
+    el.classList.add('fx-glow');
+    setTimeout(() => el.classList.remove('fx-glow'), 520);
+  }
+
+  // delegated button ripple + click pop
+  function init() {
+    document.addEventListener('pointerdown', (ev) => {
+      const btn = ev.target.closest && ev.target.closest('.btn');
+      if (!btn) return;
+      // ripple
+      const r = document.createElement('div'); r.className = 'fx-ripple';
+      const rect = btn.getBoundingClientRect();
+      const x = ev.clientX - rect.left; const y = ev.clientY - rect.top;
+      r.style.left = x + 'px'; r.style.top = y + 'px';
+      const max = Math.max(rect.width, rect.height) * 1.2; r.style.width = r.style.height = max + 'px';
+      r.style.marginLeft = (-max/2) + 'px'; r.style.marginTop = (-max/2) + 'px';
+      btn.appendChild(r);
+      requestAnimationFrame(() => { r.style.transform = 'scale(1)'; r.style.opacity = '0'; r.style.transform = 'scale(1)'; r.style.transform = 'scale(1.8)'; });
+      setTimeout(() => r.remove(), 620);
+      // soft pop on the button
+      btn.classList.add('fx-pop'); setTimeout(() => btn.classList.remove('fx-pop'), 320);
+    }, { passive: true });
+  }
+
+  return { init, spawnUiParticlesAtCanvas, spawnUiParticlesAtScreen, flyToTargetFromCanvas, flyToTargetFromScreen, popElement, flashElement };
+})();
+
+
 // ============================================================
 // SECTION 13: FORBIDDEN COLOR SYSTEM
 // ============================================================
@@ -7749,6 +7934,12 @@ function awardNearMiss(ob) {
   addFloating(cx, ob.y - 18, 'Near Miss!', '#34d399', 20);
   // Small particle burst at the miss point
   spawnParticles(cx, cy, '#34d399', settings.reducedMotion ? 4 : 10);
+  try {
+    if (typeof UIFX !== 'undefined') {
+      UIFX.spawnUiParticlesAtCanvas(cx, cy, '#34d399', settings.reducedMotion ? 3 : 8, 'orb');
+      UIFX.flashElement(canvas, 'rgba(52,211,153,0.56)');
+    }
+  } catch (e) { }
   // Gentle shake - confirms the danger without being disorienting
   triggerShake(3.5, 0.18);
   addScore(NEAR_MISS_BONUS);
@@ -9068,6 +9259,16 @@ function triggerGameOver(mpEndReason) {
       coinsEl.classList.add('coin-pop');
       setTimeout(() => { try { coinsEl.classList.remove('coin-pop'); } catch(_){} }, 900);
     }
+
+    // UI FX for game over: burst from player and pop the gameover icon
+    try {
+      if (typeof UIFX !== 'undefined') {
+        UIFX.spawnUiParticlesAtCanvas(player.x || canvas.width/2, (player.y || canvas.height*0.4) - 8, '#fde047', settings.reducedMotion ? 8 : 18, 'coin');
+        const goIconEl = document.getElementById('gameover-icon');
+        if (goIconEl) UIFX.popElement(goIconEl);
+        UIFX.flashElement('#gameover-overlay', 'rgba(255,230,120,0.12)');
+      }
+    } catch (e) { }
 
     const goLifeTotalEl = document.getElementById('go-lifetime-total');
     if (goLifeTotalEl) {
@@ -11370,6 +11571,7 @@ function init() {
 
   // Bind tutorial buttons (must happen after DOM ready)
   Tutorial.bindButtons();
+  UIFX.init();
 
   // One-shot unlock for iOS/Android - AudioContext must be created inside a user gesture.
   // We listen on both touchstart and pointerdown so it fires on the very first tap/click.
