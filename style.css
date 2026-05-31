@@ -2007,6 +2007,47 @@ kbd {
 .lp-bar-sub { font-size: .75rem; color: #7c6fa8; }
 .lp-tagline { margin: 0; font-size: .77rem; color: #6b6898; line-height: 1.5; }
 
+/* Next reward preview (header) */
+.lp-score-sub { font-size: .76rem; color: #bdb4e8; margin-top: 6px; }
+.lp-next-block { display: flex; align-items: center; justify-content: flex-end; min-width: 260px; }
+.lp-next-preview { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px; background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(0,0,0,.02)); border: 1px solid rgba(255,255,255,.04); }
+.lp-next-icon {
+  width: 58px; height: 58px; border-radius: 12px; display: flex; align-items: center; justify-content: center;
+  font-weight: 900; font-size: 1.15rem; color: #fff; background: linear-gradient(135deg, rgba(255,255,255,.04), rgba(0,0,0,.12));
+  box-shadow: 0 6px 26px rgba(0,0,0,.45), 0 0 18px var(--next-glow, rgba(168,85,247,.28));
+}
+.lp-next-preview[style] .lp-next-icon { box-shadow: 0 6px 26px rgba(0,0,0,.45), 0 0 28px var(--next-glow, rgba(168,85,247,.28)); }
+.lp-next-info { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 130px; }
+.lp-next-title { font-weight: 900; font-size: .95rem; color: #f3eaff; }
+.lp-next-meta { font-size: .72rem; color: #b9b0dc; }
+.lp-next-remaining { font-size: .78rem; color: #dbeafe; font-weight: 800; }
+.lp-next-action { margin-left: 8px; display: flex; align-items: center; }
+.lp-next-action .lp-claim-btn { padding: 8px 16px; font-size: .82rem; }
+.lp-next-action.lp-next-need { font-weight: 800; color: #9fb0ff; padding: 6px 10px; border-radius: 8px; background: rgba(99,102,241,.06); }
+.lp-next-action.lp-next-unlocked { font-weight: 800; color: #fde68a; }
+.lp-next-action.lp-next-all { font-weight: 800; color: #c7c7d9; }
+
+/* Enhanced bar styling */
+.lp-bar-row.enhanced { align-items: center; gap: 14px; margin-top: 6px; }
+.lp-bar-track { height: 12px; border-radius: 999px; }
+.lp-bar-fill { height: 100%; }
+
+/* Type-specific dot/tile visuals */
+.lp-type-coins .lp-dot { background: radial-gradient(circle at 30% 30%, #fff9d8 0%, #fef08a 18%, #f59e0b 45%, #b45309 100%); border-color: rgba(251,191,36,.45); box-shadow: 0 0 18px rgba(251,191,36,.18); }
+.lp-type-badge .lp-dot { background: linear-gradient(135deg, #34d399, #06b6d4); border-color: rgba(56,189,248,.28); box-shadow: 0 0 18px rgba(56,189,248,.12); }
+.lp-type-skin  .lp-dot { background: linear-gradient(135deg, #7c3aed, #a855f7); border-color: rgba(168,85,247,.36); box-shadow: 0 0 20px rgba(168,85,247,.12); }
+
+.lp-type-coins .lp-tile-rarity { color: #fef3c7; }
+.lp-type-badge .lp-tile-rarity { color: #bbf7d0; }
+.lp-type-skin  .lp-tile-rarity { color: #e9d5ff; }
+
+/* Make claimable nodes more prominent */
+.lp-claimable.lp-type-coins .lp-tile, .lp-current.lp-type-coins .lp-tile { box-shadow: 0 12px 48px rgba(251,191,36,.08); }
+.lp-claimable.lp-type-badge .lp-dot, .lp-current.lp-type-badge .lp-dot { transform: scale(1.15); }
+
+/* Respect reduced motion */
+body.reduced-motion .lp-next-preview, body.reduced-motion .lp-dot { animation: none !important; transition: none !important; }
+
 /* ── Road scroll wrapper ────────────────────────────────────── */
 .lp-road-wrap {
   flex: 1; overflow-x: auto; overflow-y: visible;

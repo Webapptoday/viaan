@@ -1231,28 +1231,60 @@ function renderLifetimeProgressUI() {
 
   // Header
   const pct = progress.pct;
+  // Rarity glow map for header preview
+  const RARITY_GLOW = { common: 'rgba(255,255,255,0.78)', rare: '#38bdf8', epic: '#a855f7', legendary: '#fbbf24', mythic: '#fb7185' };
+  const nextGlow = nextReward ? (RARITY_GLOW[nextReward.rarity] || RARITY_GLOW.common) : RARITY_GLOW.common;
+  const nextEarned = nextReward ? (total >= nextReward.milestone) : false;
+  const nextClaimable = nextEarned && nextReward && nextReward.type !== 'skin' && !isLifetimeRewardUnlocked(nextReward.id);
+
+  let nextActionHtml = '';
+  if (!nextReward) {
+    nextActionHtml = '<div class="lp-next-action lp-next-all">All rewards unlocked</div>';
+  } else if (nextClaimable) {
+    const coinPart = nextReward.type === 'coins' && nextReward.coins ? ' +' + nextReward.coins + ' <span class="coin-icon lp-coin-xs" aria-hidden="true"></span>' : '';
+    nextActionHtml = '<div class="lp-next-action"><button class="lp-claim-btn lp-claim-next" data-id="' + nextReward.id + '">Claim' + coinPart + '</button></div>';
+  } else if (nextReward.type === 'skin' && nextEarned) {
+    nextActionHtml = '<div class="lp-next-action lp-next-unlocked">Auto-unlocked</div>';
+  } else {
+    const need = Math.max(0, (nextReward ? nextReward.milestone - total : 0));
+    nextActionHtml = '<div class="lp-next-action lp-next-need">' + formatNumber(need) + ' to go</div>';
+  }
+
   headerEl.innerHTML =
     '<div class="lp-header-row">' +
       '<div class="lp-score-block">' +
         '<div class="lp-score-lbl">LIFETIME SCORE</div>' +
         '<div class="lp-score-val" id="lifetime-score-value">' + formatNumber(total) + '</div>' +
+        '<div class="lp-score-sub">Total across all runs</div>' +
       '</div>' +
-      '<div class="lp-bar-block">' +
-        '<div class="lp-bar-title" id="lifetime-next-target">' + (nextReward
-          ? 'Next: ' + nextReward.label + ' at ' + formatNumber(nextReward.milestone)
-          : 'All rewards unlocked!') + '</div>' +
-        '<div class="lp-bar-row">' +
-          '<div class="lp-bar-track">' +
-            '<div class="lp-bar-fill" id="lifetime-progress-bar" style="width:' + pct + '%"></div>' +
+      '<div class="lp-next-block">' +
+        '<div class="lp-next-preview" style="--next-glow:' + nextGlow + '">' +
+          '<div class="lp-next-icon">' + (nextReward ? nextReward.icon : '&#8212;') + '</div>' +
+          '<div class="lp-next-info">' +
+            '<div class="lp-next-title">' + (nextReward ? nextReward.label : 'All rewards unlocked') + '</div>' +
+            '<div class="lp-next-meta">' + (nextReward ? 'At ' + formatNumber(nextReward.milestone) + ' pts' : '') + '</div>' +
+            '<div class="lp-next-remaining" id="lifetime-next-remaining">' + (nextReward ? formatNumber(Math.max(0, nextReward.milestone - total)) + ' to go' : '') + '</div>' +
           '</div>' +
-          '<span class="lp-bar-pct">' + pct + '%</span>' +
+          nextActionHtml +
         '</div>' +
-        '<div class="lp-bar-sub" id="lifetime-progress-detail">' + (nextReward
-          ? formatNumber(total) + ' / ' + formatNumber(nextReward.milestone)
-          : 'Every milestone reward claimed') + '</div>' +
       '</div>' +
     '</div>' +
+    '<div class="lp-bar-row enhanced">' +
+      '<div class="lp-bar-track">' +
+        '<div class="lp-bar-fill" id="lifetime-progress-bar" style="width:' + pct + '%"></div>' +
+      '</div>' +
+      '<span class="lp-bar-pct">' + pct + '%</span>' +
+    '</div>' +
     '<p class="lp-tagline">Earn lifetime score across all runs to unlock exclusive rewards</p>';
+
+  // Bind header-level claim button (quick claim for next reward)
+  const headerClaimBtn = headerEl.querySelector('.lp-claim-next');
+  if (headerClaimBtn) {
+    headerClaimBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      claimLifetimeReward(headerClaimBtn.dataset.id);
+    });
+  }
 
   // Reward Road
   const GLOW = { common: 'rgba(255,255,255,0.78)', rare: '#38bdf8', epic: '#a855f7', legendary: '#fbbf24' };
@@ -1272,6 +1304,7 @@ function renderLifetimeProgressUI() {
 
     let stateClass = claimed ? 'lp-claimed' : claimable ? 'lp-claimable' : 'lp-locked';
     if (isCurrent && !claimed) stateClass += ' lp-current';
+    const typeClass = ' lp-type-' + (reward.type || 'item');
 
     const lineBefore = (claimed || claimable) ? ' lp-line-filled' : '';
     const lineAfter  = claimed ? ' lp-line-filled' : '';
@@ -1289,12 +1322,12 @@ function renderLifetimeProgressUI() {
       actionHtml = '<span class="lp-s-locked">Need ' + formatNumber(remaining) + '</span>';
     }
 
-    return '<div class="lp-node ' + stateClass + ' lp-r-' + reward.rarity + '"' +
-               ' style="--glow:' + glowHex + '"' +
-               ' data-id="' + reward.id + '"' +
-               ' role="listitem"' +
-               ' tabindex="0"' +
-               ' aria-label="' + reward.label + ', ' + reward.rarity + ', ' + formatNumber(reward.milestone) + ' pts, ' + (claimed ? 'claimed' : claimable ? 'claimable' : 'locked') + '">' +
+    return '<div class="lp-node ' + stateClass + typeClass + ' lp-r-' + reward.rarity + '"' +
+           ' style="--glow:' + glowHex + '"' +
+           ' data-id="' + reward.id + '"' +
+           ' role="listitem"' +
+           ' tabindex="0"' +
+           ' aria-label="' + reward.label + ', ' + reward.rarity + ', ' + formatNumber(reward.milestone) + ' pts, ' + (claimed ? 'claimed' : claimable ? 'claimable' : 'locked') + '">' +
       '<div class="lp-conn">' +
         '<div class="lp-line lp-line-before' + (isFirst ? ' lp-line-edge' : lineBefore) + '"></div>' +
         '<div class="lp-dot">' +
