@@ -29,7 +29,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=Space+Grotesk:wght@700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=6" />
+  <link rel="stylesheet" href="style.css?v=7" />
   <link rel="stylesheet" href="campaign.css?v=9" />
 </head>
 <body>
@@ -88,6 +88,7 @@
           <div class="hero-left-zone">
             <!-- Mascot orb with animated eyes -->
             <div class="hero-mascot" aria-hidden="true" id="hero-mascot">
+              <div class="mascot-glow-bg"></div>
               <div class="mascot-orb">
                 <div class="mascot-face">
                   <div class="mascot-eye mascot-eye-l">
@@ -99,16 +100,30 @@
                 </div>
                 <div class="mascot-shine"></div>
               </div>
+              <div class="mascot-sparks" aria-hidden="true">
+                <span class="ms ms1"></span>
+                <span class="ms ms2"></span>
+                <span class="ms ms3"></span>
+              </div>
               <div class="mascot-shadow"></div>
             </div>
 
             <div class="hero-text">
               <div class="game-title">Shift Panic</div>
-              <p class="hero-tagline">Dodge the forbidden color. Survive the panic.</p>
-              <div class="feature-chips" aria-hidden="true">
-                <span class="chip"><span class="chip-dot" style="background:#06b6d4"></span>Fast reflexes</span>
-                <span class="chip"><span class="chip-dot" style="background:#ec4899"></span>Color switching</span>
-                <span class="chip"><span class="chip-dot" style="background:#f59e0b"></span>Unlock skins</span>
+              <p class="hero-tagline">Dodge the forbidden color.</p>
+              <div class="hero-badges" aria-hidden="true">
+                <span class="hbadge hbadge-reflex">
+                  <svg class="hbadge-icon" viewBox="0 0 24 24" fill="none"><path d="M13 2L4.09 12.36A1 1 0 005 14h6v8l8.91-10.36A1 1 0 0019 10h-6V2z" fill="currentColor"/></svg>
+                  Reflex
+                </span>
+                <span class="hbadge hbadge-switch">
+                  <svg class="hbadge-icon" viewBox="0 0 24 24" fill="none"><path d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                  Switch
+                </span>
+                <span class="hbadge hbadge-survive">
+                  <svg class="hbadge-icon" viewBox="0 0 24 24" fill="none"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="currentColor"/></svg>
+                  Survive
+                </span>
               </div>
             </div>
           </div>
@@ -123,9 +138,16 @@
               PLAY NOW
             </button>
 
-            <!-- Panic Quest secondary -->
-            <button id="btn-campaign" class="btn btn-campaign-home btn-hero" aria-label="Panic Quest campaign mode">
-              PANIC QUEST <span class="badge badge-new">NEW</span>
+            <!-- Panic Quest secondary — styled as a mode card -->
+            <button id="btn-campaign" class="btn btn-campaign-home btn-hero btn-mode-card" aria-label="Panic Quest campaign mode">
+              <span class="mode-card-icon" aria-hidden="true">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M9 11l3 3L22 4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </span>
+              <span class="mode-card-text">
+                <span class="mode-card-name">PANIC QUEST</span>
+                <span class="mode-card-sub">Campaign Mode</span>
+              </span>
+              <span class="badge badge-new">NEW</span>
             </button>
 
             <!-- ===== DAILY CHALLENGE HERO CARD ===== -->
@@ -160,6 +182,7 @@
 
           <!-- ===== RIGHT ZONE: progress + achievements ===== -->
           <div class="hero-right-zone">
+            <div class="right-zone-title" aria-hidden="true">PLAYER PROGRESS</div>
 
             <!-- Stats strip -->
             <div class="stats-panel card">
@@ -198,11 +221,12 @@
             </div>
 
             <!-- Achievement badges -->
-            <div class="achievements-panel card" aria-label="Achievements" role="region">
-              <div class="achievements-title card-title">Achievements</div>
+            <div class="achievements-panel card" aria-label="Badges" role="region">
+              <div class="achievements-title card-title">BADGES</div>
               <ul class="achievement-list" id="achievement-list" aria-label="Badge list">
                 <!-- populated by JS -->
               </ul>
+              <button class="ach-view-all-btn" id="ach-view-all-btn" type="button" hidden>View all badges</button>
             </div>
 
           </div><!-- /.hero-right-zone -->

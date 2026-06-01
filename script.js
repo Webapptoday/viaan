@@ -1230,6 +1230,28 @@ function claimLifetimeReward(id) {
 }
 
 /* ---- Player rank title (based on lifetime score) ---- */
+
+/**
+ * ASSET_URLS — image asset slots for the home screen.
+ * Set to null to use CSS/fallback rendering.
+ * Replace null with a URL string (relative or absolute) when assets are ready.
+ */
+const ASSET_URLS = {
+  mascotHero:         null,   // e.g. 'assets/mascot-hero.png'
+  endlessModeBanner:  null,   // banner behind PLAY NOW
+  panicQuestBanner:   null,   // banner inside Panic Quest mode card
+  dailyChallengeIcon: null,   // icon shown in DC card header
+  coinIcon:           null,   // coin image override
+  achievementBadgeIcons: {    // per-achievement icon images (keyed by def.id)
+    ach_welcome:  null,
+    ach_score10k: null,
+    ach_score50k: null,
+    ach_coins100: null,
+    ach_trail:    null,
+    ach_skin:     null,
+  },
+};
+
 const RANK_TIERS = [
   { min: 0,        label: 'Panic Rookie'   },
   { min: 25000,    label: 'Block Dodger'   },
@@ -1270,12 +1292,20 @@ function renderAchievementsUI() {
   const list = document.getElementById('achievement-list');
   if (!list) return;
   list.innerHTML = '';
-  for (const def of ACHIEVEMENT_DEFS) {
+
+  const VISIBLE_DEFAULT = 3; // show top 3 by default; rest hidden behind "View all"
+
+  ACHIEVEMENT_DEFS.forEach((def, idx) => {
     const unlocked = def.check();
+    // Use per-achievement image asset if available
+    const imgSrc = ASSET_URLS.achievementBadgeIcons && ASSET_URLS.achievementBadgeIcons[def.id];
+    const iconHtml = imgSrc
+      ? '<img src="' + imgSrc + '" alt="" width="20" height="20" style="border-radius:4px;object-fit:cover;">'
+      : def.icon;
     const li = document.createElement('li');
-    li.className = 'achievement-item' + (unlocked ? '' : ' ach-locked');
+    li.className = 'achievement-item' + (unlocked ? '' : ' ach-locked') + (idx >= VISIBLE_DEFAULT ? ' ach-hidden' : '');
     li.innerHTML =
-      '<span class="ach-icon" aria-hidden="true">' + def.icon + '</span>' +
+      '<span class="ach-icon" aria-hidden="true">' + iconHtml + '</span>' +
       '<span class="ach-info">' +
         '<span class="ach-name">' + def.label + '</span>' +
         '<span class="ach-sub">' + def.desc + '</span>' +
@@ -1284,6 +1314,29 @@ function renderAchievementsUI() {
         (unlocked ? '&#10003;' : '&#8212;') +
       '</span>';
     list.appendChild(li);
+  });
+
+  // Show/wire "view all" button
+  const viewAllBtn = document.getElementById('ach-view-all-btn');
+  if (viewAllBtn) {
+    if (ACHIEVEMENT_DEFS.length > VISIBLE_DEFAULT) {
+      viewAllBtn.hidden = false;
+      viewAllBtn.textContent = 'View all badges (' + ACHIEVEMENT_DEFS.length + ')';
+      viewAllBtn.onclick = function() {
+        const hidden = list.querySelectorAll('.ach-hidden');
+        if (hidden.length > 0) {
+          hidden.forEach(el => el.classList.remove('ach-hidden'));
+          viewAllBtn.textContent = 'Show fewer';
+        } else {
+          Array.from(list.children).forEach((el, i) => {
+            if (i >= VISIBLE_DEFAULT) el.classList.add('ach-hidden');
+          });
+          viewAllBtn.textContent = 'View all badges (' + ACHIEVEMENT_DEFS.length + ')';
+        }
+      };
+    } else {
+      viewAllBtn.hidden = true;
+    }
   }
 }
 
