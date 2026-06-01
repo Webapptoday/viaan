@@ -5934,6 +5934,164 @@ body.reduced-motion .lb-row, body.perf-low .lb-row { animation: none !important;
   transform: scale(1.025) translateY(-2px) !important;
 }
 
+/* ------------------------------------------------------------------
+   Additional high-impact decorations for pixel-pass: Play CTA, Mascot
+   and right-panel embellishments. These are applied after base rules.
+   ------------------------------------------------------------------ */
+
+/* stronger neon halo and beveled edge for the Play CTA */
+#btn-start.btn-play-now {
+  border-radius: 40px;
+  padding: 36px 64px;
+  min-height: 160px;
+  box-shadow:
+    0 52px 180px rgba(236,72,153,.62), /* deep drop */
+    0 0 260px rgba(255,102,180,.28),   /* outer glow */
+    0 10px 0 rgba(0,0,0,.22) inset;    /* bottom bevel */
+  border: 1px solid rgba(255,255,255,.12);
+}
+
+/* neon halo behind the button */
+#btn-start.btn-play-now::before {
+  content: '';
+  position: absolute; inset: -18px; border-radius: 48px;
+  background: linear-gradient(90deg,#ff8bd6 0%, #ff5aa8 45%, #ec4899 100%);
+  filter: blur(22px) saturate(120%);
+  opacity: .9; pointer-events: none; z-index: 0;
+}
+
+/* ensure button children render above the halo */
+#btn-start.btn-play-now > * { position: relative; z-index: 3; }
+#btn-start.btn-play-now { z-index: 2; }
+
+/* stronger glossy inset */
+#btn-start.btn-play-now::after {
+  content: '';
+  position: absolute; inset: 12px; border-radius: 30px;
+  background: linear-gradient(180deg, rgba(255,255,255,.22), rgba(255,255,255,0) 36%);
+  pointer-events: none; mix-blend-mode: overlay; z-index: 2;
+}
+
+/* enlarge and sculpt the play icon */
+.btn-play-now .play-now-icon svg { width: 160px; height:160px; filter: drop-shadow(0 60px 140px rgba(236,72,153,.55)); }
+.btn-play-now .play-now-icon svg path { fill: #fff; filter: drop-shadow(0 8px 18px rgba(0,0,0,.35)); }
+
+/* 3D embossed text — heavier extrude + highlight */
+.btn-play-now .play-line-1, .btn-play-now .play-line-2 {
+  color: #fff; font-weight: 900;
+  -webkit-text-stroke: 1px rgba(0,0,0,.16);
+  text-shadow:
+    0 3px 0 rgba(255,255,255,.06),
+    0 8px 0 rgba(0,0,0,.18),
+    0 18px 36px rgba(0,0,0,.56),
+    0 4px 24px rgba(236,72,153,.14);
+}
+.btn-play-now .play-line-1 { font-size: clamp(2.8rem, 6.1vw, 4.2rem); }
+.btn-play-now .play-line-2 { font-size: clamp(2.2rem, 4.6vw, 3.0rem); margin-top: -14px; }
+
+/* lively spark flicker */
+@keyframes playSparkFlicker {
+  0% { transform: translateY(0) scale(.98) rotate(6deg); opacity:.78 }
+  45% { transform: translateY(-4px) scale(1.08) rotate(12deg); opacity:1 }
+  100% { transform: translateY(0) scale(.95) rotate(4deg); opacity:.82 }
+}
+.btn-play-now .spark { animation: playSparkFlicker 2.6s infinite ease-in-out; }
+
+/* Mascot: bigger, juicier orb with rim light and trailing streak */
+.mascot-orb {
+  width: 196px; height: 196px;
+  background: radial-gradient(circle at 30% 28%, #ffd7ff 0%, #e073ff 10%, #bf5df3 26%, #7c3aed 52%, #2d1066 100%);
+  box-shadow:
+    0 36px 150px rgba(124,58,237,.72),
+    0 0 0 4px rgba(255,255,255,.04) inset,
+    0 0 48px rgba(124,58,237,.28);
+  border-radius: 50%;
+  position: relative; overflow: visible; flex-shrink: 0;
+}
+.mascot-orb::before {
+  /* rim highlight */
+  content: '';
+  position: absolute; inset: 6px; border-radius:50%;
+  box-shadow: 0 0 36px rgba(255,200,240,.24) inset, 0 8px 36px rgba(124,58,237,.28);
+  pointer-events: none;
+}
+.mascot-orb::after {
+  /* trailing streak */
+  content: '';
+  position: absolute; right: -40px; bottom: 10px; width: 220px; height: 64px;
+  background: linear-gradient(90deg, rgba(124,58,237,.0), rgba(124,58,237,.26), rgba(255,136,204,.06));
+  filter: blur(22px) contrast(120%);
+  transform: rotate(-10deg);
+  pointer-events: none;
+}
+.mascot-shadow { width: 160px; height: 22px; margin-top: 12px; background: radial-gradient(ellipse at center, rgba(2,6,23,.7) 0%, transparent 60%); }
+.mascot-sparks .ms { width: 10px; height: 10px; border-radius: 50%; background: radial-gradient(circle, #fff 0%, rgba(255,255,255,.6) 40%, transparent 100%); box-shadow: 0 6px 18px rgba(255,180,220,.66); position: absolute; }
+.mascot-sparks .ms1 { left: 12px; top: 8px; transform: scale(.9); animation: playSparkFlicker 3.2s infinite ease-in-out; }
+.mascot-sparks .ms2 { right: 8px; top: 28px; transform: scale(.7); animation: playSparkFlicker 2.8s .3s infinite ease-in-out; }
+.mascot-sparks .ms3 { left: 34px; bottom: 28px; transform: scale(.6); animation: playSparkFlicker 2.4s .6s infinite ease-in-out; }
+
+/* Right panel: deeper contrast, inner glow and embossed badges */
+.home-grid.centered .stats-panel {
+  width: 320px; align-self: start; justify-self: end;
+  background: linear-gradient(180deg, rgba(12,6,24,.66), rgba(8,6,20,.56));
+  padding: 18px; border-radius: 16px; border: 1px solid rgba(255,255,255,.04);
+  box-shadow: 0 12px 48px rgba(2,6,23,.72), inset 0 -8px 40px rgba(255,255,255,.02);
+}
+.home-grid.centered .achievements-panel {
+  background: linear-gradient(180deg, rgba(12,6,24,.58), rgba(8,6,20,.48)); border-radius: 14px; padding: 14px; border:1px solid rgba(255,255,255,.03);
+}
+
+/* subtle hero panel particle accents (CSS fallback to supplement canvas) */
+.hero-panel::after {
+  content: '';
+  position: absolute; inset: 8px; border-radius: 20px;
+  background-image:
+    radial-gradient(circle at 10% 20%, rgba(255,136,204,.06) 0%, transparent 12%),
+    radial-gradient(circle at 85% 30%, rgba(124,58,237,.06) 0%, transparent 10%),
+    radial-gradient(circle at 60% 80%, rgba(255,210,140,.04) 0%, transparent 8%);
+  pointer-events: none; mix-blend-mode: screen; z-index: 0;
+}
+
+/* ensure hero-panel cards/content sit above the particle layer */
+.hero-panel > * { position: relative; z-index: 4; }
+
+/* Additional pixel-pass refinements */
+/* Stronger extruded text using layered shadows for depth */
+.btn-play-now .play-line-1 {
+  text-shadow:
+    0 2px 0 rgba(255,255,255,.06),
+    0 6px 0 rgba(0,0,0,.18),
+    0 10px 0 rgba(0,0,0,.20),
+    0 18px 36px rgba(0,0,0,.64);
+}
+.btn-play-now .play-line-2 {
+  text-shadow:
+    0 2px 0 rgba(255,255,255,.06),
+    0 6px 0 rgba(0,0,0,.16),
+    0 10px 18px rgba(0,0,0,.48);
+}
+
+/* Quick actions — large pill buttons with icon slots */
+.quick-actions.card { padding: 18px; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; width: 100%; align-items: center; }
+.quick-actions.card .btn { height: 64px; border-radius: 14px; font-weight: 900; font-size: 1.02rem; display:flex; align-items:center; gap: 14px; padding: 0 18px; justify-content:center; border:1px solid rgba(255,255,255,0.06); background: linear-gradient(180deg, rgba(10,10,20,.28), rgba(12,6,24,.48)); box-shadow: 0 10px 30px rgba(2,6,23,.6); color:#fff; }
+.quick-actions.card .btn img, .quick-actions.card .btn svg { width: 28px; height: 28px; flex-shrink:0; filter: drop-shadow(0 8px 18px rgba(0,0,0,.44)); }
+.quick-actions.card .btn.btn-secondary { background: linear-gradient(180deg,#221231 0%, #18101a 100%); border:1px solid rgba(255,200,255,.04); }
+.quick-actions.card .btn.btn-secondary:hover { transform: translateY(-4px) scale(1.02); filter: brightness(1.06); }
+.quick-actions.card .btn.btn-sm { height:auto; padding: 16px 20px; min-height:56px; }
+
+/* Lifetime progress bar styling to match reference */ 
+.lifetime-track { background: rgba(255,255,255,.04); height: 12px; border-radius: 8px; overflow: hidden; border: 1px solid rgba(255,255,255,.02); box-shadow: inset 0 2px 6px rgba(0,0,0,.36); }
+.lifetime-fill { height: 100%; width: 0%; background: linear-gradient(90deg,#ffcf4a 0%, #ff8bd6 60%, #a78bfa 100%); border-radius: 8px; box-shadow: 0 6px 18px rgba(167,139,250,.18); transition: width .6s ease; }
+
+/* Achievement badges grid — embossed tiles */ 
+.achievement-list { display:flex; flex-direction:column; gap:10px; padding:0; margin:0; list-style:none; }
+.achievement-list li { display:flex; gap:12px; align-items:center; padding:10px; border-radius:10px; background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,0)); border:1px solid rgba(255,255,255,.03); box-shadow: 0 6px 14px rgba(0,0,0,.4); color:var(--text-muted); }
+.achievement-list li .badge-icon { width:44px; height:44px; border-radius:8px; background: linear-gradient(135deg,#6f4fff,#ffc6e6); display:flex; align-items:center; justify-content:center; color:#fff; font-weight:900; box-shadow: inset 0 -6px 18px rgba(0,0,0,.18); }
+
+/* tighten hero panel radius and inner padding for reference proportions */ 
+.hero-panel { border-radius: 28px; padding: 40px 46px; }
+
+
 /* ---- Daily Challenge HERO card ------------------------------- */
 .daily-challenge-card.daily-challenge-hero {
   background: linear-gradient(135deg,
