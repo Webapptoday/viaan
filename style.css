@@ -5740,12 +5740,13 @@ body.reduced-motion .lb-row, body.perf-low .lb-row { animation: none !important;
 }
 @media (min-width: 980px) {
   .home-grid.centered .hero-panel {
-    grid-template-columns: minmax(220px, 1fr) 460px 300px;
+    display: grid;
+    grid-template-columns: 320px 1fr 320px;
     grid-template-rows: 1fr;
     grid-template-areas: "left center right";
-    gap: 32px;
+    gap: 28px;
     align-items: start;
-    padding: 40px 44px;
+    padding: 48px 56px;
   }
 }
 .hero-left-zone {
@@ -5840,51 +5841,67 @@ body.reduced-motion .lb-row, body.perf-low .lb-row { animation: none !important;
   50%      { transform: scaleX(.8); opacity: .4; }
 }
 
-/* ---- PLAY NOW � dominant CTA --------------------------------- */
+/* ---- PLAY NOW — dominant CTA --------------------------------- */
 #btn-start.btn-play-now {
   width: 100%;
-  padding: 22px 36px;
-  font-size: 1.48rem; font-weight: 900;
-  min-height: 76px; letter-spacing: .8px;
-  border-radius: 18px;
-  background: linear-gradient(120deg, #a78bfa 0%, #7c3aed 40%, #ec4899 100%);
+  padding: 34px 56px;
+  font-size: 2.0rem; font-weight: 900;
+  min-height: 140px; letter-spacing: 1px;
+  border-radius: 30px;
+  background: linear-gradient(120deg, #ff8bd6 0%, #ff5aa8 32%, #ec4899 100%);
+  border: 2px solid rgba(255,255,255,.08);
+  position: relative; overflow: visible;
   box-shadow:
-    0 0 0 1px rgba(168,85,247,.30),
-    0 18px 60px rgba(124,58,237,.55),
-    0 0 80px rgba(124,58,237,.22);
+    0 0 0 3px rgba(255,136,204,.08) inset,
+    0 30px 96px rgba(236,72,153,.42),
+    0 0 140px rgba(236,72,153,.22);
   animation: playNowPulse 2.8s ease-in-out infinite;
-  display: flex; align-items: center; justify-content: center; gap: 12px;
+  display: flex; align-items: center; justify-content: center; gap: 28px;
 }
 #btn-start.btn-play-now:hover {
   animation-play-state: paused;
-  transform: scale(1.04) translateY(-4px) !important;
+  transform: scale(1.045) translateY(-6px) !important;
   box-shadow:
-    0 0 0 2px rgba(168,85,247,.55),
-    0 24px 80px rgba(124,58,237,.75),
-    0 0 100px rgba(168,85,247,.30);
+    0 0 0 4px rgba(255,136,204,.14),
+    0 34px 120px rgba(236,72,153,.86),
+    0 0 170px rgba(255,136,204,.34);
 }
 @keyframes playNowPulse {
   0%,100% {
     box-shadow:
-      0 0 0 1px rgba(168,85,247,.30),
-      0 18px 60px rgba(124,58,237,.55),
-      0 0 80px rgba(124,58,237,.18);
+      0 0 0 2px rgba(255,136,204,.08) inset,
+      0 30px 96px rgba(236,72,153,.42),
+      0 0 140px rgba(236,72,153,.20);
   }
   50% {
     box-shadow:
-      0 0 0 2px rgba(168,85,247,.46),
-      0 22px 80px rgba(124,58,237,.72),
-      0 0 110px rgba(168,85,247,.32);
+      0 0 0 3px rgba(255,136,204,.12) inset,
+      0 34px 110px rgba(236,72,153,.80),
+      0 0 180px rgba(255,136,204,.30);
   }
 }
 .btn-play-now .play-text { display:flex; flex-direction:column; align-items:center; justify-content:center; line-height:1; }
-.btn-play-now .play-line { display:block; font-weight:900; text-transform:uppercase; color:#fff; text-shadow: 0 10px 36px rgba(124,58,237,.28); }
-.btn-play-now .play-line-1 { font-size: clamp(1.6rem, 3.4vw, 2.2rem); letter-spacing: 1px; }
-.btn-play-now .play-line-2 { font-size: clamp(1.6rem, 3.4vw, 2.2rem); margin-top: -6px; }
-.btn-play-now .play-now-icon { margin-right: 16px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-.btn-play-now .play-now-icon svg { width: 46px; height:46px; filter: drop-shadow(0 14px 40px rgba(168,85,247,.36)); color: #fff; }
+.btn-play-now .play-line { display:block; font-weight:900; text-transform:uppercase; color:#fff; text-shadow: 0 20px 64px rgba(0,0,0,.36); }
+.btn-play-now .play-line-1 { font-size: clamp(2.4rem, 5.4vw, 3.6rem); letter-spacing: 1px; }
+.btn-play-now .play-line-2 { font-size: clamp(2.0rem, 4.4vw, 2.8rem); margin-top: -12px; opacity: .98; }
+.btn-play-now .play-now-icon { margin-right: 26px; display:flex; align-items:center; justify-content:center; flex-shrink:0; transform: translateY(-2px); }
+.btn-play-now .play-now-icon svg { width: 96px; height:96px; filter: drop-shadow(0 30px 64px rgba(236,72,153,.38)); color: #fff; }
 
-.play-now-icon { display: flex; align-items: center; flex-shrink: 0; opacity: .92; }
+/* glossy inner bevel (subtle) */
+#btn-start.btn-play-now::after {
+  content: '';
+  position: absolute; inset: 8px; border-radius: 26px;
+  background: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,0) 30%);
+  pointer-events: none;
+  mix-blend-mode: overlay;
+}
+
+/* spark accents (slightly larger for visibility) */
+.btn-play-now .spark { position: absolute; width: 14px; height: 14px; border-radius: 7px; background: radial-gradient(circle, #fff 0%, rgba(255,255,255,.2) 40%, transparent 100%); box-shadow: 0 0 22px rgba(255,200,220,.66); transform: rotate(12deg); }
+.btn-play-now .spark.s1 { right: 22px; top: -10px; opacity: .96; transform: rotate(8deg) scale(.98); }
+.btn-play-now .spark.s2 { left: 30px; bottom: -14px; opacity: .78; transform: rotate(18deg) scale(.94); }
+
+.play-now-icon { display: flex; align-items: center; flex-shrink: 0; opacity: .98; }
 
 /* Panic Quest button */
 #btn-campaign.btn-campaign-home {
