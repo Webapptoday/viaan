@@ -3347,6 +3347,12 @@ function showScreen(id) {
     HomePreview.start();
     DailyChallenge.startCountdown();
     DailyChallenge.renderUI();
+    // Dev-only debug marker: logs when the home screen is mounted locally
+    try {
+      if (location && (location.protocol === 'file:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
+        console.info('[DEV] Home screen mounted');
+      }
+    } catch (e) {}
     // Coin count-up visual effect
     const coinEl = document.getElementById('home-coins');
     if (coinEl && !settings.reducedMotion) {
