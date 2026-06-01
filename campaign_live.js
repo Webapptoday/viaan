@@ -278,71 +278,72 @@ const CAMPAIGN_LEVELS = [
     },
     {
       id: 6,
-      name: 'Coin Panic',
-      subtitle: 'Grab coins while danger closes in.',
+      name: 'Side Swipe',
+      subtitle: 'Hazards sweep in from the edges — keep your bearings.',
       difficulty: 'Hard',
       difficultyColor: '#ef4444',
-      objectiveType: 'collect_coins',
-      objectiveTarget: 25,
-      timeLimit: 50,
-      rewardCoins: 180,
-      replayReward: 15,
-      tip: 'Move aggressively to grab coins — but never into a forbidden block.',
+      objectiveType: 'survive_seconds',
+      objectiveTarget: 40,
+      timeLimit: 40,
+      rewardCoins: 140,
+      replayReward: 12,
+      tip: 'Edges become dangerous — slide early and don\'t get cornered.',
       starConditions: [
-        { stars: 3, label: '15+ sec left',  check: (d) => d.timeRemaining >= 15 },
-        { stars: 2, label: '6+ sec left',   check: (d) => d.timeRemaining >= 6 },
-        { stars: 1, label: 'Collect 25',    check: (d) => true },
+        { stars: 3, label: 'No hits',       check: (d) => (d && Number(d.hitsReceived || 0) === 0) },
+        { stars: 2, label: '≤ 2 hits',      check: (d) => (d && Number(d.hitsReceived || 0) <= 2) },
+        { stars: 1, label: 'Survive 40s',   check: (d) => true },
       ],
       spawnScript: [
-        { time: 0.8, type: 'coinTrail', pattern: 'leftToRightArc', lane: 1, count:5 },
-        { time: 12.0, type: 'coinTrail', pattern: 'rightToLeftArc', lane: 4, count:4 },
-        { time: 35.0, type: 'panicWave', duration: 5 }
+        { time: 3.0, handler: function() { try { window.CampaignPatterns && window.CampaignPatterns.spawnSideBlock && window.CampaignPatterns.spawnSideBlock({ side: 'left', speed: 160 }); } catch(_){} } },
+        { time: 6.0, handler: function() { try { window.CampaignPatterns && window.CampaignPatterns.spawnSideBlock && window.CampaignPatterns.spawnSideBlock({ side: 'right', speed: 160 }); } catch(_){} } },
+        { time: 10.0, handler: function() { try { for (let i=0;i<3;i++) { _schedule(i*220, ()=>{ try{ window.CampaignPatterns.spawnSideBlock && window.CampaignPatterns.spawnSideBlock({ side: (i%2? 'right':'left'), speed: 180 + i*20 }); }catch(_){} }); } } catch(_){} } },
+        { time: 18.0, type: 'pressureWave', duration: 4 },
+        { time: 26.0, handler: function() { try { window.CampaignPatterns && window.CampaignPatterns.spawnSideBlock && window.CampaignPatterns.spawnSideBlock({ side: (window.campaignRandom() < 0.5 ? 'left' : 'right'), speed: 220 }); } catch(_){} } }
       ],
       settings: {
-        speedMult: 0.95, spawnInterval: 0.40, forbiddenInterval: 2.5,
-        coinsEnabled: true, coinItemInterval: 3.0, powerupsEnabled: false,
-        diffCap: { maxSpeedMult: 1.10, minSpawnInterval: 0.35, minForbiddenInterval: 2.0 },
+        speedMult: 0.92, spawnInterval: 0.48, forbiddenInterval: 2.6,
+        coinsEnabled: false, coinItemInterval: null, powerupsEnabled: false,
+        diffCap: { maxSpeedMult: 1.12, minSpawnInterval: 0.36, minForbiddenInterval: 1.9 },
         disablePanic: false, disableDoubleDanger: false,
         doubleTroubleAt: [], shrinkingArena: false, bossMode: false,
       },
     },
     {
       id: 7,
-      name: 'Double Trouble',
-      subtitle: 'Survive waves of chaos every 15 seconds.',
+      name: 'Coin Lane',
+      subtitle: 'Coins follow risky lanes — take the dare for big rewards.',
       difficulty: 'Hard',
       difficultyColor: '#ef4444',
-      objectiveType: 'survive_seconds',
-      objectiveTarget: 60,
-      timeLimit: null,
-      rewardCoins: 210,
-      replayReward: 18,
-      tip: 'At 15s, 30s and 45s a surge fires. Use the brief warning to find a safe zone.',
+      objectiveType: 'collect_coins',
+      objectiveTarget: 20,
+      timeLimit: 45,
+      rewardCoins: 200,
+      replayReward: 16,
+      tip: 'Coins lane up — but they run through dangerous paths. Time your runs and retreat safely.',
       starConditions: [
-        { stars: 3, label: 'No hits',       check: (d) => d.hitsReceived === 0 },
-        { stars: 2, label: 'At most 1 hit', check: (d) => d.hitsReceived <= 1 },
-        { stars: 1, label: 'Survive 60s',   check: (d) => true },
+        { stars: 3, label: '10+ sec left', check: (d) => (d && Number(d.timeRemaining || 0) >= 10) },
+        { stars: 2, label: '5+ sec left',  check: (d) => (d && Number(d.timeRemaining || 0) >= 5) },
+        { stars: 1, label: 'Collect 20',   check: (d) => true },
       ],
       spawnScript: [
-        { time: 12.0, type: 'warning', text: 'Double Trouble imminent' },
-        { time: 15.0, type: 'panicWave', duration: 4 },
-        { time: 30.0, type: 'panicWave', duration: 4 },
-        { time: 45.0, type: 'panicWave', duration: 4 }
-        ,{ time: 16.0, handler: function(ev) { try { window.CampaignPatterns && window.CampaignPatterns.spawnSideBlock && window.CampaignPatterns.spawnSideBlock({ side: 'left' }); } catch(_){} } },
-        { time: 34.0, handler: function(ev) { try { window.CampaignPatterns && window.CampaignPatterns.spawnSideBlock && window.CampaignPatterns.spawnSideBlock({ side: 'right' }); } catch(_){} } }
+        { time: 2.0, handler: function() { try { for (let i=0;i<3;i++) _schedule(i*160, ()=> _createCoinAtLane(1 + i, { count: 1 })); } catch(_){} } },
+        { time: 8.0, handler: function() { try { _createCoinAtLane(0,{count:2}); _createCoinAtLane(4,{count:2}); } catch(_){} } },
+        { time: 14.0, handler: function() { try { window.CampaignPatterns && window.CampaignPatterns.spawnSideBlock && window.CampaignPatterns.spawnSideBlock({ side: 'left' }); window.CampaignPatterns && window.CampaignPatterns.spawnSideBlock && window.CampaignPatterns.spawnSideBlock({ side: 'right' }); } catch(_){} } },
+        { time: 22.0, handler: function() { try { for (let i=0;i<4;i++) _schedule(i*120, ()=> _createCoinAtLane(i%5,{count:1})); } catch(_){} } },
+        { time: 30.0, type: 'pressureWave', duration: 4 }
       ],
       settings: {
-        speedMult: 1.0, spawnInterval: 0.42, forbiddenInterval: 2.8,
-        coinsEnabled: false, coinItemInterval: null, powerupsEnabled: false,
-        diffCap: { maxSpeedMult: 1.15, minSpawnInterval: 0.35, minForbiddenInterval: 2.3 },
+        speedMult: 0.95, spawnInterval: 0.44, forbiddenInterval: 3.0,
+        coinsEnabled: true, coinItemInterval: null, powerupsEnabled: false,
+        diffCap: { maxSpeedMult: 1.15, minSpawnInterval: 0.34, minForbiddenInterval: 2.0 },
         disablePanic: false, disableDoubleDanger: false,
-        doubleTroubleAt: [15, 30, 45], shrinkingArena: false, bossMode: false,
+        doubleTroubleAt: [], shrinkingArena: false, bossMode: false,
       },
     },
     {
       id: 8,
-      name: 'Shrinking Arena',
-      subtitle: 'The walls are closing in. Stay alive.',
+      name: 'Panic Wave',
+      subtitle: 'Timed waves that escalate into full panic.',
       difficulty: 'Hard',
       difficultyColor: '#ef4444',
       objectiveType: 'survive_seconds',
@@ -350,90 +351,87 @@ const CAMPAIGN_LEVELS = [
       timeLimit: 50,
       rewardCoins: 240,
       replayReward: 20,
-      tip: 'Watch the glowing boundaries. Move early and keep to the inner arena.',
+      tip: 'Waves come on a schedule. Use warnings to reposition and survive the surge.',
       starConditions: [
-        { stars: 3, label: 'No hits',       check: (d) => d.hitsReceived === 0 },
-        { stars: 2, label: 'At most 1 hit', check: (d) => d.hitsReceived <= 1 },
+        { stars: 3, label: 'No hits',       check: (d) => (d && Number(d.hitsReceived || 0) === 0) },
+        { stars: 2, label: '≤ 1 hit',       check: (d) => (d && Number(d.hitsReceived || 0) <= 1) },
         { stars: 1, label: 'Survive 50s',   check: (d) => true },
       ],
       spawnScript: [
-        { time: 2.0, type: 'fallingWave', pattern: 'tight' },
-        { time: 6.0, handler: function(ev) { try { window.CampaignPatterns && window.CampaignPatterns.movingGapWall && window.CampaignPatterns.movingGapWall({}); } catch(_){} } },
-        { time: 14.0, type: 'pressureWave', duration: 3 }
-        ,{ time: 28.0, handler: function(ev) { try { window.CampaignPatterns && window.CampaignPatterns.doubleGapWall && window.CampaignPatterns.doubleGapWall({}); } catch(_){} } }
+        { time: 8.0, type: 'warning', text: 'First wave incoming' },
+        { time: 10.0, type: 'panicWave', duration: 4 },
+        { time: 24.0, type: 'warning', text: 'Brace again' },
+        { time: 26.0, type: 'panicWave', duration: 5 },
+        { time: 38.0, type: 'panicWave', duration: 7 }
       ],
       settings: {
-        speedMult: 1.0, spawnInterval: 0.38, forbiddenInterval: 2.8,
+        speedMult: 1.0, spawnInterval: 0.40, forbiddenInterval: 2.6,
         coinsEnabled: false, coinItemInterval: null, powerupsEnabled: false,
-        diffCap: { maxSpeedMult: 1.10, minSpawnInterval: 0.32, minForbiddenInterval: 2.3 },
+        diffCap: { maxSpeedMult: 1.18, minSpawnInterval: 0.30, minForbiddenInterval: 1.8 },
         disablePanic: false, disableDoubleDanger: false,
-        doubleTroubleAt: [], shrinkingArena: true, bossMode: false,
+        doubleTroubleAt: [], shrinkingArena: false, bossMode: false,
       },
     },
     {
       id: 9,
-      name: 'Final Trial',
-      subtitle: 'Three objectives. One chance. No mercy.',
+      name: 'Combo Trial',
+      subtitle: 'Chain near-misses and clean dodges for combo rewards.',
       difficulty: 'Expert',
       difficultyColor: '#a855f7',
-      objectiveType: 'hybrid',
-      objectiveTarget: { seconds: 75, coins: 20, dodges: 60 },
-      timeLimit: null,
-      rewardCoins: 300,
-      replayReward: 25,
-      tip: 'All three objectives must be completed. Panic wave fires at 45s — be ready.',
+      objectiveType: 'survive_seconds',
+      objectiveTarget: 45,
+      timeLimit: 45,
+      rewardCoins: 280,
+      replayReward: 22,
+      tip: 'Near-misses build combo — flirt with danger without touching it.',
       starConditions: [
-        { stars: 3, label: 'No hits',       check: (d) => d.hitsReceived === 0 },
-        { stars: 2, label: 'At most 1 hit', check: (d) => d.hitsReceived <= 1 },
-        { stars: 1, label: 'All 3 done',    check: (d) => true },
+        { stars: 3, label: 'Combo Master', check: (d) => (d && (Number(d.nearMisses || d.comboScore || 0) >= 15)) },
+        { stars: 2, label: 'Good Run',     check: (d) => (d && (Number(d.nearMisses || d.comboScore || 0) >= 8)) },
+        { stars: 1, label: 'Survive 45s',  check: (d) => true },
       ],
       spawnScript: [
-        { time: 5.0, type: 'fallingWave', pattern: 'default' },
-        { time: 12.0, handler: function(ev) { try { window.CampaignPatterns && window.CampaignPatterns.doubleGapWall && window.CampaignPatterns.doubleGapWall({}); } catch(_){} } },
-        { time: 20.0, type: 'pressureWave', duration: 4 },
-        { time: 45.0, type: 'panicWave', duration: 6 }
-        ,{ time: 28.0, handler: function(ev) { try { window.CampaignPatterns && window.CampaignPatterns.spawnSideBlock && window.CampaignPatterns.spawnSideBlock({ side: (window.campaignRandom() < 0.5 ? 'left' : 'right') }); } catch(_){} } }
-        ,{ time: 36.0, handler: function(ev) { try { window.CampaignPatterns && window.CampaignPatterns.fakeEasyGapRiskyCoin && window.CampaignPatterns.fakeEasyGapRiskyCoin({}); } catch(_){} } }
+        { time: 2.0, handler: function() { try { window.CampaignPatterns && window.CampaignPatterns.singleGapWall && window.CampaignPatterns.singleGapWall({ narrow: true }); } catch(_){} } },
+        { time: 8.0, handler: function() { try { window.CampaignPatterns && window.CampaignPatterns.staggeredGapRows && window.CampaignPatterns.staggeredGapRows({ jitter: 0.06 }); } catch(_){} } },
+        { time: 20.0, handler: function() { try { for (let i=0;i<3;i++) _schedule(i*140, ()=> window.CampaignPatterns && window.CampaignPatterns.spawnSideBlock && window.CampaignPatterns.spawnSideBlock({ speed: 160 + i*20 })); } catch(_){} } }
       ],
       settings: {
-        speedMult: 1.05, spawnInterval: 0.35, forbiddenInterval: 2.3,
-        coinsEnabled: true, coinItemInterval: 4.0, powerupsEnabled: false,
-        diffCap: { maxSpeedMult: 1.20, minSpawnInterval: 0.28, minForbiddenInterval: 1.8 },
-        disablePanic: false, disableDoubleDanger: false,
-        doubleTroubleAt: [25, 55], shrinkingArena: false, bossMode: false,
+        speedMult: 1.03, spawnInterval: 0.38, forbiddenInterval: 2.4,
+        coinsEnabled: false, coinItemInterval: null, powerupsEnabled: false,
+        diffCap: { maxSpeedMult: 1.25, minSpawnInterval: 0.28, minForbiddenInterval: 1.6 },
+        disablePanic: true, disableDoubleDanger: false,
+        doubleTroubleAt: [], shrinkingArena: false, bossMode: false,
       },
     },
     {
       id: 10,
-      name: 'The Panic Core',
-      subtitle: 'Face the boss. Collect orbs to deal damage.',
+      name: 'Mini Boss',
+      subtitle: 'A compact Panic Core — mixed mechanics and orbs.',
       difficulty: 'Boss',
       difficultyColor: '#ec4899',
       objectiveType: 'boss_defeat',
-      objectiveTarget: 10,
-      timeLimit: 120,
-      rewardCoins: 600,
-      replayReward: 50,
-      tip: 'Collect glowing orbs to damage the boss. Dodge its projectiles — they have warning lines.',
+      objectiveTarget: 6,
+      timeLimit: 90,
+      rewardCoins: 420,
+      replayReward: 40,
+      tip: 'Collect orbs to damage the core; watch warning lines before attacks.',
       starConditions: [
-        { stars: 3, label: 'No hits',       check: (d) => d.hitsReceived === 0 },
-        { stars: 2, label: 'Defeat boss',   check: (d) => d.bossDefeated === true },
-        { stars: 1, label: 'Defeat boss',   check: (d) => d.bossDefeated === true },
+        { stars: 3, label: 'No hits',       check: (d) => (d && Number(d.hitsReceived || 0) === 0) },
+        { stars: 2, label: 'Defeat boss',   check: (d) => (d && !!d.bossDefeated) },
+        { stars: 1, label: 'Defeat boss',   check: (d) => (d && !!d.bossDefeated) },
       ],
       spawnScript: [
-        { time: 2.0, type: 'bossAttack' },
-        { time: 6.0, type: 'coinTrail', pattern: 'leftToRightArc', lane: 1, count: 3, orb: true },
-        { time: 10.0, type: 'fallingWave', pattern: 'tight' },
-        { time: 18.0, type: 'coinTrail', pattern: 'rightToLeftArc', lane: 3, count: 4, orb: true },
-        { time: 30.0, type: 'pressureWave', duration: 5 },
-        { time: 36.0, type: 'coinTrail', pattern: 'leftToRightArc', lane: 2, count: 3, orb: true },
-        { time: 8.0, handler: function(ev) { try { window.CampaignPatterns && window.CampaignPatterns.spawnSideBlock && window.CampaignPatterns.spawnSideBlock({ side: 'left', y: canvas ? Math.max(160, Math.min(canvas.height - 160, player ? player.y : canvas.height * 0.7)) }); } catch(_){} } },
-        { time: 50.0, handler: function(ev) { try { window.CampaignPatterns && window.CampaignPatterns.spawnSideBlock && window.CampaignPatterns.spawnSideBlock({ side: 'right' }); } catch(_){} } }
+        { time: 1.5, type: 'bossAttack' },
+        { time: 5.0, type: 'coinTrail', pattern: 'leftToRightArc', lane: 1, count: 2, orb: true },
+        { time: 9.0, type: 'fallingWave', pattern: 'tight' },
+        { time: 16.0, type: 'coinTrail', pattern: 'rightToLeftArc', lane: 3, count: 3, orb: true },
+        { time: 26.0, type: 'pressureWave', duration: 4 },
+        { time: 34.0, handler: function() { try { window.CampaignPatterns && window.CampaignPatterns.spawnSideBlock && window.CampaignPatterns.spawnSideBlock({ side: 'left' }); } catch(_){} } },
+        { time: 44.0, handler: function() { try { window.CampaignPatterns && window.CampaignPatterns.spawnSideBlock && window.CampaignPatterns.spawnSideBlock({ side: 'right' }); } catch(_){} } }
       ],
       settings: {
-        speedMult: 0.90, spawnInterval: 0.48, forbiddenInterval: 3.0,
-        coinsEnabled: true, coinItemInterval: 4.5, powerupsEnabled: false,
-        diffCap: { maxSpeedMult: 1.10, minSpawnInterval: 0.38, minForbiddenInterval: 2.5 },
+        speedMult: 0.92, spawnInterval: 0.46, forbiddenInterval: 3.0,
+        coinsEnabled: true, coinItemInterval: 4.0, powerupsEnabled: false,
+        diffCap: { maxSpeedMult: 1.12, minSpawnInterval: 0.36, minForbiddenInterval: 2.4 },
         disablePanic: false, disableDoubleDanger: false,
         doubleTroubleAt: [], shrinkingArena: false, bossMode: true,
       },
@@ -528,6 +526,32 @@ const CampaignSave = (() => {
   function load() {
     if (_data) return _data;
     try {
+      // Prefer centralized SaveManager when available (handles backups and safe parsing)
+      if (typeof SaveManager !== 'undefined') {
+        try {
+          const parsed = SaveManager.getJSON(LS_KEY);
+          if (!parsed) { _data = _default(); return _data; }
+          _data = Object.assign(_default(), parsed || {});
+          // Coerce/validate fields
+          _data.highestUnlockedLevel = Number.isFinite(Number(_data.highestUnlockedLevel)) ? Math.max(1, Number(_data.highestUnlockedLevel)) : 1;
+          _data.completedLevels = (_data.completedLevels && typeof _data.completedLevels === 'object') ? _data.completedLevels : {};
+          _data.starsByLevel = (_data.starsByLevel && typeof _data.starsByLevel === 'object') ? _data.starsByLevel : {};
+          _data.bestScoresByLevel = (_data.bestScoresByLevel && typeof _data.bestScoresByLevel === 'object') ? _data.bestScoresByLevel : {};
+          _data.bestTimesByLevel = (_data.bestTimesByLevel && typeof _data.bestTimesByLevel === 'object') ? _data.bestTimesByLevel : {};
+          _data.disabledBriefings = (_data.disabledBriefings && typeof _data.disabledBriefings === 'object') ? _data.disabledBriefings : {};
+          _data.campaignCoinsEarned = Number.isFinite(Number(_data.campaignCoinsEarned)) ? Number(_data.campaignCoinsEarned) : 0;
+          _data.totalStars = Object.values(_data.starsByLevel || {}).reduce((s, n) => s + (Number(n) || 0), 0);
+          if ((parsed && parsed.version) !== VERSION) {
+            _data.version = VERSION;
+            try { SaveManager.setJSON(LS_KEY, _data, { version: VERSION }); } catch (_) {}
+          }
+          return _data;
+        } catch (e) {
+          console.warn('[CampaignSave] SaveManager.getJSON failed, falling back to localStorage parsing', e);
+        }
+      }
+
+      // Fallback: defensive localStorage parsing and sanitization
       const raw = localStorage.getItem(LS_KEY);
       if (!raw) { _data = _default(); return _data; }
       // Be defensive when parsing user data — attempt to recover malformed JSON
@@ -569,7 +593,7 @@ const CampaignSave = (() => {
       // If parsed.version differs, perform a soft migration (preserve fields but bump version)
       if (parsed.version !== VERSION) {
         _data.version = VERSION;
-        try { localStorage.setItem(LS_KEY, JSON.stringify(_data)); } catch (_) {}
+        try { if (typeof SaveManager !== 'undefined') SaveManager.setJSON(LS_KEY, _data, { version: VERSION }); else localStorage.setItem(LS_KEY, JSON.stringify(_data)); } catch (_) {}
       }
     } catch (_) {
       // If anything unexpected happens, fall back to defaults but avoid clobbering the user's saved raw string
@@ -585,7 +609,7 @@ const CampaignSave = (() => {
   function save() {
     if (!_data) return;
     _data.totalStars = _countTotalStars(_data.starsByLevel);
-    try { localStorage.setItem(LS_KEY, JSON.stringify(_data)); } catch (_) {}
+    try { if (typeof SaveManager !== 'undefined') SaveManager.setJSON(LS_KEY, _data, { version: VERSION }); else localStorage.setItem(LS_KEY, JSON.stringify(_data)); } catch (_) {}
   }
 
   function get() { return load(); }
@@ -1479,6 +1503,17 @@ const CampaignUI = (() => {
       return _buildLevelNode(lvl, saveData, side);
     }).join('');
 
+    // Hero strip: highlight the next playable level with a large CTA
+    let nextLevel = CAMPAIGN_LEVELS.find(l => CampaignSave.isUnlocked(l.id) && !CampaignSave.isCompleted(l.id));
+    if (!nextLevel) {
+      nextLevel = CAMPAIGN_LEVELS.find(l => CampaignSave.isUnlocked(l.id)) || CAMPAIGN_LEVELS[0];
+    }
+    const nextObjSummary = nextLevel ? _getObjectiveSummary(nextLevel) : '';
+    const nextBtnLabel = nextLevel && CampaignSave.isCompleted(nextLevel.id) ? 'Replay' : 'Play Next';
+    const heroBtnHtml = nextLevel ? `<button class="cmp-node-btn cmp-node-btn--play" data-level-id="${nextLevel.id}" aria-label="${nextBtnLabel}: ${nextLevel.name}">${nextBtnLabel}</button>` : '';
+    const heroTitleHtml = nextLevel ? `<div class="cmp-hero-next">Next: ${nextLevel.name}</div><div class="cmp-hero-desc">${nextObjSummary}</div>` : '';
+    const heroHtml = `<div class="cmp-road-hero" role="group" aria-label="Next mission"> <div class="cmp-hero-left">${heroTitleHtml}</div><div class="cmp-hero-right">${heroBtnHtml}</div></div>`;
+
     el.innerHTML = `
       <div class="cmp-road-outer">
         <div class="cmp-road-particles" aria-hidden="true">${particlesHtml}</div>
@@ -1487,6 +1522,7 @@ const CampaignUI = (() => {
           <header class="cmp-road-header">
             <h1 class="cmp-road-title">Shift Trials</h1>
             <p class="cmp-road-subtitle">Clear missions. Earn stars. Beat the Panic Core.</p>
+            ${heroHtml}
             <div class="cmp-road-statsbar">
               <div class="cmp-road-stat">
                 <span class="cmp-road-stat-val">${nCompleted}/${total}</span>

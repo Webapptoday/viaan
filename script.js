@@ -441,9 +441,8 @@ function updateStreak() {
 
 function loadMissions() {
   try {
-    const raw = localStorage.getItem('forbiddenColor_missions');
-    if (!raw) return;
-    const saved = JSON.parse(raw);
+    const saved = (typeof SaveManager !== 'undefined') ? SaveManager.getJSON('forbiddenColor_missions') : (function(){ try{ const r = localStorage.getItem('forbiddenColor_missions'); return r ? JSON.parse(r) : null; }catch(e){return null;} })();
+    if (!saved) return;
     if (saved && typeof saved === 'object') {
       MISSION_DEFS.forEach(m => {
         if (saved[m.id]) {
@@ -463,7 +462,7 @@ function saveMissions() {
   try {
     const out = { _pendingBonus: pendingMissionBonus };
     MISSION_DEFS.forEach(m => { out[m.id] = missionState[m.id] || { done: false, progress: 0 }; });
-    localStorage.setItem('forbiddenColor_missions', JSON.stringify(out));
+    if (typeof SaveManager !== 'undefined') SaveManager.setJSON('forbiddenColor_missions', out); else localStorage.setItem('forbiddenColor_missions', JSON.stringify(out));
   } catch (_) {}
 }
 
@@ -862,9 +861,8 @@ let gameStats = {
 
 function loadStats() {
   try {
-    const raw = localStorage.getItem('forbiddenColor_stats');
-    if (!raw) return;
-    const s = JSON.parse(raw);
+    const s = (typeof SaveManager !== 'undefined') ? SaveManager.getJSON('forbiddenColor_stats') : null;
+    if (!s) return;
     if (typeof s.totalRuns       === 'number') gameStats.totalRuns       = s.totalRuns;
     if (typeof s.longestSurvival === 'number') gameStats.longestSurvival = s.longestSurvival;
     if (typeof s.totalPowerups   === 'number') gameStats.totalPowerups   = s.totalPowerups;
@@ -874,7 +872,7 @@ function loadStats() {
 }
 
 function saveStats() {
-  try { localStorage.setItem('forbiddenColor_stats', JSON.stringify(gameStats)); } catch (_) {}
+  try { if (typeof SaveManager !== 'undefined') SaveManager.setJSON('forbiddenColor_stats', gameStats); else localStorage.setItem('forbiddenColor_stats', JSON.stringify(gameStats)); } catch (_) {}
 }
 
 function updateStats(runSeconds) {
@@ -919,9 +917,8 @@ function renderStatsUI() {
 
 function loadSettings() {
   try {
-    const raw = localStorage.getItem('forbiddenColor_settings');
-    if (!raw) return;
-    const s = JSON.parse(raw);
+    const s = (typeof SaveManager !== 'undefined') ? SaveManager.getJSON('forbiddenColor_settings') : (function(){ try{ const r = localStorage.getItem('forbiddenColor_settings'); return r ? JSON.parse(r) : null; }catch(e){return null;} })();
+    if (!s) return;
     let _migrated = false;
     // Load version guards FIRST so that saveSettings() will persist them.
     // Without this, economyVersion is never saved and the migration fires every reload.
@@ -1008,7 +1005,7 @@ function loadSettings() {
 }
 
 function saveSettings() {
-  try { localStorage.setItem('forbiddenColor_settings', JSON.stringify(settings)); } catch (_) {}
+  try { if (typeof SaveManager !== 'undefined') SaveManager.setJSON('forbiddenColor_settings', settings, { version: 1 }); else localStorage.setItem('forbiddenColor_settings', JSON.stringify(settings)); } catch (_) {}
 }
 
 function applyColorMode() {
@@ -1232,11 +1229,71 @@ function claimLifetimeReward(id) {
   renderLifetimeProgressUI();
 }
 
+/* ---- Player rank title (based on lifetime score) ---- */
+const RANK_TIERS = [
+  { min: 0,        label: 'Panic Rookie'   },
+  { min: 25000,    label: 'Block Dodger'   },
+  { min: 100000,   label: 'Color Shifter'  },
+  { min: 300000,   label: 'Trailblazer'    },
+  { min: 750000,   label: 'Panic Survivor' },
+  { min: 1500000,  label: 'Veteran'        },
+  { min: 3000000,  label: 'Legend'         },
+  { min: 5000000,  label: 'Mythic'         },
+];
+function getPlayerRankTitle() {
+  const lt = Math.floor(settings.lifetimeScore || 0);
+  let title = RANK_TIERS[0].label;
+  for (const tier of RANK_TIERS) {
+    if (lt >= tier.min) title = tier.label;
+    else break;
+  }
+  return title;
+}
+function syncRankUI() {
+  const rankTitle = getPlayerRankTitle();
+  const topbar = document.getElementById('topbar-rank-name');
+  const panel  = document.getElementById('home-player-rank');
+  if (topbar) topbar.textContent = rankTitle;
+  if (panel)  panel.textContent  = rankTitle;
+}
+
+/* ---- Achievement badges ---- */
+const ACHIEVEMENT_DEFS = [
+  { id: 'ach_welcome',    icon: 'S', label: 'Panic Rookie',  desc: 'Play your first game',        check: () => (settings.lifetimeScore || 0) > 0 },
+  { id: 'ach_score10k',   icon: 'S', label: 'High Scorer',   desc: 'Score 10,000 in one run',     check: () => (settings.bestScore || 0) >= 10000 },
+  { id: 'ach_score50k',   icon: 'S', label: 'Score Master',  desc: 'Score 50,000 in one run',     check: () => (settings.bestScore || 0) >= 50000 },
+  { id: 'ach_coins100',   icon: 'C', label: 'Coin Starter',  desc: 'Collect 100 total coins',     check: () => (settings.lifetimeScore || 0) >= 100000 },
+  { id: 'ach_trail',      icon: 'T', label: 'Trailblazer',   desc: 'Reach 300,000 lifetime score',check: () => (settings.lifetimeScore || 0) >= 300000 },
+  { id: 'ach_skin',       icon: 'K', label: 'Fashionista',   desc: 'Unlock any skin',             check: () => (settings.purchasedSkins || []).length > 0 },
+];
+function renderAchievementsUI() {
+  const list = document.getElementById('achievement-list');
+  if (!list) return;
+  list.innerHTML = '';
+  for (const def of ACHIEVEMENT_DEFS) {
+    const unlocked = def.check();
+    const li = document.createElement('li');
+    li.className = 'achievement-item' + (unlocked ? '' : ' ach-locked');
+    li.innerHTML =
+      '<span class="ach-icon" aria-hidden="true">' + def.icon + '</span>' +
+      '<span class="ach-info">' +
+        '<span class="ach-name">' + def.label + '</span>' +
+        '<span class="ach-sub">' + def.desc + '</span>' +
+      '</span>' +
+      '<span class="ach-check" aria-label="' + (unlocked ? 'Unlocked' : 'Locked') + '">' +
+        (unlocked ? '&#10003;' : '&#8212;') +
+      '</span>';
+    list.appendChild(li);
+  }
+}
+
 function renderLifetimeProgressUI() {
   normalizeLifetimeRewardState();
   const progress   = getLifetimeProgressState();
   const total      = progress.total;
   const nextReward = progress.nextReward;
+  syncRankUI();
+  renderAchievementsUI();
 
   // -- Home screen elements -----------------------------------------
   const homeScore  = document.getElementById('home-lifetime-score');
@@ -3108,8 +3165,8 @@ const DailyChallenge = (() => {
 
   function load() {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) _state = JSON.parse(raw);
+      const s = (typeof SaveManager !== 'undefined') ? SaveManager.getJSON(STORAGE_KEY) : (function(){ try{ const r = localStorage.getItem(STORAGE_KEY); return r ? JSON.parse(r) : null; }catch(e){return null;} })();
+      if (s) _state = s;
     } catch (_) {}
     const key = todayKey();
     // Reset if it's a new day
@@ -3120,7 +3177,7 @@ const DailyChallenge = (() => {
   }
 
   function save() {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(_state)); } catch (_) {}
+    try { if (typeof SaveManager !== 'undefined') SaveManager.setJSON(STORAGE_KEY, _state); else localStorage.setItem(STORAGE_KEY, JSON.stringify(_state)); } catch (_) {}
   }
 
   function getChallenge() { return getChallengeForDay(_state ? _state.dateKey : todayKey()); }
@@ -3183,6 +3240,9 @@ const DailyChallenge = (() => {
         ? _state.progress + ' / ' + ch.goal
         : '';
     }
+    // Sync topbar notification dot: show only when claimable
+    const dailyDot = document.getElementById('topbar-daily-dot');
+    if (dailyDot) dailyDot.hidden = !(_state.completed && !_state.claimed);
   }
 
   function startCountdown() {
@@ -3822,22 +3882,25 @@ const SkinAbility = (() => {
 
 
 function updateCoinUI(animate) {
-  const homeCoinEl     = document.getElementById('home-coins');
+  const homeCoinEl     = document.getElementById('home-coins');       // topbar
+  const mirrorCoinEl   = document.getElementById('home-coins-mirror'); // stats panel
   const progressCoinEl = document.getElementById('progress-coins');
   if (homeCoinEl)     homeCoinEl.textContent     = settings.coins;
+  if (mirrorCoinEl)   mirrorCoinEl.textContent   = settings.coins;
   if (progressCoinEl) progressCoinEl.textContent = settings.coins;
   updateSkinsUI();
   updatePowerupUpgradeUI();
   renderLifetimeProgressUI();
-  if (animate && homeCoinEl) {
-    const pill = homeCoinEl.closest('.home-coins');
-    if (pill) {
-      pill.classList.remove('coin-earn');
-      void pill.offsetWidth;
-      pill.classList.add('coin-earn');
-      setTimeout(() => pill.classList.remove('coin-earn'), 400);
+  if (animate) {
+    // Animate topbar pill
+    const topbarPill = homeCoinEl ? homeCoinEl.closest('.topbar-pill') : null;
+    if (topbarPill) {
+      topbarPill.classList.remove('coin-earn');
+      void topbarPill.offsetWidth;
+      topbarPill.classList.add('coin-earn');
+      setTimeout(() => topbarPill.classList.remove('coin-earn'), 400);
     }
-    // also animate the shop pill if visible
+    // Animate shop pill if visible
     const shopPill = progressCoinEl ? progressCoinEl.closest('.shop-coin-pill') : null;
     if (shopPill) {
       shopPill.classList.remove('coin-earn');
@@ -5065,7 +5128,6 @@ function drawPlayer() {
   const skin = getSkin();
   const now  = performance.now();
   ctx.save();
-  const corner = Math.max(8, Math.min(12, Math.round(Math.min(ob.w, ob.h) * 0.08)));
   // Ghost Shift: flicker player alpha to show phase-through is active
   if (SkinAbility.hasGhost()) {
     ctx.globalAlpha = 0.38 + 0.24 * Math.sin(now / 70);
@@ -6415,6 +6477,7 @@ function drawHatchPattern(x, y, w, h, r) {
 }
 
 function drawObstacle(ob) {
+  const corner     = Math.max(8, Math.min(12, Math.round(Math.min(ob.w, ob.h) * 0.08)));
   const isForbidden = isDangerous(ob);
   // A block is in warning state if it matches the upcoming forbidden color and we're
   // in the warning window - it is NOT dangerous yet but signals the player to dodge.
@@ -11553,6 +11616,16 @@ function init() {
   ctx    = canvas.getContext('2d');
 
   Announce.init();
+  // Apply lightweight migrations: add save-version metadata without altering user fields
+  try {
+    if (typeof SaveManager !== 'undefined') {
+      SaveManager.migrateIfNeeded('forbiddenColor_settings', 1, s => s);
+      SaveManager.migrateIfNeeded('forbiddenColor_stats', 1, s => s);
+      SaveManager.migrateIfNeeded('forbiddenColor_missions', 1, s => s);
+      SaveManager.migrateIfNeeded('forbiddenColor_dailyChallenge', 1, s => s);
+      SaveManager.migrateIfNeeded('shiftPanicCampaign', 1, s => s);
+    }
+  } catch (e) { console.warn('[Init] SaveManager migration error', e); }
   loadSettings();
   loadStats();
   loadMissions();
@@ -11566,8 +11639,13 @@ function init() {
   DailyChallenge.init();
   DailyChallenge.startCountdown();
   const _coinEl = document.getElementById('home-coins');
-  if (_coinEl && !settings.reducedMotion) {
-    setTimeout(() => animateCounter(0, settings.coins, 700, _coinEl), 500);
+  const _mirrorEl = document.getElementById('home-coins-mirror');
+  if (!settings.reducedMotion) {
+    if (_coinEl)    setTimeout(() => animateCounter(0, settings.coins, 700, _coinEl),    500);
+    if (_mirrorEl)  setTimeout(() => animateCounter(0, settings.coins, 700, _mirrorEl),  500);
+  } else {
+    if (_coinEl)   _coinEl.textContent   = settings.coins;
+    if (_mirrorEl) _mirrorEl.textContent = settings.coins;
   }
 
   // Focus traps for modals and overlays
@@ -11907,6 +11985,32 @@ function init() {
   canvas.addEventListener('pointercancel', onCanvasPointerUp);
 
   setupResize();
+
+  // Mascot eye tracking: pupils follow mouse over the home screen
+  (function() {
+    const homeScreen = document.getElementById('home-screen');
+    const mascot = document.getElementById('hero-mascot');
+    if (!homeScreen || !mascot) return;
+    function movePupils(cx, cy) {
+      const eyes = mascot.querySelectorAll('.mascot-eye');
+      eyes.forEach(eye => {
+        const rect = eye.getBoundingClientRect();
+        const ex = rect.left + rect.width / 2;
+        const ey = rect.top  + rect.height / 2;
+        const dx = cx - ex, dy = cy - ey;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const maxOffset = 4;
+        const ox = dist > 0 ? (dx / dist) * Math.min(dist * 0.15, maxOffset) : 0;
+        const oy = dist > 0 ? (dy / dist) * Math.min(dist * 0.15, maxOffset) : 0;
+        const pupil = eye.querySelector('.mascot-pupil');
+        if (pupil) pupil.style.transform = 'translate(calc(-50% + ' + ox + 'px), calc(-50% + ' + oy + 'px))';
+      });
+    }
+    homeScreen.addEventListener('mousemove', (e) => movePupils(e.clientX, e.clientY), { passive: true });
+    homeScreen.addEventListener('mouseleave', () => {
+      mascot.querySelectorAll('.mascot-pupil').forEach(p => { p.style.transform = ''; });
+    });
+  })();
 }
 
 document.addEventListener('DOMContentLoaded', init);
