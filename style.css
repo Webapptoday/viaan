@@ -6070,6 +6070,29 @@ body.reduced-motion .mascot-eye .mascot-pupil { animation: none !important; }
 }
 
 /* =============================================================
+   HERO IMAGE BACKGROUND
+   ============================================================= */
+
+/* Use the illustrated hero image as the home screen background.
+   #home-screen is position:fixed;inset:0;z-index:3 so this covers
+   the canvas/blob layers below without any JS changes. */
+#home-screen:not([hidden]) {
+  background-image:
+    linear-gradient(rgba(8, 4, 22, 0.52), rgba(8, 4, 22, 0.52)),
+    url('assets/shiftpanic-home-hero.png');
+  background-size: cover;
+  background-position: center top;
+  background-repeat: no-repeat;
+  background-color: #1a0a2e; /* fallback while image loads */
+}
+
+/* Hide the separate canvas background — image provides the backdrop */
+#home-bg-canvas { opacity: 0; pointer-events: none; }
+
+/* Suppress the ghost gameplay preview canvas — not needed with hero image */
+#home-preview-canvas { opacity: 0 !important; }
+
+/* =============================================================
    V2 POLISH — bigger mascot, icon badges, mode card, PLAYER PROGRESS
    ============================================================= */
 
