@@ -6091,6 +6091,20 @@ body.reduced-motion .lb-row, body.perf-low .lb-row { animation: none !important;
 /* tighten hero panel radius and inner padding for reference proportions */ 
 .hero-panel { border-radius: 28px; padding: 40px 46px; }
 
+/* extra Play CTA spark positions */
+.btn-play-now .spark.s3 { right: 64px; top: -6px; width: 10px; height: 10px; opacity: .9; transform: rotate(12deg) scale(.95); }
+.btn-play-now .spark.s4 { left: 46%; top: 8px; width: 8px; height: 8px; opacity: .7; transform: rotate(3deg) scale(1.02); }
+
+/* hero decorative coins/cubes (lightweight, css-only) */
+.hero-decor .hcoin { position: absolute; width: 34px; height: 34px; border-radius: 9px; background: radial-gradient(circle at 40% 40%, #ffd86b 0%, #ffb84a 40%, #ff8b3a 100%); box-shadow: 0 8px 30px rgba(255,160,80,.22), 0 2px 8px rgba(0,0,0,.36); opacity: .95; filter: blur(0.6px); transform: rotate(10deg); }
+.hero-decor .hcoin.hc1 { left: 8%; top: 6%; width: 24px; height: 24px; border-radius: 6px; }
+.hero-decor .hcoin.hc2 { right: 12%; bottom: 6%; width: 40px; height: 40px; border-radius: 8px; transform: rotate(-18deg); opacity: .9; }
+
+/* small cube accents */
+.hero-decor .hcube { position: absolute; width: 22px; height: 22px; border-radius:6px; background: linear-gradient(135deg,#8b5cf6,#fb7185); box-shadow: 0 10px 30px rgba(139,92,246,.16); opacity:.9; filter: blur(1px); }
+.hero-decor .hcube.c1 { left: 72%; top: 8%; transform: rotate(18deg) scale(1.2); }
+.hero-decor .hcube.c2 { right: 22%; bottom: 18%; transform: rotate(-6deg) scale(.95); }
+
 
 /* ---- Daily Challenge HERO card ------------------------------- */
 .daily-challenge-card.daily-challenge-hero {
