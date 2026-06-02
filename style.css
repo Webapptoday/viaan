@@ -5918,6 +5918,43 @@ body.reduced-motion .lb-row, body.perf-low .lb-row { animation: none !important;
 
 .play-now-icon { display: flex; align-items: center; flex-shrink: 0; opacity: .98; }
 
+/* Play CTA: burst behind the button for rays and stronger glow */
+.btn-play-now .play-burst {
+  position: absolute;
+  left: -18px; right: -18px; top: -18px; bottom: -18px;
+  border-radius: 42px;
+  background-image:
+    radial-gradient(circle at 50% 40%, rgba(255,255,255,0.22) 0%, rgba(236,72,153,0.10) 18%, rgba(236,72,153,0.06) 28%, transparent 40%),
+    conic-gradient(from 200deg at 50% 50%, rgba(255,136,204,0.08) 0deg, rgba(255,136,204,0.00) 12deg, rgba(236,72,153,0.06) 24deg, rgba(255,136,204,0.00) 36deg, rgba(255,136,204,0.06) 48deg, rgba(255,136,204,0.00) 60deg);
+  filter: blur(12px) saturate(1.1);
+  opacity: 0.95;
+  transform: scale(.98);
+  z-index: 1; pointer-events: none;
+  animation: burstPulse 3s ease-in-out infinite;
+}
+
+/* ensure icon and text sit above burst */
+.btn-play-now .play-now-icon,
+.btn-play-now .play-text { position: relative; z-index: 4; }
+
+/* deepen the outer rim and glow */
+#btn-start.btn-play-now {
+  box-shadow:
+    0 0 0 6px rgba(255,136,204,0.06) inset,
+    0 8px 14px rgba(255,255,255,0.06) inset,
+    0 38px 140px rgba(236,72,153,.9),
+    0 0 260px rgba(236,72,153,.28);
+  border: 1px solid rgba(255,255,255,.12);
+}
+
+/* animated spark twinkle */
+@keyframes sparkTwinkle { 0%{opacity:.18; transform:translateY(0) scale(.9);} 50%{opacity:1; transform:translateY(-6px) scale(1);} 100%{opacity:.18; transform:translateY(0) scale(.9);} }
+.btn-play-now .spark { animation: sparkTwinkle 2.6s ease-in-out infinite; }
+.btn-play-now .spark.s3{ left: 12%; top: -6px; width: 10px; height:10px; opacity:.9; }
+.btn-play-now .spark.s4{ right: 8%; bottom: -10px; width: 12px; height:12px; opacity:.8; transform: rotate(-6deg); }
+
+@keyframes burstPulse { 0%,100%{ transform: scale(.98); opacity:.95; } 50%{ transform: scale(1.02); opacity:1; } }
+
 /* Panic Quest button */
 #btn-campaign.btn-campaign-home {
   width: 100%;
@@ -6024,6 +6061,33 @@ body.reduced-motion .lb-row, body.perf-low .lb-row { animation: none !important;
   transform: rotate(-10deg);
   pointer-events: none;
 }
+.mascot-trails {
+  position: absolute; right: -80px; top: 34%; width: 360px; height: 120px; pointer-events: none; z-index: 0; overflow: visible;
+}
+.mascot-trails::before, .mascot-trails::after {
+  content: '';
+  position: absolute; right: 0; bottom: 0; width: 280px; height: 36px; border-radius: 50px;
+  background: linear-gradient(90deg, rgba(124,58,237,0.0), rgba(124,58,237,.28), rgba(255,136,204,.06));
+  filter: blur(28px) saturate(1.2);
+  transform: rotate(-12deg) translateY(6px);
+  opacity: .86;
+}
+.mascot-trails::after { right: 24px; width: 200px; height: 28px; transform: rotate(-6deg) translateY(18px); opacity:.6; }
+
+/* extra decorative coins/cubes sizing/placement */
+.hero-decor .hc3 { left: 20%; bottom: 12%; width: 28px; height: 28px; border-radius: 8px; transform: rotate(6deg); opacity: .92; }
+.hero-decor .c3  { left: 62%; bottom: 6%; width: 30px; height: 30px; transform: rotate(-12deg) scale(1.05); opacity: .88; }
+
+/* coin shine animation */
+@keyframes coinFloat { 0%{ transform: translateY(0) rotate(6deg);} 50%{ transform: translateY(-8px) rotate(6deg);} 100%{ transform: translateY(0) rotate(6deg);} }
+.hero-decor .hcoin { animation: coinFloat 6.8s ease-in-out infinite; }
+
+/* subtle mascot rim pulse */
+@keyframes mascotRimPulse { 0%{ box-shadow: 0 22px 84px rgba(168,85,247,.64), 0 0 150px rgba(124,58,237,.30);} 50%{ box-shadow: 0 30px 96px rgba(168,85,247,.78), 0 0 220px rgba(124,58,237,.42);} 100%{ box-shadow: 0 22px 84px rgba(168,85,247,.64), 0 0 150px rgba(124,58,237,.30);} }
+.mascot-orb { animation: mascotRimPulse 3.6s ease-in-out infinite; }
+
+/* slightly brighter mascot shine */
+.mascot-shine { box-shadow: 0 10px 24px rgba(255,255,255,.18); transform: rotate(-18deg) translate(6px,-2px); }
 .mascot-shadow { width: 160px; height: 22px; margin-top: 12px; background: radial-gradient(ellipse at center, rgba(2,6,23,.7) 0%, transparent 60%); }
 .mascot-sparks .ms { width: 10px; height: 10px; border-radius: 50%; background: radial-gradient(circle, #fff 0%, rgba(255,255,255,.6) 40%, transparent 100%); box-shadow: 0 6px 18px rgba(255,180,220,.66); position: absolute; }
 .mascot-sparks .ms1 { left: 12px; top: 8px; transform: scale(.9); animation: playSparkFlicker 3.2s infinite ease-in-out; }
@@ -6036,6 +6100,17 @@ body.reduced-motion .lb-row, body.perf-low .lb-row { animation: none !important;
   background: linear-gradient(180deg, rgba(12,6,24,.66), rgba(8,6,20,.56));
   padding: 18px; border-radius: 16px; border: 1px solid rgba(255,255,255,.04);
   box-shadow: 0 12px 48px rgba(2,6,23,.72), inset 0 -8px 40px rgba(255,255,255,.02);
+}
+
+/* Gameplay preview card using the reference hero artwork */
+.hero-preview { width: 320px; height: 180px; margin-bottom: 12px; padding: 0; overflow: hidden; border-radius: 14px; position: relative; border: 1px solid rgba(255,255,255,.04); box-shadow: 0 12px 40px rgba(2,6,23,.68), 0 0 80px rgba(124,58,237,.06); }
+.hero-preview .hero-preview-inner { position: relative; width: 100%; height: 100%; }
+.hero-preview img { width: 100%; height: 100%; object-fit: cover; display: block; filter: saturate(1.05) contrast(1.02) brightness(.96); }
+.hero-preview .hero-preview-overlay { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(2,6,23,.28), rgba(2,6,23,.46)); pointer-events: none; }
+.hero-preview::after { content: ''; position: absolute; right: 10px; top: 10px; width: 34px; height: 34px; border-radius: 8px; background: linear-gradient(135deg,#ffd86b,#ffb84a); box-shadow: 0 6px 22px rgba(255,160,80,.22); opacity: .98; }
+
+@media (max-width: 979px) {
+  .hero-preview { display: none; }
 }
 .home-grid.centered .achievements-panel {
   background: linear-gradient(180deg, rgba(12,6,24,.58), rgba(8,6,20,.48)); border-radius: 14px; padding: 14px; border:1px solid rgba(255,255,255,.03);
